@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTheme } from 'next-themes';
 import { SettingOrder } from './SettingOrder';
 import { useTranslations } from 'next-intl';
-import { Bell, Clock3, GripVertical, Languages, ListOrdered, Monitor, Moon, RotateCcw, Sun, Landmark } from 'lucide-react';
+import { Bell, Clock3, GripVertical, Languages, ListOrdered, Monitor, Moon, RotateCcw, Sun, Landmark, Palette } from 'lucide-react';
 import {
     DragDropContext,
     Draggable,
@@ -26,6 +26,8 @@ import {
 } from '@/components/modules/navbar';
 import { serializeNavOrder, serializeNavVisible } from '@/components/modules/navbar';
 import { useSettingStore, type Locale } from '@/stores/setting';
+import { useThemePresetStore } from '@/stores/theme-preset';
+import { BUILTIN_PRESETS } from '@/lib/theme-presets';
 import { SettingKey, useSetSetting, useSettingList } from '@/api/endpoints/setting';
 import { toast } from '@/components/common/Toast';
 
@@ -242,6 +244,7 @@ function NavigationPreferences() {
 export function SettingAppearance() {
     const t = useTranslations('setting');
     const { theme, setTheme } = useTheme();
+    const { presetId, setPreset } = useThemePresetStore();
     const { locale, setLocale, timeZone, setTimeZone, chinaMode, setChinaMode, exchangeRate, setExchangeRate } = useSettingStore();
     const { data: settings } = useSettingList();
     const setSetting = useSetSetting();
@@ -331,6 +334,41 @@ export function SettingAppearance() {
                                 </SelectItem>
                             </SelectContent>
                         </Select>
+                    </div>
+
+                    <div className="flex flex-col gap-4 rounded-lg border border-primary/20 bg-gradient-to-br from-primary/5 to-transparent p-4 shadow-sm">
+                        <div className="flex items-center gap-3">
+                            <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/12">
+                                <Palette className="h-5 w-5 text-primary" />
+                            </div>
+                            <div className="space-y-0.5">
+                                <span className="text-sm font-semibold text-card-foreground">主题配色 · Theme</span>
+                                <p className="text-xs text-muted-foreground">选择配色预设，整站实时换肤（每个浏览器/账户独立）</p>
+                            </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            {BUILTIN_PRESETS.map((p) => (
+                                <button
+                                    key={p.id}
+                                    type="button"
+                                    onClick={() => setPreset(p.id)}
+                                    aria-pressed={presetId === p.id}
+                                    title={p.description}
+                                    className={cn(
+                                        'group flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition',
+                                        presetId === p.id
+                                            ? 'border-primary ring-2 ring-primary/30 bg-primary/5'
+                                            : 'border-border/40 hover:border-primary/40 hover:bg-muted/40'
+                                    )}
+                                >
+                                    <span
+                                        className="size-5 shrink-0 rounded-full border border-border/40"
+                                        style={{ background: p.swatch }}
+                                    />
+                                    <span className="font-medium text-card-foreground">{p.name}</span>
+                                </button>
+                            ))}
+                        </div>
                     </div>
 
                     <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">

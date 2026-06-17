@@ -2,6 +2,8 @@
 
 import * as React from "react"
 import { ThemeProvider as NextThemesProvider, useTheme } from "next-themes"
+import { useThemePresetStore } from "@/stores/theme-preset"
+import { getPreset, THEME_TOKEN_KEYS } from "@/lib/theme-presets"
 
 function ThemeColorUpdater() {
     const { resolvedTheme } = useTheme()
@@ -19,10 +21,41 @@ function ThemeColorUpdater() {
     return null
 }
 
+// PresetApplier injects the active theme preset's design tokens onto <html> as
+// inline CSS custom properties. Inline props override both :root and .dark, so
+// we apply the light/dark variant matching the resolved mode. Tokens the preset
+// does not define are removed, letting globals.css fall back cleanly. This is
+// what makes switching presets live-recolor the whole UI.
+function PresetApplier() {
+    const { resolvedTheme } = useTheme()
+    const presetId = useThemePresetStore((s) => s.presetId)
+
+    React.useEffect(() => {
+        const root = document.documentElement
+        const preset = getPreset(presetId)
+        const tokens =
+            preset && resolvedTheme === 'dark'
+                ? preset.dark
+                : preset?.light
+        for (const key of THEME_TOKEN_KEYS) {
+            const value = tokens?.[key]
+            if (value) {
+                root.style.setProperty(`--${key}`, value)
+            } else {
+                root.style.removeProperty(`--${key}`)
+            }
+        }
+        root.setAttribute('data-theme-preset', presetId)
+    }, [presetId, resolvedTheme])
+
+    return null
+}
+
 export function ThemeProvider({ children, ...props }: React.ComponentProps<typeof NextThemesProvider>) {
     return (
         <NextThemesProvider {...props}>
             <ThemeColorUpdater />
+            <PresetApplier />
             {children}
         </NextThemesProvider>
     )
