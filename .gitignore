@@ -60,3 +60,13 @@ node_modules/
 web/package-lock.json
 web/yarn.lock
 
+
+# ggzero local build/runtime artifacts
+node_modules/
+web/out/
+web/node_modules/
+ggzero.exe
+*.exe
+run.log
+build.log
+web/build.log
