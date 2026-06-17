@@ -44,6 +44,7 @@ export const SettingKey = {
     SemanticCacheEmbeddingTimeoutSeconds: 'semantic_cache_embedding_timeout_seconds',
     NavOrder: 'nav_order',
     NavVisible: 'nav_visible',
+    CustomThemes: 'custom_themes',
     AIRouteGroupID: 'ai_route_group_id',
     AIRouteBaseURL: 'ai_route_base_url',
     AIRouteAPIKey: 'ai_route_api_key',

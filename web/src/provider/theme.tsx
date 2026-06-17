@@ -3,6 +3,7 @@
 import * as React from "react"
 import { ThemeProvider as NextThemesProvider, useTheme } from "next-themes"
 import { useThemePresetStore } from "@/stores/theme-preset"
+import { useCustomThemesStore } from "@/stores/custom-themes"
 import { getPreset, THEME_TOKEN_KEYS } from "@/lib/theme-presets"
 
 function ThemeColorUpdater() {
@@ -29,10 +30,11 @@ function ThemeColorUpdater() {
 function PresetApplier() {
     const { resolvedTheme } = useTheme()
     const presetId = useThemePresetStore((s) => s.presetId)
+    const customThemes = useCustomThemesStore((s) => s.themes)
 
     React.useEffect(() => {
         const root = document.documentElement
-        const preset = getPreset(presetId)
+        const preset = getPreset(presetId, customThemes)
         const tokens =
             preset && resolvedTheme === 'dark'
                 ? preset.dark
@@ -46,7 +48,7 @@ function PresetApplier() {
             }
         }
         root.setAttribute('data-theme-preset', presetId)
-    }, [presetId, resolvedTheme])
+    }, [presetId, resolvedTheme, customThemes])
 
     return null
 }

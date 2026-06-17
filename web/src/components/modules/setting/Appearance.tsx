@@ -28,6 +28,7 @@ import { serializeNavOrder, serializeNavVisible } from '@/components/modules/nav
 import { useSettingStore, type Locale } from '@/stores/setting';
 import { useThemePresetStore } from '@/stores/theme-preset';
 import { BUILTIN_PRESETS } from '@/lib/theme-presets';
+import { useCustomThemesStore, parseCustomThemes } from '@/stores/custom-themes';
 import { SettingKey, useSetSetting, useSettingList } from '@/api/endpoints/setting';
 import { toast } from '@/components/common/Toast';
 
@@ -245,6 +246,9 @@ export function SettingAppearance() {
     const t = useTranslations('setting');
     const { theme, setTheme } = useTheme();
     const { presetId, setPreset } = useThemePresetStore();
+    const { themes: customThemes, setThemes: setCustomThemes } = useCustomThemesStore();
+    const [themeUploadOpen, setThemeUploadOpen] = useState(false);
+    const [themeUploadText, setThemeUploadText] = useState('');
     const { locale, setLocale, timeZone, setTimeZone, chinaMode, setChinaMode, exchangeRate, setExchangeRate } = useSettingStore();
     const { data: settings } = useSettingList();
     const setSetting = useSetSetting();
@@ -262,6 +266,44 @@ export function SettingAppearance() {
         queueMicrotask(() => setAlertNotifyLanguage(nextValue));
         initialAlertNotifyLanguage.current = nextValue;
     }, [settings]);
+
+    // Sync server-side uploaded themes (custom_themes setting) into the client store
+    // so both the picker and the live applier see them.
+    useEffect(() => {
+        if (!settings) return;
+        const customThemesSetting = settings.find((item) => item.key === SettingKey.CustomThemes);
+        setCustomThemes(parseCustomThemes(customThemesSetting?.value));
+    }, [settings, setCustomThemes]);
+
+    const handleAddTheme = useCallback(() => {
+        let parsed: unknown;
+        try {
+            parsed = JSON.parse(themeUploadText);
+        } catch {
+            toast.error('JSON 解析失败');
+            return;
+        }
+        const incoming = parseCustomThemes(JSON.stringify(Array.isArray(parsed) ? parsed : [parsed]));
+        if (incoming.length === 0) {
+            toast.error('主题格式无效：需包含 id、name 以及 light/dark 颜色 token');
+            return;
+        }
+        const byId = new Map(customThemes.map((th) => [th.id, th]));
+        for (const th of incoming) byId.set(th.id, th);
+        const merged = Array.from(byId.values());
+        setSetting.mutate(
+            { key: SettingKey.CustomThemes, value: JSON.stringify(merged) },
+            {
+                onSuccess: () => {
+                    setCustomThemes(merged);
+                    setThemeUploadText('');
+                    setThemeUploadOpen(false);
+                    toast.success(`已添加 ${incoming.length} 个主题`);
+                },
+                onError: () => toast.error(t('saveFailed')),
+            }
+        );
+    }, [themeUploadText, customThemes, setSetting, setCustomThemes, t]);
 
     const handleAlertNotifyLanguageChange = (value: string) => {
         const nextValue = normalizeAlertNotifyLanguage(value);
@@ -347,7 +389,7 @@ export function SettingAppearance() {
                             </div>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                            {BUILTIN_PRESETS.map((p) => (
+                            {[...BUILTIN_PRESETS, ...customThemes].map((p) => (
                                 <button
                                     key={p.id}
                                     type="button"
@@ -369,6 +411,42 @@ export function SettingAppearance() {
                                 </button>
                             ))}
                         </div>
+                    </div>
+
+                    <div className="flex flex-col gap-3 rounded-lg border-border/30 bg-card p-4 shadow-sm">
+                        <button
+                            type="button"
+                            onClick={() => setThemeUploadOpen((v) => !v)}
+                            className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition hover:text-foreground"
+                        >
+                            <Palette className="h-4 w-4" />
+                            上传 / 自定义主题（粘贴 JSON）
+                        </button>
+                        {themeUploadOpen && (
+                            <div className="flex flex-col gap-3">
+                                <textarea
+                                    value={themeUploadText}
+                                    onChange={(e) => setThemeUploadText(e.target.value)}
+                                    rows={8}
+                                    spellCheck={false}
+                                    placeholder={'{\n  "id": "mytheme",\n  "name": "我的主题",\n  "swatch": "oklch(0.6 0.15 320)",\n  "light": { "primary": "oklch(0.6 0.15 320)", "accent": "oklch(0.7 0.1 320)", "ring": "oklch(0.6 0.15 320)" },\n  "dark": { "primary": "oklch(0.68 0.15 320)" }\n}'}
+                                    className="w-full rounded-lg border border-border/40 bg-background p-3 font-mono text-xs leading-5 outline-none focus:border-primary/50"
+                                />
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        onClick={handleAddTheme}
+                                        disabled={setSetting.isPending || !themeUploadText.trim()}
+                                    >
+                                        添加主题
+                                    </Button>
+                                    <p className="text-xs text-muted-foreground">
+                                        支持单个对象或数组；颜色 token 用 OKLCH 或任意 CSS 颜色。等价于 PUT /api/v1/setting key=custom_themes。
+                                    </p>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
