@@ -1,0 +1,162 @@
+package middleware
+
+import (
+	"net"
+	"net/http"
+	"strings"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/lingyuins/octopus/internal/conf"
+	"github.com/lingyuins/octopus/internal/model"
+	ak "github.com/lingyuins/octopus/internal/op/apikey"
+	"github.com/lingyuins/octopus/internal/op/stats"
+	"github.com/lingyuins/octopus/internal/op/user"
+	"github.com/lingyuins/octopus/internal/server/auth"
+	"github.com/lingyuins/octopus/internal/server/resp"
+)
+
+func Auth() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		token := c.GetHeader("Authorization")
+		if token == "" {
+			resp.Error(c, http.StatusBadRequest, resp.ErrBadRequest)
+			c.Abort()
+			return
+		}
+		valid, userID, role := auth.VerifyJWTToken(strings.TrimPrefix(token, "Bearer "))
+		if !valid {
+			resp.Error(c, http.StatusUnauthorized, resp.ErrUnauthorized)
+			c.Abort()
+			return
+		}
+
+		if userID == 0 {
+			resp.Error(c, http.StatusUnauthorized, resp.ErrUnauthorized)
+			c.Abort()
+			return
+		}
+
+		currentUser, err := user.GetByID(userID, c.Request.Context())
+		if err != nil {
+			resp.Error(c, http.StatusUnauthorized, resp.ErrUnauthorized)
+			c.Abort()
+			return
+		}
+		role = currentUser.Role
+		if role == "" {
+			role = model.UserRoleViewer
+		}
+		c.Set("user_id", int(currentUser.ID))
+		c.Set("username", currentUser.Username)
+		c.Set("user_role", role)
+		c.Next()
+	}
+}
+
+func APIKeyAuth() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var apiKey string
+		var requestType string
+
+		if key := c.Request.Header.Get("x-api-key"); key != "" {
+			apiKey = key
+			requestType = "anthropic"
+		} else if auth := c.Request.Header.Get("Authorization"); auth != "" {
+			apiKey = strings.TrimPrefix(auth, "Bearer ")
+			requestType = "openai"
+		}
+
+		if apiKey == "" {
+			resp.Error(c, http.StatusUnauthorized, resp.ErrUnauthorized)
+			c.Abort()
+			return
+		}
+
+		if !strings.HasPrefix(apiKey, "sk-"+conf.APP_NAME+"-") {
+			resp.Error(c, http.StatusUnauthorized, resp.ErrUnauthorized)
+			c.Abort()
+			return
+		}
+		apiKeyObj, err := ak.GetByKey(apiKey, c.Request.Context())
+		if err != nil {
+			resp.Error(c, http.StatusUnauthorized, resp.ErrUnauthorized)
+			c.Abort()
+			return
+		}
+		if !apiKeyObj.Enabled {
+			resp.Error(c, http.StatusUnauthorized, "API key is disabled")
+			c.Abort()
+			return
+		}
+		if apiKeyObj.ExpireAt > 0 && apiKeyObj.ExpireAt < time.Now().Unix() {
+			resp.Error(c, http.StatusUnauthorized, "API key has expired")
+			c.Abort()
+			return
+		}
+		statsAPIKey := stats.APIKeyGet(apiKeyObj.ID)
+		if apiKeyObj.MaxCost > 0 && apiKeyObj.MaxCost < statsAPIKey.StatsMetrics.OutputCost+statsAPIKey.StatsMetrics.InputCost {
+			resp.Error(c, http.StatusUnauthorized, "API key has reached the max cost")
+			c.Abort()
+			return
+		}
+		if !isIPAllowed(c.ClientIP(), apiKeyObj.AllowedIPs) {
+			resp.Error(c, http.StatusForbidden, "IP address not allowed for this API key")
+			c.Abort()
+			return
+		}
+		c.Set("request_type", requestType)
+		c.Set("supported_models", apiKeyObj.SupportedModels)
+		c.Set("api_key_id", apiKeyObj.ID)
+		c.Set("rate_limit_rpm", apiKeyObj.RateLimitRPM)
+		c.Set("rate_limit_tpm", apiKeyObj.RateLimitTPM)
+		c.Set("per_model_quota_json", apiKeyObj.PerModelQuotaJSON)
+		c.Set("excluded_channels", apiKeyObj.ExcludedChannels)
+		c.Next()
+	}
+}
+
+// isIPAllowed checks whether clientIP matches any entry in the allowedIPs list.
+// allowedIPs is a comma-separated list of IPs or CIDR ranges (e.g. "10.0.0.1,192.168.0.0/16").
+// An empty allowedIPs string means all IPs are allowed.
+func isIPAllowed(clientIP string, allowedIPs string) bool {
+	if allowedIPs == "" {
+		return true
+	}
+	parsedClient := parseClientIP(clientIP)
+	if parsedClient == nil {
+		return false
+	}
+	for _, entry := range strings.Split(allowedIPs, ",") {
+		entry = strings.TrimSpace(entry)
+		if entry == "" {
+			continue
+		}
+		if strings.Contains(entry, "/") {
+			_, cidr, err := net.ParseCIDR(entry)
+			if err != nil {
+				continue
+			}
+			if cidr.Contains(parsedClient) {
+				return true
+			}
+		} else {
+			allowed := net.ParseIP(entry)
+			if allowed != nil && allowed.Equal(parsedClient) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func parseClientIP(clientIP string) net.IP {
+	client := strings.TrimSpace(clientIP)
+	if client == "" {
+		return nil
+	}
+	if host, _, err := net.SplitHostPort(client); err == nil {
+		client = host
+	}
+	return net.ParseIP(client)
+}

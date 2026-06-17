@@ -1,0 +1,2640 @@
+{
+  "login": {
+    "welcome": "Welcome back",
+    "username": "Username",
+    "usernamePlaceholder": "Enter your username",
+    "password": "Password",
+    "passwordPlaceholder": "Enter your password",
+    "apikey": "API Key",
+    "apikeyPlaceholder": "Enter your API Key (sk-octopus-...)",
+    "mode": {
+      "user": "Account",
+      "apikey": "API Key"
+    },
+    "error": {
+      "generic": "Login failed, please check that the username and password are correct"
+    },
+    "button": {
+      "loading": "Logging in...",
+      "submit": "Login",
+      "passkey": "Sign in with Passkey"
+    }
+  },
+  "bootstrap": {
+    "title": "Complete initial setup",
+    "subtitle": "Octopus needs an initial admin account before anyone can sign in.",
+    "description": "Create the admin account on this page, then sign in immediately.",
+    "checking": "Checking setup status...",
+    "initialized": "Initial setup is complete. You can sign in now.",
+    "notice": {
+      "title": "First start protection",
+      "description": "This instance will not create a default admin account automatically. Enter your own secure credentials during the first visit."
+    },
+    "form": {
+      "username": "Admin username",
+      "usernamePlaceholder": "Enter admin username",
+      "password": "Admin password",
+      "passwordPlaceholder": "Enter admin password",
+      "passwordHint": "Password must be at least 12 characters long."
+    },
+    "actions": {
+      "refresh": "Refresh status",
+      "submit": "Save admin account",
+      "submitting": "Saving...",
+      "submitSuccess": "Admin account created"
+    },
+    "error": {
+      "generic": "Failed to load setup status",
+      "server": "Setup status is temporarily unavailable. Check the backend logs and try again."
+    },
+    "validation": {
+      "usernameRequired": "Please enter an admin username.",
+      "passwordRequired": "Please enter an admin password.",
+      "passwordTooShort": "Admin password must be at least {count} characters long."
+    }
+  },
+  "apiKeyDashboard": {
+    "error": "Failed to load data",
+    "logout": "Logout",
+    "requestStats": "Request Stats",
+    "totalStats": "Total Stats",
+    "inputStats": "Input Stats",
+    "outputStats": "Output Stats",
+    "requestCount": "Requests",
+    "timeConsumed": "Time Consumed",
+    "totalToken": "Tokens Used",
+    "totalCost": "Total Cost",
+    "inputTokens": "Input Tokens",
+    "inputCost": "Input Cost",
+    "outputTokens": "Output Tokens",
+    "outputCost": "Output Cost",
+    "successRequests": "Successful",
+    "failedRequests": "Failed",
+    "quota": "Remaining Quota",
+    "unlimited": "Unlimited",
+    "expireAt": "Expires",
+    "neverExpire": "Never",
+    "daysLeft": "days left",
+    "expired": "Expired",
+    "supportedModels": "Supported Models"
+  },
+  "navbar": {
+    "home": "Home",
+    "hub": "Hub",
+    "announcement": "Announcements",
+    "checkin": "Check-in",
+    "redemption": "Redemption",
+    "usage-history": "Usage History",
+    "credential": "Credentials",
+    "channel": "Channel",
+    "group": "Group",
+    "key": "Key",
+    "model": "Model Market",
+    "analytics": "Analytics",
+    "log": "Log",
+    "alert": "Alert",
+    "ops": "Ops",
+    "user": "User",
+    "setting": "Setting",
+    "ariaLabel": "Main navigation",
+    "apikey": "API Keys & Endpoints"
+  },
+  "endpoints": {
+    "title": "Available Endpoints",
+    "searchPlaceholder": "Search by endpoint or model",
+    "hint": "Shows every currently callable endpoint and the models under it. Endpoints with no models are hidden.",
+    "autoEndpoint": "Auto endpoint",
+    "endpointCount": "{count, plural, =0 {No endpoints} one {# endpoint} other {# endpoints}}",
+    "modelCount": "{count, plural, =0 {No models} one {# model} other {# models}}",
+    "empty": "No available endpoints",
+    "noMatch": "No endpoints or models match your search"
+  },
+  "hub": {
+    "tabs": {
+      "sites": "Sites",
+      "checkin": "Check-in",
+      "announcement": "Announcements",
+      "redemption": "Redemption",
+      "usage": "Usage History",
+      "credential": "Credentials",
+      "siteChannels": "Site Channels"
+    },
+    "title": "Remote Sites",
+    "addSite": "Add Site",
+    "editSite": "Edit Site",
+    "disabled": "Disabled",
+    "user": "User",
+    "quota": "Quota",
+    "refreshAll": "Refresh All",
+    "refreshed": "Site refreshed",
+    "allRefreshed": "All sites refreshed",
+    "created": "Site created",
+    "updated": "Site updated",
+    "deleted": "Site deleted",
+    "confirmDelete": "Are you sure you want to delete this remote site?",
+    "empty": "No remote sites yet. Add one to get started.",
+    "detected": "Detected type",
+    "detect": "Auto detect",
+    "requiredFields": "Name, Base URL and Site Type are required",
+    "cancel": "Cancel",
+    "save": "Save",
+    "create": "Create",
+    "saving": "Saving...",
+    "form": {
+      "name": "Name",
+      "namePlaceholder": "My API Site",
+      "baseUrl": "Base URL",
+      "siteType": "Site Type",
+      "accessToken": "Access Token",
+      "username": "Username",
+      "usernamePlaceholder": "New API username (for New-Api-User header)",
+      "password": "Password",
+      "exchangeRate": "Exchange Rate (USD)",
+      "enabled": "Enabled",
+      "unchanged": "Leave empty to keep unchanged"
+    },
+    "chart": {
+      "loading": "Loading chart data...",
+      "noData": "No balance history data available.",
+      "quota": "Quota",
+      "predicted": "Predicted",
+      "dailyBurn": "Daily Burn",
+      "daysRemaining": "Days Remaining",
+      "sevenDayAvg": "7-Day Avg",
+      "estimatedZero": "Est. Zero Date"
+    },
+    "discover": "Discover",
+    "discoveredTitle": "Discovered Sites",
+    "discoveredEmpty": "No sites discovered",
+    "add": "Add"
+  },
+  "announcement": {
+    "title": "Announcements",
+    "refreshAll": "Refresh All",
+    "refreshed": "Refreshed {count} announcements",
+    "empty": "No announcements yet"
+  },
+  "checkin": {
+    "title": "Check-in",
+    "checkIn": "Check In",
+    "checkInAll": "Check In All",
+    "done": "Done",
+    "success": "Check-in successful!",
+    "alreadyChecked": "Already checked in today",
+    "failed": "Check-in failed",
+    "allDone": "Check-in completed for {count} sites",
+    "empty": "No enabled remote sites for check-in."
+  },
+  "redemption": {
+    "title": "Redemption Codes",
+    "description": "Redeem codes to add quota to remote sites",
+    "labels": {
+      "codes": "Redemption Codes",
+      "site": "Target Site"
+    },
+    "placeholders": {
+      "codes": "Enter one code per line...",
+      "site": "Select a site"
+    },
+    "hints": {
+      "codes": "One code per line. Blank lines will be ignored."
+    },
+    "buttons": {
+      "redeem": "Redeem",
+      "redeeming": "Redeeming...",
+      "redeemAll": "Redeem on All Sites"
+    },
+    "status": {
+      "success": "Success",
+      "already_used": "Already Used",
+      "invalid": "Invalid",
+      "failed": "Failed"
+    },
+    "success": {
+      "description": "Redeemed {success}/{total} codes successfully",
+      "allSitesTitle": "Redemption Complete",
+      "allSitesDesc": "Redeemed on {count} sites successfully"
+    },
+    "errors": {
+      "noCodes": "No Codes",
+      "noCodesDesc": "Please enter at least one redemption code",
+      "noSite": "No Site Selected",
+      "noSiteDesc": "Please select a target site",
+      "failed": "Redemption Failed"
+    },
+    "history": {
+      "title": "Redemption History",
+      "description": "Recent redemption attempts for this site",
+      "selectSite": "Select a site to view history",
+      "empty": "No redemption history"
+    }
+  },
+  "usage_history": {
+    "title": "Usage History",
+    "description": "View and analyze usage history from remote sites",
+    "filters": "Filters",
+    "site": "Site",
+    "select_site": "Select site",
+    "day_from": "From",
+    "day_to": "To",
+    "model": "Model",
+    "all_models": "All models",
+    "token": "Token",
+    "all_tokens": "All tokens",
+    "sync": "Sync",
+    "sync_all": "Sync All",
+    "sync_success": "Synced {count} records",
+    "sync_all_success": "Synced {count} records from all sites",
+    "sync_error": "Failed to sync usage history",
+    "total_requests": "Total Requests",
+    "total_tokens": "Total Tokens",
+    "total_quota": "Total Quota",
+    "history": "History",
+    "history_description": "Detailed usage records",
+    "date": "Date",
+    "requests": "Requests",
+    "prompt_tokens": "Prompt Tokens",
+    "completion_tokens": "Completion Tokens",
+    "quota": "Quota",
+    "no_data": "No usage data available"
+  },
+  "credential": {
+    "title": "API Credentials",
+    "add": "Add Credential",
+    "edit": "Edit Credential",
+    "verify": "Verify",
+    "export": "Export",
+    "lastVerified": "Last verified",
+    "confirmDelete": "Are you sure you want to delete this credential?",
+    "deleted": "Credential deleted",
+    "created": "Credential created",
+    "updated": "Credential updated",
+    "verifySuccess": "All probes passed",
+    "verifyFailed": "Some probes failed",
+    "exportCopied": "Config copied to clipboard",
+    "empty": "No API credentials yet. Add one to manage your keys.",
+    "requiredFields": "Name, Base URL and API Key are required",
+    "cancel": "Cancel",
+    "save": "Save",
+    "create": "Create",
+    "saving": "Saving...",
+    "form": {
+      "name": "Name",
+      "namePlaceholder": "My OpenAI Key",
+      "apiType": "API Type",
+      "baseUrl": "Base URL",
+      "apiKey": "API Key",
+      "notes": "Notes",
+      "unchanged": "Leave empty to keep unchanged"
+    }
+  },
+  "model_mapping": {
+    "title": "Model Mapping",
+    "description": "Define global model name transformation rules. When a request model name matches a rule, it will be automatically rewritten to the target model name.",
+    "refresh": "Refresh",
+    "add": "Add Mapping",
+    "loading": "Loading...",
+    "empty": "No model mapping rules yet",
+    "name": "Name",
+    "pattern": "Pattern",
+    "match_type": "Match Type",
+    "target_model": "Target Model",
+    "priority": "Priority",
+    "scope": "Scope",
+    "status": "Status",
+    "actions": "Actions",
+    "match_exact": "Exact",
+    "match_wildcard": "Wildcard",
+    "match_regex": "Regex",
+    "global": "Global",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "edit_title": "Edit Mapping",
+    "create_title": "Create Mapping",
+    "edit_description": "Modify model mapping rule",
+    "create_description": "Create a new model mapping rule",
+    "name_placeholder": "Mapping rule name",
+    "pattern_placeholder": "Match pattern (e.g. gpt-4*, claude-3-*)",
+    "target_model_placeholder": "Target model name",
+    "scope_group_id": "Scope Group ID",
+    "scope_group_id_placeholder": "Leave empty for global scope, or enter group ID",
+    "cancel": "Cancel",
+    "update": "Update",
+    "create": "Create",
+    "load_error": "Failed to load model mappings",
+    "create_success": "Model mapping created",
+    "create_error": "Failed to create model mapping",
+    "update_success": "Model mapping updated",
+    "update_error": "Failed to update model mapping",
+    "delete_success": "Model mapping deleted",
+    "delete_error": "Failed to delete model mapping",
+    "confirm_delete": "Are you sure you want to delete this model mapping?"
+  },
+  "analytics": {
+    "title": "Analytics",
+    "subtitle": "A unified view for Octopus metrics, utilization, and route health. Phase one stays on top of existing stats and relay logs.",
+    "cache": {
+      "title": "Cache",
+      "metrics": {
+        "hitRate": "Hit Rate",
+        "entries": "Entries"
+      },
+      "status": {
+        "configuredOff": "Off"
+      }
+    },
+    "cards": {
+      "overview": {
+        "title": "Overview",
+        "description": "A shared surface for requests, tokens, cost, and coverage metrics."
+      },
+      "utilization": {
+        "title": "Utilization",
+        "description": "Track capacity usage and distribution across channels, models, and keys."
+      },
+      "routeHealth": {
+        "title": "Route Health",
+        "description": "Summarize group availability, failure signals, and routing stability."
+      },
+      "channelModel": {
+        "title": "Channel × Model"
+      }
+    },
+    "note": "This phase only establishes the page shell and navigation. Real aggregates are added in the next step.",
+    "range": {
+      "1d": "1D",
+      "7d": "7D",
+      "30d": "30D",
+      "90d": "90D",
+      "ytd": "YTD",
+      "all": "All"
+    },
+    "states": {
+      "loading": "Loading...",
+      "empty": "No data available"
+    },
+    "latency": {
+      "title": "Latency",
+      "useTime": "Request Latency",
+      "ftut": "First Token Time",
+      "avg": "Avg",
+      "p50": "P50",
+      "p95": "P95",
+      "p99": "P99",
+      "histogram": "Latency Distribution",
+      "totalRequests": "{count} total requests"
+    },
+    "overview": {
+      "description": "Phase-one overview built from existing daily stats and replay data, focused on readable signals instead of new configuration."
+    },
+    "metrics": {
+      "requestCount": "Requests",
+      "successRate": "Success Rate",
+      "totalTokens": "Total Tokens",
+      "totalCost": "Total Cost",
+      "providerCount": "Providers",
+      "apiKeyCount": "API Keys",
+      "modelCount": "Models",
+      "fallbackRate": "Fallback Rate"
+    },
+    "utilization": {
+      "description": "Break down request usage across providers, models, and API keys for the selected range.",
+      "providers": "Providers",
+      "models": "Models",
+      "apikeys": "API Keys",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "empty": "No utilization data in the selected range"
+    },
+    "routeHealth": {
+      "description": "Combines current group membership state with failures from the last 24 hours, sorted to surface risky groups first.",
+      "endpointType": "Endpoint Type",
+      "healthScore": "Health Score",
+      "failureCount": "Failures in 24h",
+      "enabledItems": "Enabled Route Items",
+      "disabledItems": "Disabled Route Items",
+      "lastFailure": "Last Failure",
+      "lastFailureEmpty": "No recent failure",
+      "empty": "No route groups available for evaluation",
+      "statuses": {
+        "healthy": "Healthy",
+        "warning": "Warning",
+        "degraded": "Degraded",
+        "down": "Down",
+        "empty": "Empty"
+      },
+      "failingChannels": {
+        "title": "Failing channels",
+        "viewLogs": "View logs"
+      },
+      "autoStrategy": {
+        "title": "Auto strategy (live)",
+        "disabled": "disabled",
+        "samples": " samples",
+        "insufficient": "few samples"
+      }
+    },
+    "channelModel": {
+      "description": "Per-channel × per-model breakdown. Failures are counted per attempt, so a channel that fails then succeeds via retry still shows its failures here. Click a row to jump to its logs.",
+      "empty": "No channel × model data in the selected range",
+      "requests": "requests",
+      "failed": "failed",
+      "disabled": "disabled",
+      "scopeAll": "All groups"
+    },
+    "evaluation": {
+      "title": "Evaluation",
+      "description": "Aggregate existing group testing and AI route analysis entry points, while keeping this release to live runtime summaries only and avoiding benchmark archival.",
+      "actions": {
+        "openGroupTest": "Open Group Checks",
+        "openAIRoute": "Open Route Analysis",
+        "openSemanticCache": "Open Semantic Cache Settings"
+      },
+      "availability": {
+        "title": "Group Availability Checks",
+        "description": "The actual test action still runs from each group card; this page only provides the shared entry point and latest runtime summary.",
+        "hint": "{count} groups are currently available for testing.",
+        "empty": "There are no groups available to test right now."
+      },
+      "aiRoute": {
+        "title": "AI Route Analysis",
+        "description": "Reuse the existing AI Route trigger and progress flow, and surface the latest task state here.",
+        "hint": "Latest task step: {step}",
+        "unavailable": "The latest AI route task is temporarily unavailable.",
+        "empty": "There is no recent AI route task."
+      },
+      "semanticCache": {
+        "title": "Semantic Cache Evaluation",
+        "description": "Review the live semantic cache runtime and hit signals here, while keeping configuration in Settings.",
+        "hint": "Use this entry to inspect runtime status first, then tune embedding and cache settings from the Settings page.",
+        "summaryTitle": "Semantic Cache Effectiveness",
+        "summaryDescription": "This section shows the live runtime counters returned by the evaluation API without duplicating the control surface from Settings.",
+        "unavailable": "Semantic cache summary is temporarily unavailable. The rest of Evaluation stays usable.",
+        "status": {
+          "disabled": "Disabled",
+          "runtimeOn": "Runtime On",
+          "runtimeOff": "Configured but Runtime Off",
+          "loading": "Loading...",
+          "unavailable": "Unavailable"
+        },
+        "metrics": {
+          "hits": "Hits",
+          "misses": "Misses",
+          "hitRate": "Hit Rate",
+          "currentEntries": "Current Entries",
+          "maxEntries": "Max Entries",
+          "usageRate": "Capacity Used",
+          "evaluatedRequests": "Evaluated",
+          "cacheHitResponses": "Hit Responses",
+          "cacheMissRequests": "Miss Requests",
+          "bypassedRequests": "Bypassed",
+          "storedResponses": "Stored"
+        }
+      },
+      "archive": {
+        "title": "History Archive",
+        "description": "This version intentionally leaves benchmark history unarchived; this is product scope, not a loading failure.",
+        "hint": "If long-term storage is needed later, the data model and write path should be designed separately."
+      },
+      "summary": {
+        "title": "Latest Evaluation Runtime",
+        "description": "Only the latest AI Route and group test tasks from the current session are shown here. No persistent history is stored yet.",
+        "aiRoute": "Latest AI Route Task",
+        "groupTest": "Latest Group Test Task",
+        "status": "Status",
+        "progress": "Progress",
+        "groups": "Groups",
+        "routes": "Routes / Items",
+        "result": "Result",
+        "passed": "Passed",
+        "failed": "Failed",
+        "allPassed": "All Passed",
+        "partialFailed": "Partial Failure",
+        "unavailable": "The latest task progress is temporarily unavailable.",
+        "empty": "There is no runtime task to show right now."
+      },
+      "runtime": {
+        "status": {
+          "idle": "Idle",
+          "queued": "Queued",
+          "running": "Running",
+          "unavailable": "Unavailable",
+          "completed": "Completed",
+          "failed": "Failed",
+          "timeout": "Timed Out"
+        },
+        "step": {
+          "idle": "No Step",
+          "queued": "Waiting",
+          "collecting_models": "Collecting Models",
+          "building_batches": "Building Batches",
+          "analyzing_batches": "Analyzing Batches",
+          "parsing_response": "Parsing Response",
+          "validating_routes": "Validating Routes",
+          "writing_groups": "Writing Groups",
+          "finalizing": "Finalizing",
+          "completed": "Completed",
+          "failed": "Failed",
+          "timeout": "Timed Out"
+        }
+      }
+    },
+    "share": {
+      "button": "Share",
+      "title": "Share Snapshot",
+      "download": "Download PNG",
+      "copy": "Copy to Clipboard",
+      "exportSuccess": "Snapshot downloaded",
+      "exportError": "Failed to export snapshot",
+      "copySuccess": "Snapshot copied to clipboard",
+      "copyError": "Failed to copy to clipboard"
+    }
+  },
+  "ops": {
+    "title": "Ops",
+    "subtitle": "An operational view for cache, quota, health, and system summaries with the same density as the existing admin UI.",
+    "tabs": {
+      "cache": "Cache",
+      "quota": "Quota",
+      "health": "Health",
+      "system": "System",
+      "audit": "Audit",
+      "telemetry": "Telemetry"
+    },
+    "actions": {
+      "openSettings": "Open Settings",
+      "manageKeys": "Manage in Settings"
+    },
+    "states": {
+      "loading": "Loading...",
+      "empty": "No data available"
+    },
+    "cache": {
+      "description": "Review semantic-cache configuration, runtime hit signals, and capacity usage in one place.",
+      "views": {
+        "semantic": "Semantic Cache",
+        "providerPrompt": "Prompt Cache (Provider-Side)"
+      },
+      "metrics": {
+        "hitRate": "Hit Rate",
+        "currentEntries": "Current Entries",
+        "ttlSeconds": "TTL",
+        "threshold": "Similarity Threshold"
+      },
+      "status": {
+        "configuredOn": "Configured On",
+        "configuredOff": "Configured Off",
+        "runtimeOn": "Runtime Active",
+        "runtimeOff": "Runtime Missing",
+        "runtimeHint": "The semantic cache is initialized and the metrics reflect the live runtime state.",
+        "runtimeMissing": "The cache is disabled or the runtime was not initialized. Check semantic-cache settings."
+      },
+      "detail": {
+        "hits": "Hits",
+        "misses": "Misses",
+        "maxEntries": "Max Entries",
+        "usageRate": "Capacity Used"
+      },
+      "providerPrompt": {
+        "description": "Aggregate provider-side prompt caching activity from request history so you can see where cache control is active and how much input reuse you are getting.",
+        "metrics": {
+          "cacheRate": "Cache Rate",
+          "cacheReuseRatio": "Cache Reuse Ratio",
+          "cacheReadTokens": "Cache Read Tokens",
+          "cacheWriteTokens": "Cache Write Tokens",
+          "estimatedCostSaved": "Est. Cost Saved"
+        },
+        "providers": {
+          "title": "Breakdown by Provider",
+          "description": "Compare cache reads, writes, and estimated savings across providers.",
+          "empty": "No provider-side prompt cache activity is available in the last 24 hours.",
+          "columns": {
+            "name": "Name",
+            "requests": "Requests",
+            "cacheRate": "Cache Rate",
+            "cacheReadTokens": "Read Tokens",
+            "cacheWriteTokens": "Write Tokens",
+            "estimatedCostSaved": "Est. Saved"
+          }
+        },
+        "trend": {
+          "title": "Cache Trend (24h)",
+          "description": "Hourly view of cache read activity and reuse."
+        }
+      }
+    },
+    "quota": {
+      "description": "Aggregate API key caps, current spend, and anomaly signals without duplicating the full edit surface.",
+      "metrics": {
+        "availableKeys": "Available Keys",
+        "limitedKeys": "Limited Keys",
+        "exhaustedKeys": "Exhausted Keys",
+        "totalMaxCost": "Total Cost Cap"
+      },
+      "fields": {
+        "requestCount": "Requests",
+        "totalCost": "Total Cost",
+        "maxCost": "Cost Cap",
+        "rpm": "RPM",
+        "tpm": "TPM",
+        "supportedModels": "Supported Models",
+        "perModelQuota": "Per-model Quota"
+      },
+      "statuses": {
+        "open": "Open",
+        "limited": "Limited",
+        "exhausted": "Exhausted",
+        "expired": "Expired",
+        "disabled": "Disabled"
+      },
+      "empty": "No API key quota summary is available."
+    },
+    "health": {
+      "description": "Track database, cache, task configuration, and risky route groups in a single operational summary.",
+      "statuses": {
+        "ok": "OK",
+        "issue": "Check"
+      },
+      "groupStatuses": {
+        "healthy": "Healthy",
+        "warning": "Warning",
+        "degraded": "Degraded",
+        "down": "Down",
+        "empty": "Empty"
+      },
+      "cards": {
+        "database": "Database",
+        "cache": "Cache Runtime",
+        "taskRuntime": "Task Config",
+        "recentErrors": "Errors in 24h",
+        "healthyGroups": "Healthy Groups",
+        "warningGroups": "Warning + Degraded",
+        "downGroups": "Down Groups",
+        "emptyGroups": "Empty Groups"
+      },
+      "detail": {
+        "failingGroups": "Groups Requiring Attention",
+        "endpointType": "Endpoint Type",
+        "healthScore": "Health Score",
+        "failureCount": "Failures in 24h",
+        "noIssues": "No high-priority risky groups at the moment."
+      }
+    },
+    "system": {
+      "description": "Summarize version, key settings, and AI-route service-pool state in a read-only operations view.",
+      "metrics": {
+        "channels": "Channels",
+        "groups": "Groups",
+        "apiKeys": "API Keys",
+        "aiRouteServices": "AI Route Services"
+      },
+      "sections": {
+        "runtime": "Runtime Summary",
+        "operations": "Operational Settings",
+        "services": "AI Route Service Pool"
+      },
+      "fields": {
+        "version": "Version",
+        "commit": "Commit",
+        "buildTime": "Build Time",
+        "databaseType": "Database Type",
+        "publicApiBaseUrl": "Public API Base URL",
+        "proxyUrl": "Proxy URL",
+        "relayLogRetention": "Relay Log Retention",
+        "statsSaveInterval": "Stats Flush Interval",
+        "syncLlmInterval": "Model Sync Interval",
+        "modelInfoInterval": "Price Refresh Interval",
+        "importExport": "Import / Export",
+        "aiRouteGroup": "AI Route Target Group",
+        "aiRouteTimeout": "AI Route Timeout",
+        "aiRouteParallelism": "AI Route Parallelism",
+        "aiRouteMode": "AI Route Mode",
+        "legacyMode": "Legacy Single Service",
+        "servicePoolMode": "Service Pool Mode",
+        "enabled": "Enabled",
+        "disabled": "Disabled",
+        "logCountUnit": "entries",
+        "notConfigured": "No AI-route service is configured right now."
+      }
+    },
+    "audit": {
+      "description": "Track the management write operations that actually change system state, so it is clear who changed what and when.",
+      "writeScope": "Management writes only",
+      "empty": "No audit records yet.",
+      "list": {
+        "noMore": "No more audit records"
+      },
+      "fields": {
+        "action": "Action",
+        "target": "Target",
+        "path": "Path",
+        "createdAt": "Time",
+        "username": "User",
+        "userId": "User ID",
+        "method": "Method",
+        "statusCode": "Status Code"
+      },
+      "detail": {
+        "entryTitle": "Audit Record #{id}",
+        "notFound": "This audit record was not found.",
+        "summary": "Summary",
+        "emptyTarget": "No target extracted",
+        "context": "Request Context",
+        "rawRecord": "Raw Record"
+      }
+    },
+    "telemetry": {
+      "hero": {
+        "uptime": "Uptime",
+        "total_requests": "Total Requests",
+        "avg_latency": "Avg Latency",
+        "error_rate": "Error Rate",
+        "active_connections": "Active Connections",
+        "memory_usage": "Memory Usage"
+      },
+      "runtime_signals": {
+        "title": "Runtime Signals",
+        "p95_latency": "P95 Latency",
+        "throughput": "Throughput",
+        "memory": "Memory"
+      },
+      "database_health": {
+        "title": "Database Health",
+        "issues_label": "issues",
+        "status": {
+          "healthy": "Healthy",
+          "degraded": "Degraded"
+        }
+      },
+      "session_quota": {
+        "title": "Session & Quota Activity",
+        "active_sessions": "Active Sessions",
+        "sticky_sessions": "Sticky Sessions",
+        "quota_alerts": "Quota Alerts"
+      },
+      "prompt_cache": {
+        "title": "Semantic Cache",
+        "entries": "Entries",
+        "hit_rate": "Hit Rate",
+        "hits": "Hits",
+        "misses": "Misses"
+      },
+      "provider_health": {
+        "title": "Provider Health",
+        "active": "active",
+        "monitored": "monitored",
+        "empty": "No provider data available",
+        "name": "Name",
+        "status": "Status",
+        "latency": "Latency",
+        "requests": "Requests",
+        "success_rate": "Success Rate"
+      },
+      "drilldown": {
+        "title": "Drilldown Shortcuts"
+      }
+    }
+  },
+  "user": {
+    "title": "User Management",
+    "changeRole": "Change Role",
+    "cancel": "Cancel",
+    "deleteUser": "Delete user",
+    "cannotDeletePrimaryAdmin": "Cannot delete primary admin",
+    "confirmDelete": "Delete this user? This cannot be undone.",
+    "roles": {
+      "admin": "Admin",
+      "editor": "Editor",
+      "viewer": "Viewer"
+    },
+    "create": {
+      "open": "Add User",
+      "title": "Create User",
+      "username": "Username",
+      "usernamePlaceholder": "Enter username",
+      "password": "Password",
+      "passwordPlaceholder": "Enter password",
+      "passwordHint": "Password must be at least 12 characters long.",
+      "role": "Role",
+      "submit": "Create User",
+      "submitting": "Creating..."
+    },
+    "toast": {
+      "created": "User created",
+      "createFailed": "Failed to create user",
+      "deleted": "User deleted",
+      "roleUpdated": "Role updated",
+      "actionFailed": "Action failed"
+    }
+  },
+  "alert": {
+    "tabs": {
+      "rules": "Rules",
+      "channels": "Channels",
+      "history": "History"
+    },
+    "actions": {
+      "edit": "Edit",
+      "save": "Save",
+      "create": "Create",
+      "test": "Test",
+      "cancel": "Cancel"
+    },
+    "conditions": {
+      "cost_threshold": "Cost Threshold",
+      "error_rate": "Error Rate %",
+      "quota_exceeded": "Quota Exceeded",
+      "channel_down": "Channel Down"
+    },
+    "channelTypes": {
+      "webhook": "Webhook",
+      "gotify": "Gotify",
+      "email": "Email",
+      "telegram": "Telegram",
+      "feishu": "Feishu",
+      "dingtalk": "DingTalk",
+      "wecom": "WeCom",
+      "ntfy": "ntfy"
+    },
+    "rules": {
+      "title": "Alert Rules",
+      "new": "New Rule",
+      "empty": "There are no alert rules yet",
+      "confirmDelete": "Delete this rule? This cannot be undone.",
+      "cooldown": "cooldown {seconds}s",
+      "form": {
+        "name": "Rule Name",
+        "namePlaceholder": "Rule name",
+        "condition": "Condition",
+        "threshold": "Threshold",
+        "thresholdPlaceholder": "Threshold",
+        "cooldown": "Cooldown (sec)",
+        "cooldownPlaceholder": "Cooldown seconds",
+        "channel": "Notification Channel",
+        "noChannel": "No Channel",
+        "cooldownHint": "Cooldown period after alert fires; no duplicate alerts during this time",
+        "thresholdHint": {
+          "cost_threshold": "Alert when daily accumulated cost exceeds this amount (USD)",
+          "error_rate": "Alert when error rate in sliding window exceeds this percentage",
+          "quota_exceeded": "Alert when quota usage exceeds this percentage",
+          "channel_down": "Alert when consecutive channel failures exceed this count"
+        }
+      }
+    },
+    "channels": {
+      "title": "Notification Channels",
+      "new": "New Channel",
+      "empty": "There are no notification channels yet",
+      "confirmDelete": "Delete this notification channel? This cannot be undone.",
+      "form": {
+        "namePlaceholder": "Channel name",
+        "urlPlaceholder": "Webhook URL",
+        "secretPlaceholder": "Secret (optional)",
+        "gotifyServerUrl": "Gotify Server URL (e.g. https://gotify.example.com)",
+        "gotifyToken": "Application Token",
+        "gotifyPriority": "Priority (1-10, default 5)",
+        "emailSmtpHost": "SMTP Host",
+        "emailSmtpPort": "SMTP Port (default 587)",
+        "emailUsername": "SMTP Username",
+        "emailPassword": "SMTP Password",
+        "emailFrom": "Sender Address",
+        "emailTo": "Recipient Address(es) (comma-separated)",
+        "emailUseTls": "Use TLS",
+        "telegramBotToken": "Bot Token (from @BotFather)",
+        "telegramChatId": "Chat ID",
+        "feishuWebhookKey": "Webhook Key",
+        "dingtalkWebhookKey": "Robot Access Token",
+        "dingtalkSecret": "Signing Secret (optional, for HMAC-SHA256)",
+        "wecomWebhookKey": "Group Robot Key",
+        "ntfyTopicUrl": "Topic URL (e.g. https://ntfy.sh/mytopic or just mytopic)",
+        "ntfyAccessToken": "Access Token (optional)"
+      }
+    },
+    "history": {
+      "title": "Alert History",
+      "empty": "No alert history yet",
+      "messages": {
+        "triggered": "Alert triggered",
+        "resolved": "Alert resolved"
+      }
+    },
+    "toast": {
+      "ruleCreated": "Rule created",
+      "ruleUpdated": "Rule updated",
+      "ruleEnabled": "Rule enabled",
+      "ruleDisabled": "Rule disabled",
+      "channelCreated": "Channel created",
+      "channelUpdated": "Channel updated",
+      "channelTested": "Test notification sent",
+      "channelTestFailed": "Test notification failed",
+      "actionFailed": "Action failed"
+    }
+  },
+  "toolbar": {
+    "popover": {
+      "ariaLabel": "View options",
+      "layout": "Layout",
+      "sort": "Sort",
+      "grid": "Grid",
+      "list": "List",
+      "nameAsc": "Name Asc",
+      "nameDesc": "Name Desc",
+      "createdAsc": "Time Asc",
+      "createdDesc": "Time Desc",
+      "asc": "Asc",
+      "desc": "Desc",
+      "filter": {
+        "title": "Filter",
+        "channel": {
+          "all": "All channels",
+          "enabled": "Enabled only",
+          "disabled": "Disabled only"
+        },
+        "group": {
+          "all": "All groups",
+          "withMembers": "With members",
+          "empty": "Empty groups",
+          "chat": "Conversation",
+          "deepseek": "DeepSeek",
+          "mimo": "MiMo",
+          "embeddings": "Embeddings",
+          "rerank": "Rerank",
+          "moderations": "Moderations",
+          "imageGeneration": "Image generation",
+          "audioSpeech": "Text-to-speech",
+          "audioTranscription": "Speech-to-text",
+          "videoGeneration": "Video generation",
+          "musicGeneration": "Music generation",
+          "search": "Search"
+        },
+        "model": {
+          "all": "All models",
+          "priced": "Priced only",
+          "free": "Free only",
+          "sort": {
+            "title": "Ranking",
+            "successRate": "By success rate",
+            "requestCount": "By call count"
+          },
+          "latencyUnit": {
+            "title": "Average latency unit",
+            "auto": "Auto",
+            "ms": "ms",
+            "s": "s",
+            "h": "h"
+          }
+        }
+      }
+    }
+  },
+  "common": {
+    "copy": {
+      "button": "Copy",
+      "success": "Copied",
+      "failed": "Copy failed",
+      "noContent": "Nothing to copy"
+    },
+    "dialog": {
+      "open": "Open dialog",
+      "close": "Close dialog"
+    },
+    "routeNotFound": "Route not found: {route}",
+    "unknown": "Unknown",
+    "errorState": {
+      "title": "Failed to load",
+      "message": "Something went wrong while fetching data.",
+      "retry": "Retry"
+    },
+    "loadingState": {
+      "message": "Loading..."
+    },
+    "errorBoundary": {
+      "title": "Something went wrong",
+      "message": "An unexpected error occurred. We've logged it and are working on a fix.",
+      "tryAgain": "Try Again",
+      "reloadPage": "Reload Page"
+    },
+    "globalErrorBoundary": {
+      "title": "Critical Error",
+      "message": "The application encountered a critical error and cannot recover automatically.",
+      "tryToRecover": "Try to Recover"
+    }
+  },
+  "home": {
+    "activity": {
+      "title": "Activity Heatmap",
+      "description": "Track request activity across the past year and quickly spot active windows or long quiet periods.",
+      "requestCount": "Requests",
+      "waitTime": "Wait Time",
+      "totalToken": "Tokens Used",
+      "totalCost": "Total Cost",
+      "noData": "No Data"
+    },
+    "hero": {
+      "title": "Today's Usage",
+      "subtitle": "Real-time monitoring of today's API calls",
+      "description": "Track key metrics including call count, success rate, spend, and token usage",
+      "signals": {
+        "requests": "Today's Calls",
+        "successRate": "Today's Success Rate",
+        "cost": "Today's Spend"
+      },
+      "metrics": {
+        "avgWait": "Average Response Time",
+        "successful": "Successful Calls",
+        "tokens": "Tokens Used",
+        "costPerRequest": "Cost per Call"
+      }
+    },
+    "overview": {
+      "badge": "Hub Overview",
+      "title": "Usage Overview",
+      "description": "Track call volume, success rate, spend, and coverage for the selected range.",
+      "empty": "No overview data is available for this range",
+      "customize": "Customize",
+      "customizeTitle": "Metric Visibility & Order",
+      "customizeReset": "Reset",
+      "range": {
+        "7d": "7D",
+        "30d": "30D",
+        "90d": "90D"
+      },
+      "metrics": {
+        "requestCount": "Requests",
+        "successRate": "Success Rate",
+        "totalTokens": "Total Tokens",
+        "totalCost": "Total Cost",
+        "providerCount": "Providers",
+        "apiKeyCount": "API Keys",
+        "modelCount": "Models",
+        "fallbackRate": "Fallback Rate"
+      }
+    },
+    "chart": {
+      "title": "Trend",
+      "totalRequests": "Total Requests",
+      "totalCost": "Total Cost",
+      "totalTokens": "Total Tokens",
+      "timePeriod": "Time Period",
+      "metricType": {
+        "cost": "Cost",
+        "count": "Count",
+        "tokens": "Tokens",
+        "successRate": "Success Rate"
+      },
+      "successRate": "Success Rate",
+      "period": {
+        "today": "Today",
+        "last7Days": "7 Days",
+        "last30Days": "30 Days"
+      }
+    },
+    "rank": {
+      "title": "Ranking",
+      "sortByCost": "Cost",
+      "sortByCount": "Count",
+      "sortByTokens": "Tokens",
+      "sortByKeyUsage": "Key Usage",
+      "loading": "Loading...",
+      "noData": "No ranking data",
+      "successRate": "Success Rate"
+    }
+  },
+  "setting": {
+    "appearance": "Appearance",
+    "system": "System",
+    "theme": {
+      "label": "Theme",
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System"
+    },
+    "language": {
+      "label": "Language",
+      "zh_hans": "Chinese (Simplified)",
+      "zh_hant": "Chinese (Traditional)",
+      "en": "English"
+    },
+    "timeZone": {
+      "label": "User time zone",
+      "description": "Used for date and time display across the UI. Defaults to Asia/Shanghai.",
+      "options": {
+        "Asia/Shanghai": "Asia/Shanghai (UTC+08:00)",
+        "Asia/Tokyo": "Asia/Tokyo (UTC+09:00)",
+        "Asia/Singapore": "Asia/Singapore (UTC+08:00)",
+        "UTC": "UTC (UTC+00:00)",
+        "Europe/London": "Europe/London (UTC+00:00/UTC+01:00)",
+        "Europe/Berlin": "Europe/Berlin (UTC+01:00/UTC+02:00)",
+        "America/New_York": "America/New_York (UTC-05:00/UTC-04:00)",
+        "America/Chicago": "America/Chicago (UTC-06:00/UTC-05:00)",
+        "America/Denver": "America/Denver (UTC-07:00/UTC-06:00)",
+        "America/Los_Angeles": "America/Los_Angeles (UTC-08:00/UTC-07:00)"
+      }
+    },
+    "alertLanguage": {
+      "label": "Alert Send Language",
+      "zh_hans": "Chinese (Simplified)",
+      "zh_hant": "Chinese (Traditional)",
+      "en": "English"
+    },
+    "proxyUrl": {
+      "label": "Proxy URL",
+      "placeholder": "Enter proxy URL"
+    },
+    "publicApiBaseUrl": {
+      "label": "Public API Base URL",
+      "placeholder": "Enter public API base URL",
+      "hint": "Used to generate curl examples and onboarding links. Leave empty to hide these helpers."
+    },
+    "statsSaveInterval": {
+      "label": "Stats Save Interval",
+      "placeholder": "Enter interval in minutes"
+    },
+    "corsAllowOrigins": {
+      "label": "CORS Allowed Origins",
+      "hint": "Empty = deny all, * = allow all",
+      "example": "Only allow specific domains: https://example.com,https://example2.com",
+      "removeAriaLabel": "Remove {origin}"
+    },
+    "circuitBreaker": {
+      "title": "Circuit Breaker",
+      "threshold": {
+        "label": "Failure Threshold (consecutive failures)",
+        "placeholder": "Enter threshold"
+      },
+      "cooldown": {
+        "label": "Base Cooldown (seconds)",
+        "placeholder": "Enter cooldown in seconds"
+      },
+      "maxCooldown": {
+        "label": "Max Cooldown (seconds)",
+        "placeholder": "Enter max cooldown in seconds"
+      },
+      "hint": "When a channel fails consecutively up to the threshold, circuit breaker trips. Cooldown grows exponentially up to the max cooldown"
+    },
+    "responseFilter": {
+      "title": "Response Keyword Filter",
+      "description": "Intercept model output based on keywords. Supports blocking or replacing matched content.",
+      "enabled": {
+        "label": "Enable response keyword filter"
+      },
+      "action": {
+        "label": "Filter action",
+        "block": "Block",
+        "replace": "Replace",
+        "blockHint": "Immediately stop the response and return an error when a keyword is detected.",
+        "replaceHint": "Replace matched keywords with asterisks (*), the response continues normally."
+      },
+      "keywords": {
+        "label": "Blocked keywords",
+        "placeholder": "Type a keyword and press Enter to add",
+        "add": "Add",
+        "empty": "No keywords yet. Add keywords to block.",
+        "duplicate": "This keyword already exists",
+        "removeHint": "Click to remove"
+      },
+      "errorMessage": {
+        "label": "Block error message",
+        "placeholder": "Enter the error message returned when blocked",
+        "hint": "The error message text returned to the client when a keyword is detected in block mode."
+      }
+    },
+    "retry": {
+      "title": "Retry Settings",
+      "count": {
+        "label": "Max retries per channel",
+        "placeholder": "Enter retry count"
+      },
+      "ratelimitCooldown": {
+        "label": "Key cooldown (seconds)",
+        "hint": "After a channel key returns an upstream error (e.g. 429 rate limit, 401/403 auth failure), the key is skipped for this cooldown period. Set to 0 to disable cooldown.",
+        "placeholder": "Enter cooldown seconds"
+      },
+      "maxTotalAttempts": {
+        "label": "Max total attempts",
+        "hint": "Limits total forwarded attempts across all candidate channels for one request. 0 means unlimited.",
+        "placeholder": "Enter max total attempts"
+      }
+    },
+    "autoStrategy": {
+      "title": "Auto Strategy",
+      "hint": "Configure the automatic channel selection strategy. Channels with insufficient samples are explored first, then selection is based on success rate.",
+      "minSamples": {
+        "label": "Min Samples",
+        "hint": "Minimum requests before using success rate for selection",
+        "placeholder": "10"
+      },
+      "timeWindow": {
+        "label": "Time Window (sec)",
+        "hint": "Time window for calculating success rate",
+        "placeholder": "300"
+      },
+      "sampleThreshold": {
+        "label": "Sample Threshold",
+        "hint": "Maximum number of samples to keep in sliding window",
+        "placeholder": "100"
+      },
+      "latencyWeight": {
+        "label": "Latency Weight (0-100)",
+        "hint": "Higher values prefer lower-latency channels more strongly; lower values lean more on success rate.",
+        "placeholder": "30"
+      }
+    },
+    "aiRoute": {
+      "title": "AI Routing Settings",
+      "badge": "Command Habitat",
+      "group": {
+        "label": "Default Target Group for Single-Group AI Routing",
+        "placeholder": "Select a default target group",
+        "hint": "Used by the compatibility single-group AI routing flow. Clicking “AI Route” on the route page generates the full routing table directly."
+      },
+      "baseUrl": {
+        "label": "AI Base URL",
+        "placeholder": "Enter an OpenAI-compatible base URL"
+      },
+      "apiKey": {
+        "label": "AI API Key",
+        "placeholder": "Enter the AI API key"
+      },
+      "model": {
+        "label": "AI Model",
+        "placeholder": "Enter the model used for route analysis"
+      },
+      "timeoutSeconds": {
+        "label": "AI Timeout (seconds)",
+        "placeholder": "Enter the per-request timeout",
+        "hint": "Applies to a single AI route analysis request. Increase it if the model is slow or the model list is large."
+      },
+      "parallelism": {
+        "label": "Batch Parallelism",
+        "placeholder": "Enter an integer greater than 0",
+        "hint": "Controls the maximum number of AI route buckets analyzed in parallel. Defaults to 3, allows higher values, and never exceeds the number of batches in the current task."
+      },
+      "services": {
+        "label": "AI Service Pool (JSON)",
+        "placeholder": "Enter a JSON array of AI services",
+        "hint": "Leave empty or [] to keep using the single-service settings above. A JSON array enables multi-service pooling and failover.",
+        "invalid": "AI service pool JSON must be an array"
+      }
+    },
+    "semanticCache": {
+      "title": "Semantic Cache",
+      "description": "Configure the semantic cache runtime and its dedicated embedding service without leaving the current card layout.",
+      "enabled": {
+        "label": "Enable Semantic Cache"
+      },
+      "ttl": {
+        "label": "Cache TTL (seconds)",
+        "placeholder": "Enter TTL in seconds",
+        "hint": "Cached entries expire after this duration."
+      },
+      "threshold": {
+        "label": "Similarity Threshold (0-100)",
+        "placeholder": "Enter similarity threshold",
+        "hint": "Higher values require a closer semantic match before a cached response is reused."
+      },
+      "maxEntries": {
+        "label": "Max Entries",
+        "placeholder": "Enter the maximum number of cached entries",
+        "hint": "When the limit is reached, older cached entries are evicted first."
+      },
+      "embedding": {
+        "title": "Embedding Service",
+        "description": "These settings are used only for semantic-cache embedding requests and are not shared with AI Route."
+      },
+      "baseUrl": {
+        "label": "Embedding Base URL",
+        "placeholder": "Enter an OpenAI-compatible embedding base URL"
+      },
+      "apiKey": {
+        "label": "Embedding API Key",
+        "placeholder": "Enter the embedding API key"
+      },
+      "model": {
+        "label": "Embedding Model",
+        "placeholder": "Enter the embedding model name"
+      },
+      "timeoutSeconds": {
+        "label": "Embedding Timeout (seconds)",
+        "placeholder": "Enter the embedding request timeout",
+        "hint": "Applies only to semantic-cache embedding requests."
+      }
+    },
+    "pageOrder": {
+      "title": "Page Order",
+      "description": "Drag the top-level pages into the order you want. Changes are saved globally as soon as the drop completes.",
+      "reset": "Restore Default Order",
+      "hint": "This setting controls only the stored page order. The actual navbar integration is handled separately."
+    },
+    "saved": "Saved",
+    "saveFailed": "Save failed",
+    "backup": {
+      "title": "Backup / Restore",
+      "export": {
+        "title": "Export",
+        "includeLogs": "Include Logs",
+        "includeLogsHint": "Up to 500k most recent log entries",
+        "includeStats": "Include Stats",
+        "button": "Download JSON",
+        "exporting": "Exporting...",
+        "success": "Export started"
+      },
+      "import": {
+        "title": "Import",
+        "selected": "File selected",
+        "button": "Import JSON",
+        "importing": "Importing...",
+        "noFile": "Please select a JSON file first",
+        "success": "Import successful",
+        "failed": "Import failed",
+        "result": "Import result",
+        "mode": {
+          "label": "Import mode",
+          "incremental": "Incremental",
+          "full": "Full Restore",
+          "fullWarning": "Full restore will clear ALL existing data before importing. This is irreversible. Make sure you have a current backup."
+        }
+      },
+      "migration": {
+        "title": "Database migration",
+        "description": "Migrate data to another database and update config. The current process keeps using the old database until restart.",
+        "migrateLogs": "Migrate logs",
+        "migrateStats": "Migrate stats",
+        "targetRequired": "Please enter target database path / DSN",
+        "testSuccess": "Database connection OK",
+        "testFailed": "Database connection failed",
+        "confirm": "Migrate current data to target database and update config? Restart is required after success.",
+        "success": "Database migrated. Please restart Octopus to use the new database.",
+        "failed": "Database migration failed",
+        "migrating": "Migrating...",
+        "button": "Migrate and switch after restart",
+        "migrateLogsHint": "Includes relay logs and audit logs; can be large.",
+        "testButton": "Test connection",
+        "successDetail": "Migration complete. Restart Octopus to use {type}: {path}"
+      }
+    },
+    "webdav": {
+      "title": "WebDAV Cloud Backup",
+      "enabled": "Auto Backup",
+      "enabledHint": "Automatically backup to WebDAV server on schedule",
+      "baseUrl": "Server URL",
+      "username": "Username",
+      "password": "Password",
+      "remotePath": "Remote Path",
+      "includeStats": "Include statistics data",
+      "includeLogs": "Include relay & audit logs",
+      "intervalHours": "Interval (hours)",
+      "maxBackups": "Max backups to keep",
+      "save": "Save Config",
+      "saved": "WebDAV config saved",
+      "saveFailed": "Failed to save config",
+      "test": "Test Connection",
+      "testSuccess": "WebDAV connection successful",
+      "testFailed": "WebDAV connection failed",
+      "backupNow": "Backup Now",
+      "backupStarted": "Backup started in background",
+      "backupFailed": "Backup failed",
+      "remoteBackups": "Remote Backups",
+      "restore": "Restore",
+      "restoreConfirm": "Restore from backup {filename}? This will merge data into the current database.",
+      "restoreSuccess": "Backup restored successfully",
+      "restoreFailed": "Restore failed",
+      "delete": "Delete",
+      "deleteConfirm": "Delete backup {filename}?",
+      "deleteSuccess": "Backup deleted",
+      "deleteFailed": "Failed to delete backup"
+    },
+    "routeGroups": {
+      "title": "Route Groups",
+      "description": "Delete all route groups and all route items at once. This action cannot be undone.",
+      "count": "{count, plural, =0 {No route groups} one {# route group} other {# route groups}}",
+      "button": "Delete All Route Groups",
+      "deleting": "Deleting...",
+      "confirmTitle": "Delete all route groups?",
+      "confirmDescription": "This will permanently delete {count, plural, =0 {all route groups} one {# route group} other {# route groups}} and all route items.\nThe default target group for single-group AI routing will also be reset.\nThis action cannot be undone.\nContinue?",
+      "cancel": "Cancel",
+      "confirm": "Delete All",
+      "success": "Deleted {count} route groups",
+      "failed": "Failed to delete route groups"
+    },
+    "purgeUnavailable": {
+      "title": "Clean Up Unavailable Models",
+      "description": "Scan all route groups and remove items pointing to unavailable models: disabled channels, models that disappeared after a channel update, and items left over after a channel was deleted.",
+      "button": "Clean Up Unavailable Models",
+      "purging": "Cleaning up...",
+      "confirmTitle": "Clean up unavailable models?",
+      "confirmDescription": "This removes three kinds of items from all route groups:\n1. Models whose channel is disabled\n2. Models a channel no longer provides after an update\n3. Models left over after a channel was deleted\nThe groups themselves are kept. Continue?",
+      "cancel": "Cancel",
+      "confirm": "Clean Up",
+      "success": "Cleaned up {count} unavailable items",
+      "successNone": "No unavailable items found",
+      "summary": "Channel disabled {disabled} · Model gone {missing} · Channel deleted {removed}",
+      "failed": "Failed to clean up unavailable models"
+    },
+    "siteAutomation": {
+      "title": "Site Automation",
+      "autoGroupMode": {
+        "label": "Projected Channel Auto-Group Strategy",
+        "description": "Global strategy overrides per-channel settings",
+        "none": "None",
+        "fuzzy": "Fuzzy Match",
+        "exact": "Exact Match",
+        "regex": "Regex Match"
+      },
+      "syncInterval": {
+        "label": "Auto Sync Interval (hours)",
+        "placeholder": "Enter interval (hours)"
+      },
+      "checkinInterval": {
+        "label": "Auto Check-in Interval (hours)",
+        "placeholder": "Enter interval (hours)"
+      },
+      "manualSync": {
+        "label": "Manual Full Site Sync",
+        "button": "Sync Now",
+        "syncing": "Syncing..."
+      },
+      "manualCheckin": {
+        "label": "Manual Full Site Check-in",
+        "button": "Check in Now",
+        "checking": "Checking in..."
+      },
+      "saveFailed": "Save failed",
+      "syncTriggered": "Full site sync triggered in background",
+      "syncFailed": "Failed to trigger sync",
+      "checkinTriggered": "Full site check-in triggered in background",
+      "checkinFailed": "Failed to trigger check-in"
+    },
+    "apiKey": {
+      "title": "API Keys",
+      "empty": "No API keys",
+      "add": "Add Key",
+      "loadFailed": "Failed to load",
+      "form": {
+        "name": "Name",
+        "customKey": "Custom Key",
+        "optional": "Optional",
+        "customKeyPlaceholder": "Leave empty to auto-generate",
+        "customKeyHint": "You can set any custom key value",
+        "maxCost": "Max Cost",
+        "maxCostPlaceholder": "Enter amount",
+        "rateLimitRpm": {
+          "label": "Rate Limit (RPM)",
+          "placeholder": "Requests per minute, 0 = unlimited"
+        },
+        "rateLimitTpm": {
+          "label": "Rate Limit (TPM)",
+          "placeholder": "Tokens per minute, 0 = unlimited"
+        },
+        "perModelQuota": {
+          "label": "Per-Model Quota (JSON)",
+          "placeholder": "{\"gpt-4o\":{\"rpm\":5,\"tpm\":50000}}"
+        },
+        "allowedIPs": "Allowed IPs",
+        "allowedIPsPlaceholder": "Comma-separated IPs or CIDR, e.g. 10.0.0.1,192.168.0.0/16",
+        "unlimited": "Unlimited",
+        "expireAt": "Expire Date",
+        "expireTimePlaceholder": "HH:mm",
+        "selectDate": "Select date",
+        "neverExpire": "Never Expire",
+        "supportedModels": "Supported Models",
+        "noModels": "No models available",
+        "modelsHint": "Leave empty for unlimited",
+        "excludedChannels": "Excluded channels",
+        "noChannels": "No channels available",
+        "excludedChannelsHint": "Selected channels will not be used by this key",
+        "enabled": "Enabled",
+        "tags": "Tags",
+        "tagsPlaceholder": "Type and press Enter to add",
+        "tagsHint": "Use tags to group and quickly find keys",
+        "cancel": "Cancel",
+        "create": "Create",
+        "save": "Save",
+        "confirm": "Confirm"
+      },
+      "stats": {
+        "noData": "No statistics available",
+        "inputToken": "Input Token",
+        "outputToken": "Output Token",
+        "inputCost": "Input Cost",
+        "outputCost": "Output Cost",
+        "requestSuccess": "Request Success",
+        "requestFailed": "Request Failed"
+      },
+      "page": {
+        "searchPlaceholder": "Search by name or tag",
+        "newKey": "New Key",
+        "allTags": "All",
+        "untagged": "Untagged",
+        "filterByTag": "Filter by tag",
+        "count": "{count, plural, =0 {No keys} one {# key} other {# keys}}",
+        "noMatch": "No keys match the current filters",
+        "clearFilters": "Clear filters",
+        "createTitle": "Create API Key",
+        "editTitle": "Edit API Key",
+        "createDescription": "Configure limits, models and tags for the new key.",
+        "editDescription": "Update limits, models and tags for this key.",
+        "statusEnabled": "Enabled",
+        "statusDisabled": "Disabled",
+        "expires": "Expires",
+        "neverExpires": "Never expires",
+        "expired": "Expired",
+        "maxCost": "Max cost",
+        "unlimited": "Unlimited",
+        "requests": "Requests",
+        "successRate": "Success rate",
+        "tokens": "Tokens",
+        "cost": "Cost",
+        "noStats": "No usage yet",
+        "copyKey": "Copy key",
+        "viewStats": "Stats",
+        "edit": "Edit",
+        "delete": "Delete",
+        "deleteConfirm": "Delete this key?"
+      },
+      "actions": {
+        "viewStats": "View stats",
+        "edit": "Edit",
+        "close": "Close"
+      },
+      "toast": {
+        "createSuccess": "API key created",
+        "createError": "Failed to create API key",
+        "updateSuccess": "API key updated",
+        "updateError": "Failed to update API key",
+        "deleteSuccess": "API key deleted",
+        "deleteError": "Failed to delete API key"
+      }
+    },
+    "llmPrice": {
+      "title": "Model Pricing",
+      "updateInterval": {
+        "label": "Auto Update Interval (hours)",
+        "placeholder": "Enter interval in hours"
+      },
+      "manualUpdate": {
+        "label": "Manual Price Update",
+        "button": "Update Now",
+        "updating": "Updating..."
+      },
+      "lastUpdate": "Last Update",
+      "neverUpdated": "Never updated",
+      "updateSuccess": "Price updated successfully",
+      "updateFailed": "Failed to update price"
+    },
+    "llmSync": {
+      "title": "Automated Tasks",
+      "syncInterval": {
+        "label": "Auto Sync Interval (hours)",
+        "placeholder": "Enter interval in hours"
+      },
+      "manualSync": {
+        "label": "Manual Channel Sync",
+        "button": "Sync All Channel Models Now",
+        "syncing": "Syncing..."
+      },
+      "lastSync": "Last Sync",
+      "neverSynced": "Never synced",
+      "syncSuccess": "Channel synced successfully",
+      "syncFailed": "Failed to sync channel"
+    },
+    "webauthn": {
+      "title": "Passkey (WebAuthn)",
+      "description": "Configure the Relying Party used for Passkey login",
+      "hint": "RP ID is typically your site domain (no scheme or port); Origins are full URLs (with https://). Browsers require HTTPS (localhost excepted).",
+      "rpId": "RP ID",
+      "rpIdHint": "e.g. example.com — no https:// or port",
+      "rpName": "Display Name",
+      "origins": "Allowed Origins",
+      "originsHint": "Full URLs, comma-separated, e.g. https://example.com",
+      "saved": "Passkey configuration saved",
+      "saveFailed": "Failed to save",
+      "needRpid": "RP ID is required when an Origin is provided"
+    },
+    "account": {
+      "title": "Account Settings",
+      "save": "Save",
+      "saving": "Saving...",
+      "form": {
+        "cancel": "Cancel",
+        "save": "Save"
+      },
+      "username": {
+        "label": "Change Username",
+        "placeholder": "Enter new username",
+        "empty": "Username cannot be empty",
+        "success": "Username changed successfully",
+        "failed": "Failed to change username"
+      },
+      "password": {
+        "label": "Change Password",
+        "oldPlaceholder": "Enter current password",
+        "newPlaceholder": "Enter new password",
+        "confirmPlaceholder": "Confirm new password",
+        "showOld": "Show current password",
+        "hideOld": "Hide current password",
+        "showNew": "Show new password",
+        "hideNew": "Hide new password",
+        "showConfirm": "Show password confirmation",
+        "hideConfirm": "Hide password confirmation",
+        "oldEmpty": "Please enter current password",
+        "newEmpty": "Please enter new password",
+        "mismatch": "Passwords do not match",
+        "tooShort": "Password must be at least 6 characters",
+        "change": "Change Password",
+        "success": "Password changed successfully",
+        "failed": "Failed to change password"
+      },
+      "logout": {
+        "label": "Sign out current session",
+        "button": "Logout"
+      },
+      "passkey": {
+        "title": "Passkey Login",
+        "description": "Register a Passkey to sign in from the login page without a password",
+        "unnamed": "Unnamed credential",
+        "lastUsed": "Last used",
+        "created": "Created",
+        "delete": "Delete",
+        "namePlaceholder": "Credential name (e.g. \"MacBook\")",
+        "add": "Add Passkey",
+        "adding": "Adding...",
+        "addSuccess": "Passkey added",
+        "addFailed": "Failed to add Passkey",
+        "deleteSuccess": "Passkey removed",
+        "deleteFailed": "Failed to remove"
+      }
+    },
+    "info": {
+      "title": "Version Info",
+      "currentVersion": "Current Version",
+      "latestVersion": "Latest Version",
+      "buildTime": "Build Time",
+      "publishedAt": "Published At",
+      "github": "GitHub Repository",
+      "unknown": "Unknown",
+      "versionMismatch": "Version Mismatch",
+      "versionMismatchHint": "Frontend version ({frontend}) does not match backend version ({backend}). This may be a browser cache issue. Please force refresh the page.",
+      "forceRefresh": "Force Refresh",
+      "newVersionAvailable": "New version available",
+      "newVersionAvailableHint": "Please backup your data first, then update the system",
+      "updateNow": "Update Now",
+      "updating": "Updating...",
+      "updateSuccess": "Update successful, service will restart shortly",
+      "updateFailed": "Update failed"
+    },
+    "log": {
+      "title": "Log Settings",
+      "enabled": {
+        "label": "Enable History Logs",
+        "description": "When disabled, logs will not be saved and existing logs will be cleaned up"
+      },
+      "keepPeriod": {
+        "label": "Log Retention Days",
+        "placeholder": "e.g. 7",
+        "description": "Logs older than the specified days will be automatically deleted"
+      },
+      "clear": {
+        "label": "Clear History Logs",
+        "button": "Clear",
+        "clearing": "Clearing..."
+      },
+      "clearSuccess": "Logs cleared",
+      "clearFailed": "Failed to clear logs",
+      "keepCount": {
+        "label": "Log Retention Count",
+        "description": "Automatically deletes oldest 50% of logs when exceeding the limit, avoiding frequent cleanup overhead",
+        "placeholder": "e.g. 1000"
+      },
+      "keepMode": {
+        "label": "Retention Mode",
+        "count": "By Count",
+        "days": "By Days"
+      },
+      "mode": {
+        "label": "Log Retention Mode",
+        "description": "Choose to auto-clean logs by count or by days",
+        "count": "By Count",
+        "days": "By Days"
+      },
+      "logLevel": {
+        "label": "Application Log Level",
+        "description": "Control the verbosity of backend console output",
+        "debug": "Debug",
+        "info": "Info",
+        "warn": "Warn",
+        "error": "Error"
+      },
+      "excludedGroups": {
+        "label": "Hidden Groups",
+        "description": "Logs from selected groups will not be shown or loaded in the log list and live stream",
+        "empty": "No groups available",
+        "addHint": "Click to hide this group's logs",
+        "removeHint": "Click to stop hiding this group's logs"
+      }
+    },
+    "navOrder": {
+      "title": "Page Order & Visibility",
+      "description": "Drag to reorder navigation pages and hide non-critical pages. The Settings page always stays visible.",
+      "reset": "Reset Default",
+      "resetSuccess": "Page order has been reset",
+      "visible": "Visible",
+      "hidden": "Hidden",
+      "fixed": "Pinned",
+      "minimumVisibleHint": "Keep at least {count} pages visible. The Settings page cannot be hidden.",
+      "minimumVisibleError": "At least {count} pages must remain visible",
+      "toggleAriaLabel": "Toggle page visibility: {page}"
+    },
+    "settingOrder": {
+      "title": "Setting Item Order",
+      "description": "Drag to reorder setting page sections. Changes are saved immediately on drop.",
+      "reset": "Reset to Default",
+      "resetSuccess": "Setting item order has been reset"
+    },
+    "chinaMode": {
+      "label": "China Localization",
+      "description": "Display costs in CNY, numbers in 万/亿 units",
+      "exchangeRate": {
+        "label": "USD to CNY Rate",
+        "hint": "Default 7.2, adjustable"
+      }
+    }
+  },
+  "group": {
+    "toast": {
+      "created": "Created successfully",
+      "createFailed": "Create failed",
+      "updated": "Updated successfully",
+      "updateFailed": "Update failed",
+      "deleted": "Deleted successfully",
+      "autoGroupSuccess": "Auto grouping completed: created {created} groups and skipped {skipped} existing groups",
+      "autoGroupSuccessDescription": "Scanned {models} models, identified {candidates} candidate groups, created {created}, skipped {skippedExisting} existing groups, and skipped {skippedCovered} covered models",
+      "autoGroupFailed": "Auto grouping failed",
+      "aiRouteTableSuccess": "AI routing completed: generated {routes} routes, affected {groups} groups, and wrote {items} route items",
+      "aiRouteGroupSuccess": "AI group sync completed: generated {routes} routes and updated {items} route items in the current group",
+      "aiRouteFailed": "AI routing failed",
+      "aiRouteEmptyResult": "AI route result is empty",
+      "aiRouteMissingGroup": "Please select the default target group for single-group AI routing in settings first",
+      "removedFailedModels": "Failed models removed",
+      "autoAddFailed": "Auto add failed",
+      "testAllPassed": "All models in this group are available",
+      "testPartialFailed": "Some models are unavailable",
+      "testPartialFailedDescription": "You may want to remove the failed models",
+      "testRequestFailed": "Group test failed",
+      "removableSuggestion": "Suggested removals"
+    },
+    "actions": {
+      "autoGroup": "Auto Group",
+      "aiRoute": "AI Route",
+      "aiRouteGroup": "AI Sync Current Group",
+      "aiRouteProgress": "View Progress"
+    },
+    "autoGroup": {
+      "confirmTitle": "Confirm Auto Grouping",
+      "confirmDescription": "This will scan all channel models and create groups for uncovered models based on normalization rules.\nExisting groups will not be modified or deleted.\nContinue?",
+      "submit": "Start Auto Grouping",
+      "submitting": "Grouping..."
+    },
+    "aiRoute": {
+      "table": {
+        "confirmTitle": "Generate the Full AI Routing Table?",
+        "confirmDescription": "This will send all models to the AI for analysis and generate the full routing table in batch.\nExisting groups with the same name will have their route items synchronized, and stale route items will be removed; other groups will not be deleted.\nContinue?",
+        "submit": "Generate Routing Table",
+        "submitting": "Generating..."
+      },
+      "group": {
+        "confirmTitle": "Sync the Current Group with AI Routing?",
+        "confirmDescription": "This will send all models to the AI for analysis and synchronize the current group's route items with the result.\nStale route items will be removed, and existing matches will be updated to the latest priority and weight.\nContinue?",
+        "submit": "Sync Current Group",
+        "submitting": "Syncing..."
+      },
+      "progress": {
+        "title": "AI Route Task Progress",
+        "description": {
+          "table": "The full AI routing table is being generated. You can close this dialog and come back later.",
+          "group": "The current group's AI routes are being synchronized. You can close this dialog and come back later."
+        },
+        "loading": "Loading task progress...",
+        "close": "Close",
+        "batchProgress": "{completed}/{total} batches completed",
+        "lastUpdated": "State updated: {time}",
+        "lastHeartbeat": "Heartbeat: {time}",
+        "heartbeatStale": "Backend heartbeat is temporarily stale. It may still be waiting for the AI response.",
+        "currentBatch": "Active Batch",
+        "recentBatch": "Most Recent Batch",
+        "activeBatches": "Active Batches",
+        "activeBatchCount": "{count} active batches",
+        "batchLabel": "Batch {index}/{total}",
+        "batchCapability": "Capability",
+        "batchModels": "Models in Batch",
+        "batchChannels": "Channels in Batch",
+        "batchService": "Service",
+        "batchAttempt": "Attempt",
+        "channelList": "Channel Progress",
+        "channelSections": {
+          "running": "Active",
+          "completed": "Completed",
+          "pending": "Pending",
+          "failed": "Failed",
+          "empty": {
+            "running": "No channels are currently active.",
+            "completed": "No channels have completed yet.",
+            "pending": "No channels are waiting.",
+            "failed": "No channels have failed."
+          }
+        },
+        "channelModels": "{completed}/{total} models processed",
+        "result": {
+          "groupSummary": "AI group sync finished with {routes} routes and {items} route items updated.",
+          "tableSummary": "AI routing table generation finished with {routes} routes, {groups} affected groups, and {items} route items written."
+        },
+        "status": {
+          "queued": "Queued",
+          "running": "Running",
+          "completed": "Completed",
+          "failed": "Failed",
+          "timeout": "Timed Out"
+        },
+        "steps": {
+          "queued": "Task Created",
+          "collecting_models": "Collecting Channels and Models",
+          "building_batches": "Planning Analysis Batches",
+          "analyzing_batches": "Waiting for AI Analysis",
+          "parsing_response": "Parsing AI Response",
+          "validating_routes": "Validating Candidate Routes",
+          "writing_groups": "Writing Groups and Route Items",
+          "finalizing": "Finalizing Task",
+          "completed": "Task Completed",
+          "failed": "Task Failed",
+          "timeout": "Task Timed Out"
+        },
+        "channelStatus": {
+          "pending": "Pending",
+          "running": "Running",
+          "completed": "Completed",
+          "failed": "Failed"
+        },
+        "batchStatus": {
+          "running": "Running",
+          "parsing": "Parsing",
+          "retrying": "Retrying",
+          "failed": "Failed",
+          "completed": "Completed"
+        },
+        "summary": {
+          "totalChannels": "Total Channels",
+          "completedChannels": "Completed Channels",
+          "runningChannels": "Active Channels",
+          "pendingChannels": "Pending Channels",
+          "failedChannels": "Failed Channels",
+          "modelsProgress": "Model Progress"
+        },
+        "channelFallbackName": "Channel {id}",
+        "runtime": {
+          "taskCreated": "AI route task created and waiting to start.",
+          "taskCompleted": "AI route generation completed.",
+          "taskTimeout": "AI route task timed out. Please try again later.",
+          "collectedModels": "Collected {channels} channels and {models} models.",
+          "plannedSingleBatch": "Batch planning completed. Ready to start AI analysis.",
+          "plannedBatches": "Batch planning completed with {batches} batches.",
+          "waitingBatchResult": "Waiting for AI result for batch {index}/{total} ({endpoint}, {channels} channels / {models} models).",
+          "parallelAnalyzing": "Analyzing {active} batches in parallel. Latest started batch {index}/{total} ({endpoint}, {channels} channels / {models} models).",
+          "batchRetrying": "Batch {index}/{total} failed. Switching to another service and retrying.",
+          "batchRetryingWithReason": "Batch {index}/{total} failed. Switching to another service and retrying: {reason}",
+          "batchParsing": "AI returned results for batch {index}/{total}. Parsing and validating.",
+          "batchCompletedWithActive": "Batch {index}/{total} completed. {active} active batches remain.",
+          "batchCompletedWaitingNext": "Batch {index}/{total} completed. Waiting to start the next batch.",
+          "allBatchesCompleted": "All batches completed. Preparing to validate routes.",
+          "batchFailedIndexed": "Batch {index}/{total} failed.",
+          "batchFailedIndexedWithReason": "Batch {index}/{total} failed: {reason}",
+          "validatingRoutes": "Validating {routes} candidate routes returned by AI.",
+          "validatingRoutesGeneric": "Validating candidate routes returned by AI.",
+          "writingCurrentGroup": "Writing the current group.",
+          "writingNamedGroup": "Writing group \"{group}\".",
+          "writingRoute": "Writing route {index}/{total}.",
+          "writingNamedRoute": "Writing route \"{route}\" ({index}/{total}).",
+          "finalizing": "Finalizing.",
+          "finalizingCustom": "{message}",
+          "channelAnalyzingEndpoint": "Analyzing {endpoint} models.",
+          "channelAnalyzing": "Analyzing.",
+          "channelCompleted": "Completed.",
+          "channelFailedWithReason": "Channel failed: {reason}",
+          "partialFailure": "AI routing partially failed, but preserved {success_groups} successfully written groups: {cause}",
+          "channelFailed": "Current channel processing failed.",
+          "batchFailed": "Current batch failed."
+        }
+      }
+    },
+    "create": {
+      "title": "Create Group",
+      "submit": "Create",
+      "submitting": "Creating..."
+    },
+    "card": {
+      "empty": "No rules",
+      "modelCount": "{count, plural, one {# model} other {# models}}",
+      "testProgressTitle": "Test progress",
+      "testProgressCount": "Completed {completed}/{total}",
+      "testPending": "Pending",
+      "testPassed": "Passed",
+      "testFailedTitle": "The following models failed 3 consecutive checks and can be removed",
+      "testAttempts": "retried {count} times",
+      "testUnknownError": "Unknown error",
+      "testRemovableHint": "You can edit this group and remove the models above.",
+      "endpointType": "API Type: {value}"
+    },
+    "detail": {
+      "availability": {
+        "title": "Full availability check",
+        "description": "Test every model in this group and highlight unavailable ones.",
+        "testAll": "Test all models",
+        "unavailableBadge": "Unavailable",
+        "unavailableCount": "{count, plural, one {# unavailable model} other {# unavailable models}}",
+        "resultTitle": "Check details",
+        "resultPassed": "Passed",
+        "resultFailed": "Failed",
+        "resultAttempts": "Retried {count} times"
+      },
+      "actions": {
+        "edit": "Edit",
+        "cancel": "Cancel",
+        "save": "Save",
+        "copyName": "Copy Name",
+        "delete": "Delete",
+        "confirmDelete": "Confirm Delete",
+        "testAvailability": "Test availability",
+        "removeFailedModels": "Remove failed models"
+      }
+    },
+    "form": {
+      "name": "Group Name",
+      "matchRegex": "Match Regex",
+      "matchRegexPlaceholder": "Leave empty to use default exact match by group name",
+      "matchRegexInvalid": "Invalid regex",
+      "searchAriaLabel": "Search models",
+      "firstTokenTimeOut": "First Token Timeout",
+      "firstTokenTimeOutHint": "Unit: seconds, only effective for streaming response, 0 = no limit",
+      "sessionKeepTime": "Session Keep Time",
+      "sessionKeepTimeHint": "Unit: seconds, keeps using the same channel within a session, 0 = disabled",
+      "condition": {
+        "label": "Condition (JSON)",
+        "hint": "JSON array of rules. Leave empty to always match.",
+        "example": "Example: [{\"key\":\"model\",\"op\":\"contains\",\"value\":\"gpt-4\"}]",
+        "placeholder": "[{\"key\":\"model\",\"op\":\"contains\",\"value\":\"gpt-4\"}]"
+      },
+      "items": "Selected Models",
+      "addItem": "Add Model",
+      "autoAdd": "Auto Add",
+      "clear": "Clear",
+      "selectChannel": "Channel",
+      "selectModel": "Model",
+      "endpointType": {
+        "label": "Route API Type",
+        "hint": "This controls which request category the group matches. It is different from the channel-level provider type.",
+        "options": {
+          "all": "All",
+          "chat": "Conversation",
+          "deepseek": "DeepSeek",
+          "mimo": "MiMo",
+          "embeddings": "Embeddings",
+          "rerank": "Rerank",
+          "moderations": "Moderations",
+          "imageGeneration": "Image generation",
+          "audioSpeech": "Text-to-speech",
+          "audioTranscription": "Speech-to-text",
+          "videoGeneration": "Video generation",
+          "musicGeneration": "Music generation",
+          "search": "Search"
+        }
+      },
+      "endpointProvider": {
+        "musicLabel": "Music API Type",
+        "musicHint": "Select the backend music API type. The backend will automatically rewrite the passthrough JSON after saving.",
+        "chatLabel": "Chat API Type",
+        "chatHint": "Select the backend chat API type. The backend will automatically rewrite the chat passthrough JSON after saving.",
+        "videoLabel": "Video API Type",
+        "videoHint": "Select the video API type. The backend will automatically rewrite the video passthrough request path after saving.",
+        "audioSpeechLabel": "TTS API Type",
+        "audioSpeechHint": "Select the TTS API type. The backend will automatically rewrite the TTS request format and path after saving."
+      },
+      "outboundFormat": {
+        "label": "Outbound Format",
+        "hint": "Select the preferred outbound API format. Auto will try Chat Completions first then fall back to Responses.",
+        "options": {
+          "auto": "Auto",
+          "chat": "Chat Completions",
+          "responses": "Responses"
+        }
+      }
+    },
+    "mode": {
+      "roundRobin": "Round Robin",
+      "random": "Random",
+      "failover": "Failover",
+      "weighted": "Weighted",
+      "auto": "Auto"
+    },
+    "capability": {
+      "chat": "Chat",
+      "embeddings": "Embeddings",
+      "rerank": "Rerank",
+      "moderation": "Moderation",
+      "imageGeneration": "Image",
+      "audioSpeech": "TTS",
+      "audioTranscription": "STT",
+      "videoGeneration": "Video",
+      "musicGeneration": "Music",
+      "search": "Search"
+    },
+    "empty": "No groups yet, click the button above to create one",
+    "emptyState": {
+      "title": "No groups yet",
+      "description": "You can create a group manually or use auto grouping / AI routing to generate them quickly."
+    },
+    "ccswitch": {
+      "title": "Generate CC Switch Link",
+      "description": "Choose a target app, route group, and Octopus API key to generate a CC Switch v1 provider import link.",
+      "groupLabel": "Route Group",
+      "selectGroup": "Select group",
+      "appLabel": "Target App",
+      "nameLabel": "Name",
+      "namePlaceholder": "e.g. octopus_claude_my-group",
+      "selectModel": "Select group",
+      "haikuModelLabel": "Haiku Model",
+      "sonnetModelLabel": "Sonnet Model",
+      "opusModelLabel": "Opus Model",
+      "import": "Import to CC Switch",
+      "apiKeyLabel": "Octopus API Key",
+      "selectAPIKey": "Select API key",
+      "endpoint": "Import Endpoint",
+      "model": "Default Model",
+      "apiKeyHint": "Enter the Octopus API Key for this group (sk-octopus-...)",
+      "generate": "Generate Link",
+      "generatedLink": "Generated Link",
+      "copy": "Copy Link",
+      "copied": "Copied",
+      "missingPublicApiBaseUrl": "Set the public API base URL in system settings first.",
+      "missingGroup": "Create at least one route group first.",
+      "missingAPIKey": "Create and enable at least one Octopus API key first."
+    }
+  },
+  "model": {
+    "loading": "Loading model market...",
+    "empty": "No matching models found",
+    "emptyAll": "There are no models yet",
+    "create": {
+      "title": "Create Model",
+      "name": "Model Name",
+      "input": "Input Price",
+      "output": "Output Price",
+      "cacheRead": "Cache Read",
+      "cacheWrite": "Cache Write",
+      "submit": "Create",
+      "submitting": "Creating...",
+      "priceHint": "Price unit: USD / 1M tokens"
+    },
+    "summary": {
+      "title": "Model Market",
+      "description": "View model pricing, channel coverage, available keys, and runtime performance in one place while keeping the existing pricing workflow.",
+      "trigger": "Stats",
+      "modelCount": "Models",
+      "coverage": "Channel Coverage",
+      "uniqueChannels": "Unique Channels",
+      "averageLatency": "Average Latency",
+      "lastUpdate": "Price Updated",
+      "neverUpdated": "Never updated",
+      "refresh": "Refresh Prices",
+      "refreshing": "Refreshing...",
+      "refreshSuccess": "Prices refreshed",
+      "refreshFailed": "Failed to refresh prices"
+    },
+    "toast": {
+      "updated": "Model price updated",
+      "updateFailed": "Update failed",
+      "deleted": "Model deleted",
+      "deleteFailed": "Delete failed"
+    },
+    "card": {
+      "inputCache": "Input/Cache",
+      "outputCache": "Output/Cache",
+      "edit": "Edit",
+      "delete": "Delete",
+      "requests": "Requests",
+      "channels": "Channels",
+      "keys": "Keys",
+      "latency": "Average Latency",
+      "averageLatency": "Average Latency",
+      "successRate": "Success Rate",
+      "expand": "Expand details",
+      "collapse": "Collapse details"
+    },
+    "detail": {
+      "pricing": "Pricing",
+      "runtime": "Runtime Stats",
+      "channels": "Channels",
+      "requestSuccess": "Successful Requests",
+      "requestFailed": "Failed Requests",
+      "noChannels": "No channels cover this model yet",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "keyCount": "Keys"
+    },
+    "overlay": {
+      "cancel": "Cancel",
+      "deleting": "Deleting...",
+      "confirmDelete": "Confirm Delete",
+      "input": "Input",
+      "output": "Output",
+      "cacheRead": "Cache Read",
+      "cacheWrite": "Cache Write",
+      "save": "Save",
+      "priceHint": "Price unit: USD / 1M tokens"
+    },
+    "capabilities": {
+      "title": "Model Capabilities",
+      "description": "Declared endpoint support, conversation flag, and availability per model.",
+      "model": "Model",
+      "endpoints": "Endpoints",
+      "conversation": "Conv",
+      "available": "Available",
+      "loading": "Loading capabilities…",
+      "error": "Failed to load capabilities",
+      "empty": "No capabilities data available",
+      "yes": "Yes",
+      "active": "Active",
+      "down": "Down",
+      "total": "Total",
+      "nonConversation": "Non-conversation",
+      "status": "Status",
+      "searchPlaceholder": "Filter by model name…",
+      "emptySearch": "No models match your filter.",
+      "note": "* group items are narrowed at relay time for non-conversation endpoints. A model appearing here may still return 404 for an endpoint if its items do not actually support it.",
+      "autoEndpoint": "Auto"
+    },
+    "tabs": {
+      "market": "Market",
+      "capabilities": "Capabilities"
+    }
+  },
+  "log": {
+    "actions": {
+      "refresh": "Refresh Logs",
+      "refreshSuccess": "Logs refreshed",
+      "refreshFailed": "Failed to refresh logs"
+    },
+    "list": {
+      "empty": "There are no logs yet",
+      "noMore": "No more logs",
+      "loadingMore": "Loading more logs…"
+    },
+    "filter": {
+      "modelPlaceholder": "Search model…",
+      "allChannels": "All channels",
+      "allKeys": "All keys",
+      "allTypes": "All types",
+      "allStatuses": "All statuses",
+      "statusSuccess": "Success",
+      "statusError": "Error",
+      "allLogs": "All logs",
+      "testOnly": "Test only",
+      "nonTest": "Non-test",
+      "clear": "Clear"
+    },
+    "viewOptions": {
+      "title": "Display Fields",
+      "endpointType": "Endpoint Type",
+      "channelName": "Channel Name",
+      "actualModel": "Actual Model",
+      "apiKeyName": "API Key Name",
+      "clientIP": "Client IP",
+      "cost": "Cost",
+      "reset": "Reset"
+    },
+    "card": {
+      "error": "Error",
+      "errorInfo": "Error Info",
+      "firstToken": "TTFT",
+      "totalTime": "Total",
+      "input": "Input",
+      "realInput": "Actual Input",
+      "cacheHit": "Cache Hit",
+      "semanticCacheHit": "Semantic Cache Hit",
+      "output": "Output",
+      "cost": "Cost",
+      "requestContent": "Request Content",
+      "responseContent": "Response Content",
+      "noRequestContent": "(No request content)",
+      "noResponseContent": "(No response content)",
+      "expandAll": "Expand All",
+      "collapseAll": "Collapse All",
+      "firstTokenTime": "First Token Time",
+      "tokens": "tokens",
+      "retryDetails": "Retry Details",
+      "attempts": "attempts",
+      "success": "Success",
+      "failed": "Failed",
+      "requestType": "Request Type",
+      "channelFallback": "Channel #{id}",
+      "testLog": "Test",
+      "requestTypeLabels": {
+        "chat": "Chat",
+        "streamingChat": "Streaming Chat",
+        "mimoChat": "MiMo Chat",
+        "responses": "Responses",
+        "embedding": "Embedding",
+        "anthropicMessages": "Anthropic Messages",
+        "gemini": "Gemini",
+        "volcengine": "Volcengine"
+      }
+    }
+  },
+  "channel": {
+    "empty": "There are no channels yet",
+    "card": {
+      "requestCount": "Requests",
+      "totalCost": "Total Cost",
+      "toast": {
+        "enabled": "Channel enabled",
+        "disabled": "Channel disabled"
+      }
+    },
+    "detail": {
+      "title": {
+        "edit": "Edit Channel",
+        "view": "Channel Details"
+      },
+      "sections": {
+        "requests": "Request Details",
+        "tokens": "Token Usage",
+        "costs": "Cost Details",
+        "baseUrls": "Base URLs",
+        "keys": "Keys",
+        "ccSwitch": "CC Switch"
+      },
+      "noBaseUrls": "No Base URLs",
+      "noKeys": "No Keys",
+      "ccSwitch": {
+        "description": "Generate a CC Switch v1 provider import link with a target app, route group, and Octopus API key.",
+        "app": "Target App",
+        "group": "Route Group",
+        "selectGroup": "Select group",
+        "apiKey": "Octopus API Key",
+        "selectAPIKey": "Select API key",
+        "endpoint": "Import Endpoint",
+        "model": "Default Model",
+        "publicApiBase": "Public API Base",
+        "upstreamBase": "Upstream Base",
+        "missingPublicApiBaseUrl": "Please set Public API Base URL in system settings first.",
+        "missingKey": "Please configure at least one enabled API key for this channel.",
+        "missingGroup": "Create at least one route group first.",
+        "missingAPIKey": "Create and enable at least one Octopus API key first."
+      },
+      "metrics": {
+        "totalRequests": "Total Requests",
+        "totalToken": "Total Tokens",
+        "totalCost": "Total Cost",
+        "successRequests": "Successful Requests",
+        "failedRequests": "Failed Requests",
+        "inputToken": "Input Tokens",
+        "outputToken": "Output Tokens",
+        "inputCost": "Input Cost",
+        "outputCost": "Output Cost",
+        "avgWaitTime": "Wait Time"
+      },
+      "actions": {
+        "edit": "Edit",
+        "cancel": "Cancel",
+        "save": "Save",
+        "saving": "Saving...",
+        "delete": "Delete",
+        "confirmDelete": "Confirm Delete",
+        "deleting": "Deleting...",
+        "checkKeys": "Check All Keys",
+        "checking": "Checking...",
+        "checkAllPassed": "All keys available ({passed}/{total} passed)",
+        "checkPartialPassed": "Some keys available ({passed}/{total} passed)",
+        "checkAllFailed": "All keys are unavailable, you can delete this channel",
+        "checkFailed": "Failed to check channel keys",
+        "deleteUnavailable": "Delete This Channel",
+        "deleteUnavailableTitle": "Delete channel with all keys unavailable?",
+        "deleteUnavailableDescription": "All {total} keys of this channel failed the check.\nDeleting will permanently remove the channel, its keys and stats, and clear its route items from all route groups.\nThis action cannot be undone. Continue?"
+      }
+    },
+    "create": {
+      "dialogTitle": "Create New Channel",
+      "submit": "Create Channel",
+      "submitting": "Creating..."
+    },
+    "groupManager": {
+      "title": "Channel Groups",
+      "hint": "Used for channel page management and display, and also as a grouping reference during AI route generation, but it does not directly rewrite existing routing or relay results.",
+      "create": "New Group",
+      "createPlaceholder": "Enter a channel group name",
+      "defaultName": "Default",
+      "select": "View",
+      "current": "Current",
+      "rename": "Rename",
+      "delete": "Delete",
+      "save": "Save",
+      "cancel": "Cancel",
+      "loading": "Loading channel groups...",
+      "loadFailed": "Failed to load channel groups",
+      "empty": "There are no channel groups yet",
+      "defaultBadge": "Default",
+      "count": "{count} channels",
+      "visibleCount": "{count} channels shown",
+      "emptyGroup": "There are no channels in this group",
+      "fallbackName": "Default",
+      "fallbackNameWithID": "Channel Group #{id}",
+      "createSuccess": "Channel group created",
+      "renameSuccess": "Channel group updated",
+      "deleteSuccess": "Channel group deleted",
+      "deleteConfirm": "Delete channel group \"{name}\"?"
+    },
+    "form": {
+      "add": "Add",
+      "basicInfo": "Basic Information",
+      "name": "Channel Name",
+      "group": "Channel Group",
+      "groupLoading": "Loading groups...",
+      "type": "Channel Type",
+      "baseUrlConfig": "Base URL Configuration",
+      "baseUrls": "Base URLs",
+      "baseUrlUrl": "URL",
+      "baseUrlHint": "Enter the official or compatible service base address. OpenAI mode adds the protocol prefix; Custom only appends the concrete endpoint path.",
+      "baseUrlSuffixOpenAI": "OpenAI",
+      "baseUrlSuffixCustom": "Custom",
+      "baseUrlOpenAIHint": "For example, if you enter https://api.example.com, the system expands it to https://api.example.com/v1, then requests /chat/completions, /responses, or /embeddings.",
+      "baseUrlOpenAIWarning": "OpenAI mode is enabled. You do not need to add /v1 manually. For example, https://api.example.com becomes https://api.example.com/v1.",
+      "baseUrlCustomHint": "For example, if you enter https://api.example.com/custom, the system does not add /v1 and only continues with /chat/completions, /responses, or /embeddings.",
+      "baseUrlDelay": "Delay(ms)",
+      "advanced": "Advanced Settings",
+      "apiKeyConfig": "API Key Configuration",
+      "apiKey": "API Key",
+      "customHeader": "Custom Headers",
+      "customHeaderKey": "Header Key",
+      "customHeaderValue": "Header Value",
+      "customHeaderAdd": "Add Header",
+      "channelProxy": "Channel Proxy",
+      "channelProxyPlaceholder": "Optional: proxy for this channel (overrides global proxy)",
+      "paramOverride": "Param Override",
+      "paramOverridePlaceholder": "Optional: JSON string to override request params",
+      "requestRewrite": "Request Rewrite",
+      "requestRewriteHint": "Optional compatibility rewrite for stricter upstream request formats",
+      "requestRewriteEnabled": "Enable rewrite",
+      "requestRewriteProfile": "Rewrite Profile",
+      "requestRewriteProfileOpenAIChatCompat": "OpenAI Chat Compatibility",
+      "requestRewriteToolRoleStrategy": "Tool Role Strategy",
+      "requestRewriteSystemMessageStrategy": "System Message Strategy",
+      "requestRewriteStrategyKeep": "Keep",
+      "requestRewriteStrategyStringifyToUser": "Stringify to User",
+      "requestRewriteStrategyMerge": "Merge",
+      "modelConfig": "Model Configuration",
+      "model": "Model",
+      "enabled": "Enabled",
+      "proxy": "Use Proxy",
+      "modelCustomPlaceholder": "Custom model name",
+      "modelAdd": "Add",
+      "modelRefresh": "Refresh",
+      "modelRefreshSuccess": "Fetched {count} models. Choose which ones to add",
+      "modelRefreshFailed": "Failed to fetch models",
+      "modelRefreshEmpty": "No models found",
+      "modelSelected": "Selected Models",
+      "modelNoSelected": "No models selected",
+      "modelClearAll": "Clear All",
+      "modelPicker": {
+        "title": "Choose models to add",
+        "description": "Upstream returned {count} models. Select the models before adding them to this channel.",
+        "searchPlaceholder": "Search model name",
+        "selectedCount": "{count} selected",
+        "filteredCount": "{count} shown",
+        "selectFiltered": "Select results",
+        "unselectFiltered": "Unselect results",
+        "clear": "Clear",
+        "empty": "No models available",
+        "noSearchResult": "No matching models",
+        "loading": "Fetching models...",
+        "cancel": "Cancel",
+        "apply": "Add {count} models",
+        "applySuccess": "Added {count} models"
+      },
+      "template": {
+        "label": "Built-in Templates",
+        "hint": "One click to prefill common provider settings",
+        "open": "Use template",
+        "skip": "Skip templates",
+        "pickerHint": "Choose a built-in provider to prefill the form. If your upstream is not listed, skip this step and configure it manually.",
+        "options": {
+          "openai": {
+            "description": "OpenAI Chat official API"
+          },
+          "openaiResponses": {
+            "description": "OpenAI Responses API"
+          },
+          "anthropic": {
+            "description": "Claude official API"
+          },
+          "gemini": {
+            "description": "Google Gemini official API"
+          },
+          "deepseek": {
+            "description": "DeepSeek OpenAI-compatible API"
+          },
+          "openrouter": {
+            "description": "OpenRouter aggregation API"
+          },
+          "siliconflow": {
+            "description": "SiliconFlow OpenAI-compatible API"
+          },
+          "volcengine": {
+            "description": "Volcengine Ark API"
+          },
+          "mimo": {
+            "description": "Xiaomi Mimo OpenAI-compatible API"
+          }
+        },
+        "descriptions": {
+          "openai": "Official OpenAI Chat endpoint.",
+          "openaiResponses": "OpenAI Responses API endpoint.",
+          "anthropic": "Official Claude endpoint. Version paths are handled automatically.",
+          "gemini": "Official Google Gemini endpoint. Version paths are handled automatically.",
+          "deepseek": "DeepSeek OpenAI-compatible endpoint.",
+          "openrouter": "OpenRouter aggregated endpoint.",
+          "siliconflow": "SiliconFlow OpenAI-compatible endpoint.",
+          "volcengine": "Volcengine Ark endpoint.",
+          "mimo": "Xiaomi Mimo OpenAI-compatible endpoint.",
+          "cloudflare": "Cloudflare Workers AI endpoint. Set base_url to your account root (incl. /client/v4/accounts/{ACCOUNT_ID})."
+        }
+      },
+      "remove": "Remove",
+      "test": {
+        "button": "Test",
+        "success": "Channel test passed",
+        "partialSuccess": "Channel test completed",
+        "failed": "Channel test failed",
+        "results": "results",
+        "pass": "Pass",
+        "fail": "Fail",
+        "noRemark": "No remark",
+        "hint": "Batch tests all entered endpoint and key combinations. HTTP 200 and 429 are treated as pass.",
+        "removeFailedKeys": "Remove Failed Keys"
+      },
+      "typeOpenAI": "OpenAI",
+      "typeOpenAIChat": "OpenAI Chat",
+      "typeOpenAIResponse": "OpenAI Response",
+      "typeOpenAIEmbedding": "OpenAI Embedding",
+      "typeAnthropic": "Anthropic",
+      "typeGemini": "Gemini",
+      "typeVolcengine": "Volcengine",
+      "typeMimo": "MiMo",
+      "autoSync": "Auto Sync",
+      "autoGroup": "Auto Group",
+      "autoGroupNone": "None",
+      "autoGroupFuzzy": "Fuzzy",
+      "autoGroupExact": "Exact",
+      "autoGroupRegex": "Regex",
+      "matchRegex": "Match Regex",
+      "matchRegexPlaceholder": "Optional: regex pattern to match request model names",
+      "remark": "Remark",
+      "typeMiMoChat": "MiMo Chat",
+      "typeCloudflare": "Cloudflare"
+    }
+  },
+  "errors": {
+    "invalidRequestParameters": "Invalid request parameters",
+    "invalidJsonFormat": "Invalid JSON format",
+    "invalidParameter": "Invalid parameter",
+    "inputValidationFailed": "Input validation failed",
+    "resourceAlreadyExists": "Resource already exists",
+    "resourceNotFound": "Resource not found",
+    "internalServer": "An unexpected error occurred",
+    "database": "Database operation failed",
+    "authenticationFailed": "Authentication failed",
+    "tooManyRequests": "Too many requests",
+    "permissionDenied": "Permission denied",
+    "channelNotFound": "Channel not found",
+    "groupNotFound": "Group not found",
+    "groupTestProgressNotFound": "Group test progress not found",
+    "aiRouteProgressNotFound": "AI route progress not found",
+    "missingProgressId": "Missing progress id",
+    "channelNameAlreadyExists": "Channel name already exists",
+    "groupNameAlreadyExists": "Group name already exists",
+    "groupDuplicateChannelModelItems": "Group contains duplicate channel/model items",
+    "databaseSchemaOutdated": "Database schema is outdated",
+    "databaseSchemaOutdatedRestart": "Database schema is outdated; restart the service to apply the latest migrations",
+    "upstreamServiceUnavailable": "Upstream service unavailable",
+    "unexpectedError": "Unexpected error"
+  },
+  "siteChannel": {
+    "card": {
+      "statusEnabled": "Enabled",
+      "statusDisabled": "Disabled",
+      "maskedPending": "{n} pending",
+      "noRouteDistribution": "No model distribution",
+      "metrics": {
+        "totalRequests": "Requests",
+        "successRequests": "Success",
+        "failedRequests": "Failed",
+        "totalCost": "Cost",
+        "lastRequestAt": "Last used"
+      }
+    },
+    "advanced": {
+      "title": "Site Channel Advanced Settings",
+      "description": "Configure parameter overrides for projected channels under group {group}.",
+      "channelList": "Projected channels",
+      "empty": "No projected channels in this group",
+      "paramOverride": "Parameter override JSON",
+      "paramOverridePlaceholder": "Leave empty to clear. Must be a valid JSON object.",
+      "cancel": "Cancel",
+      "save": "Save",
+      "saving": "Saving…",
+      "saved": "Advanced settings saved",
+      "invalidParamOverride": "Parameter override must be a valid JSON object",
+      "saveFailed": "Failed to save advanced settings"
+    }
+  },
+  "system": {
+    "fields": {
+      "logCountUnit": "entries"
+    }
+  },
+  "proxyPool": {
+    "site": {
+      "inherit": "Inherit from site"
+    },
+    "mode": {
+      "label": "Proxy Mode",
+      "direct": "Direct",
+      "system": "System",
+      "pool": "Proxy Pool",
+      "inherit": "Inherit"
+    },
+    "name": "Proxy",
+    "selectConfig": "Select proxy…",
+    "disabledSuffix": " (disabled)",
+    "empty": "No proxy configured",
+    "noEnabled": "No enabled proxies",
+    "manage": "Manage proxies",
+    "disabledSelected": "The selected proxy is currently disabled.",
+    "dialog": {
+      "title": "Proxy Pool",
+      "description": "Manage proxy configurations for sites and channels.",
+      "searchPlaceholder": "Search proxies…",
+      "loading": "Loading proxies…",
+      "loadFailed": "Failed to load proxies: {message}",
+      "empty": "No proxies configured yet.",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "references": "{count} refs",
+      "referencesTitle": "References",
+      "referencesDescription": "Entities using proxy \"{name}\".",
+      "referencesEmpty": "No entities reference this proxy.",
+      "referenceTypes": {
+        "site": "Site",
+        "siteAccount": "Account",
+        "managedChannel": "Managed Channel",
+        "channel": "Channel",
+        "reference": "Entity"
+      },
+      "referenceLocations": {
+        "site": "Site",
+        "siteAccount": "Site Account",
+        "channel": "Channel",
+        "managedChannel": "Managed Channel",
+        "managedChannelUnderSite": "Site: {site}",
+        "archivedSite": "Archived Site",
+        "siteNamed": "Site: {name}"
+      },
+      "managedChannelTitle": "Channel: {channel}",
+      "edit": "Edit",
+      "delete": "Delete",
+      "deleteBlocked": "Cannot delete — has references",
+      "deleteReferenced": "Cannot delete — still referenced by other entities.",
+      "test": "Test",
+      "testDraft": "Test Draft URL",
+      "testUrl": "Test Target URL",
+      "testSuccess": "Test passed — HTTP {statusCode} in {durationMs}ms",
+      "testFailed": "Test failed",
+      "formTitleCreate": "Create Proxy",
+      "formTitleEdit": "Edit Proxy",
+      "formDescription": "Fill in proxy details below and save.",
+      "new": "New",
+      "name": "Name",
+      "url": "URL",
+      "remark": "Remark",
+      "formRequired": "Name and URL are required.",
+      "operationFailed": "Operation failed.",
+      "created": "Proxy created.",
+      "updated": "Proxy updated.",
+      "deleted": "Proxy deleted.",
+      "submitCreate": "Create",
+      "submitEdit": "Save Changes",
+      "collapseReference": "Collapse",
+      "expandReference": "Expand",
+      "jumpToReference": "Go to reference",
+      "derivedReferences": "+{count} managed channels"
+    },
+    "selectRequired": "Please select a proxy configuration."
+  }
+}

@@ -1,0 +1,63 @@
+# Build outputs
+build/
+!build/docker/
+!build/docker/**
+out/
+dist/
+
+# Frontend cache and build
+web/.next/
+web/out/
+web/node_modules/
+
+# Backend cache
+node_modules/
+
+# Static output (will be rebuilt in Docker)
+static/out/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Documentation
+*.md
+!README.md
+
+# Test files
+**/*_test.go
+
+# Development files
+.env
+.env.*
+*.log
+.omo/
+
+# Claude Code
+.claude/
+
+# Worktrees
+worktrees/
+*.exe
+.gocache/
+.gotmp-dev/
+.gotmp-dev2/
+.tmp/
+.uploads/
+.antigravitycli/
+.learnings/
+.playwright-cli/
+.sisyphus/
+.superpowers/
+.workbuddy/
+data/

@@ -1,0 +1,397 @@
+package model
+
+import (
+	"fmt"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/lingyuins/octopus/internal/transformer/outbound"
+)
+
+type AutoGroupType int
+
+const (
+	AutoGroupTypeNone  AutoGroupType = 0 //不自动分组
+	AutoGroupTypeFuzzy AutoGroupType = 1 //模糊匹配
+	AutoGroupTypeExact AutoGroupType = 2 //准确匹配
+	AutoGroupTypeRegex AutoGroupType = 3 //正则匹配
+)
+
+func (t AutoGroupType) Valid() bool {
+	switch t {
+	case AutoGroupTypeNone, AutoGroupTypeFuzzy, AutoGroupTypeExact, AutoGroupTypeRegex:
+		return true
+	default:
+		return false
+	}
+}
+
+func ParseAutoGroupSettingValue(value string) (AutoGroupType, bool) {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "", "false":
+		return AutoGroupTypeNone, true
+	case "true":
+		return AutoGroupTypeFuzzy, true
+	}
+	parsed, err := strconv.Atoi(strings.TrimSpace(value))
+	if err != nil {
+		return AutoGroupTypeNone, false
+	}
+	mode := AutoGroupType(parsed)
+	return mode, mode.Valid()
+}
+
+type RequestRewriteProfile string
+
+const (
+	RequestRewriteProfilePreserve         RequestRewriteProfile = "preserve"
+	RequestRewriteProfileOpenAIChatCompat RequestRewriteProfile = "openai_chat_compat"
+	RequestRewriteProfileCodexHeaders     RequestRewriteProfile = "codex"
+)
+
+type ToolRoleStrategy string
+
+const (
+	ToolRoleStrategyKeep            ToolRoleStrategy = "keep"
+	ToolRoleStrategyStringifyToUser ToolRoleStrategy = "stringify_to_user"
+)
+
+type SystemMessageStrategy string
+
+const (
+	SystemMessageStrategyKeep  SystemMessageStrategy = "keep"
+	SystemMessageStrategyMerge SystemMessageStrategy = "merge"
+)
+
+type RequestRewriteConfig struct {
+	Enabled               bool                  `json:"enabled"`
+	Profile               RequestRewriteProfile `json:"profile,omitempty"`
+	ToolRoleStrategy      ToolRoleStrategy      `json:"tool_role_strategy,omitempty"`
+	SystemMessageStrategy SystemMessageStrategy `json:"system_message_strategy,omitempty"`
+	HeaderProfile         string                `json:"header_profile,omitempty"`
+}
+
+type Channel struct {
+	ID             int                   `json:"id" gorm:"primaryKey"`
+	Name           string                `json:"name" gorm:"unique;not null"`
+	GroupID        int                   `json:"group_id" gorm:"not null;default:0;index"`
+	Type           outbound.OutboundType `json:"type"`
+	Enabled        bool                  `json:"enabled" gorm:"default:true"`
+	BaseUrls       []BaseUrl             `json:"base_urls" gorm:"serializer:json"`
+	Keys           []ChannelKey          `json:"keys" gorm:"foreignKey:ChannelID"`
+	Model          string                `json:"model"`
+	CustomModel    string                `json:"custom_model"`
+	ProxyMode      ProxyUsageMode        `json:"proxy_mode" gorm:"type:varchar(16);not null;default:'direct'"`
+	ProxyConfigID  *int                  `json:"proxy_config_id"`
+	Proxy          bool                  `json:"-" gorm:"default:false"`
+	AutoSync       bool                  `json:"auto_sync" gorm:"default:false"`
+	AutoGroup      AutoGroupType         `json:"auto_group" gorm:"default:0"`
+	CustomHeader   []CustomHeader        `json:"custom_header" gorm:"serializer:json"`
+	ParamOverride  *string               `json:"param_override"`
+	ChannelProxy   *string               `json:"-" gorm:"column:channel_proxy"`
+	RequestRewrite *RequestRewriteConfig `json:"request_rewrite" gorm:"serializer:json"`
+	Stats          *StatsChannel         `json:"stats,omitempty" gorm:"foreignKey:ChannelID"`
+	MatchRegex     *string               `json:"match_regex"`
+	Managed        bool                  `json:"managed" gorm:"-"`
+	ManagedSource  *ManagedChannelSource `json:"managed_source,omitempty" gorm:"-"`
+}
+
+type BaseUrl struct {
+	URL        string `json:"url"`
+	Delay      int    `json:"delay"`
+	SuffixMode string `json:"suffix_mode,omitempty"`
+}
+
+type CustomHeader struct {
+	HeaderKey   string `json:"header_key"`
+	HeaderValue string `json:"header_value"`
+}
+
+type ChannelKey struct {
+	ID               int     `json:"id" gorm:"primaryKey"`
+	ChannelID        int     `json:"channel_id"`
+	Enabled          bool    `json:"enabled" gorm:"default:true"`
+	ChannelKey       string  `json:"channel_key"`
+	StatusCode       int     `json:"status_code"`
+	LastUseTimeStamp int64   `json:"last_use_time_stamp"`
+	TotalCost        float64 `json:"total_cost"`
+	Remark           string  `json:"remark"`
+}
+
+// ChannelUpdateRequest 渠道更新请求 - 仅包含变更的数据
+type ChannelUpdateRequest struct {
+	ID             int                    `json:"id" binding:"required"`
+	Name           *string                `json:"name,omitempty"`
+	GroupID        *int                   `json:"group_id,omitempty"`
+	Type           *outbound.OutboundType `json:"type,omitempty"`
+	Enabled        *bool                  `json:"enabled,omitempty"`
+	BaseUrls       *[]BaseUrl             `json:"base_urls,omitempty"`
+	Model          *string                `json:"model,omitempty"`
+	CustomModel    *string                `json:"custom_model,omitempty"`
+	ProxyMode      *ProxyUsageMode        `json:"proxy_mode,omitempty"`
+	ProxyConfigID  *int                   `json:"proxy_config_id,omitempty"`
+	Proxy          *bool                  `json:"proxy,omitempty"`
+	AutoSync       *bool                  `json:"auto_sync,omitempty"`
+	AutoGroup      *AutoGroupType         `json:"auto_group,omitempty"`
+	CustomHeader   *[]CustomHeader        `json:"custom_header,omitempty"`
+	ChannelProxy   *string                `json:"channel_proxy,omitempty"`
+	ParamOverride  *string                `json:"param_override,omitempty"`
+	RequestRewrite *RequestRewriteConfig  `json:"request_rewrite,omitempty"`
+	MatchRegex     *string                `json:"match_regex,omitempty"`
+
+	KeysToAdd    []ChannelKeyAddRequest    `json:"keys_to_add,omitempty"`
+	KeysToUpdate []ChannelKeyUpdateRequest `json:"keys_to_update,omitempty"`
+	KeysToDelete []int                     `json:"keys_to_delete,omitempty"`
+
+	BypassManagedCheck bool `json:"-"` // 内部使用：允许投影逻辑更新 managed channel
+}
+
+type ChannelKeyAddRequest struct {
+	Enabled    bool   `json:"enabled"`
+	ChannelKey string `json:"channel_key" binding:"required"`
+	Remark     string `json:"remark"`
+}
+
+type ChannelKeyUpdateRequest struct {
+	ID         int     `json:"id" binding:"required"`
+	Enabled    *bool   `json:"enabled,omitempty"`
+	ChannelKey *string `json:"channel_key,omitempty"`
+	Remark     *string `json:"remark,omitempty"`
+}
+
+// ChannelFetchModelRequest is used by /channel/fetch-model (not persisted).
+type ChannelFetchModelRequest struct {
+	Type    outbound.OutboundType `json:"type" binding:"required"`
+	BaseURL string                `json:"base_url" binding:"required"`
+	Key     string                `json:"key" binding:"required"`
+	Proxy   bool                  `json:"proxy"`
+}
+
+// TableName explicitly returns "-" for DTO structs to prevent GORM auto-mapping.
+func (ChannelUpdateRequest) TableName() string     { return "-" }
+func (ChannelKeyAddRequest) TableName() string     { return "-" }
+func (ChannelKeyUpdateRequest) TableName() string  { return "-" }
+func (ChannelFetchModelRequest) TableName() string { return "-" }
+
+func (c *RequestRewriteConfig) Validate(channelType outbound.OutboundType) error {
+	if c == nil || !c.Enabled {
+		return nil
+	}
+
+	if c.Profile == "" {
+		return fmt.Errorf("request rewrite profile is required when enabled")
+	}
+
+	switch c.Profile {
+	case RequestRewriteProfilePreserve:
+		// preserve means no body rewrite
+	case RequestRewriteProfileOpenAIChatCompat:
+		if channelType != outbound.OutboundTypeOpenAIChat && channelType != outbound.OutboundTypeOpenAIResponse && channelType != outbound.OutboundTypeMimo {
+			return fmt.Errorf("request rewrite profile %s is not supported for channel type %d", c.Profile, channelType)
+		}
+	case RequestRewriteProfileCodexHeaders:
+		// codex profile currently affects header shaping only and is allowed for enabled rewrite configs.
+	default:
+		return fmt.Errorf("unsupported request rewrite profile: %s", c.Profile)
+	}
+
+	switch c.ToolRoleStrategy {
+	case "", ToolRoleStrategyKeep, ToolRoleStrategyStringifyToUser:
+	default:
+		return fmt.Errorf("unsupported tool role strategy: %s", c.ToolRoleStrategy)
+	}
+
+	switch c.SystemMessageStrategy {
+	case "", SystemMessageStrategyKeep, SystemMessageStrategyMerge:
+	default:
+		return fmt.Errorf("unsupported system message strategy: %s", c.SystemMessageStrategy)
+	}
+
+	return nil
+}
+
+func (c *Channel) GetBaseUrl() string {
+	if c == nil || len(c.BaseUrls) == 0 {
+		return ""
+	}
+
+	bestURL := ""
+	bestDelay := 0
+	bestSet := false
+
+	for _, bu := range c.BaseUrls {
+		if bu.URL == "" {
+			continue
+		}
+		if !bestSet || bu.Delay < bestDelay {
+			bestURL = bu.URL
+			bestDelay = bu.Delay
+			bestSet = true
+		}
+	}
+
+	return bestURL
+}
+
+func (c *Channel) GetNormalizedBaseUrl() string {
+	if c == nil {
+		return ""
+	}
+
+	rawURL := c.GetBaseUrl()
+	return normalizeChannelBaseURL(rawURL, c.Type, c.getBaseURLSuffixMode(rawURL))
+}
+
+func (c *Channel) GetNormalizedBaseUrlFor(rawURL string) string {
+	if c == nil {
+		return strings.TrimRight(strings.TrimSpace(rawURL), "/")
+	}
+
+	return normalizeChannelBaseURL(rawURL, c.Type, c.getBaseURLSuffixMode(rawURL))
+}
+
+func (c *Channel) getBaseURLSuffixMode(rawURL string) string {
+	trimmedURL := strings.TrimRight(strings.TrimSpace(rawURL), "/")
+	for _, baseURL := range c.BaseUrls {
+		if strings.TrimRight(strings.TrimSpace(baseURL.URL), "/") == trimmedURL {
+			return baseURL.SuffixMode
+		}
+	}
+	return ""
+}
+
+func normalizeChannelBaseURL(rawURL string, channelType outbound.OutboundType, suffixMode string) string {
+	trimmedURL := strings.TrimRight(strings.TrimSpace(rawURL), "/")
+	if trimmedURL == "" {
+		return ""
+	}
+
+	switch strings.ToLower(strings.TrimSpace(suffixMode)) {
+	case "":
+		return appendBaseURLPathByChannel(trimmedURL, channelType)
+	case "custom":
+		return normalizeCustomBaseURL(trimmedURL, channelType)
+	case "openai_compat", "openai":
+		return appendBaseURLPathIfMissing(trimmedURL, strings.ToLower(trimmedURL), "/v1")
+	case "anthropic":
+		return appendBaseURLPathIfMissing(trimmedURL, strings.ToLower(trimmedURL), "/v1")
+	case "gemini":
+		return appendBaseURLPathIfMissing(trimmedURL, strings.ToLower(trimmedURL), "/v1beta")
+	case "volcengine":
+		return appendBaseURLPathIfMissing(trimmedURL, strings.ToLower(trimmedURL), "/api/v3")
+	default:
+		return appendBaseURLPathByChannel(trimmedURL, channelType)
+	}
+}
+
+func normalizeCustomBaseURL(rawURL string, channelType outbound.OutboundType) string {
+	switch channelType {
+	case outbound.OutboundTypeOpenAIChat, outbound.OutboundTypeOpenAIResponse, outbound.OutboundTypeOpenAIEmbedding, outbound.OutboundTypeMimo:
+		return trimKnownOpenAIEndpointPath(rawURL)
+	default:
+		return rawURL
+	}
+}
+
+func trimKnownOpenAIEndpointPath(rawURL string) string {
+	lowerURL := strings.ToLower(strings.TrimSpace(rawURL))
+	for _, suffix := range []string{"/v1/chat/completions", "/chat/completions", "/v1/responses", "/responses", "/v1/embeddings", "/embeddings"} {
+		if strings.HasSuffix(lowerURL, suffix) {
+			return strings.TrimRight(rawURL[:len(rawURL)-len(suffix)], "/")
+		}
+	}
+	return rawURL
+}
+
+func appendBaseURLPathByChannel(rawURL string, channelType outbound.OutboundType) string {
+	lowerURL := strings.ToLower(rawURL)
+	switch channelType {
+	case outbound.OutboundTypeAnthropic:
+		return appendBaseURLPathIfMissing(rawURL, lowerURL, "/v1")
+	case outbound.OutboundTypeGemini:
+		return appendBaseURLPathIfMissing(rawURL, lowerURL, "/v1beta")
+	case outbound.OutboundTypeVolcengine:
+		return appendBaseURLPathIfMissing(rawURL, lowerURL, "/api/v3")
+	case outbound.OutboundTypeCloudflare:
+		// Cloudflare Workers AI 的路径（/ai/run/@cf/{model}）由 adapter 拼接，
+		// base_url 保持账户根路径（含 /client/v4/accounts/{id}）原样，不加默认前缀。
+		return rawURL
+	default:
+		return appendBaseURLPathIfMissing(rawURL, lowerURL, "/v1")
+	}
+}
+
+func appendBaseURLPathIfMissing(rawURL, lowerURL, suffix string) string {
+	if strings.HasSuffix(lowerURL, strings.ToLower(suffix)) {
+		return rawURL
+	}
+	return rawURL + suffix
+}
+
+func (c *Channel) GetChannelKey() ChannelKey {
+	return c.GetChannelKeyWithCooldown(300)
+}
+
+// EnabledKeyCount returns the number of enabled keys with non-empty ChannelKey.
+func (c *Channel) EnabledKeyCount() int {
+	if c == nil {
+		return 0
+	}
+	count := 0
+	for _, k := range c.Keys {
+		if k.Enabled && k.ChannelKey != "" {
+			count++
+		}
+	}
+	return count
+}
+
+func (c *Channel) GetChannelKeyExcluding(excludeKeyIDs []int) ChannelKey {
+	return c.GetChannelKeyExcludingWithCooldown(excludeKeyIDs, 300)
+}
+
+func (c *Channel) GetChannelKeyWithCooldown(ratelimitCooldownSec int) ChannelKey {
+	return c.GetChannelKeyExcludingWithCooldown(nil, ratelimitCooldownSec)
+}
+
+func (c *Channel) GetChannelKeyExcludingWithCooldown(excludeKeyIDs []int, ratelimitCooldownSec int) ChannelKey {
+	if c == nil || len(c.Keys) == 0 {
+		return ChannelKey{}
+	}
+
+	excludeSet := make(map[int]struct{}, len(excludeKeyIDs))
+	for _, id := range excludeKeyIDs {
+		excludeSet[id] = struct{}{}
+	}
+
+	nowSec := time.Now().Unix()
+
+	best := ChannelKey{}
+	bestCost := 0.0
+	bestSet := false
+
+	for _, k := range c.Keys {
+		if !k.Enabled || k.ChannelKey == "" {
+			continue
+		}
+		if _, excluded := excludeSet[k.ID]; excluded {
+			continue
+		}
+		if ratelimitCooldownSec > 0 && k.LastUseTimeStamp > 0 && k.StatusCode >= 400 {
+			if nowSec-k.LastUseTimeStamp < int64(ratelimitCooldownSec) {
+				continue
+			}
+		}
+		if !bestSet || k.TotalCost < bestCost {
+			best = k
+			bestCost = k.TotalCost
+			bestSet = true
+		}
+	}
+
+	if !bestSet {
+		return ChannelKey{}
+	}
+	return best
+}
