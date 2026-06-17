@@ -6,7 +6,7 @@
     "password": "Password",
     "passwordPlaceholder": "Enter your password",
     "apikey": "API Key",
-    "apikeyPlaceholder": "Enter your API Key (sk-octopus-...)",
+    "apikeyPlaceholder": "Enter your API Key (sk-ggzero-...)",
     "mode": {
       "user": "Account",
       "apikey": "API Key"
@@ -22,7 +22,7 @@
   },
   "bootstrap": {
     "title": "Complete initial setup",
-    "subtitle": "Octopus needs an initial admin account before anyone can sign in.",
+    "subtitle": "GGZERO needs an initial admin account before anyone can sign in.",
     "description": "Create the admin account on this page, then sign in immediately.",
     "checking": "Checking setup status...",
     "initialized": "Initial setup is complete. You can sign in now.",
@@ -332,7 +332,7 @@
   },
   "analytics": {
     "title": "Analytics",
-    "subtitle": "A unified view for Octopus metrics, utilization, and route health. Phase one stays on top of existing stats and relay logs.",
+    "subtitle": "A unified view for GGZERO metrics, utilization, and route health. Phase one stays on top of existing stats and relay logs.",
     "cache": {
       "title": "Cache",
       "metrics": {
@@ -1364,13 +1364,13 @@
         "testSuccess": "Database connection OK",
         "testFailed": "Database connection failed",
         "confirm": "Migrate current data to target database and update config? Restart is required after success.",
-        "success": "Database migrated. Please restart Octopus to use the new database.",
+        "success": "Database migrated. Please restart GGZERO to use the new database.",
         "failed": "Database migration failed",
         "migrating": "Migrating...",
         "button": "Migrate and switch after restart",
         "migrateLogsHint": "Includes relay logs and audit logs; can be large.",
         "testButton": "Test connection",
-        "successDetail": "Migration complete. Restart Octopus to use {type}: {path}"
+        "successDetail": "Migration complete. Restart GGZERO to use {type}: {path}"
       }
     },
     "webdav": {
@@ -2053,7 +2053,7 @@
     },
     "ccswitch": {
       "title": "Generate CC Switch Link",
-      "description": "Choose a target app, route group, and Octopus API key to generate a CC Switch v1 provider import link.",
+      "description": "Choose a target app, route group, and GGZERO API key to generate a CC Switch v1 provider import link.",
       "groupLabel": "Route Group",
       "selectGroup": "Select group",
       "appLabel": "Target App",
@@ -2064,18 +2064,18 @@
       "sonnetModelLabel": "Sonnet Model",
       "opusModelLabel": "Opus Model",
       "import": "Import to CC Switch",
-      "apiKeyLabel": "Octopus API Key",
+      "apiKeyLabel": "GGZERO API Key",
       "selectAPIKey": "Select API key",
       "endpoint": "Import Endpoint",
       "model": "Default Model",
-      "apiKeyHint": "Enter the Octopus API Key for this group (sk-octopus-...)",
+      "apiKeyHint": "Enter the GGZERO API Key for this group (sk-ggzero-...)",
       "generate": "Generate Link",
       "generatedLink": "Generated Link",
       "copy": "Copy Link",
       "copied": "Copied",
       "missingPublicApiBaseUrl": "Set the public API base URL in system settings first.",
       "missingGroup": "Create at least one route group first.",
-      "missingAPIKey": "Create and enable at least one Octopus API key first."
+      "missingAPIKey": "Create and enable at least one GGZERO API key first."
     }
   },
   "model": {
@@ -2274,11 +2274,11 @@
       "noBaseUrls": "No Base URLs",
       "noKeys": "No Keys",
       "ccSwitch": {
-        "description": "Generate a CC Switch v1 provider import link with a target app, route group, and Octopus API key.",
+        "description": "Generate a CC Switch v1 provider import link with a target app, route group, and GGZERO API key.",
         "app": "Target App",
         "group": "Route Group",
         "selectGroup": "Select group",
-        "apiKey": "Octopus API Key",
+        "apiKey": "GGZERO API Key",
         "selectAPIKey": "Select API key",
         "endpoint": "Import Endpoint",
         "model": "Default Model",
@@ -2287,7 +2287,7 @@
         "missingPublicApiBaseUrl": "Please set Public API Base URL in system settings first.",
         "missingKey": "Please configure at least one enabled API key for this channel.",
         "missingGroup": "Create at least one route group first.",
-        "missingAPIKey": "Create and enable at least one Octopus API key first."
+        "missingAPIKey": "Create and enable at least one GGZERO API key first."
       },
       "metrics": {
         "totalRequests": "Total Requests",

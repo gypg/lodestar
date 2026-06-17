@@ -18,17 +18,17 @@ export default function RootLayout({
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <meta name="theme-color" content="#faf8f5" />
-        <meta name="application-name" content="Octopus" />
+        <meta name="application-name" content="GGZERO" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black" />
-        <meta name="apple-mobile-web-app-title" content="Octopus" />
+        <meta name="apple-mobile-web-app-title" content="GGZERO" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="mobile-web-app-status-bar-style" content="black" />
-        <meta name="mobile-web-app-title" content="Octopus" />
+        <meta name="mobile-web-app-title" content="GGZERO" />
         <link rel="manifest" href="./manifest.json" />
         <link rel="icon" href="./favicon.ico" sizes="any" />
         <link rel="apple-touch-icon" href="./apple-icon.png" />
-        <title>Octopus</title>
+        <title>GGZERO</title>
         <style
           dangerouslySetInnerHTML={{
             __html: `

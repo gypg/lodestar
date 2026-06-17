@@ -291,7 +291,7 @@ export function SettingAppearance() {
                         <p className="text-sm text-muted-foreground">{t('navOrder.description')}</p>
                     </div>
                     <div className="w-fit rounded-full border-border/25 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-sm">
-                        Octopus
+                        GGZERO
                     </div>
                 </div>
 

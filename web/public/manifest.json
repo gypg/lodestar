@@ -1,7 +1,7 @@
 {
-  "name": "Octopus",
-  "short_name": "Octopus",
-  "description": "为个人打造的简单、美观、优雅的 LLM API 聚合与负载均衡服务",
+  "name": "GGZERO",
+  "short_name": "GGZERO",
+  "description": "高自定义 · 自用优先 · 可聚合的个人 AI 中转站",
   "id": "./",
   "start_url": "./",
   "scope": "./",
