@@ -339,3 +339,13 @@ html.dark,
 @media (prefers-reduced-motion: reduce) {
   .ggzero-snowflake { animation: none !important; opacity: 0.5 !important; }
 }
+
+/* GGZERO — winter landing living ambient ("aurora") */
+@keyframes ggzero-aurora {
+  0%, 100% { opacity: 0.5; transform: translate3d(0, 0, 0) scale(1); }
+  50%      { opacity: 0.82; transform: translate3d(2%, -1.5%, 0) scale(1.06); }
+}
+.ggzero-aurora { animation: ggzero-aurora 16s ease-in-out infinite; will-change: opacity, transform; }
+@media (prefers-reduced-motion: reduce) {
+  .ggzero-aurora { animation: none !important; opacity: 0.6 !important; }
+}

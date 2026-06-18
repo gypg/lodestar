@@ -96,13 +96,14 @@ export function WinterLanding({
       className="relative h-full w-full overflow-hidden rounded-xl border border-border bg-background text-foreground"
       style={{ fontFamily: SERIF }}
     >
-      {/* 0. 冷光氛围（CSS 径向渐变，随主题 primary/accent 着色） */}
+      {/* 0. 冷光氛围（动态 CSS 极光，随主题 primary/accent 着色，缓慢呼吸） */}
       <div
-        className="pointer-events-none absolute inset-0 z-0 opacity-70"
+        className="ggzero-aurora pointer-events-none absolute inset-0 z-0"
         style={{
           background:
-            'radial-gradient(120% 80% at 80% 18%, color-mix(in oklch, var(--primary) 14%, transparent), transparent 60%),' +
-            'radial-gradient(90% 70% at 15% 85%, color-mix(in oklch, var(--accent) 12%, transparent), transparent 55%)',
+            'radial-gradient(120% 80% at 80% 18%, color-mix(in oklch, var(--primary) 16%, transparent), transparent 60%),' +
+            'radial-gradient(90% 70% at 15% 85%, color-mix(in oklch, var(--accent) 14%, transparent), transparent 55%),' +
+            'radial-gradient(70% 60% at 50% 50%, color-mix(in oklch, var(--primary) 7%, transparent), transparent 70%)',
         }}
       />
       {/* 2. 左侧留白雾化，确保目录可读 */}
