@@ -6,10 +6,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/lingyuins/octopus/internal/db"
-	"github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/op"
-	"github.com/lingyuins/octopus/internal/op/stats"
+	"github.com/gypg/lodestar/internal/db"
+	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/op"
+	"github.com/gypg/lodestar/internal/op/stats"
 )
 
 func TestUpdateChannelSuccessStatsIncludesTokenAndCost(t *testing.T) {

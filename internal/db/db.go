@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/glebarez/sqlite"
-	"github.com/lingyuins/octopus/internal/db/migrate"
-	"github.com/lingyuins/octopus/internal/model"
+	"github.com/gypg/lodestar/internal/db/migrate"
+	"github.com/gypg/lodestar/internal/model"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"

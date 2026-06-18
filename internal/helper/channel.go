@@ -8,12 +8,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lingyuins/octopus/internal/client"
-	"github.com/lingyuins/octopus/internal/model"
-	ch "github.com/lingyuins/octopus/internal/op/channel"
-	grp "github.com/lingyuins/octopus/internal/op/group"
-	"github.com/lingyuins/octopus/internal/utils/log"
-	"github.com/lingyuins/octopus/internal/utils/xstrings"
+	"github.com/gypg/lodestar/internal/client"
+	"github.com/gypg/lodestar/internal/model"
+	ch "github.com/gypg/lodestar/internal/op/channel"
+	grp "github.com/gypg/lodestar/internal/op/group"
+	"github.com/gypg/lodestar/internal/utils/log"
+	"github.com/gypg/lodestar/internal/utils/xstrings"
 	"github.com/dlclark/regexp2"
 )
 

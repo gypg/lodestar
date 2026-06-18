@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lingyuins/octopus/internal/db"
-	"github.com/lingyuins/octopus/internal/model"
-	st "github.com/lingyuins/octopus/internal/op/stats"
+	"github.com/gypg/lodestar/internal/db"
+	"github.com/gypg/lodestar/internal/model"
+	st "github.com/gypg/lodestar/internal/op/stats"
 )
 
 func TestChannelKeySaveDB_RequeuesDirtyIDsOnWriteFailure(t *testing.T) {

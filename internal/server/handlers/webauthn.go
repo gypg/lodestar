@@ -8,13 +8,13 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/lingyuins/octopus/internal/model"
-	wa "github.com/lingyuins/octopus/internal/op/webauthn"
-	"github.com/lingyuins/octopus/internal/server/auth"
-	"github.com/lingyuins/octopus/internal/server/middleware"
-	"github.com/lingyuins/octopus/internal/server/resp"
-	"github.com/lingyuins/octopus/internal/server/router"
-	"github.com/lingyuins/octopus/internal/utils/log"
+	"github.com/gypg/lodestar/internal/model"
+	wa "github.com/gypg/lodestar/internal/op/webauthn"
+	"github.com/gypg/lodestar/internal/server/auth"
+	"github.com/gypg/lodestar/internal/server/middleware"
+	"github.com/gypg/lodestar/internal/server/resp"
+	"github.com/gypg/lodestar/internal/server/router"
+	"github.com/gypg/lodestar/internal/utils/log"
 	"gorm.io/gorm"
 )
 

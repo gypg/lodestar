@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	dbpkg "github.com/lingyuins/octopus/internal/db"
-	"github.com/lingyuins/octopus/internal/model"
+	dbpkg "github.com/gypg/lodestar/internal/db"
+	"github.com/gypg/lodestar/internal/model"
 )
 
 func TestSiteChannelModelHourlyForAccountsMergesDBAndPending(t *testing.T) {

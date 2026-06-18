@@ -4,11 +4,11 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/lingyuins/octopus/internal/op/ops"
-	"github.com/lingyuins/octopus/internal/server/auth"
-	"github.com/lingyuins/octopus/internal/server/middleware"
-	"github.com/lingyuins/octopus/internal/server/resp"
-	"github.com/lingyuins/octopus/internal/server/router"
+	"github.com/gypg/lodestar/internal/op/ops"
+	"github.com/gypg/lodestar/internal/server/auth"
+	"github.com/gypg/lodestar/internal/server/middleware"
+	"github.com/gypg/lodestar/internal/server/resp"
+	"github.com/gypg/lodestar/internal/server/router"
 )
 
 func init() {

@@ -16,17 +16,17 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	apikey "github.com/lingyuins/octopus/internal/op/apikey"
-	"github.com/lingyuins/octopus/internal/op/email"
-	"github.com/lingyuins/octopus/internal/op/invite"
-	"github.com/lingyuins/octopus/internal/op/payment"
-	st "github.com/lingyuins/octopus/internal/op/stats"
-	"github.com/lingyuins/octopus/internal/op/topup"
-	"github.com/lingyuins/octopus/internal/op/user"
-	"github.com/lingyuins/octopus/internal/server/auth"
-	"github.com/lingyuins/octopus/internal/server/middleware"
-	"github.com/lingyuins/octopus/internal/server/resp"
-	"github.com/lingyuins/octopus/internal/server/router"
+	apikey "github.com/gypg/lodestar/internal/op/apikey"
+	"github.com/gypg/lodestar/internal/op/email"
+	"github.com/gypg/lodestar/internal/op/invite"
+	"github.com/gypg/lodestar/internal/op/payment"
+	st "github.com/gypg/lodestar/internal/op/stats"
+	"github.com/gypg/lodestar/internal/op/topup"
+	"github.com/gypg/lodestar/internal/op/user"
+	"github.com/gypg/lodestar/internal/server/auth"
+	"github.com/gypg/lodestar/internal/server/middleware"
+	"github.com/gypg/lodestar/internal/server/resp"
+	"github.com/gypg/lodestar/internal/server/router"
 )
 
 func init() {

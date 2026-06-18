@@ -1,9 +1,9 @@
 package inbound
 
 import (
-	"github.com/lingyuins/octopus/internal/transformer/inbound/anthropic"
-	"github.com/lingyuins/octopus/internal/transformer/inbound/openai"
-	"github.com/lingyuins/octopus/internal/transformer/model"
+	"github.com/gypg/lodestar/internal/transformer/inbound/anthropic"
+	"github.com/gypg/lodestar/internal/transformer/inbound/openai"
+	"github.com/gypg/lodestar/internal/transformer/model"
 )
 
 type InboundType int

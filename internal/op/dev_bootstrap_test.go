@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/lingyuins/octopus/internal/db"
+	"github.com/gypg/lodestar/internal/db"
 )
 
 func TestEnsureDevBootstrapDataCreatesMockAPIKey(t *testing.T) {

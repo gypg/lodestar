@@ -12,12 +12,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/lingyuins/octopus/internal/conf"
-	appmodel "github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/op/relaylog"
-	transmodel "github.com/lingyuins/octopus/internal/transformer/model"
-	"github.com/lingyuins/octopus/internal/transformer/outbound"
-	"github.com/lingyuins/octopus/internal/utils/log"
+	"github.com/gypg/lodestar/internal/conf"
+	appmodel "github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/op/relaylog"
+	transmodel "github.com/gypg/lodestar/internal/transformer/model"
+	"github.com/gypg/lodestar/internal/transformer/outbound"
+	"github.com/gypg/lodestar/internal/utils/log"
 )
 
 type GroupModelTestRequest struct {

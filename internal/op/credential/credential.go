@@ -5,9 +5,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/lingyuins/octopus/internal/db"
-	"github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/utils/crypto"
+	"github.com/gypg/lodestar/internal/db"
+	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/utils/crypto"
 )
 
 // List returns all credential profiles, with API keys masked.

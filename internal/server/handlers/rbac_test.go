@@ -9,12 +9,12 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	"github.com/lingyuins/octopus/internal/conf"
-	"github.com/lingyuins/octopus/internal/db"
-	"github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/op"
-	serverauth "github.com/lingyuins/octopus/internal/server/auth"
-	"github.com/lingyuins/octopus/internal/server/router"
+	"github.com/gypg/lodestar/internal/conf"
+	"github.com/gypg/lodestar/internal/db"
+	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/op"
+	serverauth "github.com/gypg/lodestar/internal/server/auth"
+	"github.com/gypg/lodestar/internal/server/router"
 )
 
 func TestViewerRoleDowngradeInvalidatesWriteAccessAcrossHandlers(t *testing.T) {

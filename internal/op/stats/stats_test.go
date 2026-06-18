@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/op/setting"
-	"github.com/lingyuins/octopus/internal/op/stats"
+	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/op/setting"
+	"github.com/gypg/lodestar/internal/op/stats"
 )
 
 func TestNowUsesRuntimeLocationWhenTimezoneOffsetIsZero(t *testing.T) {

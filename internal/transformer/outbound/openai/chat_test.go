@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/lingyuins/octopus/internal/transformer/model"
+	"github.com/gypg/lodestar/internal/transformer/model"
 )
 
 func TestChatOutboundTransformRequest_NormalizesOpenAICompatMessages(t *testing.T) {

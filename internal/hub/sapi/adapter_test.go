@@ -7,9 +7,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/lingyuins/octopus/internal/hub"
-	"github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/utils/crypto"
+	"github.com/gypg/lodestar/internal/hub"
+	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/utils/crypto"
 )
 
 func TestFetchUserInfoLogsInAndMapsSAPIUser(t *testing.T) {

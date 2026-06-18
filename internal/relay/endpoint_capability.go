@@ -3,10 +3,10 @@ package relay
 import (
 	"strings"
 
-	dbmodel "github.com/lingyuins/octopus/internal/model"
-	ch "github.com/lingyuins/octopus/internal/op/channel"
-	"github.com/lingyuins/octopus/internal/transformer/outbound"
-	"github.com/lingyuins/octopus/internal/utils/log"
+	dbmodel "github.com/gypg/lodestar/internal/model"
+	ch "github.com/gypg/lodestar/internal/op/channel"
+	"github.com/gypg/lodestar/internal/transformer/outbound"
+	"github.com/gypg/lodestar/internal/utils/log"
 )
 
 // itemSupportsEndpoint checks whether a group item likely supports the

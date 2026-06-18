@@ -10,9 +10,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/lingyuins/octopus/internal/client"
-	"github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/op"
+	"github.com/gypg/lodestar/internal/client"
+	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/op"
 )
 
 func siteHTTPClient(ctx context.Context, siteRecord *model.Site, accounts ...*model.SiteAccount) (*http.Client, error) {

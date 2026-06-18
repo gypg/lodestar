@@ -6,9 +6,9 @@ import (
 	"testing"
 	"unicode/utf8"
 
-	"github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/relay/balancer"
-	transmodel "github.com/lingyuins/octopus/internal/transformer/model"
+	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/relay/balancer"
+	transmodel "github.com/gypg/lodestar/internal/transformer/model"
 )
 
 func TestFinalChannelFallsBackToSkippedAttempt(t *testing.T) {

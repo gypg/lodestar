@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lingyuins/octopus/internal/utils/log"
+	"github.com/gypg/lodestar/internal/utils/log"
 )
 
 type WriteJob struct {

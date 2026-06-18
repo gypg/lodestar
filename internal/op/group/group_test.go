@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/op/channel"
+	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/op/channel"
 )
 
 func TestGroupListModel_EmptyGroupNotListed(t *testing.T) {

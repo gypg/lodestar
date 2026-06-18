@@ -3,8 +3,8 @@ package op
 import (
 	"context"
 
-	"github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/op/airoute"
+	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/op/airoute"
 )
 
 // Deprecated: Use airoute.DefaultAIRouteTaskInterruptedMessage instead.

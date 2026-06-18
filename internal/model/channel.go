@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lingyuins/octopus/internal/transformer/outbound"
+	"github.com/gypg/lodestar/internal/transformer/outbound"
 )
 
 type AutoGroupType int

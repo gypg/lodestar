@@ -5,7 +5,7 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/lingyuins/octopus/internal/conf"
+	"github.com/gypg/lodestar/internal/conf"
 
 	"github.com/spf13/cobra"
 )

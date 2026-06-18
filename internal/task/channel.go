@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/lingyuins/octopus/internal/helper"
-	"github.com/lingyuins/octopus/internal/op/channel"
-	"github.com/lingyuins/octopus/internal/utils/log"
+	"github.com/gypg/lodestar/internal/helper"
+	"github.com/gypg/lodestar/internal/op/channel"
+	"github.com/gypg/lodestar/internal/utils/log"
 	"golang.org/x/sync/errgroup"
 )
 

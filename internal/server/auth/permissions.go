@@ -1,6 +1,6 @@
 package auth
 
-import "github.com/lingyuins/octopus/internal/model"
+import "github.com/gypg/lodestar/internal/model"
 
 // Permission represents a fine-grained access right.
 type Permission string

@@ -1,6 +1,6 @@
 package main
 
-import "github.com/lingyuins/octopus/cmd"
+import "github.com/gypg/lodestar/cmd"
 
 func main() {
 	cmd.Execute()

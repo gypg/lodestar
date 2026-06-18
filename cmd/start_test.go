@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/lingyuins/octopus/internal/conf"
+	"github.com/gypg/lodestar/internal/conf"
 )
 
 func TestRunStartReturnsStartupError(t *testing.T) {

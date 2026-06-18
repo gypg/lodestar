@@ -9,8 +9,8 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/lingyuins/octopus/internal/transformer/model"
-	"github.com/lingyuins/octopus/internal/transformer/outbound/openai"
+	"github.com/gypg/lodestar/internal/transformer/model"
+	"github.com/gypg/lodestar/internal/transformer/outbound/openai"
 )
 
 var supportedReasoningEffortModel = map[string]bool{

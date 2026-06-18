@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/lingyuins/octopus/internal/transformer/model"
-	"github.com/lingyuins/octopus/internal/utils/log"
+	"github.com/gypg/lodestar/internal/transformer/model"
+	"github.com/gypg/lodestar/internal/utils/log"
 )
 
 func isDeepSeekCompatRequest(baseURL string, request *model.InternalLLMRequest) bool {

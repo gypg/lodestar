@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	dbmodel "github.com/lingyuins/octopus/internal/model"
-	ch "github.com/lingyuins/octopus/internal/op/channel"
-	"github.com/lingyuins/octopus/internal/relay/balancer"
-	"github.com/lingyuins/octopus/internal/utils/log"
+	dbmodel "github.com/gypg/lodestar/internal/model"
+	ch "github.com/gypg/lodestar/internal/op/channel"
+	"github.com/gypg/lodestar/internal/relay/balancer"
+	"github.com/gypg/lodestar/internal/utils/log"
 )
 
 // PrepareCandidateResult 准备候选的结果

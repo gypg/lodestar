@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/lingyuins/octopus/internal/db"
-	"github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/utils/log"
+	"github.com/gypg/lodestar/internal/db"
+	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/utils/log"
 )
 
 // ListBalanceSnapshots returns snapshots for a site within a date range.

@@ -5,9 +5,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/lingyuins/octopus/internal/conf"
-	"github.com/lingyuins/octopus/internal/relay/balancer"
-	"github.com/lingyuins/octopus/internal/utils/telemetry"
+	"github.com/gypg/lodestar/internal/conf"
+	"github.com/gypg/lodestar/internal/relay/balancer"
+	"github.com/gypg/lodestar/internal/utils/telemetry"
 )
 
 var processStartedAt = time.Now()

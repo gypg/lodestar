@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	appmodel "github.com/lingyuins/octopus/internal/model"
-	transmodel "github.com/lingyuins/octopus/internal/transformer/model"
-	"github.com/lingyuins/octopus/internal/transformer/rewrite"
-	"github.com/lingyuins/octopus/internal/utils/log"
+	appmodel "github.com/gypg/lodestar/internal/model"
+	transmodel "github.com/gypg/lodestar/internal/transformer/model"
+	"github.com/gypg/lodestar/internal/transformer/rewrite"
+	"github.com/gypg/lodestar/internal/utils/log"
 )
 
 func prepareInternalRequestForOutbound(channel *appmodel.Channel, request *transmodel.InternalLLMRequest, groupEndpointType string) (*transmodel.InternalLLMRequest, *rewrite.EffectiveConfig, error) {

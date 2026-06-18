@@ -12,9 +12,9 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/op/audit"
-	"github.com/lingyuins/octopus/internal/utils/log"
+	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/op/audit"
+	"github.com/gypg/lodestar/internal/utils/log"
 )
 
 const maxAuditTargetBodyBytes = 8 << 10

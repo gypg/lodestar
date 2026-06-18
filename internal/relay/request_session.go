@@ -7,7 +7,7 @@ import (
 
 	"github.com/cespare/xxhash/v2"
 	"github.com/gin-gonic/gin"
-	transmodel "github.com/lingyuins/octopus/internal/transformer/model"
+	transmodel "github.com/gypg/lodestar/internal/transformer/model"
 )
 
 func populateRelayRequestSessionFields(c *gin.Context, req *transmodel.InternalLLMRequest, body []byte) {

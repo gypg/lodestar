@@ -9,17 +9,17 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/op"
-	"github.com/lingyuins/octopus/internal/op/apikey"
-	billing "github.com/lingyuins/octopus/internal/op/billing"
-	"github.com/lingyuins/octopus/internal/op/cacheusage"
-	"github.com/lingyuins/octopus/internal/op/relaylog"
-	"github.com/lingyuins/octopus/internal/op/stats"
-	"github.com/lingyuins/octopus/internal/price"
-	transformerModel "github.com/lingyuins/octopus/internal/transformer/model"
-	"github.com/lingyuins/octopus/internal/utils/log"
-	"github.com/lingyuins/octopus/internal/utils/telemetry"
+	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/op"
+	"github.com/gypg/lodestar/internal/op/apikey"
+	billing "github.com/gypg/lodestar/internal/op/billing"
+	"github.com/gypg/lodestar/internal/op/cacheusage"
+	"github.com/gypg/lodestar/internal/op/relaylog"
+	"github.com/gypg/lodestar/internal/op/stats"
+	"github.com/gypg/lodestar/internal/price"
+	transformerModel "github.com/gypg/lodestar/internal/transformer/model"
+	"github.com/gypg/lodestar/internal/utils/log"
+	"github.com/gypg/lodestar/internal/utils/telemetry"
 )
 
 const relayLogTextFieldMaxBytes = 4096

@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/glebarez/sqlite"
-	"github.com/lingyuins/octopus/internal/transformer/outbound"
+	"github.com/gypg/lodestar/internal/transformer/outbound"
 	"gorm.io/gorm"
 )
 

@@ -9,9 +9,9 @@ import (
 	"strings"
 
 	"github.com/dlclark/regexp2"
-	"github.com/lingyuins/octopus/internal/conf"
-	"github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/transformer/outbound"
+	"github.com/gypg/lodestar/internal/conf"
+	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/transformer/outbound"
 )
 
 func FetchModels(ctx context.Context, request model.Channel) ([]string, error) {

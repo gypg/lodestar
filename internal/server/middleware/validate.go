@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/lingyuins/octopus/internal/server/resp"
+	"github.com/gypg/lodestar/internal/server/resp"
 )
 
 func RequireJSON() gin.HandlerFunc {

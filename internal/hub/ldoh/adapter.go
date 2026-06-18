@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lingyuins/octopus/internal/model"
+	"github.com/gypg/lodestar/internal/model"
 )
 
 // DiscoveredSite represents a site found via public directory.

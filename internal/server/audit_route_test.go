@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	"github.com/lingyuins/octopus/internal/server/middleware"
-	"github.com/lingyuins/octopus/internal/server/router"
+	"github.com/gypg/lodestar/internal/server/middleware"
+	"github.com/gypg/lodestar/internal/server/router"
 )
 
 // exemptFromAudit lists management write routes that intentionally skip audit

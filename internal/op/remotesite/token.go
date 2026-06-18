@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/lingyuins/octopus/internal/db"
-	"github.com/lingyuins/octopus/internal/hub"
-	"github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/op/channel"
-	"github.com/lingyuins/octopus/internal/transformer/outbound"
-	"github.com/lingyuins/octopus/internal/utils/crypto"
-	"github.com/lingyuins/octopus/internal/utils/log"
+	"github.com/gypg/lodestar/internal/db"
+	"github.com/gypg/lodestar/internal/hub"
+	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/op/channel"
+	"github.com/gypg/lodestar/internal/transformer/outbound"
+	"github.com/gypg/lodestar/internal/utils/crypto"
+	"github.com/gypg/lodestar/internal/utils/log"
 )
 
 // SyncTokens fetches tokens from the remote site and upserts the local cache.

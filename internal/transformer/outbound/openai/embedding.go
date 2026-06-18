@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/lingyuins/octopus/internal/transformer/model"
+	"github.com/gypg/lodestar/internal/transformer/model"
 )
 
 type EmbeddingOutbound struct{}

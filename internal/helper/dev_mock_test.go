@@ -5,7 +5,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/lingyuins/octopus/internal/model"
+	"github.com/gypg/lodestar/internal/model"
 )
 
 func TestFetchModelsReturnsMockCatalogWhenDevMockEnabled(t *testing.T) {

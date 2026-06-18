@@ -1,7 +1,7 @@
 package op
 
 import (
-	"github.com/lingyuins/octopus/internal/op/ratelimitstore"
+	"github.com/gypg/lodestar/internal/op/ratelimitstore"
 )
 
 // Deprecated: Use ratelimitstore.CheckRateLimit from internal/op/ratelimitstore instead.

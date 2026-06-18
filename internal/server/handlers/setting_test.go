@@ -13,10 +13,10 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/lingyuins/octopus/internal/db"
-	"github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/op"
-	"github.com/lingyuins/octopus/internal/utils/semantic_cache"
+	"github.com/gypg/lodestar/internal/db"
+	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/op"
+	"github.com/gypg/lodestar/internal/utils/semantic_cache"
 )
 
 func TestDecodeDBDumpReaderSupportsWrappedDump(t *testing.T) {

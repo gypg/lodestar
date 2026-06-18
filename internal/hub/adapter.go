@@ -8,7 +8,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/lingyuins/octopus/internal/model"
+	"github.com/gypg/lodestar/internal/model"
 )
 
 // UserInfoResult is the data returned by FetchUserInfo.

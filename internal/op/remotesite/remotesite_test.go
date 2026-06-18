@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	internaldb "github.com/lingyuins/octopus/internal/db"
-	"github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/utils/crypto"
+	internaldb "github.com/gypg/lodestar/internal/db"
+	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/utils/crypto"
 )
 
 func initTestDB(t *testing.T) {

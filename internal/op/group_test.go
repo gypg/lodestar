@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/lingyuins/octopus/internal/model"
+	"github.com/gypg/lodestar/internal/model"
 )
 
 func TestNormalizeGroupItemsDedupesAndReorders(t *testing.T) {

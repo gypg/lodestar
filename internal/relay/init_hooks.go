@@ -1,9 +1,9 @@
 package relay
 
 import (
-	"github.com/lingyuins/octopus/internal/op"
-	"github.com/lingyuins/octopus/internal/op/apikey"
-	"github.com/lingyuins/octopus/internal/relay/balancer"
+	"github.com/gypg/lodestar/internal/op"
+	"github.com/gypg/lodestar/internal/op/apikey"
+	"github.com/gypg/lodestar/internal/relay/balancer"
 )
 
 func init() {

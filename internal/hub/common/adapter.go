@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lingyuins/octopus/internal/hub"
-	"github.com/lingyuins/octopus/internal/model"
+	"github.com/gypg/lodestar/internal/hub"
+	"github.com/gypg/lodestar/internal/model"
 )
 
 // Adapter implements hub.SiteAdapter for the New API / One API family.

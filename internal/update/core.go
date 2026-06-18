@@ -9,8 +9,8 @@ import (
 	"runtime"
 	"syscall"
 
-	"github.com/lingyuins/octopus/internal/utils/log"
-	"github.com/lingyuins/octopus/internal/utils/shutdown"
+	"github.com/gypg/lodestar/internal/utils/log"
+	"github.com/gypg/lodestar/internal/utils/shutdown"
 )
 
 func UpdateCore() error {

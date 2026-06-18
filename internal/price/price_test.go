@@ -3,7 +3,7 @@ package price
 import (
 	"testing"
 
-	"github.com/lingyuins/octopus/internal/model"
+	"github.com/gypg/lodestar/internal/model"
 )
 
 // setPricesForTest replaces the global llmPrice map for the duration of a test

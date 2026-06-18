@@ -6,10 +6,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/lingyuins/octopus/internal/db"
-	"github.com/lingyuins/octopus/internal/hub"
-	"github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/utils/log"
+	"github.com/gypg/lodestar/internal/db"
+	"github.com/gypg/lodestar/internal/hub"
+	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/utils/log"
 )
 
 // FetchAndStoreAnnouncement fetches the announcement from a remote site and saves it.

@@ -9,13 +9,13 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/lingyuins/octopus/internal/apperror"
-	"github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/op"
-	"github.com/lingyuins/octopus/internal/server/middleware"
-	"github.com/lingyuins/octopus/internal/server/resp"
-	"github.com/lingyuins/octopus/internal/server/router"
-	sitesvc "github.com/lingyuins/octopus/internal/site"
+	"github.com/gypg/lodestar/internal/apperror"
+	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/op"
+	"github.com/gypg/lodestar/internal/server/middleware"
+	"github.com/gypg/lodestar/internal/server/resp"
+	"github.com/gypg/lodestar/internal/server/router"
+	sitesvc "github.com/gypg/lodestar/internal/site"
 )
 
 func init() {

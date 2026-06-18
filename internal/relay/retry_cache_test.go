@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	dbmodel "github.com/lingyuins/octopus/internal/model"
-	transmodel "github.com/lingyuins/octopus/internal/transformer/model"
+	dbmodel "github.com/gypg/lodestar/internal/model"
+	transmodel "github.com/gypg/lodestar/internal/transformer/model"
 )
 
 func TestRetryRequestCache_ReusesLookupInput(t *testing.T) {

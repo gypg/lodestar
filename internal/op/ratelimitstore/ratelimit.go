@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/lingyuins/octopus/internal/utils/ratelimit"
+	"github.com/gypg/lodestar/internal/utils/ratelimit"
 )
 
 var (

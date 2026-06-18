@@ -7,14 +7,14 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/lingyuins/octopus/internal/conf"
-	"github.com/lingyuins/octopus/internal/model"
-	ak "github.com/lingyuins/octopus/internal/op/apikey"
-	billing "github.com/lingyuins/octopus/internal/op/billing"
-	"github.com/lingyuins/octopus/internal/op/stats"
-	"github.com/lingyuins/octopus/internal/op/user"
-	"github.com/lingyuins/octopus/internal/server/auth"
-	"github.com/lingyuins/octopus/internal/server/resp"
+	"github.com/gypg/lodestar/internal/conf"
+	"github.com/gypg/lodestar/internal/model"
+	ak "github.com/gypg/lodestar/internal/op/apikey"
+	billing "github.com/gypg/lodestar/internal/op/billing"
+	"github.com/gypg/lodestar/internal/op/stats"
+	"github.com/gypg/lodestar/internal/op/user"
+	"github.com/gypg/lodestar/internal/server/auth"
+	"github.com/gypg/lodestar/internal/server/resp"
 )
 
 func Auth() gin.HandlerFunc {

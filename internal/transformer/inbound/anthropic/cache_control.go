@@ -1,7 +1,7 @@
 package anthropic
 
 import (
-	"github.com/lingyuins/octopus/internal/transformer/model"
+	"github.com/gypg/lodestar/internal/transformer/model"
 )
 
 func convertToAnthropicCacheControl(c *model.CacheControl) *CacheControl {

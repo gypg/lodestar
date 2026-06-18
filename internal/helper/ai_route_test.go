@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/op"
+	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/op"
 )
 
 func snapshotAIRouteProgressEntries() map[string]aiRouteProgressEntry {

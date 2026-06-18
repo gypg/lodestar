@@ -6,7 +6,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/lingyuins/octopus/internal/model"
+	"github.com/gypg/lodestar/internal/model"
 )
 
 type aiRouteProgressReporter func(model.GenerateAIRouteProgress)

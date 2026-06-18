@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"net/url"
 
-	transformermodel "github.com/lingyuins/octopus/internal/transformer/model"
-	openaioutbound "github.com/lingyuins/octopus/internal/transformer/outbound/openai"
+	transformermodel "github.com/gypg/lodestar/internal/transformer/model"
+	openaioutbound "github.com/gypg/lodestar/internal/transformer/outbound/openai"
 )
 
 type ChatOutbound struct {

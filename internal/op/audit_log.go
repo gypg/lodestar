@@ -3,8 +3,8 @@ package op
 import (
 	"context"
 
-	"github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/op/audit"
+	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/op/audit"
 )
 
 // Deprecated: Use audit.Create from internal/op/audit instead.

@@ -9,7 +9,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/lingyuins/octopus/internal/apperror"
+	"github.com/gypg/lodestar/internal/apperror"
 )
 
 const maxSiteStatusMessageRunes = 300

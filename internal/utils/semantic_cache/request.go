@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	transmodel "github.com/lingyuins/octopus/internal/transformer/model"
+	transmodel "github.com/gypg/lodestar/internal/transformer/model"
 )
 
 func BuildNamespace(apiKeyID int, endpointFamily, requestedModel string) string {

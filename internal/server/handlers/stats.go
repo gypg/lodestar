@@ -5,14 +5,14 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/lingyuins/octopus/internal/model"
-	ak "github.com/lingyuins/octopus/internal/op/apikey"
-	ch "github.com/lingyuins/octopus/internal/op/channel"
-	st "github.com/lingyuins/octopus/internal/op/stats"
-	"github.com/lingyuins/octopus/internal/server/auth"
-	"github.com/lingyuins/octopus/internal/server/middleware"
-	"github.com/lingyuins/octopus/internal/server/resp"
-	"github.com/lingyuins/octopus/internal/server/router"
+	"github.com/gypg/lodestar/internal/model"
+	ak "github.com/gypg/lodestar/internal/op/apikey"
+	ch "github.com/gypg/lodestar/internal/op/channel"
+	st "github.com/gypg/lodestar/internal/op/stats"
+	"github.com/gypg/lodestar/internal/server/auth"
+	"github.com/gypg/lodestar/internal/server/middleware"
+	"github.com/gypg/lodestar/internal/server/resp"
+	"github.com/gypg/lodestar/internal/server/router"
 )
 
 type apiKeyStatsResponse struct {

@@ -3,9 +3,9 @@ package rewrite
 import (
 	"testing"
 
-	appmodel "github.com/lingyuins/octopus/internal/model"
-	transmodel "github.com/lingyuins/octopus/internal/transformer/model"
-	"github.com/lingyuins/octopus/internal/transformer/outbound"
+	appmodel "github.com/gypg/lodestar/internal/model"
+	transmodel "github.com/gypg/lodestar/internal/transformer/model"
+	"github.com/gypg/lodestar/internal/transformer/outbound"
 )
 
 func TestResolve_DisabledConfigReturnsNotEnabled(t *testing.T) {

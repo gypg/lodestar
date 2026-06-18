@@ -10,12 +10,12 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/lingyuins/octopus/internal/conf"
-	dbmodel "github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/op/setting"
-	"github.com/lingyuins/octopus/internal/relay/balancer"
-	"github.com/lingyuins/octopus/internal/transformer/model"
-	"github.com/lingyuins/octopus/internal/transformer/outbound"
+	"github.com/gypg/lodestar/internal/conf"
+	dbmodel "github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/op/setting"
+	"github.com/gypg/lodestar/internal/relay/balancer"
+	"github.com/gypg/lodestar/internal/transformer/model"
+	"github.com/gypg/lodestar/internal/transformer/outbound"
 )
 
 // maxSSEEventSize 定义 SSE 事件的最大大小。

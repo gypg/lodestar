@@ -6,10 +6,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lingyuins/octopus/internal/db"
-	"github.com/lingyuins/octopus/internal/hub"
-	"github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/utils/log"
+	"github.com/gypg/lodestar/internal/db"
+	"github.com/gypg/lodestar/internal/hub"
+	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/utils/log"
 )
 
 // RedeemCode redeems a single code on a remote site and records the result.

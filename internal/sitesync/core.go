@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/op"
-	"github.com/lingyuins/octopus/internal/utils/log"
+	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/op"
+	"github.com/gypg/lodestar/internal/utils/log"
 )
 
 type syncSnapshot struct {

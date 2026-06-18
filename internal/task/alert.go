@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/lingyuins/octopus/internal/helper"
-	"github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/op/alert"
-	"github.com/lingyuins/octopus/internal/op/channel"
-	"github.com/lingyuins/octopus/internal/op/setting"
-	"github.com/lingyuins/octopus/internal/op/stats"
-	"github.com/lingyuins/octopus/internal/utils/log"
-	"github.com/lingyuins/octopus/internal/utils/telemetry"
+	"github.com/gypg/lodestar/internal/helper"
+	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/op/alert"
+	"github.com/gypg/lodestar/internal/op/channel"
+	"github.com/gypg/lodestar/internal/op/setting"
+	"github.com/gypg/lodestar/internal/op/stats"
+	"github.com/gypg/lodestar/internal/utils/log"
+	"github.com/gypg/lodestar/internal/utils/telemetry"
 )
 
 const TaskAlertEvaluate = "alert_evaluate"

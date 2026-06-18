@@ -9,10 +9,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	appmodel "github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/transformer/inbound"
-	transmodel "github.com/lingyuins/octopus/internal/transformer/model"
-	"github.com/lingyuins/octopus/internal/utils/semantic_cache"
+	appmodel "github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/transformer/inbound"
+	transmodel "github.com/gypg/lodestar/internal/transformer/model"
+	"github.com/gypg/lodestar/internal/utils/semantic_cache"
 )
 
 func TestBuildSemanticCacheText_ChatMessagesOnlyUsesText(t *testing.T) {

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/lingyuins/octopus/internal/model"
+	"github.com/gypg/lodestar/internal/model"
 )
 
 // newTestSite creates a RemoteSite pointing at the given test server URL.

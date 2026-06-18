@@ -5,9 +5,9 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	dbmodel "github.com/lingyuins/octopus/internal/model"
-	stg "github.com/lingyuins/octopus/internal/op/setting"
-	"github.com/lingyuins/octopus/internal/transformer/model"
+	dbmodel "github.com/gypg/lodestar/internal/model"
+	stg "github.com/gypg/lodestar/internal/op/setting"
+	"github.com/gypg/lodestar/internal/transformer/model"
 )
 
 // responseFilterConfig holds the parsed response filter settings.

@@ -3,8 +3,8 @@ package relay
 import (
     "testing"
 
-    dbmodel "github.com/lingyuins/octopus/internal/model"
-    tmodel "github.com/lingyuins/octopus/internal/transformer/model"
+    dbmodel "github.com/gypg/lodestar/internal/model"
+    tmodel "github.com/gypg/lodestar/internal/transformer/model"
     "github.com/samber/lo"
 )
 

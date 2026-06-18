@@ -3,7 +3,7 @@ package relay
 import (
 	"testing"
 
-	dbmodel "github.com/lingyuins/octopus/internal/model"
+	dbmodel "github.com/gypg/lodestar/internal/model"
 )
 
 func TestResolveRelayLogEndpointType(t *testing.T) {

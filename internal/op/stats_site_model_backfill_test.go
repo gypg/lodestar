@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	dbpkg "github.com/lingyuins/octopus/internal/db"
-	"github.com/lingyuins/octopus/internal/model"
+	dbpkg "github.com/gypg/lodestar/internal/db"
+	"github.com/gypg/lodestar/internal/model"
 )
 
 // TestStatsSiteModelBackfillIgnoresHeavyContent 通过插入一批携带巨型

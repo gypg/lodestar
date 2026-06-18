@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	dbmodel "github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/relay/balancer"
+	dbmodel "github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/relay/balancer"
 )
 
 func TestRecordPreparedCandidateSkip_DoesNotDuplicateCircuitBreak(t *testing.T) {

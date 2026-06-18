@@ -3,7 +3,7 @@ package migrate
 import (
 	"fmt"
 
-	"github.com/lingyuins/octopus/internal/model"
+	"github.com/gypg/lodestar/internal/model"
 	"gorm.io/gorm"
 )
 

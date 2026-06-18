@@ -12,13 +12,13 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/lingyuins/octopus/internal/conf"
-	_ "github.com/lingyuins/octopus/internal/server/handlers"
-	"github.com/lingyuins/octopus/internal/server/middleware"
-	"github.com/lingyuins/octopus/internal/server/resp"
-	"github.com/lingyuins/octopus/internal/server/router"
-	"github.com/lingyuins/octopus/internal/utils/log"
-	"github.com/lingyuins/octopus/static"
+	"github.com/gypg/lodestar/internal/conf"
+	_ "github.com/gypg/lodestar/internal/server/handlers"
+	"github.com/gypg/lodestar/internal/server/middleware"
+	"github.com/gypg/lodestar/internal/server/resp"
+	"github.com/gypg/lodestar/internal/server/router"
+	"github.com/gypg/lodestar/internal/utils/log"
+	"github.com/gypg/lodestar/static"
 )
 
 var httpSrv http.Server

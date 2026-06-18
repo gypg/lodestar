@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/lingyuins/octopus/internal/model"
+	"github.com/gypg/lodestar/internal/model"
 )
 
 // Iterator 统一的负载均衡迭代器

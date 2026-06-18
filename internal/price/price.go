@@ -10,11 +10,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lingyuins/octopus/internal/client"
-	"github.com/lingyuins/octopus/internal/conf"
-	"github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/op/llm"
-	"github.com/lingyuins/octopus/internal/utils/log"
+	"github.com/gypg/lodestar/internal/client"
+	"github.com/gypg/lodestar/internal/conf"
+	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/op/llm"
+	"github.com/gypg/lodestar/internal/utils/log"
 )
 
 const maxPriceResponseBytes = 10 << 20 // 10 MiB — models.dev API response is typically < 2 MiB

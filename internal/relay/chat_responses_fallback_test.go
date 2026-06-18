@@ -3,8 +3,8 @@ package relay
 import (
 	"testing"
 
-	"github.com/lingyuins/octopus/internal/transformer/model"
-	"github.com/lingyuins/octopus/internal/transformer/outbound"
+	"github.com/gypg/lodestar/internal/transformer/model"
+	"github.com/gypg/lodestar/internal/transformer/outbound"
 )
 
 func TestOutboundAttemptTypesChatOnChatChannelAutoPrefersChat(t *testing.T) {

@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	dbpkg "github.com/lingyuins/octopus/internal/db"
-	"github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/op"
+	dbpkg "github.com/gypg/lodestar/internal/db"
+	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/op"
 )
 
 func TestSiteMaskedTokenMatchesIgnoresOptionalSKPrefix(t *testing.T) {

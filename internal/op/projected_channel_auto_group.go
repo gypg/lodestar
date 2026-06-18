@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/dlclark/regexp2"
-	"github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/utils/log"
+	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/utils/log"
 )
 
 func ProjectedChannelGlobalAutoGroupMode() model.AutoGroupType {

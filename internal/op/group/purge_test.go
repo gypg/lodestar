@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/lingyuins/octopus/internal/db"
-	"github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/op/channel"
+	"github.com/gypg/lodestar/internal/db"
+	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/op/channel"
 )
 
 // seedGroupWithItems 直接把分组与分组项写入 DB，并刷新分组缓存，

@@ -4,17 +4,17 @@ import (
 	"context"
 	"time"
 
-	"github.com/lingyuins/octopus/internal/db"
-	"github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/op/backup"
-	"github.com/lingyuins/octopus/internal/op/relaylog"
-	"github.com/lingyuins/octopus/internal/op/remotesite"
-	"github.com/lingyuins/octopus/internal/op/setting"
-	"github.com/lingyuins/octopus/internal/op/stats"
-	"github.com/lingyuins/octopus/internal/price"
-	"github.com/lingyuins/octopus/internal/relay"
-	"github.com/lingyuins/octopus/internal/relay/balancer"
-	"github.com/lingyuins/octopus/internal/utils/log"
+	"github.com/gypg/lodestar/internal/db"
+	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/op/backup"
+	"github.com/gypg/lodestar/internal/op/relaylog"
+	"github.com/gypg/lodestar/internal/op/remotesite"
+	"github.com/gypg/lodestar/internal/op/setting"
+	"github.com/gypg/lodestar/internal/op/stats"
+	"github.com/gypg/lodestar/internal/price"
+	"github.com/gypg/lodestar/internal/relay"
+	"github.com/gypg/lodestar/internal/relay/balancer"
+	"github.com/gypg/lodestar/internal/utils/log"
 )
 
 const (

@@ -17,8 +17,8 @@ import (
 	"net/http"
 	"strings"
 
-	transformermodel "github.com/lingyuins/octopus/internal/transformer/model"
-	openaioutbound "github.com/lingyuins/octopus/internal/transformer/outbound/openai"
+	transformermodel "github.com/gypg/lodestar/internal/transformer/model"
+	openaioutbound "github.com/gypg/lodestar/internal/transformer/outbound/openai"
 )
 
 // ChatOutbound 将内部通用请求转发到 Cloudflare Workers AI。

@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/op/llm"
-	"github.com/lingyuins/octopus/internal/utils/telemetry"
+	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/op/llm"
+	"github.com/gypg/lodestar/internal/utils/telemetry"
 )
 
 func TestBuildOpsCacheStatus_ComputesRates(t *testing.T) {

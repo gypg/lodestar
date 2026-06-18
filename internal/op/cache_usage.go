@@ -1,7 +1,7 @@
 package op
 
 import (
-	"github.com/lingyuins/octopus/internal/op/cacheusage"
+	"github.com/gypg/lodestar/internal/op/cacheusage"
 )
 
 type providerPromptCacheUsageSignals = cacheusage.ProviderPromptCacheUsageSignals

@@ -12,7 +12,7 @@ import (
 
 	"github.com/samber/lo"
 
-	"github.com/lingyuins/octopus/internal/transformer/model"
+	"github.com/gypg/lodestar/internal/transformer/model"
 )
 
 // ResponseOutbound implements the Outbound interface for OpenAI Responses API.

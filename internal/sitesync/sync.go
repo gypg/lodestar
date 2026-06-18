@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/lingyuins/octopus/internal/apperror"
-	"github.com/lingyuins/octopus/internal/model"
+	"github.com/gypg/lodestar/internal/apperror"
+	"github.com/gypg/lodestar/internal/model"
 )
 
 func isAlreadyCheckedInMessage(message string) bool {

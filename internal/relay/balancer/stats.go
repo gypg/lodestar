@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/op/setting"
+	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/op/setting"
 )
 
 // RequestRecord represents a single request outcome within the sliding window.

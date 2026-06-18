@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	transmodel "github.com/lingyuins/octopus/internal/transformer/model"
+	transmodel "github.com/gypg/lodestar/internal/transformer/model"
 )
 
 func TestSplitRelaySSEPayload_SplitsMultipleEvents(t *testing.T) {

@@ -1,8 +1,8 @@
 package relay
 
 import (
-	dbmodel "github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/op/stats"
+	dbmodel "github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/op/stats"
 )
 
 func updateChannelSuccessStats(channelID int, waitTimeMs int64, metrics dbmodel.StatsMetrics) {

@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/lingyuins/octopus/internal/model"
+	"github.com/gypg/lodestar/internal/model"
 )
 
 // mockAdapter is a minimal SiteAdapter implementation for registry tests.

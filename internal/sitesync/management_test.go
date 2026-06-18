@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/lingyuins/octopus/internal/apperror"
-	"github.com/lingyuins/octopus/internal/model"
+	"github.com/gypg/lodestar/internal/apperror"
+	"github.com/gypg/lodestar/internal/model"
 )
 
 func TestSyncManagementPlatformDiscoversNewAPIUserID(t *testing.T) {

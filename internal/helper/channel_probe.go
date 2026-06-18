@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lingyuins/octopus/internal/conf"
-	appmodel "github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/utils/log"
+	"github.com/gypg/lodestar/internal/conf"
+	appmodel "github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/utils/log"
 )
 
 type ChannelTestResult struct {

@@ -13,9 +13,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lingyuins/octopus/internal/client"
-	"github.com/lingyuins/octopus/internal/conf"
-	"github.com/lingyuins/octopus/internal/utils/log"
+	"github.com/gypg/lodestar/internal/client"
+	"github.com/gypg/lodestar/internal/conf"
+	"github.com/gypg/lodestar/internal/utils/log"
 )
 
 const maxUpdateAPIResponseBytes = 2 << 20 // 2 MiB — GitHub API release info JSON is typically < 100 KiB
@@ -24,7 +24,7 @@ func getUpdateURL() string {
 	if u := conf.AppConfig.External.UpdateURL; u != "" {
 		return u
 	}
-	return "https://github.com/lingyuins/octopus/releases/latest/download"
+	return "https://github.com/gypg/lodestar/releases/latest/download"
 }
 
 func getUpdateAPIURL() string {

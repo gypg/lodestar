@@ -13,9 +13,9 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	"github.com/lingyuins/octopus/internal/conf"
-	dbmodel "github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/transformer/inbound"
+	"github.com/gypg/lodestar/internal/conf"
+	dbmodel "github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/transformer/inbound"
 )
 
 func TestParseRequestRejectsOversizeBody(t *testing.T) {

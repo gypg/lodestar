@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/lingyuins/octopus/internal/site"
-	"github.com/lingyuins/octopus/internal/utils/log"
+	"github.com/gypg/lodestar/internal/site"
+	"github.com/gypg/lodestar/internal/utils/log"
 )
 
 func SiteSyncTask() {

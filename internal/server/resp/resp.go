@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/lingyuins/octopus/internal/apperror"
+	"github.com/gypg/lodestar/internal/apperror"
 )
 
 type ResponseStruct struct {

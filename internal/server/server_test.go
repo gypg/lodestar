@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/lingyuins/octopus/internal/conf"
+	"github.com/gypg/lodestar/internal/conf"
 )
 
 func TestResolveLocalStaticDirPrefersWebOutInDebug(t *testing.T) {

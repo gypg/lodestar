@@ -3,8 +3,8 @@ package site
 import (
 	"context"
 
-	"github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/sitesync"
+	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/sitesync"
 )
 
 func SyncAccount(ctx context.Context, accountID int) (*model.SiteSyncResult, error) {

@@ -26,9 +26,9 @@ import (
 	"time"
 
 	"github.com/Calcium-Ion/go-epay/epay"
-	"github.com/lingyuins/octopus/internal/db"
-	"github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/op/setting"
+	"github.com/gypg/lodestar/internal/db"
+	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/op/setting"
 
 	"gorm.io/gorm"
 )

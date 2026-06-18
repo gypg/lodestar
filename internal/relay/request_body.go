@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/lingyuins/octopus/internal/conf"
+	"github.com/gypg/lodestar/internal/conf"
 )
 
 var errRelayRequestBodyTooLarge = errors.New("request body too large")

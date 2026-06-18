@@ -3,8 +3,8 @@ package op
 import (
 	"context"
 
-	"github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/op/setting"
+	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/op/setting"
 )
 
 // settingCache is retained for backward compatibility (used by tests).

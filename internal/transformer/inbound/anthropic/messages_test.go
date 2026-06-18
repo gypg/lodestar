@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/lingyuins/octopus/internal/transformer/model"
+	"github.com/gypg/lodestar/internal/transformer/model"
 )
 
 func TestMessagesInboundGetInternalResponsePreservesSparseChoiceIndexes(t *testing.T) {

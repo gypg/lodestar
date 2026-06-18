@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lingyuins/octopus/internal/model"
+	"github.com/gypg/lodestar/internal/model"
 )
 
 func TestBuildNextRandomCheckinAtRespectsRollingInterval(t *testing.T) {

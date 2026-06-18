@@ -26,10 +26,10 @@ import (
 
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
-	"github.com/lingyuins/octopus/internal/db"
-	"github.com/lingyuins/octopus/internal/model"
-	stg "github.com/lingyuins/octopus/internal/op/setting"
-	usr "github.com/lingyuins/octopus/internal/op/user"
+	"github.com/gypg/lodestar/internal/db"
+	"github.com/gypg/lodestar/internal/model"
+	stg "github.com/gypg/lodestar/internal/op/setting"
+	usr "github.com/gypg/lodestar/internal/op/user"
 	"gorm.io/gorm"
 )
 

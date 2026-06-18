@@ -3,7 +3,7 @@ package airoute
 import (
 	"testing"
 
-	"github.com/lingyuins/octopus/internal/model"
+	"github.com/gypg/lodestar/internal/model"
 )
 
 func TestParseAIRouteResponseContentAcceptsWrappedJSON(t *testing.T) {

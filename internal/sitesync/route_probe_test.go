@@ -3,7 +3,7 @@ package sitesync
 import (
 	"testing"
 
-	"github.com/lingyuins/octopus/internal/model"
+	"github.com/gypg/lodestar/internal/model"
 )
 
 func TestPickPreferredDetectedRouteType(t *testing.T) {

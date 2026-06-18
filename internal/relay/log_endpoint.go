@@ -1,6 +1,6 @@
 package relay
 
-import dbmodel "github.com/lingyuins/octopus/internal/model"
+import dbmodel "github.com/gypg/lodestar/internal/model"
 
 func resolveRelayLogEndpointType(requestedEndpointType, matchedGroupEndpointType string) string {
 	requested := dbmodel.NormalizeEndpointType(requestedEndpointType)

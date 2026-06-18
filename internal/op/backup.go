@@ -3,8 +3,8 @@ package op
 import (
 	"context"
 
-	"github.com/lingyuins/octopus/internal/op/backup"
-	"github.com/lingyuins/octopus/internal/model"
+	"github.com/gypg/lodestar/internal/op/backup"
+	"github.com/gypg/lodestar/internal/model"
 )
 
 // Deprecated: Use backup.ExportAll from internal/op/backup instead.

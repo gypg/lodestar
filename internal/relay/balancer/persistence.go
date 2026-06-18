@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lingyuins/octopus/internal/db"
-	"github.com/lingyuins/octopus/internal/model"
-	ch "github.com/lingyuins/octopus/internal/op/channel"
-	"github.com/lingyuins/octopus/internal/utils/log"
+	"github.com/gypg/lodestar/internal/db"
+	"github.com/gypg/lodestar/internal/model"
+	ch "github.com/gypg/lodestar/internal/op/channel"
+	"github.com/gypg/lodestar/internal/utils/log"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )

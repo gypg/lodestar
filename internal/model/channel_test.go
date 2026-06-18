@@ -3,7 +3,7 @@ package model
 import (
 	"testing"
 
-	"github.com/lingyuins/octopus/internal/transformer/outbound"
+	"github.com/gypg/lodestar/internal/transformer/outbound"
 )
 
 func TestRequestRewriteConfigValidate(t *testing.T) {

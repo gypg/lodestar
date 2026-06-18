@@ -1,8 +1,8 @@
 package rewrite
 
 import (
-	appmodel "github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/transformer/outbound"
+	appmodel "github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/transformer/outbound"
 )
 
 type EffectiveConfig struct {

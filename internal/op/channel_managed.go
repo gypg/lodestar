@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/lingyuins/octopus/internal/db"
-	"github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/op/channel"
+	"github.com/gypg/lodestar/internal/db"
+	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/op/channel"
 )
 
 // ChannelEnabledManaged enables/disables a channel bypassing the managed-check guard.

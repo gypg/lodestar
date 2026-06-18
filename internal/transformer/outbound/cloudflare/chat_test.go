@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	transformermodel "github.com/lingyuins/octopus/internal/transformer/model"
+	transformermodel "github.com/gypg/lodestar/internal/transformer/model"
 )
 
 // TestChatOutboundTransformRequest_StripsModelFromBody 防止回归：

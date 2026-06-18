@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/utils/semantic_cache"
+	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/utils/semantic_cache"
 )
 
 func TestNormalizeNavOrder_AppendsMissingRoutesAndDropsUnknown(t *testing.T) {

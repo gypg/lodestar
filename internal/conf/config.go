@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/lingyuins/octopus/internal/utils/log"
+	"github.com/gypg/lodestar/internal/utils/log"
 	"github.com/spf13/viper"
 )
 
@@ -145,7 +145,7 @@ func setDefaults() {
 	viper.SetDefault("relay.max_json_body_bytes", int64(64<<20))
 	viper.SetDefault("relay.max_multipart_body_bytes", int64(64<<20))
 	viper.SetDefault("external.llm_price_url", "https://models.dev/api.json")
-	viper.SetDefault("external.update_url", "https://github.com/lingyuins/octopus/releases/latest/download")
+	viper.SetDefault("external.update_url", "https://github.com/gypg/lodestar/releases/latest/download")
 	viper.SetDefault("external.update_api_url", "https://api.github.com/repos/lingyuins/octopus/releases/latest")
 	viper.SetDefault("security.encryption_key", "")
 }

@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/go-webauthn/webauthn/webauthn"
-	"github.com/lingyuins/octopus/internal/model"
-	stg "github.com/lingyuins/octopus/internal/op/setting"
+	"github.com/gypg/lodestar/internal/model"
+	stg "github.com/gypg/lodestar/internal/op/setting"
 )
 
 func setSetting(t *testing.T, key model.SettingKey, value string) {

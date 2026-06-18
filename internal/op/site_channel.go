@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lingyuins/octopus/internal/db"
-	"github.com/lingyuins/octopus/internal/model"
+	"github.com/gypg/lodestar/internal/db"
+	"github.com/gypg/lodestar/internal/model"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )

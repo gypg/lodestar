@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/lingyuins/octopus/internal/model"
+	"github.com/gypg/lodestar/internal/model"
 )
 
 type siteModelRouteDetection struct {

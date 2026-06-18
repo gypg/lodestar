@@ -3,7 +3,7 @@ package openai
 import (
 	"testing"
 
-	"github.com/lingyuins/octopus/internal/transformer/model"
+	"github.com/gypg/lodestar/internal/transformer/model"
 )
 
 func TestConvertToResponsesRequest_OmitsNoneReasoningEffort(t *testing.T) {

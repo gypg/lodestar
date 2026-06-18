@@ -3,7 +3,7 @@ package balancer
 import (
 	"testing"
 
-	"github.com/lingyuins/octopus/internal/model"
+	"github.com/gypg/lodestar/internal/model"
 )
 
 func TestNewIteratorExcludesChannels(t *testing.T) {

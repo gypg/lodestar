@@ -3,11 +3,11 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/relay"
-	"github.com/lingyuins/octopus/internal/server/middleware"
-	"github.com/lingyuins/octopus/internal/server/router"
-	"github.com/lingyuins/octopus/internal/transformer/inbound"
+	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/relay"
+	"github.com/gypg/lodestar/internal/server/middleware"
+	"github.com/gypg/lodestar/internal/server/router"
+	"github.com/gypg/lodestar/internal/transformer/inbound"
 	"github.com/gin-gonic/gin"
 )
 

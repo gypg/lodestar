@@ -1,4 +1,4 @@
-module github.com/lingyuins/octopus
+module github.com/gypg/lodestar
 
 go 1.24.4
 

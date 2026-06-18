@@ -3,8 +3,8 @@ package op
 import (
 	"context"
 
-	"github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/op/group"
+	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/op/group"
 )
 
 // groupCache is retained for backward compatibility (used by tests).

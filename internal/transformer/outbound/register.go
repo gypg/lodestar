@@ -1,13 +1,13 @@
 package outbound
 
 import (
-	"github.com/lingyuins/octopus/internal/transformer/model"
-	"github.com/lingyuins/octopus/internal/transformer/outbound/anthropic"
-	"github.com/lingyuins/octopus/internal/transformer/outbound/cloudflare"
-	"github.com/lingyuins/octopus/internal/transformer/outbound/gemini"
-	"github.com/lingyuins/octopus/internal/transformer/outbound/mimo"
-	"github.com/lingyuins/octopus/internal/transformer/outbound/openai"
-	"github.com/lingyuins/octopus/internal/transformer/outbound/volcengine"
+	"github.com/gypg/lodestar/internal/transformer/model"
+	"github.com/gypg/lodestar/internal/transformer/outbound/anthropic"
+	"github.com/gypg/lodestar/internal/transformer/outbound/cloudflare"
+	"github.com/gypg/lodestar/internal/transformer/outbound/gemini"
+	"github.com/gypg/lodestar/internal/transformer/outbound/mimo"
+	"github.com/gypg/lodestar/internal/transformer/outbound/openai"
+	"github.com/gypg/lodestar/internal/transformer/outbound/volcengine"
 )
 
 type OutboundType int

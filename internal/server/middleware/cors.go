@@ -3,8 +3,8 @@ package middleware
 import (
 	"strings"
 
-	"github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/op/setting"
+	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/op/setting"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )

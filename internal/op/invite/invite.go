@@ -15,8 +15,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/lingyuins/octopus/internal/db"
-	"github.com/lingyuins/octopus/internal/model"
+	"github.com/gypg/lodestar/internal/db"
+	"github.com/gypg/lodestar/internal/model"
 )
 
 var ErrInvalidCode = errors.New("invalid or already-used invite code")

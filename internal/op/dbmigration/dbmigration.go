@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/lingyuins/octopus/internal/conf"
-	"github.com/lingyuins/octopus/internal/db"
-	"github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/op/backup"
+	"github.com/gypg/lodestar/internal/conf"
+	"github.com/gypg/lodestar/internal/db"
+	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/op/backup"
 )
 
 type SaveDatabaseConfigFunc func(dbType, path string) error

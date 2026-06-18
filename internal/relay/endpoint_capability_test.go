@@ -3,9 +3,9 @@ package relay
 import (
 	"testing"
 
-	dbmodel "github.com/lingyuins/octopus/internal/model"
-	"github.com/lingyuins/octopus/internal/op/channel"
-	"github.com/lingyuins/octopus/internal/transformer/outbound"
+	dbmodel "github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/op/channel"
+	"github.com/gypg/lodestar/internal/transformer/outbound"
 )
 
 func TestItemSupportsEndpoint_ModelNameHeuristic_Image(t *testing.T) {

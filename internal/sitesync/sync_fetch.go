@@ -6,9 +6,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/lingyuins/octopus/internal/apperror"
-	"github.com/lingyuins/octopus/internal/helper"
-	"github.com/lingyuins/octopus/internal/model"
+	"github.com/gypg/lodestar/internal/apperror"
+	"github.com/gypg/lodestar/internal/helper"
+	"github.com/gypg/lodestar/internal/model"
 )
 
 const (

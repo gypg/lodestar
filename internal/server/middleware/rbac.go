@@ -3,8 +3,8 @@ package middleware
 import (
 	"net/http"
 
-	"github.com/lingyuins/octopus/internal/server/auth"
-	"github.com/lingyuins/octopus/internal/server/resp"
+	"github.com/gypg/lodestar/internal/server/auth"
+	"github.com/gypg/lodestar/internal/server/resp"
 	"github.com/gin-gonic/gin"
 )
 
