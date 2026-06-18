@@ -38,11 +38,13 @@ func getBootstrapStatus(c *gin.Context) {
 	// to offer self-registration (true = commercial / open registration).
 	commercialMode, _ := setting.GetBool(model.SettingKeyCommercialMode)
 	maintenanceMode, _ := setting.GetBool(model.SettingKeyMaintenanceMode)
+	inviteRequired, _ := setting.GetBool(model.SettingKeyRegisterInviteRequired)
 	resp.Success(c, gin.H{
-		"initialized":      initialized,
-		"message":          message,
-		"commercial_mode":  commercialMode,
-		"maintenance_mode": maintenanceMode,
+		"initialized":              initialized,
+		"message":                  message,
+		"commercial_mode":          commercialMode,
+		"maintenance_mode":         maintenanceMode,
+		"register_invite_required": inviteRequired,
 	})
 }
 

@@ -14,13 +14,14 @@ import { Wallet } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/common/Toast';
-import { useWallet, useRedeemCode, useGenerateCodes, useTopup, useUsage } from '@/api/endpoints/wallet';
+import { useWallet, useRedeemCode, useGenerateCodes, useTopup, useUsage, useGenerateInvites } from '@/api/endpoints/wallet';
 
 export function SettingWallet() {
     const { data: balance } = useWallet();
     const { data: usage } = useUsage();
     const redeem = useRedeemCode();
     const genCodes = useGenerateCodes();
+    const genInvites = useGenerateInvites();
     const topup = useTopup();
     const [code, setCode] = useState('');
     const [amount, setAmount] = useState('5');
@@ -28,6 +29,8 @@ export function SettingWallet() {
     const [count, setCount] = useState('10');
     const [quota, setQuota] = useState('1');
     const [generated, setGenerated] = useState<string[]>([]);
+    const [inviteCount, setInviteCount] = useState('10');
+    const [invites, setInvites] = useState<string[]>([]);
 
     const onRedeem = () => {
         const c = code.trim();
@@ -81,6 +84,16 @@ export function SettingWallet() {
                 onError: (e) => toast.error(e instanceof Error ? e.message : '生成失败（需管理员权限）'),
             }
         );
+    };
+
+    const onGenInvites = () => {
+        genInvites.mutate(parseInt(inviteCount, 10) || 0, {
+            onSuccess: (codes) => {
+                setInvites(codes.map((c) => c.code));
+                toast.success(`已生成 ${codes.length} 个邀请码`);
+            },
+            onError: (e) => toast.error(e instanceof Error ? e.message : '生成失败（需管理员权限）'),
+        });
     };
 
     return (
@@ -179,6 +192,29 @@ export function SettingWallet() {
                             readOnly
                             value={generated.join('\n')}
                             rows={Math.min(generated.length, 8)}
+                            className="w-full rounded-lg border border-border/40 bg-background p-2 font-mono text-xs"
+                            onFocus={(e) => e.currentTarget.select()}
+                        />
+                    )}
+                </div>
+            </details>
+
+            <details className="rounded-lg border border-border/30 bg-card p-3">
+                <summary className="cursor-pointer text-sm font-medium text-card-foreground">管理员 · 生成邀请码</summary>
+                <div className="mt-3 flex flex-col gap-3">
+                    <div className="flex items-end gap-2">
+                        <div className="flex flex-col gap-1">
+                            <label className="ml-1 text-xs text-muted-foreground">数量</label>
+                            <Input value={inviteCount} onChange={(e) => setInviteCount(e.target.value)} type="number" min="1" className="w-24 rounded-lg" />
+                        </div>
+                        <Button type="button" size="sm" onClick={onGenInvites} disabled={genInvites.isPending}>生成邀请码</Button>
+                        <p className="text-xs text-muted-foreground">用于「注册需邀请码」开启时控制谁能注册。</p>
+                    </div>
+                    {invites.length > 0 && (
+                        <textarea
+                            readOnly
+                            value={invites.join('\n')}
+                            rows={Math.min(invites.length, 8)}
                             className="w-full rounded-lg border border-border/40 bg-background p-2 font-mono text-xs"
                             onFocus={(e) => e.currentTarget.select()}
                         />

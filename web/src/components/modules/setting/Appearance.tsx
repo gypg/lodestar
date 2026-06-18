@@ -580,6 +580,33 @@ export function SettingAppearance() {
                     </div>
                     )}
 
+                    {/* 注册需邀请码 */}
+                    {showAdmin && (
+                    <div className="flex flex-col gap-4 rounded-lg border border-primary/20 bg-gradient-to-br from-primary/5 to-transparent p-4 shadow-sm">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/12">
+                                    <Store className="h-5 w-5 text-primary" />
+                                </div>
+                                <div className="space-y-0.5">
+                                    <span className="text-sm font-semibold text-card-foreground">注册需邀请码</span>
+                                    <p className="text-xs text-muted-foreground">仅商业模式下生效：开启后注册需填有效邀请码（在「钱包」生成）。控制谁能注册。</p>
+                                </div>
+                            </div>
+                            <Switch
+                                checked={settings?.find((s) => s.key === SettingKey.RegisterInviteRequired)?.value === 'true'}
+                                onCheckedChange={(checked) =>
+                                    setSetting.mutate(
+                                        { key: SettingKey.RegisterInviteRequired, value: checked ? 'true' : 'false' },
+                                        { onError: () => toast.error(t('saveFailed')) }
+                                    )
+                                }
+                                aria-label="注册需邀请码"
+                            />
+                        </div>
+                    </div>
+                    )}
+
                     {/* 中国化模式 */}
                     <div className="flex flex-col gap-4 rounded-lg border border-primary/20 bg-gradient-to-br from-primary/5 to-transparent p-4 shadow-sm">
                         <div className="flex items-center justify-between">

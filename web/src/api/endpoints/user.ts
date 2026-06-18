@@ -180,7 +180,7 @@ export function useRegister() {
     const { setAuth } = useAuthStore();
 
     return useMutation({
-        mutationFn: async (data: UserLoginRequest) => {
+        mutationFn: async (data: UserLoginRequest & { invite_code?: string }) => {
             return apiClient.post<UserLoginResponse>('/api/v1/user/register', data, undefined, false);
         },
         onSuccess: (data) => {

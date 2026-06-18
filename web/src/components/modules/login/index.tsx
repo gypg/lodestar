@@ -30,6 +30,7 @@ export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
   const t = useTranslations('login')
   const [mode, setMode] = useState<LoginMode>('user')
   const [isRegister, setIsRegister] = useState(false)
+  const [inviteCode, setInviteCode] = useState("")
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [apiKey, setApiKey] = useState("")
@@ -50,6 +51,7 @@ export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
     refetchOnWindowFocus: false,
   })
   const commercialMode = bootstrapStatus?.commercial_mode === true
+  const registerInviteRequired = bootstrapStatus?.register_invite_required === true
 
   const passkeyAvailable =
     isWebAuthnSupported() &&
@@ -67,6 +69,7 @@ export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
             username: username.trim(),
             password,
             expire: 1440,
+            invite_code: inviteCode.trim(),
           })
         } else {
           await loginMutation.mutateAsync({
@@ -178,6 +181,23 @@ export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
                       disabled={isPending}
                     />
                   </Field>
+                  {isRegister && registerInviteRequired && (
+                    <Field>
+                      <FieldLabel className="text-xs font-semibold text-muted-foreground/70 ml-1" htmlFor="invite">邀请码</FieldLabel>
+                      <Input
+                        id="invite"
+                        type="text"
+                        placeholder="请输入邀请码"
+                        value={inviteCode}
+                        onChange={(e) => setInviteCode(e.target.value)}
+                        className="h-12 rounded-xl bg-card border-border/30"
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        spellCheck={false}
+                        disabled={isPending}
+                      />
+                    </Field>
+                  )}
                   {commercialMode && (
                     <button
                       type="button"

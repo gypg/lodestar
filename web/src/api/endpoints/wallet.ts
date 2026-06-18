@@ -42,6 +42,14 @@ export function useGenerateCodes() {
     });
 }
 
+/** 管理员生成邀请码 */
+export function useGenerateInvites() {
+    return useMutation({
+        mutationFn: async (count: number) =>
+            apiClient.post<{ code: string }[]>('/api/v1/wallet/invites', { count }),
+    });
+}
+
 export function useGrantQuota() {
     const qc = useQueryClient();
     return useMutation({

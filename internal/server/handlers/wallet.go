@@ -17,6 +17,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	apikey "github.com/lingyuins/octopus/internal/op/apikey"
+	"github.com/lingyuins/octopus/internal/op/invite"
 	"github.com/lingyuins/octopus/internal/op/payment"
 	st "github.com/lingyuins/octopus/internal/op/stats"
 	"github.com/lingyuins/octopus/internal/op/topup"
@@ -74,6 +75,14 @@ func init() {
 		AddRoute(
 			router.NewRoute("/grant", http.MethodPost).
 				Handle(adminGrant),
+		).
+		AddRoute(
+			router.NewRoute("/invites", http.MethodPost).
+				Handle(generateInvites),
+		).
+		AddRoute(
+			router.NewRoute("/invites", http.MethodGet).
+				Handle(listInvites),
 		)
 }
 
@@ -213,6 +222,31 @@ func generateCodes(c *gin.Context) {
 
 func listCodes(c *gin.Context) {
 	codes, err := topup.ListCodes(c.Request.Context())
+	if err != nil {
+		resp.InternalError(c)
+		return
+	}
+	resp.Success(c, codes)
+}
+
+func generateInvites(c *gin.Context) {
+	var req struct {
+		Count int `json:"count"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		resp.Error(c, http.StatusBadRequest, resp.ErrInvalidJSON)
+		return
+	}
+	codes, err := invite.GenerateCodes(req.Count, c.Request.Context())
+	if err != nil {
+		resp.Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	resp.Success(c, codes)
+}
+
+func listInvites(c *gin.Context) {
+	codes, err := invite.ListCodes(c.Request.Context())
 	if err != nil {
 		resp.InternalError(c)
 		return

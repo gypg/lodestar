@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/lingyuins/octopus/internal/model"
+	"github.com/lingyuins/octopus/internal/op/invite"
 	"github.com/lingyuins/octopus/internal/op/setting"
 	usr "github.com/lingyuins/octopus/internal/op/user"
 	"github.com/lingyuins/octopus/internal/server/auth"
@@ -187,10 +188,30 @@ func register(c *gin.Context) {
 		resp.Error(c, http.StatusForbidden, "registration is disabled in self-use mode")
 		return
 	}
-	var req model.UserLogin
+	var req struct {
+		Username   string `json:"username"`
+		Password   string `json:"password"`
+		Expire     int    `json:"expire"`
+		InviteCode string `json:"invite_code"`
+	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		resp.Error(c, http.StatusBadRequest, resp.ErrInvalidJSON)
 		return
+	}
+	// GGZERO: optional invite-code gate (commercial mode only). Pre-validate before
+	// creating the user so a taken username doesn't waste the invite; consume after.
+	inviteRequired := false
+	if v, _ := setting.GetBool(model.SettingKeyRegisterInviteRequired); v {
+		inviteRequired = true
+		code := strings.TrimSpace(req.InviteCode)
+		if code == "" {
+			resp.Error(c, http.StatusBadRequest, "邀请码必填")
+			return
+		}
+		if !invite.IsValid(code, c.Request.Context()) {
+			resp.Error(c, http.StatusBadRequest, "邀请码无效或已被使用")
+			return
+		}
 	}
 	loginKey := c.GetString("login_rate_limit_key")
 	if err := usr.Create(model.UserCreateRequest{
@@ -211,6 +232,9 @@ func register(c *gin.Context) {
 	if err != nil {
 		resp.Error(c, http.StatusInternalServerError, resp.ErrInternalServer)
 		return
+	}
+	if inviteRequired {
+		_ = invite.Consume(strings.TrimSpace(req.InviteCode), userObj.ID, c.Request.Context())
 	}
 	middleware.ClearLoginFailures(loginKey)
 	token, expire, err := auth.GenerateJWTToken(req.Expire, userObj.ID, userObj.Role)
