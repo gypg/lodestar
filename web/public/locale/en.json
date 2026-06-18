@@ -98,7 +98,8 @@
     "setting": "Setting",
     "ariaLabel": "Main navigation",
     "apikey": "API Keys & Endpoints",
-    "chat": "Chat"
+    "chat": "Chat",
+    "image": "Image"
   },
   "endpoints": {
     "title": "Available Endpoints",

@@ -98,7 +98,8 @@
     "setting": "设置",
     "ariaLabel": "主导航",
     "apikey": "API 密钥及端点",
-    "chat": "对话"
+    "chat": "对话",
+    "image": "生图"
   },
   "endpoints": {
     "title": "可用端点",

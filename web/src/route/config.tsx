@@ -1,7 +1,7 @@
 import { lazyWithPreload } from './lazy-with-preload';
 import { lazy, ComponentType } from 'react';
 import type { LucideIcon } from 'lucide-react';
-import { Home, Radio, Sparkles, FolderTree, Settings, Logs, Users, Bell, BarChart3, Wrench, KeyRound, Globe, MessageSquare } from 'lucide-react';
+import { Home, Radio, Sparkles, FolderTree, Settings, Logs, Users, Bell, BarChart3, Wrench, KeyRound, Globe, MessageSquare, ImagePlus } from 'lucide-react';
 import { DEFAULT_NAV_ORDER } from '@/components/modules/navbar';
 
 export type LazyComponent = ReturnType<typeof lazy> & {
@@ -19,6 +19,7 @@ export interface RouteConfig {
 
 const Home_Module = lazyWithPreload(() => import('@/components/modules/home').then(m => ({ default: m.Home })));
 const Chat_Module = lazyWithPreload(() => import('@/components/modules/chat').then(m => ({ default: m.Chat })));
+const Image_Module = lazyWithPreload(() => import('@/components/modules/image').then(m => ({ default: m.ImageStudio })));
 const Channel_Module = lazyWithPreload(() => import('@/components/modules/channel').then(m => ({ default: m.Channel })));
 const Model_Module = lazyWithPreload(() => import('@/components/modules/model').then(m => ({ default: m.Model })));
 const Group_Module = lazyWithPreload(() => import('@/components/modules/group').then(m => ({ default: m.Group })));
@@ -34,6 +35,7 @@ const Hub_Module = lazyWithPreload(() => import('@/components/modules/remote-sit
 export const ROUTES: RouteConfig[] = [
     { id: 'home', icon: Home, component: Home_Module },
     { id: 'chat', icon: MessageSquare, component: Chat_Module },
+    { id: 'image', icon: ImagePlus, component: Image_Module },
     { id: 'hub', icon: Globe, component: Hub_Module },
     { id: 'channel', icon: Radio, component: Channel_Module },
     { id: 'group', icon: FolderTree, component: Group_Module },
