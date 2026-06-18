@@ -104,7 +104,7 @@ func Load(path string) error {
 			return fmt.Errorf("failed to generate JWT secret: %w", err)
 		}
 		AppConfig.Auth.JWTSecret = secret
-		log.Warnf("auth.jwt_secret is empty, generated an ephemeral secret for this process; configure OCTOPUS_AUTH_JWT_SECRET or auth.jwt_secret to keep tokens valid across restarts")
+		log.Warnf("auth.jwt_secret is empty, generated an ephemeral secret for this process; configure %s_AUTH_JWT_SECRET or auth.jwt_secret to keep tokens valid across restarts", strings.ToUpper(APP_NAME))
 	} else if isKnownPlaceholderJWTSecret(AppConfig.Auth.JWTSecret) {
 		secret, err := generateJWTSecret()
 		if err != nil {

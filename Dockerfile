@@ -66,10 +66,10 @@ RUN set -eux; \
       -ldflags="-X 'github.com/lingyuins/octopus/internal/conf.Version=${APP_VERSION}' \
                 -X 'github.com/lingyuins/octopus/internal/conf.Commit=${GIT_COMMIT}' \
                 -X 'github.com/lingyuins/octopus/internal/conf.BuildTime=${BUILD_TIME}' \
-                -X 'github.com/lingyuins/octopus/internal/conf.Author=lingyu' \
+                -X 'github.com/lingyuins/octopus/internal/conf.Author=GGGZERO' \
                 -s -w" \
       -tags=jsoniter \
-      -o octopus \
+      -o ggzero \
       .
 
 # =============================================================================
@@ -91,16 +91,16 @@ RUN apk add --no-cache ca-certificates tzdata
 ENV TZ=Asia/Shanghai
 
 # Create non-root user
-RUN addgroup -g 1000 octopus && \
-    adduser -u 1000 -G octopus -s /bin/sh -D octopus
+RUN addgroup -g 1000 ggzero && \
+    adduser -u 1000 -G ggzero -s /bin/sh -D ggzero
 
 WORKDIR /app
 
 # Copy binary
-COPY --from=go-builder /build/octopus .
+COPY --from=go-builder /build/ggzero .
 
 # Create data directory
-RUN mkdir -p /app/data && chown -R octopus:octopus /app
+RUN mkdir -p /app/data && chown -R ggzero:ggzero /app
 
 # Switch to non-root user
 USER octopus
@@ -109,12 +109,12 @@ USER octopus
 EXPOSE 8080
 
 # Set default data directory
-ENV OCTOPUS_DATA_DIR=/app/data
+ENV GGZERO_DATA_DIR=/app/data
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:8080/api/v1/bootstrap/status || exit 1
 
 # Run the binary
-ENTRYPOINT ["./octopus"]
+ENTRYPOINT ["./ggzero"]
 CMD ["start"]
