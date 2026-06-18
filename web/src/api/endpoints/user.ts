@@ -216,6 +216,14 @@ export function isStaffRole(role?: string): boolean {
     return role === 'admin' || role === 'editor';
 }
 
+/** 发送邮箱验证码（注册前，公开） */
+export function useSendEmailCode() {
+    return useMutation({
+        mutationFn: async (emailAddr: string) =>
+            apiClient.post('/api/v1/user/send-email-code', { email: emailAddr }, undefined, false),
+    });
+}
+
 /** GGZERO：每用户 UI 偏好（绑账户，跨设备一致） */
 export interface UserPreferences {
     themePreset?: string;

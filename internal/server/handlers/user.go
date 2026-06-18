@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/lingyuins/octopus/internal/model"
+	"github.com/lingyuins/octopus/internal/op/email"
 	"github.com/lingyuins/octopus/internal/op/invite"
 	"github.com/lingyuins/octopus/internal/op/setting"
 	usr "github.com/lingyuins/octopus/internal/op/user"
@@ -34,6 +35,13 @@ func init() {
 		router.NewRoute("/register", http.MethodPost).
 			Use(middleware.LoginRateLimit()).
 			Handle(register),
+	)
+
+	// GGZERO: send an email verification code (used when register_email_required).
+	publicUserRoutes.AddRoute(
+		router.NewRoute("/send-email-code", http.MethodPost).
+			Use(middleware.LoginRateLimit()).
+			Handle(sendEmailCode),
 	)
 
 	router.NewGroupRouter("/api/v1/user").
@@ -193,10 +201,25 @@ func register(c *gin.Context) {
 		Password   string `json:"password"`
 		Expire     int    `json:"expire"`
 		InviteCode string `json:"invite_code"`
+		Email      string `json:"email"`
+		EmailCode  string `json:"email_code"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		resp.Error(c, http.StatusBadRequest, resp.ErrInvalidJSON)
 		return
+	}
+	// GGZERO: optional email verification gate (commercial mode only).
+	emailRequired := false
+	if v, _ := setting.GetBool(model.SettingKeyRegisterEmailRequired); v {
+		emailRequired = true
+		if strings.TrimSpace(req.Email) == "" || strings.TrimSpace(req.EmailCode) == "" {
+			resp.Error(c, http.StatusBadRequest, "邮箱与验证码必填")
+			return
+		}
+		if !email.Verify(req.Email, req.EmailCode) {
+			resp.Error(c, http.StatusBadRequest, "验证码错误或已过期")
+			return
+		}
 	}
 	// GGZERO: optional invite-code gate (commercial mode only). Pre-validate before
 	// creating the user so a taken username doesn't waste the invite; consume after.
@@ -236,6 +259,9 @@ func register(c *gin.Context) {
 	if inviteRequired {
 		_ = invite.Consume(strings.TrimSpace(req.InviteCode), userObj.ID, c.Request.Context())
 	}
+	if emailRequired {
+		_ = usr.UpdateEmail(userObj.ID, strings.ToLower(strings.TrimSpace(req.Email)), c.Request.Context())
+	}
 	middleware.ClearLoginFailures(loginKey)
 	token, expire, err := auth.GenerateJWTToken(req.Expire, userObj.ID, userObj.Role)
 	if err != nil {
@@ -243,6 +269,22 @@ func register(c *gin.Context) {
 		return
 	}
 	resp.Success(c, model.UserLoginResponse{Token: token, ExpireAt: expire})
+}
+
+// GGZERO: send an email verification code (pre-registration). Rate-limited.
+func sendEmailCode(c *gin.Context) {
+	var req struct {
+		Email string `json:"email"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		resp.Error(c, http.StatusBadRequest, resp.ErrInvalidJSON)
+		return
+	}
+	if err := email.GenerateAndSend(req.Email); err != nil {
+		resp.Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	resp.Success(c, nil)
 }
 
 func isTransientDatabaseError(err error) bool {

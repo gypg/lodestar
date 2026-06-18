@@ -195,6 +195,10 @@ export const BUILTIN_PRESETS: ThemePreset[] = [
   accentPreset('rose', '玫瑰 Rose', 'oklch(0.62 0.18 18)', '暖玫红 · 柔和', 'oklch(0.6 0.17 18)', 'oklch(0.68 0.12 30)', 'oklch(0.68 0.16 18)', 'oklch(0.7 0.11 30)'),
   accentPreset('violet', '紫罗兰 Violet', 'oklch(0.58 0.2 295)', '静谧紫', 'oklch(0.56 0.19 295)', 'oklch(0.64 0.14 280)', 'oklch(0.66 0.17 295)', 'oklch(0.7 0.13 280)'),
   accentPreset('amber', '琥珀 Amber', 'oklch(0.7 0.15 70)', '温暖琥珀', 'oklch(0.66 0.14 70)', 'oklch(0.72 0.12 55)', 'oklch(0.74 0.13 70)', 'oklch(0.76 0.11 55)'),
+  accentPreset('forest', '森林 Forest', 'oklch(0.55 0.12 150)', '沉静林绿', 'oklch(0.52 0.12 150)', 'oklch(0.62 0.1 165)', 'oklch(0.64 0.12 150)', 'oklch(0.7 0.1 165)'),
+  accentPreset('ocean', '海洋 Ocean', 'oklch(0.6 0.11 215)', '清澈海青', 'oklch(0.58 0.11 215)', 'oklch(0.66 0.09 195)', 'oklch(0.68 0.11 215)', 'oklch(0.72 0.09 195)'),
+  accentPreset('sakura', '樱花 Sakura', 'oklch(0.74 0.11 350)', '柔粉樱色', 'oklch(0.66 0.13 350)', 'oklch(0.74 0.09 340)', 'oklch(0.74 0.12 350)', 'oklch(0.78 0.09 340)'),
+  accentPreset('mono', '墨色 Mono', 'oklch(0.5 0.01 250)', '极简灰墨', 'oklch(0.45 0.01 250)', 'oklch(0.6 0.015 250)', 'oklch(0.7 0.01 250)', 'oklch(0.62 0.015 250)'),
 ]
 
 export const DEFAULT_PRESET_ID = 'winter'

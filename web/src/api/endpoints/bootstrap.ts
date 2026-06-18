@@ -7,6 +7,8 @@ export interface BootstrapStatusResponse {
   maintenance_mode?: boolean;
   /** GGZERO: true=注册需邀请码(仅商业模式下) */
   register_invite_required?: boolean;
+  /** GGZERO: true=注册需邮箱验证(仅商业模式下) */
+  register_email_required?: boolean;
 }
 
 export interface BootstrapCreateAdminRequest {

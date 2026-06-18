@@ -17,6 +17,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	apikey "github.com/lingyuins/octopus/internal/op/apikey"
+	"github.com/lingyuins/octopus/internal/op/email"
 	"github.com/lingyuins/octopus/internal/op/invite"
 	"github.com/lingyuins/octopus/internal/op/payment"
 	st "github.com/lingyuins/octopus/internal/op/stats"
@@ -83,6 +84,10 @@ func init() {
 		AddRoute(
 			router.NewRoute("/invites", http.MethodGet).
 				Handle(listInvites),
+		).
+		AddRoute(
+			router.NewRoute("/email-test", http.MethodPost).
+				Handle(testEmail),
 		)
 }
 
@@ -243,6 +248,21 @@ func generateInvites(c *gin.Context) {
 		return
 	}
 	resp.Success(c, codes)
+}
+
+func testEmail(c *gin.Context) {
+	var req struct {
+		To string `json:"to"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		resp.Error(c, http.StatusBadRequest, resp.ErrInvalidJSON)
+		return
+	}
+	if err := email.SendTest(req.To); err != nil {
+		resp.Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	resp.Success(c, nil)
 }
 
 func listInvites(c *gin.Context) {

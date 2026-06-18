@@ -29,6 +29,8 @@ type User struct {
 	// = cumulative spent. Only enforced when commercial_mode is on.
 	Quota     float64 `gorm:"type:real;default:0" json:"quota"`
 	UsedQuota float64 `gorm:"type:real;default:0;column:used_quota" json:"used_quota"`
+	// GGZERO commercial: optional email (verified at registration when required).
+	Email string `gorm:"type:varchar(256)" json:"email,omitempty"`
 }
 
 type UserLogin struct {

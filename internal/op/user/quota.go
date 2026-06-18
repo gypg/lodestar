@@ -59,3 +59,10 @@ func SetQuota(userID uint, amount float64, ctx context.Context) error {
 		Where("id = ?", userID).
 		Update("quota", amount).Error
 }
+
+// UpdateEmail sets a user's email (e.g. captured at verified registration).
+func UpdateEmail(userID uint, email string, ctx context.Context) error {
+	return db.GetDB().WithContext(ctx).Model(&model.User{}).
+		Where("id = ?", userID).
+		Update("email", email).Error
+}

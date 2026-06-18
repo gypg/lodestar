@@ -88,6 +88,13 @@ const (
 	SettingKeyPaymentCallbackBase                  SettingKey = "payment_callback_base"                    // 支付回调站点基址 (https://your-site)，用于 notify/return
 	SettingKeyMaintenanceMode                      SettingKey = "maintenance_mode"                         // GGZERO 维护模式: true=对非管理员显示维护页
 	SettingKeyRegisterInviteRequired               SettingKey = "register_invite_required"                 // GGZERO 注册需邀请码(仅商业模式下生效)
+	SettingKeySMTPEnabled                          SettingKey = "smtp_enabled"                             // GGZERO SMTP 邮件开关
+	SettingKeySMTPHost                             SettingKey = "smtp_host"                                // SMTP 服务器
+	SettingKeySMTPPort                             SettingKey = "smtp_port"                                // SMTP 端口(587 STARTTLS)
+	SettingKeySMTPUser                             SettingKey = "smtp_user"                                // SMTP 用户名
+	SettingKeySMTPPass                             SettingKey = "smtp_pass"                                // SMTP 密码/授权码
+	SettingKeySMTPFrom                             SettingKey = "smtp_from"                                // 发件人地址
+	SettingKeyRegisterEmailRequired                SettingKey = "register_email_required"                  // GGZERO 注册需邮箱验证(仅商业模式下生效)
 )
 
 type Setting struct {
@@ -142,6 +149,13 @@ func DefaultSettings() []Setting {
 		{Key: SettingKeyPaymentCallbackBase, Value: ""},
 		{Key: SettingKeyMaintenanceMode, Value: "false"},
 		{Key: SettingKeyRegisterInviteRequired, Value: "false"},
+		{Key: SettingKeySMTPEnabled, Value: "false"},
+		{Key: SettingKeySMTPHost, Value: ""},
+		{Key: SettingKeySMTPPort, Value: "587"},
+		{Key: SettingKeySMTPUser, Value: ""},
+		{Key: SettingKeySMTPPass, Value: ""},
+		{Key: SettingKeySMTPFrom, Value: ""},
+		{Key: SettingKeyRegisterEmailRequired, Value: "false"},
 		{Key: SettingKeyAIRouteGroupID, Value: "0"},
 		{Key: SettingKeyAIRouteBaseURL, Value: ""},
 		{Key: SettingKeyAIRouteAPIKey, Value: ""},

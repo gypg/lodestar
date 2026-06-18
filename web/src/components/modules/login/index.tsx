@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl'
 import { Button } from "@/components/ui/button"
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { useLogin, useRegister } from "@/api/endpoints/user"
+import { useLogin, useRegister, useSendEmailCode } from "@/api/endpoints/user"
 import { useAPIKeyLogin } from "@/api/endpoints/apikey"
 import { isWebAuthnSupported, usePasskeyLogin, useWebAuthnStatus } from "@/api/endpoints/webauthn"
 import { useQuery } from "@tanstack/react-query"
@@ -31,6 +31,8 @@ export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
   const [mode, setMode] = useState<LoginMode>('user')
   const [isRegister, setIsRegister] = useState(false)
   const [inviteCode, setInviteCode] = useState("")
+  const [email, setEmail] = useState("")
+  const [emailCode, setEmailCode] = useState("")
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [apiKey, setApiKey] = useState("")
@@ -52,6 +54,14 @@ export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
   })
   const commercialMode = bootstrapStatus?.commercial_mode === true
   const registerInviteRequired = bootstrapStatus?.register_invite_required === true
+  const registerEmailRequired = bootstrapStatus?.register_email_required === true
+  const sendCodeMutation = useSendEmailCode()
+  const onSendCode = () => {
+    if (!email.trim()) { setError('请先填写邮箱'); return }
+    sendCodeMutation.mutate(email.trim(), {
+      onError: (e) => setError(e instanceof Error ? e.message : '发送失败'),
+    })
+  }
 
   const passkeyAvailable =
     isWebAuthnSupported() &&
@@ -70,6 +80,8 @@ export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
             password,
             expire: 1440,
             invite_code: inviteCode.trim(),
+            email: email.trim(),
+            email_code: emailCode.trim(),
           })
         } else {
           await loginMutation.mutateAsync({
@@ -181,6 +193,51 @@ export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
                       disabled={isPending}
                     />
                   </Field>
+                  {isRegister && registerEmailRequired && (
+                    <>
+                    <Field>
+                      <FieldLabel className="text-xs font-semibold text-muted-foreground/70 ml-1" htmlFor="email">邮箱</FieldLabel>
+                      <div className="flex gap-2">
+                        <Input
+                          id="email"
+                          type="email"
+                          placeholder="your@email.com"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          className="h-12 rounded-xl bg-card border-border/30"
+                          autoCapitalize="none"
+                          autoCorrect="off"
+                          spellCheck={false}
+                          disabled={isPending}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={onSendCode}
+                          disabled={sendCodeMutation.isPending || !email.trim()}
+                          className="h-12 shrink-0 rounded-xl"
+                        >
+                          {sendCodeMutation.isPending ? '发送中' : '发送验证码'}
+                        </Button>
+                      </div>
+                    </Field>
+                    <Field>
+                      <FieldLabel className="text-xs font-semibold text-muted-foreground/70 ml-1" htmlFor="emailcode">验证码</FieldLabel>
+                      <Input
+                        id="emailcode"
+                        type="text"
+                        placeholder="邮箱收到的 6 位验证码"
+                        value={emailCode}
+                        onChange={(e) => setEmailCode(e.target.value)}
+                        className="h-12 rounded-xl bg-card border-border/30"
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        spellCheck={false}
+                        disabled={isPending}
+                      />
+                    </Field>
+                    </>
+                  )}
                   {isRegister && registerInviteRequired && (
                     <Field>
                       <FieldLabel className="text-xs font-semibold text-muted-foreground/70 ml-1" htmlFor="invite">邀请码</FieldLabel>

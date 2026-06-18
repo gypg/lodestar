@@ -50,6 +50,13 @@ export function useGenerateInvites() {
     });
 }
 
+/** 管理员发送测试邮件 */
+export function useTestEmail() {
+    return useMutation({
+        mutationFn: async (to: string) => apiClient.post('/api/v1/wallet/email-test', { to }),
+    });
+}
+
 export function useGrantQuota() {
     const qc = useQueryClient();
     return useMutation({

@@ -39,12 +39,14 @@ func getBootstrapStatus(c *gin.Context) {
 	commercialMode, _ := setting.GetBool(model.SettingKeyCommercialMode)
 	maintenanceMode, _ := setting.GetBool(model.SettingKeyMaintenanceMode)
 	inviteRequired, _ := setting.GetBool(model.SettingKeyRegisterInviteRequired)
+	emailRequired, _ := setting.GetBool(model.SettingKeyRegisterEmailRequired)
 	resp.Success(c, gin.H{
 		"initialized":              initialized,
 		"message":                  message,
 		"commercial_mode":          commercialMode,
 		"maintenance_mode":         maintenanceMode,
 		"register_invite_required": inviteRequired,
+		"register_email_required":  emailRequired,
 	})
 }
 
