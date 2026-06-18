@@ -51,7 +51,7 @@ var viewerPermissions = []Permission{
 	PermSitesRead,
 }
 
-// GGZERO commercial: end-customer role. Minimal privileges — manage own API keys
+// Lodestar commercial: end-customer role. Minimal privileges — manage own API keys
 // (ownership-isolated in handlers) + read aggregate stats. Deliberately NO
 // settings:read (the settings list exposes secrets like epay_key), and NO
 // channels/groups/logs/sites/users — a public registrant sees only their own

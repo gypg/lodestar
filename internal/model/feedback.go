@@ -1,6 +1,6 @@
 package model
 
-// GGZERO — 用户意见反馈（消费级平台的互动闭环）。
+// Lodestar — 用户意见反馈（消费级平台的互动闭环）。
 type Feedback struct {
 	ID        int    `json:"id" gorm:"primaryKey;autoIncrement"`
 	UserID    uint   `json:"user_id" gorm:"index"`

@@ -62,7 +62,7 @@ func createAPIKey(c *gin.Context) {
 	}
 	apiKey := req.toModel()
 	apiKey.ID = 0
-	// GGZERO commercial: the key belongs to its creator (for per-user billing).
+	// Lodestar commercial: the key belongs to its creator (for per-user billing).
 	apiKey.UserID = uint(c.GetInt("user_id"))
 	// Use custom key if provided; otherwise auto-generate.
 	if strings.TrimSpace(apiKey.APIKey) == "" {
@@ -81,7 +81,7 @@ func createAPIKey(c *gin.Context) {
 	resp.Success(c, apiKey)
 }
 
-// GGZERO multi-tenant: staff (admin/editor) see & manage all keys; regular users
+// Lodestar multi-tenant: staff (admin/editor) see & manage all keys; regular users
 // (viewer, e.g. commercial registrants) are isolated to their own keys.
 func isStaff(c *gin.Context) bool {
 	role := c.GetString("user_role")
@@ -111,7 +111,7 @@ func updateAPIKey(c *gin.Context) {
 		return
 	}
 	apiKey := req.toModel()
-	// GGZERO multi-tenant: ownership guard + preserve owner (never let an update
+	// Lodestar multi-tenant: ownership guard + preserve owner (never let an update
 	// reassign or clear UserID).
 	existing, getErr := apikey.Get(apiKey.ID, c.Request.Context())
 	if getErr != nil {

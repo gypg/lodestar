@@ -23,7 +23,7 @@ function ChartSkeleton() {
 }
 
 export function Home() {
-    // 冬日风落地页作为首页封面（GGZERO 招牌入口）；点击「进入数据概览」切换到经典仪表盘。
+    // 冬日风落地页作为首页封面（Lodestar 招牌入口）；点击「进入数据概览」切换到经典仪表盘。
     const [showDashboard, setShowDashboard] = useState(false);
 
     if (!showDashboard) {

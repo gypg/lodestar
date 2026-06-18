@@ -1,7 +1,7 @@
 package topup
 
 /*
-GGZERO commercial layer — top-up code operations.
+Lodestar commercial layer — top-up code operations.
 
 Logic ported from new-api's redemption flow, adapted to octopus float-USD balance.
 Redeem is transactional and race-safe (conditional update + RowsAffected check),
@@ -26,7 +26,7 @@ var ErrInvalidCode = errors.New("invalid or already-used code")
 func genCode() string {
 	b := make([]byte, 16)
 	_, _ = rand.Read(b)
-	return "gz-" + hex.EncodeToString(b)
+	return "ls-" + hex.EncodeToString(b)
 }
 
 // GenerateCodes creates `count` unused codes each worth `quota` USD.

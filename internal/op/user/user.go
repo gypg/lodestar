@@ -8,6 +8,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/gypg/lodestar/internal/conf"
 	"github.com/gypg/lodestar/internal/db"
 	"github.com/gypg/lodestar/internal/model"
 	"gorm.io/gorm"
@@ -95,14 +96,15 @@ func Init() error {
 }
 
 func bootstrapFromEnv() error {
-	username := strings.TrimSpace(os.Getenv("OCTOPUS_INITIAL_ADMIN_USERNAME"))
-	password := os.Getenv("OCTOPUS_INITIAL_ADMIN_PASSWORD")
+	envPrefix := strings.ToUpper(conf.APP_NAME)
+	username := strings.TrimSpace(os.Getenv(envPrefix + "_INITIAL_ADMIN_USERNAME"))
+	password := os.Getenv(envPrefix + "_INITIAL_ADMIN_PASSWORD")
 
 	if username == "" && password == "" {
 		return nil
 	}
 	if username == "" || password == "" {
-		return fmt.Errorf("both OCTOPUS_INITIAL_ADMIN_USERNAME and OCTOPUS_INITIAL_ADMIN_PASSWORD must be set together")
+		return fmt.Errorf("both %s_INITIAL_ADMIN_USERNAME and %s_INITIAL_ADMIN_PASSWORD must be set together", envPrefix, envPrefix)
 	}
 
 	if err := deleteLegacyAdmin(username); err != nil {
@@ -334,7 +336,7 @@ func UpdateRole(id uint, role string, ctx context.Context) error {
 	return nil
 }
 
-// GGZERO: persist a user's UI preferences (opaque JSON string).
+// Lodestar: persist a user's UI preferences (opaque JSON string).
 func UpdatePreferences(id uint, preferences string, ctx context.Context) error {
 	res := db.GetDB().WithContext(ctx).Model(&model.User{}).Where("id = ?", id).Update("preferences", preferences)
 	if res.Error != nil {

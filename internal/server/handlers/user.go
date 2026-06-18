@@ -29,7 +29,7 @@ func init() {
 			Handle(login),
 	)
 
-	// GGZERO: public self-registration, gated by commercial_mode. In self-use
+	// Lodestar: public self-registration, gated by commercial_mode. In self-use
 	// mode (default) this returns 403; flip commercial_mode on to open it up.
 	publicUserRoutes.AddRoute(
 		router.NewRoute("/register", http.MethodPost).
@@ -37,7 +37,7 @@ func init() {
 			Handle(register),
 	)
 
-	// GGZERO: send an email verification code (used when register_email_required).
+	// Lodestar: send an email verification code (used when register_email_required).
 	publicUserRoutes.AddRoute(
 		router.NewRoute("/send-email-code", http.MethodPost).
 			Use(middleware.LoginRateLimit()).
@@ -188,7 +188,7 @@ func login(c *gin.Context) {
 	resp.Success(c, model.UserLoginResponse{Token: token, ExpireAt: expire})
 }
 
-// GGZERO: public self-registration handler. Only succeeds when commercial_mode
+// Lodestar: public self-registration handler. Only succeeds when commercial_mode
 // is enabled; creates a viewer-role account and auto-logs in (returns a token).
 func register(c *gin.Context) {
 	commercialMode, _ := setting.GetBool(model.SettingKeyCommercialMode)
@@ -208,7 +208,7 @@ func register(c *gin.Context) {
 		resp.Error(c, http.StatusBadRequest, resp.ErrInvalidJSON)
 		return
 	}
-	// GGZERO: optional email verification gate (commercial mode only).
+	// Lodestar: optional email verification gate (commercial mode only).
 	emailRequired := false
 	if v, _ := setting.GetBool(model.SettingKeyRegisterEmailRequired); v {
 		emailRequired = true
@@ -221,7 +221,7 @@ func register(c *gin.Context) {
 			return
 		}
 	}
-	// GGZERO: optional invite-code gate (commercial mode only). Pre-validate before
+	// Lodestar: optional invite-code gate (commercial mode only). Pre-validate before
 	// creating the user so a taken username doesn't waste the invite; consume after.
 	inviteRequired := false
 	if v, _ := setting.GetBool(model.SettingKeyRegisterInviteRequired); v {
@@ -271,7 +271,7 @@ func register(c *gin.Context) {
 	resp.Success(c, model.UserLoginResponse{Token: token, ExpireAt: expire})
 }
 
-// GGZERO: send an email verification code (pre-registration). Rate-limited.
+// Lodestar: send an email verification code (pre-registration). Rate-limited.
 func sendEmailCode(c *gin.Context) {
 	var req struct {
 		Email string `json:"email"`
@@ -347,9 +347,9 @@ func status(c *gin.Context) {
 	resp.Success(c, "ok")
 }
 
-// GGZERO: per-user UI preferences (opaque JSON). Self-scoped — any logged-in
+// Lodestar: per-user UI preferences (opaque JSON). Self-scoped — any logged-in
 // user reads/writes their own.
-// GGZERO: current authenticated user (id/username/role/balance) — drives the
+// Lodestar: current authenticated user (id/username/role/balance) — drives the
 // role-aware frontend (admin console vs user self-service portal).
 func me(c *gin.Context) {
 	uid := uint(c.GetInt("user_id"))

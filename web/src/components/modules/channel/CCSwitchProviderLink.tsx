@@ -69,7 +69,7 @@ export function CCSwitchProviderLink({
         if (!endpoint || !selectedGroup || !selectedAPIKey) return '';
 
         const notes = [
-            `GGZERO channel: ${channel.name}`,
+            `Lodestar channel: ${channel.name}`,
             selectedGroup.endpoint_type ? `endpoint: ${selectedGroup.endpoint_type}` : '',
             selectedGroup.items?.length ? `${selectedGroup.items.length} routes` : '',
         ].filter(Boolean).join(', ');

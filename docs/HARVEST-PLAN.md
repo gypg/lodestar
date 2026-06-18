@@ -1,7 +1,7 @@
-# GGZERO 参考项目素材盘点 + 执行分析（HARVEST-PLAN）
+# Lodestar 参考项目素材盘点 + 执行分析（HARVEST-PLAN）
 
-> 应要求：完整扫描三处参考项目，盘点**还没被 GGZERO 用上、值得拿来**的素材，分级总结，给出执行方案。
-> 扫描范围：`参考项目/`（octopus 原版 / octopus-lingyu版 / SAPI）、`GGGZERO/`（new-api / home.html / color4bg / 文档版本.html）、`前端优化/`（pretext）。
+> 应要求：完整扫描三处参考项目，盘点**还没被 Lodestar 用上、值得拿来**的素材，分级总结，给出执行方案。
+> 扫描范围：`参考项目/`（octopus 原版 / octopus-lingyu版 / SAPI）、`__GLodestar_PROTECT__/`（new-api / home.html / color4bg / 文档版本.html）、`前端优化/`（pretext）。
 > 最后更新：2026-06-18。**本文件是规划，不含实现。**
 
 ---
@@ -10,7 +10,7 @@
 
 | 项目 | 栈 | 本质 | 独特资产 |
 |------|----|------|----------|
-| **octopus-lingyu版** | Go gin+gorm / Next.js | **GGZERO 现底座** | relay+transformer、hub 多站聚合、告警/统计/ops、AI路由、语义缓存、熔断、代理池、WebDAV备份 |
+| **octopus-lingyu版** | Go gin+gorm / Next.js | **Lodestar 现底座** | relay+transformer、hub 多站聚合、告警/统计/ops、AI路由、语义缓存、熔断、代理池、WebDAV备份 |
 | **octopus 原版** | 同上 + axonhub | 上游清版 | 无独有价值（缺 hub；relay 绑外部 axonhub 反而更糟） |
 | **SAPI** | Go net/http+pgx / React+MUI | 轻量**消费级**中转站 | ★**站内对话 + 生图工坊**、★**每用户用量可视化**、干净**用户门户**、邀请码/维护模式/横幅/SMTP/审计归档/建议反馈、Provider 健康看板 |
 | **new-api** | Go gin+gorm / TanStack | 重型网关 | ★**40+ 上游适配器**、订阅系统、计费表达式、更多支付商、OAuth 全家桶、2FA/passkey、绘图/MJ/任务、数据导出、双主题 |
@@ -32,12 +32,12 @@
 ## 三、★还值得拿的（分级，核心结论）
 
 ### Tier 1 — 把"开发者网关"升级成"消费级平台"（最高价值，强烈建议）
-> GGZERO 现在能注册/充值/计费，但**普通用户拿到 key 后只能自己写代码调用**。Tier 1 让不懂代码的人也能直接用——这是"完全能用"的关键跃迁。
+> Lodestar 现在能注册/充值/计费，但**普通用户拿到 key 后只能自己写代码调用**。Tier 1 让不懂代码的人也能直接用——这是"完全能用"的关键跃迁。
 
 1. **站内对话 Chat**（源 `SAPI/client/src/user/ChatSection.jsx` 1370行）：浏览器内直接和模型聊天，走本站 `/v1` + 用户自己的 key。消费级平台标配。
 2. **生图工坊 Image Playground**（源 `SAPI/.../ImagePlaygroundSection.jsx` 1523行）：站内文生图/改图/下载。
 3. **每用户用量可视化**（源 `SAPI/.../UsageSection.jsx`+`TokenUsageChart.jsx`+`RequestHeatmap.jsx`）：用户看自己的请求/Token/花费曲线——补上我之前标的"自己的用量曲线"缺口（octopus 的 analytics 是管理向，非每用户）。
-4. **color4bg 真实氛围光**（源 `GGGZERO/color4bg.js-main` 或 `AmbientLightBg.min.js`）：landing 换上你原本喜欢的实景氛围光（现在是 CSS 极光替代）。
+4. **color4bg 真实氛围光**（源 `__GLodestar_PROTECT__/color4bg.js-main` 或 `AmbientLightBg.min.js`）：landing 换上你原本喜欢的实景氛围光（现在是 CSS 极光替代）。
 
 ### Tier 2 — 运营一个真站点的配套（中价值）
 5. **邀请码注册**（SAPI InvitationCodes）：商业模式下控制注册。
@@ -57,8 +57,8 @@
 
 ## 四、执行方案（如何把 Tier 1 落地）
 
-> 移植性说明：SAPI 是 React+MUI 的 `.jsx`，GGZERO 是 Next16+React19+Radix+Tailwind 的 `.tsx`。
-> **逻辑可移植**（调用 `/v1`、流式、markdown 渲染、用量聚合），**UI 需用我们的栈重写**（MUI→Radix/Tailwind + 主题 token），并接 GGZERO 自己的鉴权/key/relay。不是拷贝粘贴，是"照着做 + 适配"。
+> 移植性说明：SAPI 是 React+MUI 的 `.jsx`，Lodestar 是 Next16+React19+Radix+Tailwind 的 `.tsx`。
+> **逻辑可移植**（调用 `/v1`、流式、markdown 渲染、用量聚合），**UI 需用我们的栈重写**（MUI→Radix/Tailwind + 主题 token），并接 Lodestar 自己的鉴权/key/relay。不是拷贝粘贴，是"照着做 + 适配"。
 
 **建议分期（每期独立、可验证、可单独 commit）：**
 
@@ -79,13 +79,13 @@
   - D1 特定上游 provider 适配（仅当 octopus transformer 不够时，从 new-api 单独移植）；D2 订阅制；D3 计费表达式。
 
 **优先级建议**：A（补门户、还原氛围光）→ B（站内创作，决定"消费级"成色）→ C（运营）→ D（按需）。
-其中 **B（站内 Chat + 生图）是把 GGZERO 从"带计费的网关"变成"人人能上手用的 AI 平台"的关键一跃**，也是工作量最大的一块，建议作为下一个主攻方向。
+其中 **B（站内 Chat + 生图）是把 Lodestar 从"带计费的网关"变成"人人能上手用的 AI 平台"的关键一跃**，也是工作量最大的一块，建议作为下一个主攻方向。
 
 ---
 
 ## 五、一句话结论
 
-> 底座/商业/主题/多租户已就位；**还值得拿的核心是 SAPI 的"站内创作（对话+生图）+ 每用户用量可视化 + 干净门户"，把 GGZERO 补成消费级平台**；color4bg 还原氛围光是顺手快赢；new-api 的 40+ 适配器是"按需、较难"的广度补充。执行按 A→B→C→D 分期，逻辑移植、UI 用我们的栈重写。
+> 底座/商业/主题/多租户已就位；**还值得拿的核心是 SAPI 的"站内创作（对话+生图）+ 每用户用量可视化 + 干净门户"，把 Lodestar 补成消费级平台**；color4bg 还原氛围光是顺手快赢；new-api 的 40+ 适配器是"按需、较难"的广度补充。执行按 A→B→C→D 分期，逻辑移植、UI 用我们的栈重写。
 
 ## 六、执行状态（2026-06-18 收尾）
 
@@ -99,4 +99,4 @@
 - ⏭ C 其余（SMTP 邮箱验证 / 站点横幅）：**未做**——SMTP 需邮件基建且无法实测投递；横幅已被站点公告覆盖。按需续接。
 - ⏭ D（40+ 适配器 / 订阅制 / 计费表达式 / pretext）：按需。
 
-> 消费级核心（站内对话 + 生图 + 每用户用量 + 干净门户）已落地，GGZERO 从"带计费的网关"变成"人人能上手用的 AI 平台"。导航：用户固定门户（首页/对话/生图/模型/密钥/设置），管理员见全部 + 新功能自动追加。
+> 消费级核心（站内对话 + 生图 + 每用户用量 + 干净门户）已落地，Lodestar 从"带计费的网关"变成"人人能上手用的 AI 平台"。导航：用户固定门户（首页/对话/生图/模型/密钥/设置），管理员见全部 + 新功能自动追加。

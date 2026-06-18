@@ -1,7 +1,7 @@
 package model
 
 /*
-GGZERO commercial layer — invitation codes (registration gating).
+Lodestar commercial layer — invitation codes (registration gating).
 
 When commercial_mode is on, an admin may additionally require a valid invite code
 to register (register_invite_required setting). Same one-time, race-safe pattern

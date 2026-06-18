@@ -151,7 +151,7 @@ func (m *RelayMetrics) Save(success bool, err error, attempts []model.ChannelAtt
 		log.Warnf("failed to update daily stats: %v", statsErr)
 	}
 	stats.APIKeyUpdate(m.APIKeyID, globalStats)
-	// GGZERO commercial: deduct this request's USD cost from the key owner's balance (no-op unless commercial_mode on).
+	// Lodestar commercial: deduct this request's USD cost from the key owner's balance (no-op unless commercial_mode on).
 	billing.ChargeKey(m.APIKeyID, globalStats.InputCost+globalStats.OutputCost, ctx)
 
 	log.Infof("relay complete: model=%s, channel=%d(%s), success=%t, duration=%dms, input_token=%d, output_token=%d, input_cost=%f, output_cost=%f, total_cost=%f, attempts=%d, forwarded_attempts=%d",

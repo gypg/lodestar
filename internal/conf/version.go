@@ -10,8 +10,8 @@ var (
 	Version   = "v2.1.4"
 	Commit    = "unknown"
 	BuildTime = "unknown"
-	Author    = "GGGZERO"
-	Repo      = "https://github.com/gypg/ggzero"
+	Author    = "Lodestar"
+	Repo      = "https://github.com/gypg/lodestar"
 )
 
 func init() {

@@ -26,7 +26,7 @@ function resolveAppVersion() {
 const createNextConfig = (phase: string): NextConfig => ({
   reactCompiler: true,
   output: "export",
-  // ggzero: type-check & lint run as a separate `pnpm lint` step (per root
+  // Lodestar: type-check & lint run as a separate `pnpm lint` step (per root
   // package.json), so don't fail the production build on them. Keeps `next
   // build` focused on producing the embeddable static export.
   typescript: { ignoreBuildErrors: true },

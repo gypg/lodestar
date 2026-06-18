@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiClient } from '../client';
 
-/** GGZERO 意见反馈 */
+/** Lodestar 意见反馈 */
 export interface FeedbackItem {
     id: number;
     user_id: number;

@@ -1,7 +1,7 @@
 'use client';
 
 /*
-GGZERO — 冬日风落地页（Winter Landing）
+Lodestar — 冬日风落地页（Winter Landing）
 
 忠实承接 `首页文件/home.html`：蓝色少女雪景照片背景（靠右，左侧自然留白）+ 纸感冷调 +
 飘雪 + 左侧目录 + 活体时钟。封面采用**固定的冬日纸感配色**（纸 #f4f1ec / 墨 #1f1d1a /
@@ -81,7 +81,7 @@ export function WinterLanding({
   const [panel, setPanel] = useState<PublicPanel | null>(null);
   const { data: overview } = usePublicOverview(isPublic);
   const { data: me } = useCurrentUser();
-  const siteName = overview?.site_name?.trim() || 'GGZERO';
+  const siteName = overview?.site_name?.trim() || 'Lodestar';
   // 非 staff（商业注册用户）只在目录里看到用户自助项
   const portalOnly = !isPublic && me !== undefined && !isStaffRole(me.role);
   const homeItems = portalOnly
@@ -143,14 +143,14 @@ export function WinterLanding({
         {flakes.map((f, i) => (
           <span
             key={i}
-            className="ggzero-snowflake absolute top-0 select-none"
+            className="Lodestar-snowflake absolute top-0 select-none"
             style={{
               left: `${f.left}%`,
               fontSize: `${f.size}px`,
               opacity: f.opacity,
               color: '#ffffff',
               textShadow: '0 0 3px rgba(120,140,160,0.5)',
-              animation: `ggzero-snow-fall ${f.dur}s linear ${f.delay}s infinite`,
+              animation: `Lodestar-snow-fall ${f.dur}s linear ${f.delay}s infinite`,
               ['--drift' as string]: `${f.drift}px`,
             }}
           >

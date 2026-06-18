@@ -101,7 +101,7 @@ func APIKeyAuth() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		// GGZERO commercial: when commercial_mode is on, the key owner must have
+		// Lodestar commercial: when commercial_mode is on, the key owner must have
 		// positive balance (no-op for unowned/admin keys or in self-use mode).
 		if !billing.HasBalanceForKey(apiKeyObj.ID, c.Request.Context()) {
 			resp.Error(c, http.StatusPaymentRequired, "insufficient balance, please top up")

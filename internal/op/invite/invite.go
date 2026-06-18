@@ -1,7 +1,7 @@
 package invite
 
 /*
-GGZERO commercial layer — invitation code operations.
+Lodestar commercial layer — invitation code operations.
 
 Same race-safe one-time-use pattern as top-up codes: Consume marks a code used in
 a conditional update (RowsAffected check), so a code admits at most one registrant

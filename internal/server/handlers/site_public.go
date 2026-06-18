@@ -1,10 +1,10 @@
 package handlers
 
 /*
-GGZERO — public, no-auth platform overview.
+Lodestar — public, no-auth platform overview.
 
 octopus is an admin-only tool with no public face. This additive endpoint gives
-GGZERO a public platform layer: the landing page can show the site name,
+Lodestar a public platform layer: the landing page can show the site name,
 announcement, supported model catalog (names + pricing only), and aggregate
 usage — all WITHOUT login — while private data stays behind auth.
 

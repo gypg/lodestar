@@ -1,18 +1,18 @@
-# GGZERO — 当前状态与运行手册（STATUS）
+# Lodestar — 当前状态与运行手册（STATUS）
 
 > 自动推进产出。最后更新：2026-06-18。配套：`docs/CHARTER.md`（愿景/选型/铁律）。
 
 ## 一句话
 
 一个**能跑的、属于你自己的**高自定义 LLM 聚合中转站 —— 以 octopus(lingyu) 为底座，
-已改名为 GGZERO，并新增了愿景核心的「每用户可切换 / 可经接口上传」的主题系统。
+已改名为 Lodestar，并新增了愿景核心的「每用户可切换 / 可经接口上传」的主题系统。
 
 ## 现在能用什么（已验证）
 
 | 能力 | 状态 | 来源 |
 |------|------|------|
-| 全栈构建 + 本地运行 | ✅ `ggzero.exe` 出二进制，:8080 serving，SQLite 开箱即跑 | 本项目 P0 |
-| 自有品牌 GGZERO | ✅ banner/标题/登录/manifest/locale，API key 前缀 `sk-ggzero-` | P1 |
+| 全栈构建 + 本地运行 | ✅ `lodestar.exe` 出二进制，:8080 serving，SQLite 开箱即跑 | 本项目 P0 |
+| 自有品牌 Lodestar | ✅ banner/标题/登录/manifest/locale，API key 前缀 `sk-lodestar-` | P1 |
 | 多上游负载均衡 relay + 熔断 | ✅ | octopus 底座 |
 | **hub 多站点聚合**（连别站看余额/签到/公告/用量/凭据） | ✅ 14846 行带测试 | lingyu 底座 |
 | 用户/密钥/统计/告警/审计 | ✅ | octopus 底座 |
@@ -24,7 +24,7 @@
 | **一键商业开关 + 公开注册**（commercial_mode 设置 + 管理端开关；关→注册 403，开→访客自助注册并自动登录） | ✅ | D2 |
 | **主题绑账户**（User.Preferences + /user/preferences API；登录应用、选主题即存，跨设备一致） | ✅ | D3c |
 | **★公开平台门面**（无鉴权 `/api/v1/public/overview`；落地页左侧导航点开 公告/模型广场/用量概览/关于，私密项才登录）+ **可配置站点身份**（名称/简介/公告/页脚 设置，落地页实时反映） | ✅ | 平台层 |
-| **GGZERO 雪花品牌**（Logo 组件/加载屏/logo.svg/favicon 全换，去章鱼）+ 冬日封面还原蓝色少女实景照片（固定纸感冷蓝，不随明暗变灰黑） | ✅ | 品牌层 |
+| **Lodestar 雪花品牌**（Logo 组件/加载屏/logo.svg/favicon 全换，去章鱼）+ 冬日封面还原蓝色少女实景照片（固定纸感冷蓝，不随明暗变灰黑） | ✅ | 品牌层 |
 | **★商业计费层**（移植 new-api 预付费逻辑）：用户余额(USD) + Key 归属 + relay 按量扣费/余额闸（绑 commercial_mode）+ 兑换码充值 + **易支付在线充值** + 钱包 UI；端到端实测通过 | ✅ | 商业核心 |
 | **★多租户用户门户 + 数据隔离**：新增最小权限 `user` 角色（注册用户）；API Key 按用户隔离（只见/管自己的）；按角色精简导航/首页/设置（用户只见 主题/钱包/如何使用/我的密钥，管理项隐藏）；`/me` 端点；堵住 settings 密钥泄露 | ✅ | 平台多租户（实测：user 读渠道/设置 403、读自己 key 200） |
 | **API 使用指引**（OpenAI 兼容 Base URL + curl/python 示例 + 复制） | ✅ | 上手引导 |
@@ -47,9 +47,9 @@ cd web && pnpm install && NEXT_PUBLIC_APP_VERSION=dev pnpm build && cd ..
 # 2) 前端产物嵌入后端
 rm -rf static/out && cp -r web/out static/out
 # 3) 后端构建
-go build -o ggzero.exe .
+go build -o lodestar.exe .
 # 4) 运行（默认 SQLite，数据在 ./data）
-./ggzero.exe start         # 浏览器打开 http://localhost:8080
+./lodestar.exe start         # 浏览器打开 http://localhost:8080
 ```
 > 注：`web/next.config.ts` 已设 `typescript.ignoreBuildErrors`（类型检查走独立 `pnpm lint`，与上游一致），让 `next build` 专注产出静态包。
 

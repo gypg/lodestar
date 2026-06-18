@@ -1,7 +1,7 @@
 'use client';
 
 /*
-GGZERO — 站点信息设置。
+Lodestar — 站点信息设置。
 
 让管理员配置平台对外身份：站点名称 / 简介 / 公告 / 页脚。这些值经公开端点
 (/api/v1/public/overview) 展示在落地页（封面刊头、关于、公告），是 octopus 没有、
@@ -63,7 +63,7 @@ export function SiteIdentity() {
             <div className="flex flex-col gap-3">
                 <div className="flex flex-col gap-1.5">
                     <label className="ml-1 text-xs font-medium text-muted-foreground">站点名称</label>
-                    <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="GGZERO" className="rounded-lg" />
+                    <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Lodestar" className="rounded-lg" />
                 </div>
                 <div className="flex flex-col gap-1.5">
                     <label className="ml-1 text-xs font-medium text-muted-foreground">站点简介（关于本站）</label>

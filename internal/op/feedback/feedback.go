@@ -1,6 +1,6 @@
 package feedback
 
-// GGZERO — 意见反馈操作。
+// Lodestar — 意见反馈操作。
 
 import (
 	"context"

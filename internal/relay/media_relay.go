@@ -398,7 +398,7 @@ func recordMediaRelayLog(apiKeyID int, requestModel string, endpointType string,
 		log.Warnf("failed to update daily stats for media relay: %v", statsErr)
 	}
 	st.APIKeyUpdate(apiKeyID, stats)
-	// GGZERO commercial: deduct media request cost from key owner's balance (no-op unless commercial_mode on).
+	// Lodestar commercial: deduct media request cost from key owner's balance (no-op unless commercial_mode on).
 	billing.ChargeKey(apiKeyID, stats.InputCost+stats.OutputCost, ctx)
 	opMain.StatsSiteModelHourlyRecordAttempts(attempts, resolvedModel)
 	telemetry.Global().RecordRequest(duration.Milliseconds(), relayErr == nil)

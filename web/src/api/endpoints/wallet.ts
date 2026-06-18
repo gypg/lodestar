@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../client';
 
-/** GGZERO 商业层：钱包/余额（USD），按请求成本扣减（商业模式开时） */
+/** Lodestar 商业层：钱包/余额（USD），按请求成本扣减（商业模式开时） */
 export interface WalletBalance {
     quota: number;
     used_quota: number;

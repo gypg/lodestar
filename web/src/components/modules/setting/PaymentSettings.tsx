@@ -1,7 +1,7 @@
 'use client';
 
 /*
-GGZERO commercial layer — 在线支付（易支付/Epay）管理配置。
+Lodestar commercial layer — 在线支付（易支付/Epay）管理配置。
 
 管理员在此填入商户凭据（PID/密钥/网关）后即可启用在线充值；构建本功能不需要凭据，
 凭据是运行时配置（对齐 new-api 的做法）。这些值经设置 API 持久化，供 op/payment 读取。

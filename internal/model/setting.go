@@ -74,27 +74,27 @@ const (
 	SettingKeyWebAuthnRPID                         SettingKey = "webauthn_rp_id"                           // WebAuthn RP ID（域名，不含协议/端口）
 	SettingKeyWebAuthnRPName                       SettingKey = "webauthn_rp_name"                         // WebAuthn RP 展示名
 	SettingKeyWebAuthnOrigins                      SettingKey = "webauthn_origins"                         // WebAuthn 允许的 Origin 列表（逗号分隔，完整 scheme://host[:port]）
-	SettingKeyCustomThemes                         SettingKey = "custom_themes"                            // GGZERO 自定义主题预设(JSON 数组), 可经设置 API 上传, 全站可选
-	SettingKeyCommercialMode                       SettingKey = "commercial_mode"                          // GGZERO 商业模式开关: false=自用(关闭公开注册), true=商业(开放公开注册)
-	SettingKeySiteName                             SettingKey = "site_name"                                // GGZERO 站点名称(对外展示/封面刊头)
-	SettingKeySiteDescription                      SettingKey = "site_description"                         // GGZERO 站点简介(关于本站)
-	SettingKeySiteAnnouncement                     SettingKey = "site_announcement"                        // GGZERO 站点公告(对外公开展示)
-	SettingKeySiteFooter                           SettingKey = "site_footer"                              // GGZERO 页脚文案
-	SettingKeyEpayEnabled                          SettingKey = "epay_enabled"                             // GGZERO 易支付开关
+	SettingKeyCustomThemes                         SettingKey = "custom_themes"                            // Lodestar 自定义主题预设(JSON 数组), 可经设置 API 上传, 全站可选
+	SettingKeyCommercialMode                       SettingKey = "commercial_mode"                          // Lodestar 商业模式开关: false=自用(关闭公开注册), true=商业(开放公开注册)
+	SettingKeySiteName                             SettingKey = "site_name"                                // Lodestar 站点名称(对外展示/封面刊头)
+	SettingKeySiteDescription                      SettingKey = "site_description"                         // Lodestar 站点简介(关于本站)
+	SettingKeySiteAnnouncement                     SettingKey = "site_announcement"                        // Lodestar 站点公告(对外公开展示)
+	SettingKeySiteFooter                           SettingKey = "site_footer"                              // Lodestar 页脚文案
+	SettingKeyEpayEnabled                          SettingKey = "epay_enabled"                             // Lodestar 易支付开关
 	SettingKeyPayAddress                           SettingKey = "pay_address"                              // 易支付网关地址 (https://xxx)
 	SettingKeyEpayPID                              SettingKey = "epay_pid"                                 // 易支付商户 PID
 	SettingKeyEpayKey                              SettingKey = "epay_key"                                 // 易支付商户密钥
 	SettingKeyTopupRate                            SettingKey = "topup_rate"                               // 充值汇率: 每 1 USD 额度对应的支付金额(网关货币)
 	SettingKeyPaymentCallbackBase                  SettingKey = "payment_callback_base"                    // 支付回调站点基址 (https://your-site)，用于 notify/return
-	SettingKeyMaintenanceMode                      SettingKey = "maintenance_mode"                         // GGZERO 维护模式: true=对非管理员显示维护页
-	SettingKeyRegisterInviteRequired               SettingKey = "register_invite_required"                 // GGZERO 注册需邀请码(仅商业模式下生效)
-	SettingKeySMTPEnabled                          SettingKey = "smtp_enabled"                             // GGZERO SMTP 邮件开关
+	SettingKeyMaintenanceMode                      SettingKey = "maintenance_mode"                         // Lodestar 维护模式: true=对非管理员显示维护页
+	SettingKeyRegisterInviteRequired               SettingKey = "register_invite_required"                 // Lodestar 注册需邀请码(仅商业模式下生效)
+	SettingKeySMTPEnabled                          SettingKey = "smtp_enabled"                             // Lodestar SMTP 邮件开关
 	SettingKeySMTPHost                             SettingKey = "smtp_host"                                // SMTP 服务器
 	SettingKeySMTPPort                             SettingKey = "smtp_port"                                // SMTP 端口(587 STARTTLS)
 	SettingKeySMTPUser                             SettingKey = "smtp_user"                                // SMTP 用户名
 	SettingKeySMTPPass                             SettingKey = "smtp_pass"                                // SMTP 密码/授权码
 	SettingKeySMTPFrom                             SettingKey = "smtp_from"                                // 发件人地址
-	SettingKeyRegisterEmailRequired                SettingKey = "register_email_required"                  // GGZERO 注册需邮箱验证(仅商业模式下生效)
+	SettingKeyRegisterEmailRequired                SettingKey = "register_email_required"                  // Lodestar 注册需邮箱验证(仅商业模式下生效)
 )
 
 type Setting struct {
@@ -135,9 +135,9 @@ func DefaultSettings() []Setting {
 		{Key: SettingKeySemanticCacheEmbeddingTimeoutSeconds, Value: "10"},
 		{Key: SettingKeyNavOrder, Value: `["home","hub","channel","group","model","analytics","log","alert","ops","apikey","setting","user"]`},
 		{Key: SettingKeyNavVisible, Value: `["home","hub","channel","group","model","analytics","log","alert","ops","apikey","setting","user"]`},
-		{Key: SettingKeyCustomThemes, Value: "[]"}, // GGZERO 自定义主题预设, 默认空数组
-		{Key: SettingKeyCommercialMode, Value: "false"}, // GGZERO 默认自用模式(关闭公开注册)
-		{Key: SettingKeySiteName, Value: "GGZERO"},
+		{Key: SettingKeyCustomThemes, Value: "[]"}, // Lodestar 自定义主题预设, 默认空数组
+		{Key: SettingKeyCommercialMode, Value: "false"}, // Lodestar 默认自用模式(关闭公开注册)
+		{Key: SettingKeySiteName, Value: "Lodestar"},
 		{Key: SettingKeySiteDescription, Value: "高自定义 · 自用优先 · 可聚合的个人 AI 中转站"},
 		{Key: SettingKeySiteAnnouncement, Value: ""},
 		{Key: SettingKeySiteFooter, Value: ""},

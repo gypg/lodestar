@@ -1,7 +1,7 @@
 'use client';
 
 /*
-GGZERO — 站内对话（消费级核心，思路源自 SAPI ChatSection，UI 用本栈重写）。
+Lodestar — 站内对话（消费级核心，思路源自 SAPI ChatSection，UI 用本栈重写）。
 
 让登录用户在浏览器里直接和模型聊天：用自己的某个 API Key 调本站 OpenAI 兼容
 `/v1/chat/completions`（SSE 流式）。无需写代码即可用——把"带计费的网关"变成"人人能用的平台"。

@@ -1,7 +1,7 @@
 'use client';
 
 /*
-GGZERO — 生图工坊（消费级，思路源自 SAPI ImagePlayground，UI 用本栈重写）。
+Lodestar — 生图工坊（消费级，思路源自 SAPI ImagePlayground，UI 用本栈重写）。
 
 登录用户用自己的 API Key 调本站 OpenAI 兼容 `/v1/images/generations` 生图，站内预览/下载。
 */
@@ -101,7 +101,7 @@ export function ImageStudio() {
                         <img src={src} alt={`generated-${i}`} className="aspect-square w-full object-cover" />
                         <a
                             href={src}
-                            download={`ggzero-${i}.png`}
+                            download={`Lodestar-${i}.png`}
                             className="absolute right-2 top-2 grid size-8 place-items-center rounded-lg bg-background/80 text-foreground opacity-0 transition-opacity group-hover:opacity-100"
                             aria-label="下载"
                         >

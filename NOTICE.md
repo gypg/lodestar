@@ -1,10 +1,10 @@
 # NOTICE
 
-GGZERO is a personal, self-hostable, highly-customizable LLM gateway / relay.
+Lodestar is a personal, self-hostable, highly-customizable LLM gateway / relay.
 
 ## Upstream lineage & attribution
 
-GGZERO is derived from the **octopus** project and its **lingyuins/octopus** fork.
+Lodestar is derived from the **octopus** project and its **lingyuins/octopus** fork.
 We gratefully acknowledge that lineage and retain the upstream license in full.
 
 - Upstream: octopus — "A Simple, Beautiful, and Elegant LLM API Aggregation &
@@ -17,7 +17,7 @@ This project is distributed under the **GNU Affero General Public License v3.0**
 the license text are preserved unchanged. Source for this and any modified
 network-deployed version is made available as required by the AGPL.
 
-## What GGZERO adds on top of upstream
+## What Lodestar adds on top of upstream
 
 - Rebrand to a self-owned product identity (display name, banner, API key prefix).
 - A per-user **theme preset engine**: built-in presets (incl. a 冬日/Winter theme)

@@ -10,7 +10,7 @@ const (
 	UserRoleAdmin  = "admin"
 	UserRoleEditor = "editor"
 	UserRoleViewer = "viewer"
-	// GGZERO commercial: minimal-privilege end-customer role (manage own API keys
+	// Lodestar commercial: minimal-privilege end-customer role (manage own API keys
 	// + read public settings/stats only). Registered users get this, NOT viewer
 	// (which is read-only STAFF and can see channels/logs/sites).
 	UserRoleUser = "user"
@@ -21,15 +21,15 @@ type User struct {
 	Username string `gorm:"unique" json:"username"`
 	Password string `gorm:"not null" json:"-"`
 	Role     string `gorm:"default:'admin'" json:"role"`
-	// GGZERO: per-user UI preferences (JSON), e.g. {"themePreset":"winter"}.
+	// Lodestar: per-user UI preferences (JSON), e.g. {"themePreset":"winter"}.
 	// Lets a user's chosen theme follow their account across devices.
 	Preferences string `gorm:"type:text" json:"preferences,omitempty"`
-	// GGZERO commercial layer (ported from new-api's prepaid-quota model, adapted
+	// Lodestar commercial layer (ported from new-api's prepaid-quota model, adapted
 	// to octopus's float-dollar cost): Quota = remaining balance (USD), UsedQuota
 	// = cumulative spent. Only enforced when commercial_mode is on.
 	Quota     float64 `gorm:"type:real;default:0" json:"quota"`
 	UsedQuota float64 `gorm:"type:real;default:0;column:used_quota" json:"used_quota"`
-	// GGZERO commercial: optional email (verified at registration when required).
+	// Lodestar commercial: optional email (verified at registration when required).
 	Email string `gorm:"type:varchar(256)" json:"email,omitempty"`
 }
 

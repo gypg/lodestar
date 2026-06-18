@@ -11,7 +11,7 @@ import { useTranslations } from "next-intl"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { useCurrentUser, isStaffRole } from "@/api/endpoints/user"
 
-// GGZERO 多租户：非 staff（viewer/商业注册用户）只见用户自助门户导航（固定顺序）；
+// Lodestar 多租户：非 staff（viewer/商业注册用户）只见用户自助门户导航（固定顺序）；
 // 渠道/分组/告警/运维/用户管理/多站聚合等管理项对其隐藏。
 const USER_PORTAL_NAV: NavItem[] = ['home', 'chat', 'image', 'model', 'apikey', 'setting']
 

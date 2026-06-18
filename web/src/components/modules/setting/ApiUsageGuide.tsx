@@ -1,7 +1,7 @@
 'use client';
 
 /*
-GGZERO — API 使用指引（上手引导）。
+Lodestar — API 使用指引（上手引导）。
 
 让拿到密钥的用户知道：站点 OpenAI 兼容 Base URL + 调用示例（curl / python）。
 Base URL 取当前站点 origin + /v1。复制按钮一键拷贝。
@@ -39,12 +39,12 @@ export function ApiUsageGuide() {
     }, []);
     const base = `${origin || 'https://your-site'}/v1`;
     const curl = `curl ${base}/chat/completions \\
-  -H "Authorization: Bearer sk-ggzero-你的密钥" \\
+  -H "Authorization: Bearer sk-Lodestar-你的密钥" \\
   -H "Content-Type: application/json" \\
   -d '{"model":"gpt-4o-mini","messages":[{"role":"user","content":"你好"}]}'`;
     const py = `from openai import OpenAI
 
-client = OpenAI(base_url="${base}", api_key="sk-ggzero-你的密钥")
+client = OpenAI(base_url="${base}", api_key="sk-Lodestar-你的密钥")
 resp = client.chat.completions.create(
     model="gpt-4o-mini",
     messages=[{"role": "user", "content": "你好"}],

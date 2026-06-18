@@ -34,7 +34,7 @@ func getBootstrapStatus(c *gin.Context) {
 		resp.Error(c, http.StatusInternalServerError, resp.ErrInternalServer)
 		return
 	}
-	// GGZERO: expose commercial mode so the public login page can decide whether
+	// Lodestar: expose commercial mode so the public login page can decide whether
 	// to offer self-registration (true = commercial / open registration).
 	commercialMode, _ := setting.GetBool(model.SettingKeyCommercialMode)
 	maintenanceMode, _ := setting.GetBool(model.SettingKeyMaintenanceMode)

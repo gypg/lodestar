@@ -128,7 +128,7 @@ var auditedManagementWriteRoutes = map[string]struct{}{
 	"POST /api/v1/proxy-pool/update":                                                 {},
 	"POST /api/v1/proxy-pool/test":                                                   {},
 	"DELETE /api/v1/proxy-pool/delete/:id":                                           {},
-	// GGZERO commercial layer — logged-in user / admin write actions.
+	// Lodestar commercial layer — logged-in user / admin write actions.
 	"POST /api/v1/user/preferences":                                                  {},
 	"POST /api/v1/wallet/redeem":                                                     {},
 	"POST /api/v1/wallet/topup":                                                      {},

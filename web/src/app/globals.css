@@ -329,23 +329,23 @@ html.dark,
   }
 }
 
-/* GGZERO — winter landing snowfall */
-@keyframes ggzero-snow-fall {
+/* Lodestar — winter landing snowfall */
+@keyframes Lodestar-snow-fall {
   0%   { transform: translateY(-12vh) translateX(0) rotate(0deg); opacity: 0; }
   10%  { opacity: 0.9; }
   90%  { opacity: 0.9; }
   100% { transform: translateY(112vh) translateX(var(--drift, 30px)) rotate(360deg); opacity: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .ggzero-snowflake { animation: none !important; opacity: 0.5 !important; }
+  .Lodestar-snowflake { animation: none !important; opacity: 0.5 !important; }
 }
 
-/* GGZERO — winter landing living ambient ("aurora") */
-@keyframes ggzero-aurora {
+/* Lodestar — winter landing living ambient ("aurora") */
+@keyframes Lodestar-aurora {
   0%, 100% { opacity: 0.5; transform: translate3d(0, 0, 0) scale(1); }
   50%      { opacity: 0.82; transform: translate3d(2%, -1.5%, 0) scale(1.06); }
 }
-.ggzero-aurora { animation: ggzero-aurora 16s ease-in-out infinite; will-change: opacity, transform; }
+.Lodestar-aurora { animation: Lodestar-aurora 16s ease-in-out infinite; will-change: opacity, transform; }
 @media (prefers-reduced-motion: reduce) {
-  .ggzero-aurora { animation: none !important; opacity: 0.6 !important; }
+  .Lodestar-aurora { animation: none !important; opacity: 0.6 !important; }
 }

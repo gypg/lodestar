@@ -1,7 +1,7 @@
 package user
 
 /*
-GGZERO commercial layer — per-user prepaid quota (balance).
+Lodestar commercial layer — per-user prepaid quota (balance).
 
 Ported in logic from new-api's prepaid-quota billing, adapted to octopus:
 new-api uses integer quota units (QuotaPerUnit per $1); octopus already computes

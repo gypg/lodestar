@@ -351,7 +351,7 @@ export function SettingAppearance() {
                         <p className="text-sm text-muted-foreground">{t('navOrder.description')}</p>
                     </div>
                     <div className="w-fit rounded-full border-border/25 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-sm">
-                        GGZERO
+                        Lodestar
                     </div>
                 </div>
 
@@ -532,7 +532,7 @@ export function SettingAppearance() {
 
                     {showAdmin && <SiteIdentity />}
 
-                    {/* 商业模式（GGZERO 一键开关：开放公开注册 = 释放商业潜力的第一步） */}
+                    {/* 商业模式（Lodestar 一键开关：开放公开注册 = 释放商业潜力的第一步） */}
                     {showAdmin && (
                     <div className="flex flex-col gap-4 rounded-lg border border-primary/20 bg-gradient-to-br from-primary/5 to-transparent p-4 shadow-sm">
                         <div className="flex items-center justify-between">

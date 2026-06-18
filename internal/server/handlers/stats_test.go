@@ -34,7 +34,7 @@ func TestGetStatsAPIKeyIncludesNamesAndFallbacks(t *testing.T) {
 
 	apiKey := &model.APIKey{
 		Name:    "Primary key",
-		APIKey:  "sk-ggzero-primary",
+		APIKey:  "sk-lodestar-primary",
 		Enabled: true,
 	}
 	if err := op.APIKeyCreate(apiKey, ctx); err != nil {
@@ -42,7 +42,7 @@ func TestGetStatsAPIKeyIncludesNamesAndFallbacks(t *testing.T) {
 	}
 	zeroStatsAPIKey := &model.APIKey{
 		Name:    "Zero stats key",
-		APIKey:  "sk-ggzero-zero",
+		APIKey:  "sk-lodestar-zero",
 		Enabled: true,
 	}
 	if err := op.APIKeyCreate(zeroStatsAPIKey, ctx); err != nil {

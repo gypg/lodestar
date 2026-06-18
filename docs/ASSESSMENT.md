@@ -1,4 +1,4 @@
-# GGZERO 评估与差异化规划（ASSESSMENT）
+# Lodestar 评估与差异化规划（ASSESSMENT）
 
 > 应你要求：诚实评估"为什么现在还像 octopus"、缺什么、怎么优化，并给出可执行规划。
 > 原则：**能从参考项目（new-api / octopus-lingyu / SAPI）改造复用的，绝不重写。**
@@ -9,7 +9,7 @@
 你的直觉是对的。盘点已改 vs 未改：
 
 **已经差异化的（属于我们）**
-- 身份：改名 GGZERO（banner/标题/登录/manifest/key 前缀 `sk-ggzero-`）。
+- 身份：改名 Lodestar（banner/标题/登录/manifest/key 前缀 `sk-lodestar-`）。
 - 每用户主题系统（5 预设 + 可上传 + 绑账户）——octopus 完全没有。
 - 冬日封面落地页 + 极光氛围。
 - 一键商业开关 + 公开注册。
@@ -34,7 +34,7 @@
 ## 三、规划（本轮执行 P1+P2+P3，复用为主）
 
 ### 后端（复用 octopus 数据层 + 设置系统，只新增薄端点）
-1. 新增设置项：`site_name`(默认 GGZERO)、`site_description`、`site_announcement`、`site_footer`。走现成 `DefaultSettings()` + 设置 API。
+1. 新增设置项：`site_name`(默认 Lodestar)、`site_description`、`site_announcement`、`site_footer`。走现成 `DefaultSettings()` + 设置 API。
 2. 新增**公开**端点 `GET /api/v1/site/public-overview`（无鉴权）：聚合返回
    `{site_name, description, announcement, footer, model_count, models:[{name,input,output}], total_requests, total_tokens}`。
    复用 `op/llm.List`(模型+价格) + `op/stats.TotalGet`(总量) + 设置。**不暴露任何私密数据**（无 key、无用户、无渠道地址）。
@@ -43,7 +43,7 @@
 3. `WinterLanding` 公开变体升级：左侧目录分两类——
    - **公开项**（公告/模型广场/用量概览/关于本站）：点击在中部/右侧浮出内容面板，**无需登录**即看；数据来自 public-overview。
    - **私密项**（控制台/密钥/渠道…）：点击 → 唤出登录。
-4. 站点名/公告接入封面刊头（替换写死的 "GGZERO Daily" → 真实站点名）。
+4. 站点名/公告接入封面刊头（替换写死的 "Lodestar Daily" → 真实站点名）。
 5. 管理端设置面板加"站点信息"卡片（名称/简介/公告/页脚），复用现有 setSetting。
 
 ### 验收
@@ -61,7 +61,7 @@
 - ✅ **P1 公开平台门面**：无鉴权 `/api/v1/public/overview` + 落地页公开内容面板（公告/模型广场/用量/关于），私密项才登录。
 - ✅ **P2 站点身份可配置**：site_name/description/announcement/footer 设置 + 设置页「站点信息」卡 + 落地页实时反映。
 - ✅ **P3 模型广场公开**：落地页「模型广场」面板公开展示模型名+价格（复用 `op/llm.List`）。
-- ✅ **P4 品牌化**：章鱼 logo → GGZERO 雪花标识（Logo 组件/加载屏/logo.svg/favicon）；清残留品牌串；冬日封面还原蓝色少女实景。
+- ✅ **P4 品牌化**：章鱼 logo → Lodestar 雪花标识（Logo 组件/加载屏/logo.svg/favicon）；清残留品牌串；冬日封面还原蓝色少女实景。
 - ⏸ **P5 商业纵深（计费/订阅/支付）**：**刻意未在无人值守下做**——涉及支付凭据、安全、需用户在场测试。开放注册（D2）已是第一步；完整商业化作为下一个有人参与的专项。
 
-> 现在访客进站即见唯美蓝色冬日封面 + 公开站点信息（公告/模型/用量/关于），登录后是带 GGZERO 雪花标识、随主题着色的控制台——与原版 octopus 已有清晰、成体系的差异。
+> 现在访客进站即见唯美蓝色冬日封面 + 公开站点信息（公告/模型/用量/关于），登录后是带 Lodestar 雪花标识、随主题着色的控制台——与原版 octopus 已有清晰、成体系的差异。

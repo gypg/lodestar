@@ -136,7 +136,7 @@ export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
               <Logo size={40} />
             </div>
             <div className="flex flex-col items-center gap-1">
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">GGZERO</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Lodestar</h1>
               <p className="text-sm text-muted-foreground/80 font-medium">{t('welcome') || 'Welcome back'}</p>
             </div>
           </header>

@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../client';
 
-/** GGZERO 公开平台概览（无需登录，供落地页展示站点信息/内容） */
+/** Lodestar 公开平台概览（无需登录，供落地页展示站点信息/内容） */
 export interface PublicModel {
     name: string;
     input: number;

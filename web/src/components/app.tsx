@@ -440,7 +440,7 @@ export function AppContainer() {
         return <PublicEntry />;
     }
 
-    // GGZERO 维护模式：仅拦已登录的非管理员（登录入口对访客保持开放，管理员可登入关闭）
+    // Lodestar 维护模式：仅拦已登录的非管理员（登录入口对访客保持开放，管理员可登入关闭）
     if (bootstrapStatus?.maintenance_mode && currentUser && !isStaffRole(currentUser.role)) {
         return (
             <div className="grid min-h-dvh place-items-center bg-background p-6 text-center text-foreground">

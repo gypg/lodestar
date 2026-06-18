@@ -11,7 +11,7 @@ const LOGO_DRAW_DURATION_S = 0.8;
 const LOGO_STAGGER_S = 0.15;
 const LOGO_FADE_DURATION_S = 0.6;
 
-// GGZERO 标识：六瓣雪花（贴合冬日主题，替代上游章鱼图案）。
+// Lodestar 标识：六瓣雪花（贴合冬日主题，替代上游章鱼图案）。
 // 三条主轴穿过中心 + 各瓣分枝，描边路径配合 pathLength 绘制动画。
 const paths = [
     "M50 12 L50 88",

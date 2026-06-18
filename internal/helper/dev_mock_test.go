@@ -9,7 +9,7 @@ import (
 )
 
 func TestFetchModelsReturnsMockCatalogWhenDevMockEnabled(t *testing.T) {
-	t.Setenv("GGZERO_DEV_MOCK_SUCCESS", "true")
+	t.Setenv("LODESTAR_DEV_MOCK_SUCCESS", "true")
 
 	models, err := FetchModels(context.Background(), model.Channel{})
 	if err != nil {
@@ -21,7 +21,7 @@ func TestFetchModelsReturnsMockCatalogWhenDevMockEnabled(t *testing.T) {
 }
 
 func TestTestChannelReturnsMockSuccessWhenDevMockEnabled(t *testing.T) {
-	t.Setenv("GGZERO_DEV_MOCK_SUCCESS", "true")
+	t.Setenv("LODESTAR_DEV_MOCK_SUCCESS", "true")
 
 	summary, err := TestChannel(context.Background(), model.Channel{})
 	if err != nil {
@@ -36,7 +36,7 @@ func TestTestChannelReturnsMockSuccessWhenDevMockEnabled(t *testing.T) {
 }
 
 func TestStartGenerateAIRouteReturnsCompletedProgressWhenDevMockEnabled(t *testing.T) {
-	t.Setenv("GGZERO_DEV_MOCK_SUCCESS", "true")
+	t.Setenv("LODESTAR_DEV_MOCK_SUCCESS", "true")
 
 	aiRouteProgress = sync.Map{}
 

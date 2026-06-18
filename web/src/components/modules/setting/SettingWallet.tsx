@@ -1,7 +1,7 @@
 'use client';
 
 /*
-GGZERO commercial layer — wallet UI.
+Lodestar commercial layer — wallet UI.
 
 - Everyone: see balance, redeem a top-up code.
 - Admin: generate top-up codes (calls users:write endpoint; non-admins get 403).

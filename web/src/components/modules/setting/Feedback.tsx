@@ -1,7 +1,7 @@
 'use client';
 
 /*
-GGZERO — 意见反馈卡。任意登录用户可提交；管理员（staff）可展开查看收到的反馈。
+Lodestar — 意见反馈卡。任意登录用户可提交；管理员（staff）可展开查看收到的反馈。
 */
 
 import { useState } from 'react';

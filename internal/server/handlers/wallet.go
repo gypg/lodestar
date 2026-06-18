@@ -1,7 +1,7 @@
 package handlers
 
 /*
-GGZERO commercial layer — wallet & top-up endpoints.
+Lodestar commercial layer — wallet & top-up endpoints.
 
 - User (any logged-in): view own balance, redeem a top-up code.
 - Admin (users:write): generate codes, list codes, grant balance directly.

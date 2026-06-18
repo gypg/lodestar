@@ -1,5 +1,5 @@
 /*
-GGZERO — active theme-preset store.
+Lodestar — active theme-preset store.
 
 Persists the user's chosen theme preset id in localStorage so the look survives
 reloads (per-browser today; a future increment syncs it to the account so the
@@ -22,7 +22,7 @@ export const useThemePresetStore = create<ThemePresetState>()(
       setPreset: (presetId) => set({ presetId }),
     }),
     {
-      name: 'ggzero-theme-preset',
+      name: 'Lodestar-theme-preset',
       storage: createJSONStorage(() => localStorage),
     },
   ),

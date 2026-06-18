@@ -1,5 +1,5 @@
 /*
-GGZERO — custom (uploaded) theme registry, client side.
+Lodestar — custom (uploaded) theme registry, client side.
 
 Themes uploaded via the API are stored server-side as the `custom_themes`
 setting (a JSON array of ThemePreset). This store mirrors that list on the
@@ -24,7 +24,7 @@ export const useCustomThemesStore = create<CustomThemesState>()(
       setThemes: (themes) => set({ themes }),
     }),
     {
-      name: 'ggzero-custom-themes',
+      name: 'Lodestar-custom-themes',
       storage: createJSONStorage(() => localStorage),
     },
   ),

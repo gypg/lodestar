@@ -23,7 +23,7 @@ var exemptFromAudit = map[string]string{
 	"POST /api/v1/webauthn/login/begin":    "authentication — passkey challenge issuance, no user yet",
 	"POST /api/v1/webauthn/login/finish":   "authentication — passkey assertion, the binding is audited at register/finish",
 	"POST /api/v1/webauthn/register/begin": "no state change — challenge issuance only; credential binding audited at register/finish",
-	// GGZERO commercial-layer public endpoints — no session auth, so no
+	// Lodestar commercial-layer public endpoints — no session auth, so no
 	// admin-audit subject; auditing would never capture a user_id anyway.
 	"POST /api/v1/user/register":         "public self-registration — no authenticated subject to audit (gated by commercial_mode)",
 	"POST /api/v1/user/send-email-code":  "public email-code issuance — no authenticated subject; rate-limited, would flood the log",

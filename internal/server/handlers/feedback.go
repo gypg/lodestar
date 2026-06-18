@@ -1,6 +1,6 @@
 package handlers
 
-// GGZERO — 意见反馈端点：用户提交（任意登录用户），管理员查看列表。
+// Lodestar — 意见反馈端点：用户提交（任意登录用户），管理员查看列表。
 
 import (
 	"net/http"

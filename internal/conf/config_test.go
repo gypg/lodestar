@@ -6,8 +6,8 @@ import (
 )
 
 func TestDefaultPathsUseDataDirEnv(t *testing.T) {
-	dataDir := filepath.Join(t.TempDir(), "octopus-data")
-	t.Setenv("GGZERO_DATA_DIR", dataDir)
+	dataDir := filepath.Join(t.TempDir(), "lodestar-data")
+	t.Setenv("LODESTAR_DATA_DIR", dataDir)
 
 	if got, want := defaultDataDir(), filepath.Clean(dataDir); got != want {
 		t.Fatalf("defaultDataDir() = %q, want %q", got, want)
@@ -21,7 +21,7 @@ func TestDefaultPathsUseDataDirEnv(t *testing.T) {
 }
 
 func TestDefaultPathsFallbackToDataDir(t *testing.T) {
-	t.Setenv("GGZERO_DATA_DIR", "")
+	t.Setenv("LODESTAR_DATA_DIR", "")
 
 	if got, want := defaultDataDir(), "data"; got != want {
 		t.Fatalf("defaultDataDir() = %q, want %q", got, want)

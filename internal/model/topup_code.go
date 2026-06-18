@@ -1,7 +1,7 @@
 package model
 
 /*
-GGZERO commercial layer — top-up codes (redeemable credit).
+Lodestar commercial layer — top-up codes (redeemable credit).
 
 Ported in concept from new-api's redemption codes, adapted to octopus's
 float-USD balance: an admin generates codes worth N USD; a user redeems a code

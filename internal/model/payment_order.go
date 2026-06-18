@@ -1,7 +1,7 @@
 package model
 
 /*
-GGZERO commercial layer — online payment orders (top-up via 易支付/Epay).
+Lodestar commercial layer — online payment orders (top-up via 易支付/Epay).
 
 Ported from new-api's TopUp order model, adapted to octopus float-USD balance:
 a user pays `Money` (gateway currency) to credit `AmountUSD` to their balance.

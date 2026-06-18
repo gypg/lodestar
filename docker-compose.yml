@@ -1,12 +1,12 @@
 services:
-  ggzero:
+  lodestar:
     # 本地构建（暂无发布镜像）。首次：docker compose up -d --build
     build:
       context: .
       args:
         APP_VERSION: dev
-    image: ggzero:latest
-    container_name: ggzero
+    image: lodestar:latest
+    container_name: lodestar
     restart: unless-stopped
     ports:
       - "8080:8080"
@@ -16,21 +16,21 @@ services:
       # 容器时区；海外部署可改为显式 IANA 时区名，例如 America/Los_Angeles
       TZ: "Asia/Shanghai"
       # 强烈建议设置一个随机长字符串，保持 JWT 跨重启有效（留空则每次启动生成临时密钥，重启即掉登录）
-      # GGZERO_AUTH_JWT_SECRET: "change-me-to-a-long-random-string"
+      # LODESTAR_AUTH_JWT_SECRET: "change-me-to-a-long-random-string"
       #
       # ── 默认 SQLite（数据落在 ./data，零外部依赖）。如需用 PostgreSQL（你的服务器已有 PG）：
-      # GGZERO_DATABASE_TYPE: "postgres"
-      # GGZERO_DATABASE_PATH: "host=172.16.0.87 port=5432 user=ggzero password=*** dbname=ggzero sslmode=disable"
-      # （MySQL 同理：GGZERO_DATABASE_TYPE=mysql，DATABASE_PATH 填 MySQL DSN）
+      # LODESTAR_DATABASE_TYPE: "postgres"
+      # LODESTAR_DATABASE_PATH: "host=172.16.0.87 port=5432 user=lodestar password=*** dbname=lodestar sslmode=disable"
+      # （MySQL 同理：LODESTAR_DATABASE_TYPE=mysql，DATABASE_PATH 填 MySQL DSN）
 
   # ── 可选：随栈带一个 PostgreSQL（若不用外部 PG，取消注释并把上面 DATABASE_* 指向它）
   # postgres:
   #   image: postgres:16-alpine
-  #   container_name: ggzero-pg
+  #   container_name: lodestar-pg
   #   restart: unless-stopped
   #   environment:
-  #     POSTGRES_USER: ggzero
+  #     POSTGRES_USER: lodestar
   #     POSTGRES_PASSWORD: change-me
-  #     POSTGRES_DB: ggzero
+  #     POSTGRES_DB: lodestar
   #   volumes:
   #     - ./pgdata:/var/lib/postgresql/data

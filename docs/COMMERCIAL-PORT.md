@@ -1,6 +1,6 @@
-# GGZERO 商业层移植（COMMERCIAL-PORT）
+# Lodestar 商业层移植（COMMERCIAL-PORT）
 
-> 应"商业纵深直接套用 new-api 逻辑"——本文件记录把 new-api 成熟的预付费计费逻辑移植到 ggzero
+> 应"商业纵深直接套用 new-api 逻辑"——本文件记录把 new-api 成熟的预付费计费逻辑移植到 lodestar
 > （octopus 基底）的方案、已完成部分、与下阶段。最后更新：2026-06-18。
 
 ## 一、架构差异（为什么不是拷贝粘贴）

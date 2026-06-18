@@ -1,7 +1,7 @@
 package billing
 
 /*
-GGZERO commercial layer — request billing glue.
+Lodestar commercial layer — request billing glue.
 
 Ties octopus's relay cost accounting to per-user prepaid balance, gated by the
 commercial_mode switch:

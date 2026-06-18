@@ -6,7 +6,7 @@
     "password": "密碼",
     "passwordPlaceholder": "請輸入密碼",
     "apikey": "API 金鑰",
-    "apikeyPlaceholder": "請輸入 API 金鑰 (sk-ggzero-...)",
+    "apikeyPlaceholder": "請輸入 API 金鑰 (sk-Lodestar-...)",
     "mode": {
       "user": "帳戶登入",
       "apikey": "金鑰登入"
@@ -22,7 +22,7 @@
   },
   "bootstrap": {
     "title": "完成首次初始化",
-    "subtitle": "GGZERO 需要先建立初始管理員帳戶，之後才能登入。",
+    "subtitle": "Lodestar 需要先建立初始管理員帳戶，之後才能登入。",
     "description": "請在目前頁面設定管理員帳號與密碼，儲存後即可登入。",
     "checking": "正在檢查初始化狀態...",
     "initialized": "首次初始化已完成，現在可以登入了。",
@@ -334,7 +334,7 @@
   },
   "analytics": {
     "title": "分析中心",
-    "subtitle": "聚合 GGZERO 目前的統計、利用率與路由健康視角，一期先復用現有統計與日誌能力完成可用分析頁。",
+    "subtitle": "聚合 Lodestar 目前的統計、利用率與路由健康視角，一期先復用現有統計與日誌能力完成可用分析頁。",
     "cache": {
       "title": "快取",
       "metrics": {
@@ -1366,13 +1366,13 @@
         "testSuccess": "資料庫連線正常",
         "testFailed": "資料庫連線失敗",
         "confirm": "將目前資料遷移到目標資料庫並更新設定？成功後需要重新啟動。",
-        "success": "資料庫遷移完成。請重新啟動 GGZERO 以使用新資料庫。",
+        "success": "資料庫遷移完成。請重新啟動 Lodestar 以使用新資料庫。",
         "failed": "資料庫遷移失敗",
         "migrating": "遷移中...",
         "button": "遷移並在重啟後切換",
         "migrateLogsHint": "包含中繼日誌和審計日誌，資料量可能較大。",
         "testButton": "測試連線",
-        "successDetail": "遷移完成。重新啟動 GGZERO 後將使用 {type}: {path}"
+        "successDetail": "遷移完成。重新啟動 Lodestar 後將使用 {type}: {path}"
       }
     },
     "webdav": {
@@ -2055,29 +2055,29 @@
     },
     "ccswitch": {
       "title": "生成 CC Switch 連結",
-      "description": "選擇目標應用、路由分組和 GGZERO API Key，生成符合 CC Switch v1 協議的供應方匯入連結。",
+      "description": "選擇目標應用、路由分組和 Lodestar API Key，生成符合 CC Switch v1 協議的供應方匯入連結。",
       "groupLabel": "路由分組",
       "selectGroup": "選擇分組",
       "appLabel": "目標應用",
       "nameLabel": "名稱",
-      "namePlaceholder": "例：ggzero_claude_my-group",
+      "namePlaceholder": "例：Lodestar_claude_my-group",
       "selectModel": "選擇分組",
       "haikuModelLabel": "Haiku 模型",
       "sonnetModelLabel": "Sonnet 模型",
       "opusModelLabel": "Opus 模型",
       "import": "匯入 CC Switch",
-      "apiKeyLabel": "GGZERO API Key",
+      "apiKeyLabel": "Lodestar API Key",
       "selectAPIKey": "選擇 API Key",
       "endpoint": "匯入端點",
       "model": "預設模型",
-      "apiKeyHint": "輸入該分組使用的 GGZERO API Key (sk-ggzero-...)",
+      "apiKeyHint": "輸入該分組使用的 Lodestar API Key (sk-Lodestar-...)",
       "generate": "生成連結",
       "generatedLink": "生成的連結",
       "copy": "複製連結",
       "copied": "已複製",
       "missingPublicApiBaseUrl": "請先在系統設定中填寫公開 API 基礎位址。",
       "missingGroup": "請先建立至少一個路由分組。",
-      "missingAPIKey": "請先建立並啟用至少一個 GGZERO API Key。"
+      "missingAPIKey": "請先建立並啟用至少一個 Lodestar API Key。"
     }
   },
   "model": {
@@ -2276,11 +2276,11 @@
       "noBaseUrls": "暫無 Base URL",
       "noKeys": "暫無金鑰",
       "ccSwitch": {
-        "description": "生成符合 CC Switch v1 協議的供應方匯入連結，可選擇目標應用、路由分組和 GGZERO API Key。",
+        "description": "生成符合 CC Switch v1 協議的供應方匯入連結，可選擇目標應用、路由分組和 Lodestar API Key。",
         "app": "目標應用",
         "group": "路由分組",
         "selectGroup": "選擇分組",
-        "apiKey": "GGZERO API Key",
+        "apiKey": "Lodestar API Key",
         "selectAPIKey": "選擇 API Key",
         "endpoint": "匯入端點",
         "model": "預設模型",
@@ -2289,7 +2289,7 @@
         "missingPublicApiBaseUrl": "請先在系統設定中填寫公開 API 基礎位址。",
         "missingKey": "請先為該供應源設定至少一個已啟用的 API Key。",
         "missingGroup": "請先建立至少一個路由分組。",
-        "missingAPIKey": "請先建立並啟用至少一個 GGZERO API Key。"
+        "missingAPIKey": "請先建立並啟用至少一個 Lodestar API Key。"
       },
       "metrics": {
         "totalRequests": "總請求",

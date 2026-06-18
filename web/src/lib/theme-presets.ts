@@ -1,5 +1,5 @@
 /*
-GGZERO — theme preset engine.
+Lodestar — theme preset engine.
 
 A "theme preset" is a set of CSS custom-property (design token) overrides applied
 to <html> at runtime. The app's Tailwind v4 `@theme inline` layer maps utility
@@ -7,7 +7,7 @@ colors (bg-background, text-primary, …) onto these `--*` variables, so overrid
 them on document.documentElement live-recolors the entire UI without touching any
 component.
 
-This is the foundation of GGZERO's "every user can have a different look" vision:
+This is the foundation of Lodestar's "every user can have a different look" vision:
 - built-in presets live here;
 - a user's chosen preset is persisted (stores/theme-preset.ts);
 - uploaded/custom presets (server-side) reuse the same token shape (ThemeTokens).

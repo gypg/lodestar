@@ -1,7 +1,7 @@
 package email
 
 /*
-GGZERO — SMTP 邮件 + 邮箱验证码。
+Lodestar — SMTP 邮件 + 邮箱验证码。
 
 配置驱动（管理员在后台填 SMTP 凭据，对齐易支付做法——构建无需凭据）。验证码存内存
 （10 分钟 TTL，短时有效；单节点足够，重启失效可接受）。用 net/smtp（587 STARTTLS 兼容）。
@@ -93,7 +93,7 @@ func GenerateAndSend(email string) error {
 	}
 	code := gen6()
 	codes.Store(e, codeEntry{code: code, exp: time.Now().Add(10 * time.Minute)})
-	return sendMail(e, "GGZERO 邮箱验证码", "你的验证码是："+code+"，10 分钟内有效。如非本人操作请忽略。")
+	return sendMail(e, "Lodestar 邮箱验证码", "你的验证码是："+code+"，10 分钟内有效。如非本人操作请忽略。")
 }
 
 // Verify checks (and consumes) the code for an email.
@@ -117,5 +117,5 @@ func Verify(email, code string) bool {
 
 // SendTest sends a test email to verify SMTP config.
 func SendTest(to string) error {
-	return sendMail(to, "GGZERO 测试邮件", "这是一封来自 GGZERO 的测试邮件，说明 SMTP 配置正常。")
+	return sendMail(to, "Lodestar 测试邮件", "这是一封来自 Lodestar 的测试邮件，说明 SMTP 配置正常。")
 }

@@ -1,7 +1,7 @@
 package payment
 
 /*
-GGZERO commercial layer — online top-up via 易支付 (Epay).
+Lodestar commercial layer — online top-up via 易支付 (Epay).
 
 Ported from new-api's Epay flow (controller/topup.go) using the same go-epay
 library, adapted to octopus float-USD balance: a user pays `money` (gateway
@@ -96,7 +96,7 @@ func CreateEpayOrder(userID uint, amountUSD float64, method string, ctx context.
 	uri, params, err := cli.Purchase(&epay.PurchaseArgs{
 		Type:           method,
 		ServiceTradeNo: tradeNo,
-		Name:           fmt.Sprintf("GGZERO credit $%.2f", amountUSD),
+		Name:           fmt.Sprintf("Lodestar credit $%.2f", amountUSD),
 		Money:          strconv.FormatFloat(money, 'f', 2, 64),
 		Device:         epay.PC,
 		NotifyUrl:      notifyURL,
