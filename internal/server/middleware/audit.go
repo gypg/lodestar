@@ -128,6 +128,15 @@ var auditedManagementWriteRoutes = map[string]struct{}{
 	"POST /api/v1/proxy-pool/update":                                                 {},
 	"POST /api/v1/proxy-pool/test":                                                   {},
 	"DELETE /api/v1/proxy-pool/delete/:id":                                           {},
+	// GGZERO commercial layer — logged-in user / admin write actions.
+	"POST /api/v1/user/preferences":                                                  {},
+	"POST /api/v1/wallet/redeem":                                                     {},
+	"POST /api/v1/wallet/topup":                                                      {},
+	"POST /api/v1/wallet/codes":                                                      {},
+	"POST /api/v1/wallet/grant":                                                      {},
+	"POST /api/v1/wallet/invites":                                                    {},
+	"POST /api/v1/wallet/email-test":                                                 {},
+	"POST /api/v1/feedback/submit":                                                   {},
 }
 
 func AuditManagementWrite() gin.HandlerFunc {
