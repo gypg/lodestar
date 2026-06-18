@@ -17,6 +17,7 @@ GGZERO — 冬日风落地页（Winter Landing）
 import { useEffect, useMemo, useState } from 'react';
 import { useNavStore, type NavItem } from '@/components/modules/navbar';
 import { usePublicOverview } from '@/api/endpoints/public';
+import { useCurrentUser, isStaffRole } from '@/api/endpoints/user';
 
 const SNOW_SYMBOLS = ['❄', '❅', '❆', '✻', '✺', '*'];
 const SNOW_COUNT = 72;
@@ -79,7 +80,13 @@ export function WinterLanding({
   const isPublic = variant === 'public';
   const [panel, setPanel] = useState<PublicPanel | null>(null);
   const { data: overview } = usePublicOverview(isPublic);
+  const { data: me } = useCurrentUser();
   const siteName = overview?.site_name?.trim() || 'GGZERO';
+  // 非 staff（商业注册用户）只在目录里看到用户自助项
+  const portalOnly = !isPublic && me !== undefined && !isStaffRole(me.role);
+  const homeItems = portalOnly
+    ? HOME_TOC.filter((i) => i.id === 'model' || i.id === 'apikey' || i.id === 'setting')
+    : HOME_TOC;
 
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
@@ -195,7 +202,7 @@ export function WinterLanding({
                     <span className="ml-2 text-[10px] tracking-wider text-[#6b6862]">{item.meta}</span>
                   </li>
                 ))
-              : HOME_TOC.map((item, idx) => (
+              : homeItems.map((item, idx) => (
                   <li key={item.id} className="flex items-baseline justify-between border-b border-dotted border-[#b8b3a8] py-2">
                     <span className="mr-2.5 text-[11px] tabular-nums text-[#6b6862]">{pad2(idx + 1)}</span>
                     <button

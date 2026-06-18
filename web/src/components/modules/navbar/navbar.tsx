@@ -9,6 +9,11 @@ import { usePreload } from "@/route/use-preload"
 import { ENTRANCE_VARIANTS } from "@/lib/animations/fluid-transitions"
 import { useTranslations } from "next-intl"
 import { useIsMobile } from "@/hooks/use-mobile"
+import { useCurrentUser, isStaffRole } from "@/api/endpoints/user"
+
+// GGZERO 多租户：非 staff（viewer/商业注册用户）只见用户自助相关导航；
+// 渠道/分组/告警/运维/用户管理/多站聚合等管理项对其隐藏。
+const USER_PORTAL_NAV = new Set<NavItem>(['home', 'model', 'apikey', 'setting'])
 
 export function NavBar() {
     const { activeItem, orderedItems, visibleItems, setActiveItem } = useNavStore()
@@ -18,6 +23,9 @@ export function NavBar() {
     const reduceMotion = useReducedMotion()
     const lightweightMotion = isMobile || reduceMotion
     const [pressedItem, setPressedItem] = useState<string | null>(null)
+    const { data: me } = useCurrentUser()
+    // 角色未知时不限制（避免管理员加载瞬间误藏管理项）
+    const restrictToPortal = me !== undefined && !isStaffRole(me.role)
     const visibleRouteSet = useMemo(() => new Set(visibleItems), [visibleItems])
     const routeById = useMemo(
         () => new Map(ROUTES.map((route) => [route.id as NavItem, route])),
@@ -27,9 +35,10 @@ export function NavBar() {
         () =>
             orderedItems
                 .filter((item) => visibleRouteSet.has(item))
+                .filter((item) => !restrictToPortal || USER_PORTAL_NAV.has(item))
                 .map((item) => routeById.get(item))
                 .filter((route) => route !== undefined),
-        [orderedItems, routeById, visibleRouteSet]
+        [orderedItems, routeById, visibleRouteSet, restrictToPortal]
     )
 
     return (

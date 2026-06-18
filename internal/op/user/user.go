@@ -71,7 +71,7 @@ func DeleteLegacyAdmin(targetUsername string) error {
 }
 
 func ValidateRole(role string) error {
-	if role != model.UserRoleAdmin && role != model.UserRoleEditor && role != model.UserRoleViewer {
+	if role != model.UserRoleAdmin && role != model.UserRoleEditor && role != model.UserRoleViewer && role != model.UserRoleUser {
 		return fmt.Errorf("invalid role: %s", role)
 	}
 	return nil

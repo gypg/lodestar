@@ -192,6 +192,30 @@ export function useRegister() {
     });
 }
 
+/** GGZERO：当前登录用户（驱动按角色分流——管理控制台 vs 用户自助门户） */
+export interface CurrentUser {
+    id: number;
+    username: string;
+    role: string;
+    quota: number;
+    used_quota: number;
+}
+
+export function useCurrentUser() {
+    return useQuery({
+        queryKey: ['user', 'me'],
+        queryFn: async () => apiClient.get<CurrentUser>('/api/v1/user/me'),
+        staleTime: 60_000,
+        retry: false,
+        refetchOnWindowFocus: false,
+    });
+}
+
+/** staff（admin/editor）见完整控制台；其他（viewer，含商业注册用户）见受限门户 */
+export function isStaffRole(role?: string): boolean {
+    return role === 'admin' || role === 'editor';
+}
+
 /** GGZERO：每用户 UI 偏好（绑账户，跨设备一致） */
 export interface UserPreferences {
     themePreset?: string;

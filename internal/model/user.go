@@ -10,6 +10,10 @@ const (
 	UserRoleAdmin  = "admin"
 	UserRoleEditor = "editor"
 	UserRoleViewer = "viewer"
+	// GGZERO commercial: minimal-privilege end-customer role (manage own API keys
+	// + read public settings/stats only). Registered users get this, NOT viewer
+	// (which is read-only STAFF and can see channels/logs/sites).
+	UserRoleUser = "user"
 )
 
 type User struct {

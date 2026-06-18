@@ -51,10 +51,20 @@ var viewerPermissions = []Permission{
 	PermSitesRead,
 }
 
+// GGZERO commercial: end-customer role. Minimal privileges — manage own API keys
+// (ownership-isolated in handlers) + read public settings/stats. Deliberately
+// NO channels/groups/logs/sites/users access, so a public registrant cannot see
+// upstream config or other tenants' data.
+var userPermissions = []Permission{
+	PermAPIKeysRead, PermAPIKeysWrite,
+	PermSettingsRead, PermStatsRead,
+}
+
 var rolePermissions = map[string][]Permission{
 	model.UserRoleAdmin:  adminPermissions,
 	model.UserRoleEditor: editorPermissions,
 	model.UserRoleViewer: viewerPermissions,
+	model.UserRoleUser:   userPermissions,
 }
 
 // HasPermission checks if the given role has the specified permission.

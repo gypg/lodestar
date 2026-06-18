@@ -81,11 +81,22 @@ func createAPIKey(c *gin.Context) {
 	resp.Success(c, apiKey)
 }
 
+// GGZERO multi-tenant: staff (admin/editor) see & manage all keys; regular users
+// (viewer, e.g. commercial registrants) are isolated to their own keys.
+func isStaff(c *gin.Context) bool {
+	role := c.GetString("user_role")
+	return role == model.UserRoleAdmin || role == model.UserRoleEditor
+}
+
 func listAPIKey(c *gin.Context) {
 	apiKeys, err := apikey.List(c.Request.Context())
 	if err != nil {
 		resp.InternalError(c)
 		return
+	}
+	if !isStaff(c) {
+		uid := uint(c.GetInt("user_id"))
+		apiKeys = lo.Filter(apiKeys, func(k model.APIKey, _ int) bool { return k.UserID == uid })
 	}
 	if !auth.HasPermission(c.GetString("user_role"), auth.PermAPIKeysWrite) {
 		apiKeys = maskAPIKeys(apiKeys)
@@ -100,6 +111,18 @@ func updateAPIKey(c *gin.Context) {
 		return
 	}
 	apiKey := req.toModel()
+	// GGZERO multi-tenant: ownership guard + preserve owner (never let an update
+	// reassign or clear UserID).
+	existing, getErr := apikey.Get(apiKey.ID, c.Request.Context())
+	if getErr != nil {
+		resp.Error(c, http.StatusNotFound, "API key not found")
+		return
+	}
+	if !isStaff(c) && existing.UserID != uint(c.GetInt("user_id")) {
+		resp.Error(c, http.StatusForbidden, "not your API key")
+		return
+	}
+	apiKey.UserID = existing.UserID
 	// Normalize custom key prefix if a new key value is provided.
 	if strings.TrimSpace(apiKey.APIKey) != "" {
 		apiKey.APIKey = normalizeAPIKeyPrefix(apiKey.APIKey)
@@ -122,6 +145,13 @@ func deleteAPIKey(c *gin.Context) {
 	if err != nil {
 		resp.Error(c, http.StatusBadRequest, resp.ErrInvalidParam)
 		return
+	}
+	if !isStaff(c) {
+		k, getErr := apikey.Get(idNum, c.Request.Context())
+		if getErr != nil || k.UserID != uint(c.GetInt("user_id")) {
+			resp.Error(c, http.StatusForbidden, "not your API key")
+			return
+		}
 	}
 	if err := apikey.Delete(idNum, c.Request.Context()); err != nil {
 		if status, msg, ok := classifyAPIKeyMutationError(err); ok {

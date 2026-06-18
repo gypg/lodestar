@@ -64,6 +64,10 @@ func init() {
 				Handle(status),
 		).
 		AddRoute(
+			router.NewRoute("/me", http.MethodGet).
+				Handle(me),
+		).
+		AddRoute(
 			router.NewRoute("/list", http.MethodGet).
 				Use(middleware.RequirePermission(auth.PermUsersRead)).
 				Handle(listUsers),
@@ -192,7 +196,7 @@ func register(c *gin.Context) {
 	if err := usr.Create(model.UserCreateRequest{
 		Username: req.Username,
 		Password: req.Password,
-		Role:     model.UserRoleViewer,
+		Role:     model.UserRoleUser,
 	}, c.Request.Context()); err != nil {
 		msg := strings.ToLower(err.Error())
 		if strings.Contains(msg, "username already exists") {
@@ -279,6 +283,24 @@ func status(c *gin.Context) {
 
 // GGZERO: per-user UI preferences (opaque JSON). Self-scoped — any logged-in
 // user reads/writes their own.
+// GGZERO: current authenticated user (id/username/role/balance) — drives the
+// role-aware frontend (admin console vs user self-service portal).
+func me(c *gin.Context) {
+	uid := uint(c.GetInt("user_id"))
+	u, err := usr.GetByID(uid, c.Request.Context())
+	if err != nil {
+		resp.InternalError(c)
+		return
+	}
+	resp.Success(c, gin.H{
+		"id":         u.ID,
+		"username":   u.Username,
+		"role":       u.Role,
+		"quota":      u.Quota,
+		"used_quota": u.UsedQuota,
+	})
+}
+
 func getPreferences(c *gin.Context) {
 	currentUserID := uint(c.GetInt("user_id"))
 	user, err := usr.GetByID(currentUserID, c.Request.Context())
