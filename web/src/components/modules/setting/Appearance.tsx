@@ -28,6 +28,7 @@ import { serializeNavOrder, serializeNavVisible } from '@/components/modules/nav
 import { useSettingStore, type Locale } from '@/stores/setting';
 import { useThemePresetStore } from '@/stores/theme-preset';
 import { useSetUserPreferences } from '@/api/endpoints/user';
+import { SiteIdentity } from './SiteIdentity';
 import { BUILTIN_PRESETS } from '@/lib/theme-presets';
 import { useCustomThemesStore, parseCustomThemes } from '@/stores/custom-themes';
 import { SettingKey, useSetSetting, useSettingList } from '@/api/endpoints/setting';
@@ -511,6 +512,8 @@ export function SettingAppearance() {
                             </Select>
                         </div>
                     </div>
+
+                    <SiteIdentity />
 
                     {/* 商业模式（GGZERO 一键开关：开放公开注册 = 释放商业潜力的第一步） */}
                     <div className="flex flex-col gap-4 rounded-lg border border-primary/20 bg-gradient-to-br from-primary/5 to-transparent p-4 shadow-sm">

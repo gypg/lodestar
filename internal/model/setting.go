@@ -76,6 +76,10 @@ const (
 	SettingKeyWebAuthnOrigins                      SettingKey = "webauthn_origins"                         // WebAuthn 允许的 Origin 列表（逗号分隔，完整 scheme://host[:port]）
 	SettingKeyCustomThemes                         SettingKey = "custom_themes"                            // GGZERO 自定义主题预设(JSON 数组), 可经设置 API 上传, 全站可选
 	SettingKeyCommercialMode                       SettingKey = "commercial_mode"                          // GGZERO 商业模式开关: false=自用(关闭公开注册), true=商业(开放公开注册)
+	SettingKeySiteName                             SettingKey = "site_name"                                // GGZERO 站点名称(对外展示/封面刊头)
+	SettingKeySiteDescription                      SettingKey = "site_description"                         // GGZERO 站点简介(关于本站)
+	SettingKeySiteAnnouncement                     SettingKey = "site_announcement"                        // GGZERO 站点公告(对外公开展示)
+	SettingKeySiteFooter                           SettingKey = "site_footer"                              // GGZERO 页脚文案
 )
 
 type Setting struct {
@@ -118,6 +122,10 @@ func DefaultSettings() []Setting {
 		{Key: SettingKeyNavVisible, Value: `["home","hub","channel","group","model","analytics","log","alert","ops","apikey","setting","user"]`},
 		{Key: SettingKeyCustomThemes, Value: "[]"}, // GGZERO 自定义主题预设, 默认空数组
 		{Key: SettingKeyCommercialMode, Value: "false"}, // GGZERO 默认自用模式(关闭公开注册)
+		{Key: SettingKeySiteName, Value: "GGZERO"},
+		{Key: SettingKeySiteDescription, Value: "高自定义 · 自用优先 · 可聚合的个人 AI 中转站"},
+		{Key: SettingKeySiteAnnouncement, Value: ""},
+		{Key: SettingKeySiteFooter, Value: ""},
 		{Key: SettingKeyAIRouteGroupID, Value: "0"},
 		{Key: SettingKeyAIRouteBaseURL, Value: ""},
 		{Key: SettingKeyAIRouteAPIKey, Value: ""},
