@@ -25,7 +25,7 @@
 | **主题绑账户**（User.Preferences + /user/preferences API；登录应用、选主题即存，跨设备一致） | ✅ | D3c |
 | **★公开平台门面**（无鉴权 `/api/v1/public/overview`；落地页左侧导航点开 公告/模型广场/用量概览/关于，私密项才登录）+ **可配置站点身份**（名称/简介/公告/页脚 设置，落地页实时反映） | ✅ | 平台层 |
 | **GGZERO 雪花品牌**（Logo 组件/加载屏/logo.svg/favicon 全换，去章鱼）+ 冬日封面还原蓝色少女实景照片（固定纸感冷蓝，不随明暗变灰黑） | ✅ | 品牌层 |
-| **★商业计费层**（移植 new-api 预付费逻辑）：用户余额(USD) + Key 归属 + relay 按量扣费/余额闸（绑 commercial_mode）+ 兑换码充值 + 钱包 UI；端到端实测通过 | ✅ | 商业核心（支付商/多租户隔离见 `docs/COMMERCIAL-PORT.md` 下阶段） |
+| **★商业计费层**（移植 new-api 预付费逻辑）：用户余额(USD) + Key 归属 + relay 按量扣费/余额闸（绑 commercial_mode）+ 兑换码充值 + **易支付在线充值** + 钱包 UI；端到端实测通过 | ✅ | 商业核心（其他支付商/多租户隔离见 `docs/COMMERCIAL-PORT.md`） |
 
 ## 还没做（下一步）
 
