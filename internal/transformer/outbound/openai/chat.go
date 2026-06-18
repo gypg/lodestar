@@ -93,6 +93,11 @@ func SanitizeRequestForOpenAICompat(request *model.InternalLLMRequest, baseURL s
 	normalizeDeepSeekReasoningCompat(request, baseURL, isMimoChannel)
 	applyReasoningCompatTokenBudget(request, baseURL, isMimoChannel)
 
+	// Provider-specific OpenAI-compat rewrites (non-reasoning providers that
+	// reject or mis-handle certain standard fields).
+	sanitizeMoonshotRequest(request, baseURL)
+	sanitizeZhipuRequest(request, baseURL)
+
 	// Only apply generic reasoning-effort normalization to non-provider-specific
 	// reasoning-compatible targets. DeepSeek and Mimo already handle effort
 	// mapping in the call above.
