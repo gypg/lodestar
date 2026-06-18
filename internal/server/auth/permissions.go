@@ -52,12 +52,13 @@ var viewerPermissions = []Permission{
 }
 
 // GGZERO commercial: end-customer role. Minimal privileges — manage own API keys
-// (ownership-isolated in handlers) + read public settings/stats. Deliberately
-// NO channels/groups/logs/sites/users access, so a public registrant cannot see
-// upstream config or other tenants' data.
+// (ownership-isolated in handlers) + read aggregate stats. Deliberately NO
+// settings:read (the settings list exposes secrets like epay_key), and NO
+// channels/groups/logs/sites/users — a public registrant sees only their own
+// keys + the public site overview, never upstream config or other tenants' data.
 var userPermissions = []Permission{
 	PermAPIKeysRead, PermAPIKeysWrite,
-	PermSettingsRead, PermStatsRead,
+	PermStatsRead,
 }
 
 var rolePermissions = map[string][]Permission{
