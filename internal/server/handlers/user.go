@@ -52,6 +52,14 @@ func init() {
 				Handle(changeUsername),
 		).
 		AddRoute(
+			router.NewRoute("/preferences", http.MethodGet).
+				Handle(getPreferences),
+		).
+		AddRoute(
+			router.NewRoute("/preferences", http.MethodPost).
+				Handle(setPreferences),
+		).
+		AddRoute(
 			router.NewRoute("/status", http.MethodGet).
 				Handle(status),
 		).
@@ -267,6 +275,34 @@ func status(c *gin.Context) {
 		return
 	}
 	resp.Success(c, "ok")
+}
+
+// GGZERO: per-user UI preferences (opaque JSON). Self-scoped — any logged-in
+// user reads/writes their own.
+func getPreferences(c *gin.Context) {
+	currentUserID := uint(c.GetInt("user_id"))
+	user, err := usr.GetByID(currentUserID, c.Request.Context())
+	if err != nil {
+		resp.InternalError(c)
+		return
+	}
+	resp.Success(c, gin.H{"preferences": user.Preferences})
+}
+
+func setPreferences(c *gin.Context) {
+	var req struct {
+		Preferences string `json:"preferences"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		resp.Error(c, http.StatusBadRequest, resp.ErrInvalidJSON)
+		return
+	}
+	currentUserID := uint(c.GetInt("user_id"))
+	if err := usr.UpdatePreferences(currentUserID, req.Preferences, c.Request.Context()); err != nil {
+		resp.InternalError(c)
+		return
+	}
+	resp.Success(c, nil)
 }
 
 func classifyUserMutationError(err error) (int, string, bool) {

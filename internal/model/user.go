@@ -17,6 +17,9 @@ type User struct {
 	Username string `gorm:"unique" json:"username"`
 	Password string `gorm:"not null" json:"-"`
 	Role     string `gorm:"default:'admin'" json:"role"`
+	// GGZERO: per-user UI preferences (JSON), e.g. {"themePreset":"winter"}.
+	// Lets a user's chosen theme follow their account across devices.
+	Preferences string `gorm:"type:text" json:"preferences,omitempty"`
 }
 
 type UserLogin struct {

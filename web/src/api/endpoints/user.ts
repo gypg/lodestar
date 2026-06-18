@@ -192,6 +192,39 @@ export function useRegister() {
     });
 }
 
+/** GGZERO：每用户 UI 偏好（绑账户，跨设备一致） */
+export interface UserPreferences {
+    themePreset?: string;
+}
+
+export function useUserPreferences() {
+    return useQuery({
+        queryKey: ['user', 'preferences'],
+        queryFn: async () => {
+            const res = await apiClient.get<{ preferences: string }>('/api/v1/user/preferences');
+            try {
+                return (JSON.parse(res.preferences || '{}') ?? {}) as UserPreferences;
+            } catch {
+                return {} as UserPreferences;
+            }
+        },
+        staleTime: Infinity,
+        retry: false,
+        refetchOnWindowFocus: false,
+    });
+}
+
+export function useSetUserPreferences() {
+    return useMutation({
+        mutationFn: async (prefs: UserPreferences) => {
+            return apiClient.post('/api/v1/user/preferences', { preferences: JSON.stringify(prefs) });
+        },
+        onError: (error) => {
+            logger.error('保存偏好失败:', error);
+        },
+    });
+}
+
 /**
  * 修改密码 Hook
  * 

@@ -334,6 +334,21 @@ func UpdateRole(id uint, role string, ctx context.Context) error {
 	return nil
 }
 
+// GGZERO: persist a user's UI preferences (opaque JSON string).
+func UpdatePreferences(id uint, preferences string, ctx context.Context) error {
+	res := db.GetDB().WithContext(ctx).Model(&model.User{}).Where("id = ?", id).Update("preferences", preferences)
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return fmt.Errorf("user not found")
+	}
+	if adminCache.ID == id {
+		adminCache.Preferences = preferences
+	}
+	return nil
+}
+
 func Delete(id uint, currentUserID uint, ctx context.Context) error {
 	if currentUserID != 0 && id == currentUserID {
 		return fmt.Errorf("cannot delete the active user")

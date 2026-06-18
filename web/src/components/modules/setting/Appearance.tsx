@@ -27,6 +27,7 @@ import {
 import { serializeNavOrder, serializeNavVisible } from '@/components/modules/navbar';
 import { useSettingStore, type Locale } from '@/stores/setting';
 import { useThemePresetStore } from '@/stores/theme-preset';
+import { useSetUserPreferences } from '@/api/endpoints/user';
 import { BUILTIN_PRESETS } from '@/lib/theme-presets';
 import { useCustomThemesStore, parseCustomThemes } from '@/stores/custom-themes';
 import { SettingKey, useSetSetting, useSettingList } from '@/api/endpoints/setting';
@@ -246,6 +247,12 @@ export function SettingAppearance() {
     const t = useTranslations('setting');
     const { theme, setTheme } = useTheme();
     const { presetId, setPreset } = useThemePresetStore();
+    const setUserPreferences = useSetUserPreferences();
+    const applyPreset = (id: string) => {
+        setPreset(id);
+        // 绑账户：把选择持久化到当前用户，跨设备一致（失败静默，本地仍生效）。
+        setUserPreferences.mutate({ themePreset: id });
+    };
     const { themes: customThemes, setThemes: setCustomThemes } = useCustomThemesStore();
     const [themeUploadOpen, setThemeUploadOpen] = useState(false);
     const [themeUploadText, setThemeUploadText] = useState('');
@@ -393,7 +400,7 @@ export function SettingAppearance() {
                                 <button
                                     key={p.id}
                                     type="button"
-                                    onClick={() => setPreset(p.id)}
+                                    onClick={() => applyPreset(p.id)}
                                     aria-pressed={presetId === p.id}
                                     title={p.description}
                                     className={cn(

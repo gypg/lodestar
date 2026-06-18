@@ -7,6 +7,7 @@ import { RefreshCw, Search } from 'lucide-react';
 import { useAuth } from '@/api/endpoints/user';
 import { LoginForm } from '@/components/modules/login';
 import { WinterLanding } from '@/components/modules/home/winter-landing';
+import { AccountThemeSync } from '@/components/account-theme-sync';
 import { APIKeyDashboard } from '@/components/modules/apikey-dashboard';
 import { ContentLoader } from '@/route/content-loader';
 import { NavBar, useNavStore } from '@/components/modules/navbar';
@@ -447,6 +448,7 @@ export function AppContainer() {
             className="relative mx-auto flex h-dvh max-w-[92rem] flex-col overflow-visible px-3 pt-3 pb-3 md:grid md:grid-cols-[auto_minmax(0,1fr)] md:gap-7 md:px-6 md:py-6"
         >
             <NavBar />
+            <AccountThemeSync />
             <main className="relative z-10 flex min-h-0 w-full min-w-0 flex-1 flex-col gap-4 md:gap-5">
                 <header className="relative z-20 flex flex-none items-center gap-3 overflow-visible rounded-xl border border-border bg-card px-4 py-2.5 md:px-5 md:py-3 lg:gap-5">
                     <div className="flex min-w-0 flex-1 items-center gap-2.5 md:gap-3">
