@@ -20,6 +20,7 @@ import (
 	dbmodel "github.com/lingyuins/octopus/internal/model"
 	opMain "github.com/lingyuins/octopus/internal/op"
 	ak "github.com/lingyuins/octopus/internal/op/apikey"
+	billing "github.com/lingyuins/octopus/internal/op/billing"
 	ch "github.com/lingyuins/octopus/internal/op/channel"
 	grp "github.com/lingyuins/octopus/internal/op/group"
 	"github.com/lingyuins/octopus/internal/op/relaylog"
@@ -397,6 +398,8 @@ func recordMediaRelayLog(apiKeyID int, requestModel string, endpointType string,
 		log.Warnf("failed to update daily stats for media relay: %v", statsErr)
 	}
 	st.APIKeyUpdate(apiKeyID, stats)
+	// GGZERO commercial: deduct media request cost from key owner's balance (no-op unless commercial_mode on).
+	billing.ChargeKey(apiKeyID, stats.InputCost+stats.OutputCost, ctx)
 	opMain.StatsSiteModelHourlyRecordAttempts(attempts, resolvedModel)
 	telemetry.Global().RecordRequest(duration.Milliseconds(), relayErr == nil)
 }

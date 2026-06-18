@@ -20,6 +20,11 @@ type User struct {
 	// GGZERO: per-user UI preferences (JSON), e.g. {"themePreset":"winter"}.
 	// Lets a user's chosen theme follow their account across devices.
 	Preferences string `gorm:"type:text" json:"preferences,omitempty"`
+	// GGZERO commercial layer (ported from new-api's prepaid-quota model, adapted
+	// to octopus's float-dollar cost): Quota = remaining balance (USD), UsedQuota
+	// = cumulative spent. Only enforced when commercial_mode is on.
+	Quota     float64 `gorm:"type:real;default:0" json:"quota"`
+	UsedQuota float64 `gorm:"type:real;default:0;column:used_quota" json:"used_quota"`
 }
 
 type UserLogin struct {

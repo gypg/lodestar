@@ -62,6 +62,8 @@ func createAPIKey(c *gin.Context) {
 	}
 	apiKey := req.toModel()
 	apiKey.ID = 0
+	// GGZERO commercial: the key belongs to its creator (for per-user billing).
+	apiKey.UserID = uint(c.GetInt("user_id"))
 	// Use custom key if provided; otherwise auto-generate.
 	if strings.TrimSpace(apiKey.APIKey) == "" {
 		apiKey.APIKey = auth.GenerateAPIKey()

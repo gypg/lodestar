@@ -10,6 +10,7 @@ import (
 	"github.com/lingyuins/octopus/internal/conf"
 	"github.com/lingyuins/octopus/internal/model"
 	ak "github.com/lingyuins/octopus/internal/op/apikey"
+	billing "github.com/lingyuins/octopus/internal/op/billing"
 	"github.com/lingyuins/octopus/internal/op/stats"
 	"github.com/lingyuins/octopus/internal/op/user"
 	"github.com/lingyuins/octopus/internal/server/auth"
@@ -97,6 +98,13 @@ func APIKeyAuth() gin.HandlerFunc {
 		statsAPIKey := stats.APIKeyGet(apiKeyObj.ID)
 		if apiKeyObj.MaxCost > 0 && apiKeyObj.MaxCost < statsAPIKey.StatsMetrics.OutputCost+statsAPIKey.StatsMetrics.InputCost {
 			resp.Error(c, http.StatusUnauthorized, "API key has reached the max cost")
+			c.Abort()
+			return
+		}
+		// GGZERO commercial: when commercial_mode is on, the key owner must have
+		// positive balance (no-op for unowned/admin keys or in self-use mode).
+		if !billing.HasBalanceForKey(apiKeyObj.ID, c.Request.Context()) {
+			resp.Error(c, http.StatusPaymentRequired, "insufficient balance, please top up")
 			c.Abort()
 			return
 		}
