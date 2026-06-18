@@ -41,6 +41,7 @@ func Start() error {
 	}
 	r.Use(middleware.SecurityHeaders())
 	r.Use(middleware.Cors())
+	r.Use(middleware.MaintenanceGuard())
 	r.Use(middleware.AuditManagementWrite())
 	if localStaticDir, ok := resolveLocalStaticDir(); ok {
 		log.Infof("serving frontend static assets from local directory: %s", localStaticDir)
