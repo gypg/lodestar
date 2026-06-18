@@ -86,6 +86,7 @@ const (
 	SettingKeyEpayKey                              SettingKey = "epay_key"                                 // 易支付商户密钥
 	SettingKeyTopupRate                            SettingKey = "topup_rate"                               // 充值汇率: 每 1 USD 额度对应的支付金额(网关货币)
 	SettingKeyPaymentCallbackBase                  SettingKey = "payment_callback_base"                    // 支付回调站点基址 (https://your-site)，用于 notify/return
+	SettingKeyMaintenanceMode                      SettingKey = "maintenance_mode"                         // GGZERO 维护模式: true=对非管理员显示维护页
 )
 
 type Setting struct {
@@ -138,6 +139,7 @@ func DefaultSettings() []Setting {
 		{Key: SettingKeyEpayKey, Value: ""},
 		{Key: SettingKeyTopupRate, Value: "1"},
 		{Key: SettingKeyPaymentCallbackBase, Value: ""},
+		{Key: SettingKeyMaintenanceMode, Value: "false"},
 		{Key: SettingKeyAIRouteGroupID, Value: "0"},
 		{Key: SettingKeyAIRouteBaseURL, Value: ""},
 		{Key: SettingKeyAIRouteAPIKey, Value: ""},

@@ -37,10 +37,12 @@ func getBootstrapStatus(c *gin.Context) {
 	// GGZERO: expose commercial mode so the public login page can decide whether
 	// to offer self-registration (true = commercial / open registration).
 	commercialMode, _ := setting.GetBool(model.SettingKeyCommercialMode)
+	maintenanceMode, _ := setting.GetBool(model.SettingKeyMaintenanceMode)
 	resp.Success(c, gin.H{
-		"initialized":     initialized,
-		"message":         message,
-		"commercial_mode": commercialMode,
+		"initialized":      initialized,
+		"message":          message,
+		"commercial_mode":  commercialMode,
+		"maintenance_mode": maintenanceMode,
 	})
 }
 

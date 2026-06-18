@@ -553,6 +553,33 @@ export function SettingAppearance() {
                     </div>
                     )}
 
+                    {/* 维护模式 */}
+                    {showAdmin && (
+                    <div className="flex flex-col gap-4 rounded-lg border border-primary/20 bg-gradient-to-br from-primary/5 to-transparent p-4 shadow-sm">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/12">
+                                    <Store className="h-5 w-5 text-primary" />
+                                </div>
+                                <div className="space-y-0.5">
+                                    <span className="text-sm font-semibold text-card-foreground">维护模式</span>
+                                    <p className="text-xs text-muted-foreground">开启后对非管理员显示「站点维护中」；管理员仍可正常使用并关闭。</p>
+                                </div>
+                            </div>
+                            <Switch
+                                checked={settings?.find((s) => s.key === SettingKey.MaintenanceMode)?.value === 'true'}
+                                onCheckedChange={(checked) =>
+                                    setSetting.mutate(
+                                        { key: SettingKey.MaintenanceMode, value: checked ? 'true' : 'false' },
+                                        { onError: () => toast.error(t('saveFailed')) }
+                                    )
+                                }
+                                aria-label="维护模式"
+                            />
+                        </div>
+                    </div>
+                    )}
+
                     {/* 中国化模式 */}
                     <div className="flex flex-col gap-4 rounded-lg border border-primary/20 bg-gradient-to-br from-primary/5 to-transparent p-4 shadow-sm">
                         <div className="flex items-center justify-between">

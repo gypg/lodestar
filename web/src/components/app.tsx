@@ -5,6 +5,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from "motion/react"
 import { RefreshCw, Search } from 'lucide-react';
 import { useAuth } from '@/api/endpoints/user';
+import { useCurrentUser, isStaffRole } from '@/api/endpoints/user';
 import { LoginForm } from '@/components/modules/login';
 import { WinterLanding } from '@/components/modules/home/winter-landing';
 import { AccountThemeSync } from '@/components/account-theme-sync';
@@ -140,6 +141,7 @@ function PublicEntry() {
 
 export function AppContainer() {
     const { isAuthenticated, isAPIKeyAuth, isLoading: authLoading } = useAuth();
+    const { data: currentUser } = useCurrentUser();
     const { activeItem, direction, visibleItems, setNavOrder, setVisibleItems, resetNavOrder } = useNavStore();
     const t = useTranslations('navbar');
     const queryClient = useQueryClient();
@@ -436,6 +438,19 @@ export function AppContainer() {
     // 登录页面（访客先见冬日封面，点击进入再唤出登录）
     if (!isAuthenticated) {
         return <PublicEntry />;
+    }
+
+    // GGZERO 维护模式：仅拦已登录的非管理员（登录入口对访客保持开放，管理员可登入关闭）
+    if (bootstrapStatus?.maintenance_mode && currentUser && !isStaffRole(currentUser.role)) {
+        return (
+            <div className="grid min-h-dvh place-items-center bg-background p-6 text-center text-foreground">
+                <div className="flex flex-col items-center gap-4">
+                    <Logo size={72} />
+                    <h1 className="text-xl font-semibold">站点维护中</h1>
+                    <p className="max-w-sm text-sm text-muted-foreground">我们正在升级，请稍后再来。给你带来的不便敬请谅解。</p>
+                </div>
+            </div>
+        );
     }
 
     // 主界面
