@@ -6,9 +6,12 @@ import { useTranslations } from 'next-intl'
 import { Button } from "@/components/ui/button"
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { useLogin } from "@/api/endpoints/user"
+import { useLogin, useRegister } from "@/api/endpoints/user"
 import { useAPIKeyLogin } from "@/api/endpoints/apikey"
 import { isWebAuthnSupported, usePasskeyLogin, useWebAuthnStatus } from "@/api/endpoints/webauthn"
+import { useQuery } from "@tanstack/react-query"
+import { apiClient } from "@/api/client"
+import type { BootstrapStatusResponse } from "@/api/endpoints/bootstrap"
 import Logo from "@/components/modules/logo"
 import { Fingerprint, KeyRound, User } from "lucide-react"
 import { ParticleBackground } from "@/components/nature"
@@ -26,6 +29,7 @@ type LoginMode = 'user' | 'apikey';
 export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
   const t = useTranslations('login')
   const [mode, setMode] = useState<LoginMode>('user')
+  const [isRegister, setIsRegister] = useState(false)
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [apiKey, setApiKey] = useState("")
@@ -33,9 +37,19 @@ export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
   const isMobile = useIsMobile()
 
   const loginMutation = useLogin()
+  const registerMutation = useRegister()
   const apiKeyLoginMutation = useAPIKeyLogin()
   const passkeyLoginMutation = usePasskeyLogin()
   const webauthnStatus = useWebAuthnStatus()
+
+  // 商业模式时开放公开注册（来自公开 bootstrap 状态）
+  const { data: bootstrapStatus } = useQuery({
+    queryKey: ['bootstrap', 'status'],
+    queryFn: async () => apiClient.get<BootstrapStatusResponse>('/api/v1/bootstrap/status', undefined, false),
+    retry: false,
+    refetchOnWindowFocus: false,
+  })
+  const commercialMode = bootstrapStatus?.commercial_mode === true
 
   const passkeyAvailable =
     isWebAuthnSupported() &&
@@ -48,11 +62,19 @@ export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
 
     try {
       if (mode === 'user') {
-        await loginMutation.mutateAsync({
-          username: username.trim(),
-          password,
-          expire: 1440,
-        })
+        if (isRegister) {
+          await registerMutation.mutateAsync({
+            username: username.trim(),
+            password,
+            expire: 1440,
+          })
+        } else {
+          await loginMutation.mutateAsync({
+            username: username.trim(),
+            password,
+            expire: 1440,
+          })
+        }
       } else {
         await apiKeyLoginMutation.mutateAsync(apiKey)
       }
@@ -74,7 +96,7 @@ export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
     }
   }
 
-  const isPending = loginMutation.isPending || apiKeyLoginMutation.isPending || passkeyLoginMutation.isPending
+  const isPending = loginMutation.isPending || registerMutation.isPending || apiKeyLoginMutation.isPending || passkeyLoginMutation.isPending
 
   const handleModeChange = (value: string) => {
     setMode(value as LoginMode)
@@ -156,6 +178,15 @@ export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
                       disabled={isPending}
                     />
                   </Field>
+                  {commercialMode && (
+                    <button
+                      type="button"
+                      onClick={() => { setIsRegister((v) => !v); setError(null) }}
+                      className="ml-1 self-start text-xs text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      {isRegister ? '已有账号？去登录' : '没有账号？注册新账号 →'}
+                    </button>
+                  )}
                 </TabsContent>
                 <TabsContent value="apikey">
                   <Field>
@@ -195,7 +226,7 @@ export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
                 disabled={isPending}
                 className="w-full h-12 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-all active:scale-[0.98]"
               >
-                {isPending ? t('button.loading') : t('button.submit')}
+                {isPending ? t('button.loading') : (mode === 'user' && isRegister ? '注册并进入' : t('button.submit'))}
               </Button>
 
               {passkeyAvailable && (

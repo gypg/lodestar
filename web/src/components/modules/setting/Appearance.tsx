@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTheme } from 'next-themes';
 import { SettingOrder } from './SettingOrder';
 import { useTranslations } from 'next-intl';
-import { Bell, Clock3, GripVertical, Languages, ListOrdered, Monitor, Moon, RotateCcw, Sun, Landmark, Palette } from 'lucide-react';
+import { Bell, Clock3, GripVertical, Languages, ListOrdered, Monitor, Moon, RotateCcw, Sun, Landmark, Palette, Store } from 'lucide-react';
 import {
     DragDropContext,
     Draggable,
@@ -502,6 +502,31 @@ export function SettingAppearance() {
                                     <SelectItem value="en" className="rounded-xl">{t('alertLanguage.en')}</SelectItem>
                                 </SelectContent>
                             </Select>
+                        </div>
+                    </div>
+
+                    {/* 商业模式（GGZERO 一键开关：开放公开注册 = 释放商业潜力的第一步） */}
+                    <div className="flex flex-col gap-4 rounded-lg border border-primary/20 bg-gradient-to-br from-primary/5 to-transparent p-4 shadow-sm">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/12">
+                                    <Store className="h-5 w-5 text-primary" />
+                                </div>
+                                <div className="space-y-0.5">
+                                    <span className="text-sm font-semibold text-card-foreground">商业模式</span>
+                                    <p className="text-xs text-muted-foreground">开启=开放公开注册（访客自助注册）；关闭=自用模式（仅管理员建号）。这是「一键释放商业潜力」的总开关。</p>
+                                </div>
+                            </div>
+                            <Switch
+                                checked={settings?.find((s) => s.key === SettingKey.CommercialMode)?.value === 'true'}
+                                onCheckedChange={(checked) =>
+                                    setSetting.mutate(
+                                        { key: SettingKey.CommercialMode, value: checked ? 'true' : 'false' },
+                                        { onError: () => toast.error(t('saveFailed')) }
+                                    )
+                                }
+                                aria-label="商业模式"
+                            />
                         </div>
                     </div>
 

@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/lingyuins/octopus/internal/model"
+	"github.com/lingyuins/octopus/internal/op/setting"
 	usr "github.com/lingyuins/octopus/internal/op/user"
 	"github.com/lingyuins/octopus/internal/server/middleware"
 	"github.com/lingyuins/octopus/internal/server/resp"
@@ -33,9 +34,13 @@ func getBootstrapStatus(c *gin.Context) {
 		resp.Error(c, http.StatusInternalServerError, resp.ErrInternalServer)
 		return
 	}
+	// GGZERO: expose commercial mode so the public login page can decide whether
+	// to offer self-registration (true = commercial / open registration).
+	commercialMode, _ := setting.GetBool(model.SettingKeyCommercialMode)
 	resp.Success(c, gin.H{
-		"initialized": initialized,
-		"message":     message,
+		"initialized":     initialized,
+		"message":         message,
+		"commercial_mode": commercialMode,
 	})
 }
 

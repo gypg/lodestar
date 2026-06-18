@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/lingyuins/octopus/internal/model"
+	"github.com/lingyuins/octopus/internal/op/setting"
 	usr "github.com/lingyuins/octopus/internal/op/user"
 	"github.com/lingyuins/octopus/internal/server/auth"
 	"github.com/lingyuins/octopus/internal/server/middleware"
@@ -24,6 +25,14 @@ func init() {
 		router.NewRoute("/login", http.MethodPost).
 			Use(middleware.LoginRateLimit()).
 			Handle(login),
+	)
+
+	// GGZERO: public self-registration, gated by commercial_mode. In self-use
+	// mode (default) this returns 403; flip commercial_mode on to open it up.
+	publicUserRoutes.AddRoute(
+		router.NewRoute("/register", http.MethodPost).
+			Use(middleware.LoginRateLimit()).
+			Handle(register),
 	)
 
 	router.NewGroupRouter("/api/v1/user").
@@ -151,6 +160,48 @@ func login(c *gin.Context) {
 	}
 	middleware.ClearLoginFailures(loginKey)
 	token, expire, err := auth.GenerateJWTToken(user.Expire, userObj.ID, userObj.Role)
+	if err != nil {
+		resp.Error(c, http.StatusInternalServerError, resp.ErrInternalServer)
+		return
+	}
+	resp.Success(c, model.UserLoginResponse{Token: token, ExpireAt: expire})
+}
+
+// GGZERO: public self-registration handler. Only succeeds when commercial_mode
+// is enabled; creates a viewer-role account and auto-logs in (returns a token).
+func register(c *gin.Context) {
+	commercialMode, _ := setting.GetBool(model.SettingKeyCommercialMode)
+	if !commercialMode {
+		resp.Error(c, http.StatusForbidden, "registration is disabled in self-use mode")
+		return
+	}
+	var req model.UserLogin
+	if err := c.ShouldBindJSON(&req); err != nil {
+		resp.Error(c, http.StatusBadRequest, resp.ErrInvalidJSON)
+		return
+	}
+	loginKey := c.GetString("login_rate_limit_key")
+	if err := usr.Create(model.UserCreateRequest{
+		Username: req.Username,
+		Password: req.Password,
+		Role:     model.UserRoleViewer,
+	}, c.Request.Context()); err != nil {
+		msg := strings.ToLower(err.Error())
+		if strings.Contains(msg, "username already exists") {
+			resp.Error(c, http.StatusConflict, "username already exists")
+			return
+		}
+		resp.Error(c, http.StatusBadRequest, "failed to register")
+		return
+	}
+	// Auto-login the freshly created account.
+	userObj, err := usr.Verify(req.Username, req.Password)
+	if err != nil {
+		resp.Error(c, http.StatusInternalServerError, resp.ErrInternalServer)
+		return
+	}
+	middleware.ClearLoginFailures(loginKey)
+	token, expire, err := auth.GenerateJWTToken(req.Expire, userObj.ID, userObj.Role)
 	if err != nil {
 		resp.Error(c, http.StatusInternalServerError, resp.ErrInternalServer)
 		return

@@ -174,6 +174,25 @@ export function useLogin() {
 }
 
 /**
+ * 公开注册 Hook（仅商业模式开放）。成功即自动登录（返回 token）。
+ */
+export function useRegister() {
+    const { setAuth } = useAuthStore();
+
+    return useMutation({
+        mutationFn: async (data: UserLoginRequest) => {
+            return apiClient.post<UserLoginResponse>('/api/v1/user/register', data, undefined, false);
+        },
+        onSuccess: (data) => {
+            setAuth(data.token, data.expire_at);
+        },
+        onError: (error) => {
+            logger.error('注册失败:', error);
+        },
+    });
+}
+
+/**
  * 修改密码 Hook
  * 
  * @example
