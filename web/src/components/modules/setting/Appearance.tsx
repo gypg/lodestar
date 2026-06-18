@@ -27,9 +27,10 @@ import {
 import { serializeNavOrder, serializeNavVisible } from '@/components/modules/navbar';
 import { useSettingStore, type Locale } from '@/stores/setting';
 import { useThemePresetStore } from '@/stores/theme-preset';
-import { useSetUserPreferences } from '@/api/endpoints/user';
+import { useSetUserPreferences, useCurrentUser, isStaffRole } from '@/api/endpoints/user';
 import { SiteIdentity } from './SiteIdentity';
 import { SettingWallet } from './SettingWallet';
+import { ApiUsageGuide } from './ApiUsageGuide';
 import { PaymentSettings } from './PaymentSettings';
 import { BUILTIN_PRESETS } from '@/lib/theme-presets';
 import { useCustomThemesStore, parseCustomThemes } from '@/stores/custom-themes';
@@ -250,6 +251,8 @@ export function SettingAppearance() {
     const t = useTranslations('setting');
     const { theme, setTheme } = useTheme();
     const { presetId, setPreset } = useThemePresetStore();
+    const { data: meUser } = useCurrentUser();
+    const showAdmin = isStaffRole(meUser?.role);
     const setUserPreferences = useSetUserPreferences();
     const applyPreset = (id: string) => {
         setPreset(id);
@@ -517,11 +520,14 @@ export function SettingAppearance() {
 
                     <SettingWallet />
 
-                    <PaymentSettings />
+                    <ApiUsageGuide />
 
-                    <SiteIdentity />
+                    {showAdmin && <PaymentSettings />}
+
+                    {showAdmin && <SiteIdentity />}
 
                     {/* 商业模式（GGZERO 一键开关：开放公开注册 = 释放商业潜力的第一步） */}
+                    {showAdmin && (
                     <div className="flex flex-col gap-4 rounded-lg border border-primary/20 bg-gradient-to-br from-primary/5 to-transparent p-4 shadow-sm">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
@@ -545,6 +551,7 @@ export function SettingAppearance() {
                             />
                         </div>
                     </div>
+                    )}
 
                     {/* 中国化模式 */}
                     <div className="flex flex-col gap-4 rounded-lg border border-primary/20 bg-gradient-to-br from-primary/5 to-transparent p-4 shadow-sm">
