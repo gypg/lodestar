@@ -25,7 +25,7 @@ func setupModelListTest(t *testing.T) (int, func()) {
 
 	apiKey := &model.APIKey{
 		Name:    "test-key",
-		APIKey:  "sk-octopus-test-" + strings.NewReplacer("/", "-", "\\", "-", " ", "-").Replace(t.Name()),
+		APIKey:  "sk-ggzero-test-" + strings.NewReplacer("/", "-", "\\", "-", " ", "-").Replace(t.Name()),
 		Enabled: true,
 	}
 	if err := db.GetDB().WithContext(context.Background()).Create(apiKey).Error; err != nil {

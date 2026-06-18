@@ -10,7 +10,7 @@ import (
 )
 
 func TestEnsureDevBootstrapDataCreatesMockAPIKey(t *testing.T) {
-	t.Setenv("OCTOPUS_DEV_MOCK_SUCCESS", "true")
+	t.Setenv("GGZERO_DEV_MOCK_SUCCESS", "true")
 
 	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", strings.NewReplacer("/", "-", "\\", "-", " ", "-").Replace(t.Name()))
 	if err := db.InitDB("sqlite", dsn, false); err != nil {

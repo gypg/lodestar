@@ -9,7 +9,7 @@ import (
 )
 
 func TestResolveLocalStaticDirPrefersWebOutInDebug(t *testing.T) {
-	t.Setenv("OCTOPUS_DEBUG", "true")
+	t.Setenv("GGZERO_DEBUG", "true")
 
 	root := t.TempDir()
 	prevWD, err := os.Getwd()
@@ -39,7 +39,7 @@ func TestResolveLocalStaticDirPrefersWebOutInDebug(t *testing.T) {
 }
 
 func TestResolveLocalStaticDirFallsBackToStaticOutInDebug(t *testing.T) {
-	t.Setenv("OCTOPUS_DEBUG", "true")
+	t.Setenv("GGZERO_DEBUG", "true")
 
 	root := t.TempDir()
 	prevWD, err := os.Getwd()
@@ -65,7 +65,7 @@ func TestResolveLocalStaticDirFallsBackToStaticOutInDebug(t *testing.T) {
 }
 
 func TestResolveLocalStaticDirDisabledOutsideDebug(t *testing.T) {
-	t.Setenv("OCTOPUS_DEBUG", "false")
+	t.Setenv("GGZERO_DEBUG", "false")
 
 	root := t.TempDir()
 	prevWD, err := os.Getwd()

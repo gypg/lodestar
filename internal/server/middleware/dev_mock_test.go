@@ -11,7 +11,7 @@ import (
 )
 
 func TestDevMockPublicSuccessInterceptsChatCompletions(t *testing.T) {
-	t.Setenv("OCTOPUS_DEV_MOCK_SUCCESS", "true")
+	t.Setenv("GGZERO_DEV_MOCK_SUCCESS", "true")
 	gin.SetMode(gin.TestMode)
 
 	engine := gin.New()
@@ -40,7 +40,7 @@ func TestDevMockPublicSuccessInterceptsChatCompletions(t *testing.T) {
 }
 
 func TestDevMockPublicSuccessFallsThroughWhenDisabled(t *testing.T) {
-	t.Setenv("OCTOPUS_DEV_MOCK_SUCCESS", "false")
+	t.Setenv("GGZERO_DEV_MOCK_SUCCESS", "false")
 	gin.SetMode(gin.TestMode)
 
 	engine := gin.New()
@@ -60,7 +60,7 @@ func TestDevMockPublicSuccessFallsThroughWhenDisabled(t *testing.T) {
 }
 
 func TestDevMockPublicSuccessHandlesOversizeBody(t *testing.T) {
-	t.Setenv("OCTOPUS_DEV_MOCK_SUCCESS", "true")
+	t.Setenv("GGZERO_DEV_MOCK_SUCCESS", "true")
 	gin.SetMode(gin.TestMode)
 
 	engine := gin.New()

@@ -41,7 +41,7 @@ func TestListAPIKeyMasksKeysForViewer(t *testing.T) {
 
 	apiKey := &model.APIKey{
 		Name:    "viewer-key",
-		APIKey:  "sk-octopus-secret-12345678",
+		APIKey:  "sk-ggzero-secret-12345678",
 		Enabled: true,
 	}
 	if err := op.APIKeyCreate(apiKey, ctx); err != nil {
@@ -70,10 +70,10 @@ func TestListAPIKeyMasksKeysForViewer(t *testing.T) {
 		t.Fatalf("unexpected response payload: %+v", response.Data)
 	}
 	got := response.Data[0].APIKey
-	if got == "sk-octopus-secret-12345678" {
+	if got == "sk-ggzero-secret-12345678" {
 		t.Fatalf("expected masked API key, got raw value %q", got)
 	}
-	if !strings.HasPrefix(got, "sk-o") || !strings.HasSuffix(got, "5678") {
+	if !strings.HasPrefix(got, "sk-g") || !strings.HasSuffix(got, "5678") {
 		t.Fatalf("expected masked API key to retain edges, got %q", got)
 	}
 }
@@ -86,7 +86,7 @@ func TestCreateAPIKeyIgnoresReadonlyFields(t *testing.T) {
 	c.Request = httptest.NewRequest(http.MethodPost, "/api/v1/apikey/create", strings.NewReader(`{
 		"id":1234,
 		"name":"created-key",
-		"api_key":"sk-octopus-client-supplied",
+		"api_key":"sk-ggzero-client-supplied",
 		"enabled":true
 	}`))
 	c.Request.Header.Set("Content-Type", "application/json")
@@ -109,7 +109,7 @@ func TestCreateAPIKeyIgnoresReadonlyFields(t *testing.T) {
 		t.Fatalf("create response preserved client supplied id")
 	}
 	// Custom api_key should now be accepted.
-	if response.Data.APIKey != "sk-octopus-client-supplied" {
+	if response.Data.APIKey != "sk-ggzero-client-supplied" {
 		t.Fatalf("expected client supplied api_key, got %q", response.Data.APIKey)
 	}
 }
@@ -142,8 +142,8 @@ func TestCreateAPIKeyAutoGeneratesWhenEmpty(t *testing.T) {
 	if response.Data.APIKey == "" {
 		t.Fatalf("expected auto-generated api_key, got empty")
 	}
-	if !strings.HasPrefix(response.Data.APIKey, "sk-octopus-") {
-		t.Fatalf("expected auto-generated key with sk-octopus- prefix, got %q", response.Data.APIKey)
+	if !strings.HasPrefix(response.Data.APIKey, "sk-ggzero-") {
+		t.Fatalf("expected auto-generated key with sk-ggzero- prefix, got %q", response.Data.APIKey)
 	}
 }
 
@@ -173,8 +173,8 @@ func TestCreateAPIKeyAcceptsFullyCustomValue(t *testing.T) {
 	if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
 		t.Fatalf("decode response: %v", err)
 	}
-	// The backend should auto-prepend the sk-octopus- prefix.
-	if response.Data.APIKey != "sk-octopus-my-totally-custom-api-key" {
+	// The backend should auto-prepend the sk-ggzero- prefix.
+	if response.Data.APIKey != "sk-ggzero-my-totally-custom-api-key" {
 		t.Fatalf("expected prefixed custom api_key, got %q", response.Data.APIKey)
 	}
 }
@@ -184,7 +184,7 @@ func TestUpdateAPIKeyDoesNotEchoRawKey(t *testing.T) {
 
 	apiKey := &model.APIKey{
 		Name:    "updatable-key",
-		APIKey:  "sk-octopus-secret-abcdef12",
+		APIKey:  "sk-ggzero-secret-abcdef12",
 		Enabled: true,
 	}
 	if err := op.APIKeyCreate(apiKey, ctx); err != nil {
@@ -210,7 +210,7 @@ func TestUpdateAPIKeyDoesNotEchoRawKey(t *testing.T) {
 	if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
 		t.Fatalf("decode response: %v", err)
 	}
-	if response.Data.APIKey == "sk-octopus-secret-abcdef12" {
+	if response.Data.APIKey == "sk-ggzero-secret-abcdef12" {
 		t.Fatalf("update response leaked raw API key")
 	}
 }
