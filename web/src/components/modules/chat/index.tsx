@@ -10,6 +10,7 @@ Lodestar — 站内对话（消费级核心，思路源自 SAPI ChatSection，UI
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Send, Square, Trash2 } from 'lucide-react';
 import { useAPIKeyList } from '@/api/endpoints/apikey';
+import { usePublicOverview } from '@/api/endpoints/public';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -21,6 +22,9 @@ interface Msg {
 export function Chat() {
     const { data: keys } = useAPIKeyList();
     const enabledKeys = useMemo(() => (keys ?? []).filter((k) => k.enabled && k.api_key), [keys]);
+    // 站点可用模型列表（公开概览，无需登录），用于模型输入联想。
+    const { data: overview } = usePublicOverview();
+    const modelNames = useMemo(() => (overview?.models ?? []).map((m) => m.name).filter(Boolean), [overview]);
     const [keyId, setKeyId] = useState<number | null>(null);
     const [model, setModel] = useState('gpt-4o-mini');
     const [messages, setMessages] = useState<Msg[]>([]);
@@ -124,7 +128,18 @@ export function Chat() {
         <div className="flex h-full min-h-0 flex-col gap-3 rounded-xl border border-border bg-card p-3 md:p-4">
             {/* 工具条：模型 + 密钥 */}
             <div className="flex flex-wrap items-center gap-2">
-                <Input value={model} onChange={(e) => setModel(e.target.value)} placeholder="模型，如 gpt-4o-mini" className="h-9 w-48 rounded-lg" />
+                <Input
+                    value={model}
+                    onChange={(e) => setModel(e.target.value)}
+                    list="chat-model-options"
+                    placeholder="模型，如 gpt-4o-mini"
+                    className="h-9 w-48 rounded-lg"
+                />
+                <datalist id="chat-model-options">
+                    {modelNames.map((name) => (
+                        <option key={name} value={name} />
+                    ))}
+                </datalist>
                 <select
                     value={keyId ?? ''}
                     onChange={(e) => setKeyId(Number(e.target.value))}
