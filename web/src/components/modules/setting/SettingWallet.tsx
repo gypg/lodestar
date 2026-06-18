@@ -14,10 +14,11 @@ import { Wallet } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/common/Toast';
-import { useWallet, useRedeemCode, useGenerateCodes, useTopup } from '@/api/endpoints/wallet';
+import { useWallet, useRedeemCode, useGenerateCodes, useTopup, useUsage } from '@/api/endpoints/wallet';
 
 export function SettingWallet() {
     const { data: balance } = useWallet();
+    const { data: usage } = useUsage();
     const redeem = useRedeemCode();
     const genCodes = useGenerateCodes();
     const topup = useTopup();
@@ -103,6 +104,34 @@ export function SettingWallet() {
                     <div className="text-lg font-semibold tabular-nums text-muted-foreground">${(balance?.used_quota ?? 0).toFixed(4)}</div>
                     <div className="text-[10px] uppercase tracking-wider text-muted-foreground">已用</div>
                 </div>
+            </div>
+
+            {/* 我的用量（聚合自己名下各 key） */}
+            <div className="flex flex-col gap-2 rounded-lg border border-border/30 bg-card p-3">
+                <div className="grid grid-cols-3 gap-2 text-center">
+                    <div>
+                        <div className="text-base font-semibold tabular-nums text-card-foreground">{(usage?.total_requests ?? 0).toLocaleString('en-US')}</div>
+                        <div className="text-[10px] uppercase tracking-wider text-muted-foreground">请求</div>
+                    </div>
+                    <div>
+                        <div className="text-base font-semibold tabular-nums text-card-foreground">{(usage?.total_tokens ?? 0).toLocaleString('en-US')}</div>
+                        <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Tokens</div>
+                    </div>
+                    <div>
+                        <div className="text-base font-semibold tabular-nums text-card-foreground">${(usage?.total_cost ?? 0).toFixed(4)}</div>
+                        <div className="text-[10px] uppercase tracking-wider text-muted-foreground">花费</div>
+                    </div>
+                </div>
+                {usage && usage.per_key.length > 0 && (
+                    <div className="mt-1 flex flex-col gap-1 border-t border-border/40 pt-2">
+                        {usage.per_key.map((k) => (
+                            <div key={k.name} className="flex items-baseline justify-between text-xs">
+                                <span className="mr-3 truncate text-card-foreground">{k.name}</span>
+                                <span className="shrink-0 tabular-nums text-muted-foreground">{k.requests.toLocaleString('en-US')} 次 · ${k.cost.toFixed(4)}</span>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
 
             <div className="flex items-end gap-2">

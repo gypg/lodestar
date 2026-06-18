@@ -97,7 +97,8 @@
     "user": "User",
     "setting": "Setting",
     "ariaLabel": "Main navigation",
-    "apikey": "API Keys & Endpoints"
+    "apikey": "API Keys & Endpoints",
+    "chat": "Chat"
   },
   "endpoints": {
     "title": "Available Endpoints",

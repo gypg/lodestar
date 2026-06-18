@@ -16,7 +16,9 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	apikey "github.com/lingyuins/octopus/internal/op/apikey"
 	"github.com/lingyuins/octopus/internal/op/payment"
+	st "github.com/lingyuins/octopus/internal/op/stats"
 	"github.com/lingyuins/octopus/internal/op/topup"
 	"github.com/lingyuins/octopus/internal/op/user"
 	"github.com/lingyuins/octopus/internal/server/auth"
@@ -40,6 +42,10 @@ func init() {
 		AddRoute(
 			router.NewRoute("/topup", http.MethodPost).
 				Handle(requestTopup),
+		).
+		AddRoute(
+			router.NewRoute("/usage", http.MethodGet).
+				Handle(getUsage),
 		)
 
 	// Public, no-auth Epay callback (gateway posts form / query params, not JSON).
@@ -79,6 +85,45 @@ func getWallet(c *gin.Context) {
 		return
 	}
 	resp.Success(c, gin.H{"quota": remaining, "used_quota": used, "epay_configured": payment.EpayConfigured()})
+}
+
+// getUsage returns the current user's own usage, aggregated over their API keys
+// (each key's accumulated stats). Drives the user portal usage view.
+func getUsage(c *gin.Context) {
+	uid := uint(c.GetInt("user_id"))
+	keys, err := apikey.List(c.Request.Context())
+	if err != nil {
+		resp.InternalError(c)
+		return
+	}
+	type keyUsage struct {
+		Name     string  `json:"name"`
+		Requests int64   `json:"requests"`
+		Tokens   int64   `json:"tokens"`
+		Cost     float64 `json:"cost"`
+	}
+	perKey := make([]keyUsage, 0)
+	var totReq, totTok int64
+	var totCost float64
+	for _, k := range keys {
+		if k.UserID != uid {
+			continue
+		}
+		s := st.APIKeyGet(k.ID)
+		req := s.StatsMetrics.RequestSuccess + s.StatsMetrics.RequestFailed
+		tok := s.StatsMetrics.InputToken + s.StatsMetrics.OutputToken
+		cost := s.StatsMetrics.InputCost + s.StatsMetrics.OutputCost
+		perKey = append(perKey, keyUsage{Name: k.Name, Requests: req, Tokens: tok, Cost: cost})
+		totReq += req
+		totTok += tok
+		totCost += cost
+	}
+	resp.Success(c, gin.H{
+		"total_requests": totReq,
+		"total_tokens":   totTok,
+		"total_cost":     totCost,
+		"per_key":        perKey,
+	})
 }
 
 // requestTopup creates an online (Epay) payment order and returns the gateway

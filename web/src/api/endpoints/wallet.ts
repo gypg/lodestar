@@ -58,3 +58,24 @@ export function useTopup() {
             apiClient.post<{ url: string; params: Record<string, string> }>('/api/v1/wallet/topup', data),
     });
 }
+
+/** 每用户用量（聚合自己名下各 key 的统计） */
+export interface UsageKey {
+    name: string;
+    requests: number;
+    tokens: number;
+    cost: number;
+}
+export interface UsageSummary {
+    total_requests: number;
+    total_tokens: number;
+    total_cost: number;
+    per_key: UsageKey[];
+}
+export function useUsage() {
+    return useQuery({
+        queryKey: ['wallet', 'usage'],
+        queryFn: async () => apiClient.get<UsageSummary>('/api/v1/wallet/usage'),
+        refetchOnWindowFocus: false,
+    });
+}

@@ -11,9 +11,9 @@ import { useTranslations } from "next-intl"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { useCurrentUser, isStaffRole } from "@/api/endpoints/user"
 
-// GGZERO 多租户：非 staff（viewer/商业注册用户）只见用户自助相关导航；
+// GGZERO 多租户：非 staff（viewer/商业注册用户）只见用户自助门户导航（固定顺序）；
 // 渠道/分组/告警/运维/用户管理/多站聚合等管理项对其隐藏。
-const USER_PORTAL_NAV = new Set<NavItem>(['home', 'model', 'apikey', 'setting'])
+const USER_PORTAL_NAV: NavItem[] = ['home', 'chat', 'model', 'apikey', 'setting']
 
 export function NavBar() {
     const { activeItem, orderedItems, visibleItems, setActiveItem } = useNavStore()
@@ -31,15 +31,21 @@ export function NavBar() {
         () => new Map(ROUTES.map((route) => [route.id as NavItem, route])),
         []
     )
-    const orderedRoutes = useMemo(
-        () =>
-            orderedItems
-                .filter((item) => visibleRouteSet.has(item))
-                .filter((item) => !restrictToPortal || USER_PORTAL_NAV.has(item))
-                .map((item) => routeById.get(item))
-                .filter((route) => route !== undefined),
-        [orderedItems, routeById, visibleRouteSet, restrictToPortal]
-    )
+    const allRouteIds = useMemo(() => ROUTES.map((r) => r.id as NavItem), [])
+    const orderedRoutes = useMemo(() => {
+        let items: NavItem[]
+        if (restrictToPortal) {
+            items = USER_PORTAL_NAV
+        } else {
+            const configured = orderedItems.filter((item) => visibleRouteSet.has(item))
+            // 追加配置中尚无的新路由（如新增的 'chat'），保证新功能对管理员也可见
+            const extras = allRouteIds.filter((id) => !orderedItems.includes(id))
+            items = [...configured, ...extras]
+        }
+        return items
+            .map((item) => routeById.get(item))
+            .filter((route) => route !== undefined)
+    }, [restrictToPortal, orderedItems, visibleRouteSet, routeById, allRouteIds])
 
     return (
         <div className="relative z-50 md:min-h-full">

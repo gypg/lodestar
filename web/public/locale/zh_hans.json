@@ -97,7 +97,8 @@
     "user": "用户",
     "setting": "设置",
     "ariaLabel": "主导航",
-    "apikey": "API 密钥及端点"
+    "apikey": "API 密钥及端点",
+    "chat": "对话"
   },
   "endpoints": {
     "title": "可用端点",

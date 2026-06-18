@@ -3,6 +3,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 export type NavItem =
     | 'home'
+    | 'chat'
     | 'hub'
     | 'channel'
     | 'group'
@@ -17,6 +18,7 @@ export type NavItem =
 
 export const DEFAULT_NAV_ORDER: NavItem[] = [
     'home',
+    'chat',
     'hub',
     'channel',
     'group',
