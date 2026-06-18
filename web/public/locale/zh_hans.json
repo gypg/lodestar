@@ -2058,7 +2058,7 @@
       "selectGroup": "选择分组",
       "appLabel": "目标应用",
       "nameLabel": "名称",
-      "namePlaceholder": "例：octopus_claude_my-group",
+      "namePlaceholder": "例：ggzero_claude_my-group",
       "selectModel": "选择分组",
       "haikuModelLabel": "Haiku 模型",
       "sonnetModelLabel": "Sonnet 模型",

@@ -2058,7 +2058,7 @@
       "selectGroup": "Select group",
       "appLabel": "Target App",
       "nameLabel": "Name",
-      "namePlaceholder": "e.g. octopus_claude_my-group",
+      "namePlaceholder": "e.g. ggzero_claude_my-group",
       "selectModel": "Select group",
       "haikuModelLabel": "Haiku Model",
       "sonnetModelLabel": "Sonnet Model",

@@ -11,12 +11,15 @@ const LOGO_DRAW_DURATION_S = 0.8;
 const LOGO_STAGGER_S = 0.15;
 const LOGO_FADE_DURATION_S = 0.6;
 
+// GGZERO 标识：六瓣雪花（贴合冬日主题，替代上游章鱼图案）。
+// 三条主轴穿过中心 + 各瓣分枝，描边路径配合 pathLength 绘制动画。
 const paths = [
-    "M50 15 C70 15 85 30 85 50 C85 65 75 75 70 80 M50 15 C30 15 15 30 15 50 C15 65 25 75 30 80",
-    "M30 80 Q30 90 20 90",
-    "M43 77 Q43 90 38 90",
-    "M57 77 Q57 90 62 90",
-    "M70 80 Q70 90 80 90",
+    "M50 12 L50 88",
+    "M17 31 L83 69",
+    "M83 31 L17 69",
+    "M50 26 L43 19 M50 26 L57 19 M50 74 L43 81 M50 74 L57 81",
+    "M28 33 L20 30 M28 33 L25 41 M72 67 L80 70 M72 67 L75 59",
+    "M72 33 L80 30 M72 33 L75 41 M28 67 L20 70 M28 67 L25 59",
 ];
 
 export const LOGO_DRAW_END_MS = Math.round(

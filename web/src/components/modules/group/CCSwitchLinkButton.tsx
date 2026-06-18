@@ -94,7 +94,7 @@ export function CCSwitchLinkButton({ className }: { className?: string }) {
         if (!endpoint || !selectedGroup || !selectedApiKey || !effectiveName.trim()) return '';
 
         const notes = [
-            'Octopus route group',
+            'GGZERO route group',
             selectedGroup.endpoint_type ? `endpoint: ${selectedGroup.endpoint_type}` : '',
             selectedGroup.items?.length ? `${selectedGroup.items.length} routes` : '',
         ].filter(Boolean).join(', ');
