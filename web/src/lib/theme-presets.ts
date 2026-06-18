@@ -197,7 +197,7 @@ export const BUILTIN_PRESETS: ThemePreset[] = [
   accentPreset('amber', '琥珀 Amber', 'oklch(0.7 0.15 70)', '温暖琥珀', 'oklch(0.66 0.14 70)', 'oklch(0.72 0.12 55)', 'oklch(0.74 0.13 70)', 'oklch(0.76 0.11 55)'),
 ]
 
-export const DEFAULT_PRESET_ID = 'default'
+export const DEFAULT_PRESET_ID = 'winter'
 
 export function getPreset(id: string, extra: ThemePreset[] = []): ThemePreset | undefined {
   return [...BUILTIN_PRESETS, ...extra].find((p) => p.id === id)

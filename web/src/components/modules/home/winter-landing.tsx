@@ -49,9 +49,26 @@ interface Flake {
   sym: string;
 }
 
-export function WinterLanding({ onEnterDashboard }: { onEnterDashboard: () => void }) {
+export function WinterLanding({
+  variant = 'home',
+  onEnterDashboard,
+  onLogin,
+}: {
+  variant?: 'home' | 'public';
+  onEnterDashboard?: () => void;
+  onLogin?: () => void;
+}) {
   const setActiveItem = useNavStore((s) => s.setActiveItem);
   const [now, setNow] = useState(() => new Date());
+
+  const isPublic = variant === 'public';
+  const handleNav = (id: NavItem) => {
+    if (isPublic) {
+      onLogin?.();
+    } else {
+      setActiveItem(id);
+    }
+  };
 
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
@@ -145,14 +162,14 @@ export function WinterLanding({ onEnterDashboard }: { onEnterDashboard: () => vo
           </div>
         </header>
 
-        {/* 右上：进入数据概览 */}
+        {/* 右上：登录（公开） / 进入数据概览（已登录） */}
         <button
           type="button"
-          onClick={onEnterDashboard}
+          onClick={isPublic ? onLogin : onEnterDashboard}
           className="absolute right-[6vw] top-[6vh] border-b pb-px text-[11px] uppercase tracking-[0.25em] text-muted-foreground transition-colors hover:text-foreground"
           style={{ fontFamily: SANS, borderColor: 'currentColor' }}
         >
-          进入数据概览 →
+          {isPublic ? '登录 / 进入 →' : '进入数据概览 →'}
         </button>
 
         {/* 左侧编号目录 */}
@@ -172,7 +189,7 @@ export function WinterLanding({ onEnterDashboard }: { onEnterDashboard: () => vo
                 <span className="mr-2.5 text-[11px] tabular-nums text-muted-foreground">{pad2(idx + 1)}</span>
                 <button
                   type="button"
-                  onClick={() => setActiveItem(item.id)}
+                  onClick={() => handleNav(item.id)}
                   className="flex-1 border-b border-transparent text-left text-sm text-foreground transition-colors hover:border-primary"
                 >
                   {item.label}

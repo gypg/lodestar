@@ -6,6 +6,7 @@ import { motion, AnimatePresence, useReducedMotion } from "motion/react"
 import { RefreshCw, Search } from 'lucide-react';
 import { useAuth } from '@/api/endpoints/user';
 import { LoginForm } from '@/components/modules/login';
+import { WinterLanding } from '@/components/modules/home/winter-landing';
 import { APIKeyDashboard } from '@/components/modules/apikey-dashboard';
 import { ContentLoader } from '@/route/content-loader';
 import { NavBar, useNavStore } from '@/components/modules/navbar';
@@ -105,6 +106,34 @@ function HeaderModelSearch({ activeItem }: { activeItem: NavItem }) {
                 className="h-7 min-w-0 w-28 rounded-md border border-border/50 bg-background px-2 text-xs outline-none placeholder:text-muted-foreground/50 focus:border-primary/30 focus:ring-1 focus:ring-primary/20 sm:w-36 lg:w-48"
             />
         </div>
+    );
+}
+
+// 公开入口：访客（未登录）先看到冬日封面，点「登录 / 进入」或目录项才唤出登录表单。
+// 主题（含冬日预设）由 ThemeProvider 全局应用，因此封面一进站就是漂亮配色。
+function PublicEntry() {
+    const [showLogin, setShowLogin] = useState(false);
+
+    if (showLogin) {
+        return (
+            <AnimatePresence mode="wait">
+                <LoginForm key="login" />
+            </AnimatePresence>
+        );
+    }
+
+    return (
+        <AnimatePresence mode="wait">
+            <motion.div
+                key="public-landing"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                className="h-dvh w-full p-2.5 md:p-5"
+            >
+                <WinterLanding variant="public" onLogin={() => setShowLogin(true)} />
+            </motion.div>
+        </AnimatePresence>
     );
 }
 
@@ -403,13 +432,9 @@ export function AppContainer() {
         );
     }
 
-    // 登录页面
+    // 登录页面（访客先见冬日封面，点击进入再唤出登录）
     if (!isAuthenticated) {
-        return (
-            <AnimatePresence mode="wait">
-                <LoginForm key="login" />
-            </AnimatePresence>
-        );
+        return <PublicEntry />;
     }
 
     // 主界面
