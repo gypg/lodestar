@@ -16,6 +16,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/lingyuins/octopus/internal/op/payment"
 	"github.com/lingyuins/octopus/internal/op/topup"
 	"github.com/lingyuins/octopus/internal/op/user"
 	"github.com/lingyuins/octopus/internal/server/auth"
@@ -35,6 +36,21 @@ func init() {
 		AddRoute(
 			router.NewRoute("/redeem", http.MethodPost).
 				Handle(redeemCode),
+		).
+		AddRoute(
+			router.NewRoute("/topup", http.MethodPost).
+				Handle(requestTopup),
+		)
+
+	// Public, no-auth Epay callback (gateway posts form / query params, not JSON).
+	router.NewGroupRouter("/api/v1/wallet").
+		AddRoute(
+			router.NewRoute("/epay/notify", http.MethodPost).
+				Handle(epayNotify),
+		).
+		AddRoute(
+			router.NewRoute("/epay/notify", http.MethodGet).
+				Handle(epayNotify),
 		)
 
 	router.NewGroupRouter("/api/v1/wallet").
@@ -62,7 +78,50 @@ func getWallet(c *gin.Context) {
 		resp.InternalError(c)
 		return
 	}
-	resp.Success(c, gin.H{"quota": remaining, "used_quota": used})
+	resp.Success(c, gin.H{"quota": remaining, "used_quota": used, "epay_configured": payment.EpayConfigured()})
+}
+
+// requestTopup creates an online (Epay) payment order and returns the gateway
+// URL + signed params for the frontend to submit.
+func requestTopup(c *gin.Context) {
+	var req struct {
+		Amount float64 `json:"amount"`
+		Method string  `json:"method"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		resp.Error(c, http.StatusBadRequest, resp.ErrInvalidJSON)
+		return
+	}
+	uri, params, err := payment.CreateEpayOrder(uint(c.GetInt("user_id")), req.Amount, req.Method, c.Request.Context())
+	if err != nil {
+		if errors.Is(err, payment.ErrNotConfigured) {
+			resp.Error(c, http.StatusBadRequest, "管理员未配置在线支付")
+			return
+		}
+		resp.Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	resp.Success(c, gin.H{"url": uri, "params": params})
+}
+
+// epayNotify is the public Epay callback: verify signature + credit the user once.
+func epayNotify(c *gin.Context) {
+	params := map[string]string{}
+	if c.Request.Method == http.MethodPost {
+		_ = c.Request.ParseForm()
+		for k := range c.Request.PostForm {
+			params[k] = c.Request.PostForm.Get(k)
+		}
+	} else {
+		for k := range c.Request.URL.Query() {
+			params[k] = c.Request.URL.Query().Get(k)
+		}
+	}
+	if payment.HandleEpayNotify(params, c.Request.Context()) {
+		_, _ = c.Writer.Write([]byte("success"))
+	} else {
+		_, _ = c.Writer.Write([]byte("fail"))
+	}
 }
 
 func redeemCode(c *gin.Context) {

@@ -14,13 +14,16 @@ import { Wallet } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/common/Toast';
-import { useWallet, useRedeemCode, useGenerateCodes } from '@/api/endpoints/wallet';
+import { useWallet, useRedeemCode, useGenerateCodes, useTopup } from '@/api/endpoints/wallet';
 
 export function SettingWallet() {
     const { data: balance } = useWallet();
     const redeem = useRedeemCode();
     const genCodes = useGenerateCodes();
+    const topup = useTopup();
     const [code, setCode] = useState('');
+    const [amount, setAmount] = useState('5');
+    const [method, setMethod] = useState('alipay');
     const [count, setCount] = useState('10');
     const [quota, setQuota] = useState('1');
     const [generated, setGenerated] = useState<string[]>([]);
@@ -35,6 +38,35 @@ export function SettingWallet() {
             },
             onError: (e) => toast.error(e instanceof Error ? e.message : '兑换失败'),
         });
+    };
+
+    const onTopup = () => {
+        const amt = parseFloat(amount);
+        if (!amt || amt <= 0) {
+            toast.error('请输入有效金额');
+            return;
+        }
+        topup.mutate(
+            { amount: amt, method },
+            {
+                onSuccess: (d) => {
+                    // 构造表单提交到易支付网关，跳转用户去付款
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = d.url;
+                    Object.entries(d.params || {}).forEach(([k, v]) => {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = k;
+                        input.value = String(v);
+                        form.appendChild(input);
+                    });
+                    document.body.appendChild(form);
+                    form.submit();
+                },
+                onError: (e) => toast.error(e instanceof Error ? e.message : '发起支付失败（需管理员配置支付）'),
+            }
+        );
     };
 
     const onGenerate = () => {
@@ -80,6 +112,24 @@ export function SettingWallet() {
                 </div>
                 <Button type="button" size="sm" onClick={onRedeem} disabled={redeem.isPending || !code.trim()}>兑换</Button>
             </div>
+
+            {balance?.epay_configured && (
+                <div className="flex items-end gap-2">
+                    <div className="flex flex-1 flex-col gap-1.5">
+                        <label className="ml-1 text-xs font-medium text-muted-foreground">在线充值 (USD)</label>
+                        <Input value={amount} onChange={(e) => setAmount(e.target.value)} type="number" step="0.01" min="0" className="rounded-lg" />
+                    </div>
+                    <select
+                        value={method}
+                        onChange={(e) => setMethod(e.target.value)}
+                        className="h-9 rounded-lg border border-border/40 bg-background px-2 text-sm"
+                    >
+                        <option value="alipay">支付宝</option>
+                        <option value="wxpay">微信</option>
+                    </select>
+                    <Button type="button" size="sm" onClick={onTopup} disabled={topup.isPending}>去支付</Button>
+                </div>
+            )}
 
             <details className="rounded-lg border border-border/30 bg-card p-3">
                 <summary className="cursor-pointer text-sm font-medium text-card-foreground">管理员 · 生成兑换码</summary>

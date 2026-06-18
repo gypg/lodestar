@@ -80,6 +80,12 @@ const (
 	SettingKeySiteDescription                      SettingKey = "site_description"                         // GGZERO 站点简介(关于本站)
 	SettingKeySiteAnnouncement                     SettingKey = "site_announcement"                        // GGZERO 站点公告(对外公开展示)
 	SettingKeySiteFooter                           SettingKey = "site_footer"                              // GGZERO 页脚文案
+	SettingKeyEpayEnabled                          SettingKey = "epay_enabled"                             // GGZERO 易支付开关
+	SettingKeyPayAddress                           SettingKey = "pay_address"                              // 易支付网关地址 (https://xxx)
+	SettingKeyEpayPID                              SettingKey = "epay_pid"                                 // 易支付商户 PID
+	SettingKeyEpayKey                              SettingKey = "epay_key"                                 // 易支付商户密钥
+	SettingKeyTopupRate                            SettingKey = "topup_rate"                               // 充值汇率: 每 1 USD 额度对应的支付金额(网关货币)
+	SettingKeyPaymentCallbackBase                  SettingKey = "payment_callback_base"                    // 支付回调站点基址 (https://your-site)，用于 notify/return
 )
 
 type Setting struct {
@@ -126,6 +132,12 @@ func DefaultSettings() []Setting {
 		{Key: SettingKeySiteDescription, Value: "高自定义 · 自用优先 · 可聚合的个人 AI 中转站"},
 		{Key: SettingKeySiteAnnouncement, Value: ""},
 		{Key: SettingKeySiteFooter, Value: ""},
+		{Key: SettingKeyEpayEnabled, Value: "false"},
+		{Key: SettingKeyPayAddress, Value: ""},
+		{Key: SettingKeyEpayPID, Value: ""},
+		{Key: SettingKeyEpayKey, Value: ""},
+		{Key: SettingKeyTopupRate, Value: "1"},
+		{Key: SettingKeyPaymentCallbackBase, Value: ""},
 		{Key: SettingKeyAIRouteGroupID, Value: "0"},
 		{Key: SettingKeyAIRouteBaseURL, Value: ""},
 		{Key: SettingKeyAIRouteAPIKey, Value: ""},

@@ -259,6 +259,7 @@ func Migrate(conn *gorm.DB) error {
 		&model.WSResponseAffinity{},
 		&model.WebAuthnCredential{},
 		&model.TopupCode{},
+		&model.PaymentOrder{},
 		&migrate.MigrationRecord{},
 	); err != nil {
 		return err

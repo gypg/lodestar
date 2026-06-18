@@ -5,6 +5,7 @@ import { apiClient } from '../client';
 export interface WalletBalance {
     quota: number;
     used_quota: number;
+    epay_configured?: boolean;
 }
 
 export interface TopupCode {
@@ -47,5 +48,13 @@ export function useGrantQuota() {
         mutationFn: async (data: { user_id: number; amount: number }) =>
             apiClient.post('/api/v1/wallet/grant', data),
         onSuccess: () => qc.invalidateQueries({ queryKey: ['wallet', 'balance'] }),
+    });
+}
+
+/** 在线充值（易支付）：返回网关 URL + 已签名参数，前端构造表单提交跳转 */
+export function useTopup() {
+    return useMutation({
+        mutationFn: async (data: { amount: number; method: string }) =>
+            apiClient.post<{ url: string; params: Record<string, string> }>('/api/v1/wallet/topup', data),
     });
 }
