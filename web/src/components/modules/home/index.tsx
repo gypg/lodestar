@@ -1,10 +1,11 @@
 'use client';
 
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, useState } from 'react';
 import { Activity } from './activity';
 import { HomeHero } from './hero';
 import { HomeAnalyticsOverview } from './analytics-overview';
 import { Rank } from './rank';
+import { WinterLanding } from './winter-landing';
 import { PageWrapper } from '@/components/common/PageWrapper';
 
 // StatsChart 拉入了整个 recharts（数百 KB）。home 是默认首页路由，若同步引入
@@ -22,6 +23,13 @@ function ChartSkeleton() {
 }
 
 export function Home() {
+    // 冬日风落地页作为首页封面（GGZERO 招牌入口）；点击「进入数据概览」切换到经典仪表盘。
+    const [showDashboard, setShowDashboard] = useState(false);
+
+    if (!showDashboard) {
+        return <WinterLanding onEnterDashboard={() => setShowDashboard(true)} />;
+    }
+
     return (
         <PageWrapper className="h-full min-h-0 overflow-y-auto overscroll-contain space-y-4 md:space-y-5 xl:space-y-6 rounded-t-xl pb-3 md:pb-4">
             <HomeHero />
