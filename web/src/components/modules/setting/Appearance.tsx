@@ -31,6 +31,7 @@ import { useSetUserPreferences, useCurrentUser, isStaffRole } from '@/api/endpoi
 import { SiteIdentity } from './SiteIdentity';
 import { SettingWallet } from './SettingWallet';
 import { ApiUsageGuide } from './ApiUsageGuide';
+import { Feedback } from './Feedback';
 import { PaymentSettings } from './PaymentSettings';
 import { BUILTIN_PRESETS } from '@/lib/theme-presets';
 import { useCustomThemesStore, parseCustomThemes } from '@/stores/custom-themes';
@@ -521,6 +522,8 @@ export function SettingAppearance() {
                     <SettingWallet />
 
                     <ApiUsageGuide />
+
+                    <Feedback />
 
                     {showAdmin && <PaymentSettings />}
 
