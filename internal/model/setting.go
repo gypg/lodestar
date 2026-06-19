@@ -100,6 +100,7 @@ const (
 	SettingKeySiteBannerEnabled                    SettingKey = "site_banner_enabled"
 	SettingKeySiteBannerText                       SettingKey = "site_banner_text"
 	SettingKeySiteBannerTone                       SettingKey = "site_banner_tone"
+	SettingKeyBillingExpr                          SettingKey = "billing_expr"                             // Lodestar 表达式计费(JSON: {"model":"expr",...})
 )
 
 type Setting struct {
@@ -151,6 +152,7 @@ func DefaultSettings() []Setting {
 		{Key: SettingKeySiteBannerEnabled, Value: "false"},
 		{Key: SettingKeySiteBannerText, Value: ""},
 		{Key: SettingKeySiteBannerTone, Value: "info"},
+		{Key: SettingKeyBillingExpr, Value: "{}"},
 		{Key: SettingKeyEpayEnabled, Value: "false"},
 		{Key: SettingKeyPayAddress, Value: ""},
 		{Key: SettingKeyEpayPID, Value: ""},

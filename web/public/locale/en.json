@@ -1775,6 +1775,9 @@
         "label": "USD to CNY Rate",
         "hint": "Default 7.2, adjustable"
       }
+    },
+    "billingExpr": {
+      "title": "Billing Expressions"
     }
   },
   "group": {

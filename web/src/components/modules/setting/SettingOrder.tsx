@@ -32,7 +32,8 @@ export type SettingItemId =
     | 'webauthn'
     | 'purge-unavailable'
     | 'site-automation'
-    | 'route-group-danger';
+    | 'route-group-danger'
+    | 'billing-expr';
 
 export const DEFAULT_SETTING_ORDER: SettingItemId[] = [
     'info',
@@ -53,6 +54,7 @@ export const DEFAULT_SETTING_ORDER: SettingItemId[] = [
     'purge-unavailable',
     'site-automation',
     'route-group-danger',
+    'billing-expr',
 ];
 
 export const SETTING_ORDER_STORAGE_KEY = 'octopus-setting-order';
@@ -131,6 +133,7 @@ export function SettingOrder() {
             'purge-unavailable': settingT('purgeUnavailable.title'),
             'site-automation': settingT('siteAutomation.title'),
             'route-group-danger': settingT('routeGroups.title'),
+            'billing-expr': settingT('billingExpr.title'),
         };
         return map;
     }, [settingT]);

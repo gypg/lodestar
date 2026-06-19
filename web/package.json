@@ -14,6 +14,7 @@
     "check": "pnpm lint && pnpm test:i18n && pnpm test:unit && NEXT_PUBLIC_APP_VERSION=check pnpm build"
   },
   "dependencies": {
+    "@chenglou/pretext": "^0.0.8",
     "@floating-ui/react": "^0.27.16",
     "@hello-pangea/dnd": "^18.0.1",
     "@lobehub/icons": "^2.48.0",

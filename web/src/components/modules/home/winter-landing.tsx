@@ -118,10 +118,10 @@ export function WinterLanding({
       style={{ fontFamily: SERIF }}
     >
       <Color4bgAmbient active={overview?.landing_ambient_mode === 'color4bg'} />
-      {/* 1. 蓝色少女雪景照片背景（靠右，左侧留白给导航）；懒加载减轻首屏 */}
+      {/* 1. 照片背景：classic=经典 newapi 大图，photo=冬日少女（默认）；color4bg 时不加载图 */}
       {overview?.landing_ambient_mode !== 'color4bg' ? (
         <img
-          src="/winter-bg.jpg"
+          src={overview?.landing_ambient_mode === 'classic' ? '/bg-newapi.jpg' : '/winter-bg.jpg'}
           alt=""
           loading="lazy"
           decoding="async"

@@ -62,3 +62,17 @@ func ChargeKey(apiKeyID int, cost float64, ctx context.Context) {
 	}
 	_ = user.DeductQuota(key.UserID, cost, ctx)
 }
+
+// ChargeKeyWithExpr is like ChargeKey but checks for expression-based billing first.
+// If a billing expression exists for the model, uses that to compute cost;
+// otherwise falls back to the provided upstream USD cost.
+func ChargeKeyWithExpr(apiKeyID int, modelName string, inputTokens, outputTokens int, upstreamCost float64, ctx context.Context) {
+	if !Enabled() {
+		return
+	}
+	cost := upstreamCost
+	if exprCost, _, ok := ComputeExprCost(modelName, inputTokens, outputTokens); ok {
+		cost = exprCost
+	}
+	ChargeKey(apiKeyID, cost, ctx)
+}

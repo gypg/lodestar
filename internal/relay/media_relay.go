@@ -399,7 +399,7 @@ func recordMediaRelayLog(apiKeyID int, requestModel string, endpointType string,
 	}
 	st.APIKeyUpdate(apiKeyID, stats)
 	// Lodestar commercial: deduct media request cost from key owner's balance (no-op unless commercial_mode on).
-	billing.ChargeKey(apiKeyID, stats.InputCost+stats.OutputCost, ctx)
+	billing.ChargeKeyWithExpr(apiKeyID, resolvedModel, int(stats.InputToken), int(stats.OutputToken), stats.InputCost+stats.OutputCost, ctx)
 	opMain.StatsSiteModelHourlyRecordAttempts(attempts, resolvedModel)
 	telemetry.Global().RecordRequest(duration.Milliseconds(), relayErr == nil)
 }

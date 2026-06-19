@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@chenglou/pretext':
+        specifier: ^0.0.8
+        version: 0.0.8
       '@floating-ui/react':
         specifier: ^0.27.16
         version: 0.27.16(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
@@ -282,6 +285,9 @@ packages:
 
   '@braintree/sanitize-url@7.1.1':
     resolution: {integrity: sha512-i1L7noDNxtFyL5DmZafWy1wRVhGehQmzZaz1HiN5e7iylJMSZR7ekOV7NsIqa5qBldlLrsKv4HbgFUVlQrz8Mw==}
+
+  '@chenglou/pretext@0.0.8':
+    resolution: {integrity: sha512-yqm2GMxnPI7VHcHwe84P8ZF0JK/2d2DMKPqMN+s95jQhwDMYYXKVFVJUMEaVWckQStdsjdLav/0Vu+d9YbtGxA==}
 
   '@chevrotain/cst-dts-gen@11.0.3':
     resolution: {integrity: sha512-BvIKpRLeS/8UbfxXxgC33xOumsacaeCKAjAeLyOn7Pcp95HiRbrpl14S+9vaZLolnbssPIUuiUd8IvgkRyt6NQ==}
@@ -4981,6 +4987,8 @@ snapshots:
       '@babel/helper-validator-identifier': 7.28.5
 
   '@braintree/sanitize-url@7.1.1': {}
+
+  '@chenglou/pretext@0.0.8': {}
 
   '@chevrotain/cst-dts-gen@11.0.3':
     dependencies:

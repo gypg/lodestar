@@ -105,10 +105,11 @@ export function SiteIdentity() {
                     <label className="ml-1 text-xs font-medium text-muted-foreground">封面氛围光</label>
                     <select
                         value={ambient}
-                        onChange={(e) => setAmbient(e.target.value === 'color4bg' ? 'color4bg' : 'photo')}
+                        onChange={(e) => setAmbient(e.target.value === 'color4bg' ? 'color4bg' : e.target.value === 'classic' ? 'classic' : 'photo')}
                         className="h-9 rounded-lg border border-border/40 bg-background px-2 text-sm"
                     >
                         <option value="photo">冬日实景照片（默认）</option>
+                        <option value="classic">经典大图（newapi 风格）</option>
                         <option value="color4bg">动态氛围光（color4bg，失败则回退照片）</option>
                     </select>
                 </div>
