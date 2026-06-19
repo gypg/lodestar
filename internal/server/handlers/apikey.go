@@ -89,14 +89,16 @@ func isStaff(c *gin.Context) bool {
 }
 
 func listAPIKey(c *gin.Context) {
-	apiKeys, err := apikey.List(c.Request.Context())
+	var apiKeys []model.APIKey
+	var err error
+	if isStaff(c) {
+		apiKeys, err = apikey.List(c.Request.Context())
+	} else {
+		apiKeys, err = apikey.ListByUser(uint(c.GetInt("user_id")), c.Request.Context())
+	}
 	if err != nil {
 		resp.InternalError(c)
 		return
-	}
-	if !isStaff(c) {
-		uid := uint(c.GetInt("user_id"))
-		apiKeys = lo.Filter(apiKeys, func(k model.APIKey, _ int) bool { return k.UserID == uid })
 	}
 	if !auth.HasPermission(c.GetString("user_role"), auth.PermAPIKeysWrite) {
 		apiKeys = maskAPIKeys(apiKeys)

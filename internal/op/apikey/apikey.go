@@ -66,6 +66,19 @@ func List(ctx context.Context) ([]model.APIKey, error) {
 	return keys, nil
 }
 
+// ListByUser returns API keys owned by the given user. Multi-tenant isolation at
+// the op layer so callers cannot leak keys across users by forgetting a filter.
+// Use for user-scoped flows; List remains for staff/aggregate (ops, analytics).
+func ListByUser(uid uint, ctx context.Context) ([]model.APIKey, error) {
+	keys := make([]model.APIKey, 0)
+	for _, apiKey := range keyCache.GetAll() {
+		if apiKey.UserID == uid {
+			keys = append(keys, apiKey)
+		}
+	}
+	return keys, nil
+}
+
 func Get(id int, ctx context.Context) (model.APIKey, error) {
 	apiKey, ok := keyCache.Get(id)
 	if !ok {

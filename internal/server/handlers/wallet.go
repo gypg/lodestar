@@ -105,7 +105,7 @@ func getWallet(c *gin.Context) {
 // (each key's accumulated stats). Drives the user portal usage view.
 func getUsage(c *gin.Context) {
 	uid := uint(c.GetInt("user_id"))
-	keys, err := apikey.List(c.Request.Context())
+	keys, err := apikey.ListByUser(uid, c.Request.Context())
 	if err != nil {
 		resp.InternalError(c)
 		return
@@ -120,9 +120,6 @@ func getUsage(c *gin.Context) {
 	var totReq, totTok int64
 	var totCost float64
 	for _, k := range keys {
-		if k.UserID != uid {
-			continue
-		}
 		s := st.APIKeyGet(k.ID)
 		req := s.StatsMetrics.RequestSuccess + s.StatsMetrics.RequestFailed
 		tok := s.StatsMetrics.InputToken + s.StatsMetrics.OutputToken
