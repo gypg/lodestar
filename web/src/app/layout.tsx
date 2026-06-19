@@ -26,7 +26,7 @@ export default function RootLayout({
         <meta name="mobile-web-app-status-bar-style" content="black" />
         <meta name="mobile-web-app-title" content="Lodestar" />
         <link rel="manifest" href="./manifest.json" />
-        <link rel="icon" type="image/svg+xml" href="./logo.svg" />
+        <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
         <link rel="icon" href="./favicon.ico" sizes="any" />
         <link rel="apple-touch-icon" href="./apple-icon.png" />
         <title>Lodestar</title>
