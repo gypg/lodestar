@@ -13,7 +13,7 @@ export interface PublicOverview {
     description: string;
     announcement: string;
     footer: string;
-    landing_ambient_mode?: 'photo' | 'classic' | 'color4bg';
+    landing_ambient_mode?: 'photo' | 'classic' | 'color4bg' | 'pretext';
     site_banner_enabled?: boolean;
     site_banner_text?: string;
     site_banner_tone?: 'info' | 'warning' | 'success';

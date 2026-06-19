@@ -6,7 +6,9 @@ import { HomeHero } from './hero';
 import { HomeAnalyticsOverview } from './analytics-overview';
 import { Rank } from './rank';
 import { WinterLanding } from './winter-landing';
+import { PretextLanding } from './pretext-landing';
 import { PageWrapper } from '@/components/common/PageWrapper';
+import { usePublicOverview } from '@/api/endpoints/public';
 
 // StatsChart 拉入了整个 recharts（数百 KB）。home 是默认首页路由，若同步引入
 // 会把 recharts 压进首屏关键路径。改为懒加载，让 recharts 进入独立 chunk，
@@ -24,9 +26,15 @@ function ChartSkeleton() {
 
 export function Home() {
     // 冬日风落地页作为首页封面（Lodestar 招牌入口）；点击「进入数据概览」切换到经典仪表盘。
+    // landing_ambient_mode === 'pretext' 时使用报刊风落地页。
     const [showDashboard, setShowDashboard] = useState(false);
+    const { data: overview } = usePublicOverview(false);
 
     if (!showDashboard) {
+        const mode = overview?.landing_ambient_mode;
+        if (mode === 'pretext') {
+            return <PretextLanding onEnterDashboard={() => setShowDashboard(true)} />;
+        }
         return <WinterLanding onEnterDashboard={() => setShowDashboard(true)} />;
     }
 

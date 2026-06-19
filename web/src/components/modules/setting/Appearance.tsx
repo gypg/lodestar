@@ -195,7 +195,7 @@ function NavigationPreferences() {
                                                         'flex items-center justify-between gap-3 rounded-lg border-border/30 bg-card px-3 py-3 shadow-sm transition-[transform,border-color,box-shadow]',
                                                         snapshot.isDragging && 'border-primary/40 shadow-md'
                                                     )}
-                                                    style={draggableProvided.draggableProps.style}
+                                                    style={draggableProvided.draggableProps.style as React.CSSProperties}
                                                 >
                                                     <div className="flex min-w-0 items-center gap-3">
                                                         <span className="grid size-7 shrink-0 place-items-center rounded-full bg-primary/10 text-xs font-semibold text-primary">

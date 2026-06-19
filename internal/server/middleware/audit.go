@@ -153,6 +153,7 @@ var auditedManagementWriteRoutes = map[string]struct{}{
 	"POST /api/v1/wallet/invites":                                                    {},
 	"POST /api/v1/wallet/email-test":                                                 {},
 	"POST /api/v1/feedback/submit":                                                   {},
+	"POST /api/v1/guardrail/config":                                                  {},
 }
 
 func AuditManagementWrite() gin.HandlerFunc {

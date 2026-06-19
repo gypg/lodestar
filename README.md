@@ -48,7 +48,7 @@ docker compose up -d --build      # 访问 http://localhost:8080
 cd web && pnpm install && NEXT_PUBLIC_APP_VERSION=dev pnpm build && cd ..
 rm -rf static/out && cp -r web/out static/out
 go build -tags=jsoniter -o lodestar .
-Lodestar_AUTH_JWT_SECRET="$(openssl rand -hex 32)" ./lodestar start
+LODESTAR_AUTH_JWT_SECRET="$(openssl rand -hex 32)" ./lodestar start
 ```
 
 首启进 `http://localhost:8080` 初始化管理员；登录后 **设置 → 外观 → 主题配色** 切换 / 上传主题。

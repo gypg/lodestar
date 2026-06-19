@@ -23,7 +23,7 @@ docker run -d --name lodestar --restart unless-stopped \
   -p 8080:8080 \
   -v "$PWD/data:/app/data" \
   -e TZ=Asia/Shanghai \
-  -e Lodestar_AUTH_JWT_SECRET="$(openssl rand -hex 32)" \
+  -e LODESTAR_AUTH_JWT_SECRET="$(openssl rand -hex 32)" \
   lodestar:latest
 ```
 
@@ -34,28 +34,28 @@ docker run -d --name lodestar --restart unless-stopped \
 cd web && pnpm install && NEXT_PUBLIC_APP_VERSION=dev pnpm build && cd ..
 rm -rf static/out && cp -r web/out static/out
 go build -tags=jsoniter -o lodestar .
-# 运行（数据默认在 ./data；可用 Lodestar_DATA_DIR 指定）
-Lodestar_AUTH_JWT_SECRET="$(openssl rand -hex 32)" ./lodestar start
+# 运行（数据默认在 ./data；可用 LODESTAR_DATA_DIR 指定）
+LODESTAR_AUTH_JWT_SECRET="$(openssl rand -hex 32)" ./lodestar start
 ```
 
 ---
 
-## 环境变量（前缀 `Lodestar_`，点号→下划线）
+## 环境变量（前缀 `LODESTAR_`，点号→下划线）
 
 | 变量 | 作用 | 默认 / 示例 |
 |------|------|-------------|
-| `Lodestar_SERVER_PORT` | 监听端口 | `8080` |
-| `Lodestar_SERVER_HOST` | 监听地址 | 全网卡 |
-| `Lodestar_DATA_DIR` | 数据/配置目录 | `./data`（容器内 `/app/data`） |
-| `Lodestar_AUTH_JWT_SECRET` | JWT 签名密钥（**务必设**，否则重启掉登录） | 随机长字符串 |
-| `Lodestar_DATABASE_TYPE` | `sqlite`(默认) / `postgres` / `mysql` | `sqlite` |
-| `Lodestar_DATABASE_PATH` | DB 连接串：sqlite=文件路径；postgres/mysql=DSN | 见下 |
+| `LODESTAR_SERVER_PORT` | 监听端口 | `8080` |
+| `LODESTAR_SERVER_HOST` | 监听地址 | 全网卡 |
+| `LODESTAR_DATA_DIR` | 数据/配置目录 | `./data`（容器内 `/app/data`） |
+| `LODESTAR_AUTH_JWT_SECRET` | JWT 签名密钥（**务必设**，否则重启掉登录） | 随机长字符串 |
+| `LODESTAR_DATABASE_TYPE` | `sqlite`(默认) / `postgres` / `mysql` | `sqlite` |
+| `LODESTAR_DATABASE_PATH` | DB 连接串：sqlite=文件路径；postgres/mysql=DSN | 见下 |
 | `TZ` | 时区 | `Asia/Shanghai` |
 
 **接你服务器现有 PostgreSQL**：
 ```
-Lodestar_DATABASE_TYPE=postgres
-Lodestar_DATABASE_PATH=host=172.16.0.87 port=5432 user=lodestar password=*** dbname=lodestar sslmode=disable
+LODESTAR_DATABASE_TYPE=postgres
+LODESTAR_DATABASE_PATH=host=172.16.0.87 port=5432 user=lodestar password=*** dbname=lodestar sslmode=disable
 ```
 > 建库后首启会自动迁移建表（GORM AutoMigrate + 版本化迁移），无需手动建表。
 
@@ -94,4 +94,4 @@ bash scripts/verify-heatmap-server.sh
 Lodestar 是**全新自研栈**（非 newapi 容器），重新部署、独立数据库，不与旧 `ghcr.io/futureppo/new-api` 镜像/库冲突。
 切换时建议新库新域名灰度，确认无误再切流量。凭据请走 env / secret，勿写入仓库。
 
-> 注：Docker 构建未在本机实测（本机 Docker 守护进程未运行）；Dockerfile/compose 已按 Lodestar 改名校对（二进制名、`Lodestar_DATA_DIR`、Author）。首次 `docker compose up -d --build` 若遇问题，多为前端 `pnpm install --frozen-lockfile` 的 lockfile 漂移——可临时去掉 `--frozen-lockfile`。
+> 注：Docker 构建未在本机实测（本机 Docker 守护进程未运行）；Dockerfile/compose 已按 Lodestar 改名校对（二进制名、`LODESTAR_DATA_DIR`、Author）。首次 `docker compose up -d --build` 若遇问题，多为前端 `pnpm install --frozen-lockfile` 的 lockfile 漂移——可临时去掉 `--frozen-lockfile`。

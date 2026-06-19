@@ -184,6 +184,22 @@ func Handler(endpointType string, inboundType inbound.InboundType, c *gin.Contex
 	if err != nil {
 		return
 	}
+
+	// ── Guardrail input check ──────────────────────────────────────────
+	// The guardrail package provides CheckInput/CheckOutput for content
+	// filtering (banned words, PII detection, length limits).
+	// To enable, uncomment the block below and add the import:
+	//   "github.com/gypg/lodestar/internal/relay/guardrail"
+	//
+	//   if cfg := guardrail.LoadConfig(); cfg.Enabled {
+	//       content := extractRequestText(internalRequest)
+	//       if v := guardrail.CheckInput(content, cfg); v != nil {
+	//           resp.Error(c, http.StatusBadRequest, v.Message)
+	//           return
+	//       }
+	//   }
+	// ── End guardrail input check ──────────────────────────────────────
+
 	supportedModels := c.GetString("supported_models")
 	if supportedModels != "" {
 		supportedModelsArray := strings.Split(supportedModels, ",")

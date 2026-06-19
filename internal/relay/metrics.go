@@ -15,8 +15,10 @@ import (
 	billing "github.com/gypg/lodestar/internal/op/billing"
 	"github.com/gypg/lodestar/internal/op/cacheusage"
 	"github.com/gypg/lodestar/internal/op/relaylog"
+	"github.com/gypg/lodestar/internal/op/setting"
 	"github.com/gypg/lodestar/internal/op/stats"
 	"github.com/gypg/lodestar/internal/price"
+	"github.com/gypg/lodestar/internal/relay/redact"
 	transformerModel "github.com/gypg/lodestar/internal/transformer/model"
 	"github.com/gypg/lodestar/internal/utils/log"
 	"github.com/gypg/lodestar/internal/utils/telemetry"
@@ -266,6 +268,16 @@ func (m *RelayMetrics) saveLog(ctx context.Context, err error, duration time.Dur
 				respJSON = semanticCacheHitPayload(respJSON, m.InternalRequest)
 			}
 			relayLog.ResponseContent = string(respJSON)
+		}
+	}
+
+	// PII 脱敏：在日志写入前对 request/response content 进行脱敏
+	if piiEnabled, _ := setting.GetBool(model.SettingKeyPIIRedactionEnabled); piiEnabled {
+		if relayLog.RequestContent != "" {
+			relayLog.RequestContent = redact.RedactPII(relayLog.RequestContent)
+		}
+		if relayLog.ResponseContent != "" {
+			relayLog.ResponseContent = redact.RedactPII(relayLog.ResponseContent)
 		}
 	}
 

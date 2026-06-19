@@ -109,6 +109,12 @@ const (
 	SettingKeyGitHubOAuthClientID                  SettingKey = "github_oauth_client_id"                   // GitHub OAuth Client ID
 	SettingKeyGitHubOAuthClientSecret              SettingKey = "github_oauth_client_secret"               // GitHub OAuth Client Secret
 	SettingKeyTOTPIssuer                           SettingKey = "totp_issuer"                              // TOTP 两步验证发行者名称(认证器App显示)
+	SettingKeyPIIRedactionEnabled                  SettingKey = "pii_redaction_enabled"                    // Relay 日志 PII 脱敏开关
+	SettingKeyTurnstileEnabled                     SettingKey = "turnstile_enabled"                        // Cloudflare Turnstile 注册验证开关
+	SettingKeyTurnstileSiteKey                     SettingKey = "turnstile_site_key"                      // Cloudflare Turnstile Site Key
+	SettingKeyTurnstileSecretKey                   SettingKey = "turnstile_secret_key"                    // Cloudflare Turnstile Secret Key
+	SettingKeyGuardrailEnabled                      SettingKey = "guardrail_enabled"                        // Guardrail 输入/输出过滤开关
+	SettingKeyGuardrailRules                        SettingKey = "guardrail_rules"                          // Guardrail 规则配置(JSON: GuardrailConfig)
 )
 
 type Setting struct {
@@ -217,6 +223,12 @@ func DefaultSettings() []Setting {
 		{Key: SettingKeyGitHubOAuthClientID, Value: ""},
 		{Key: SettingKeyGitHubOAuthClientSecret, Value: ""},
 		{Key: SettingKeyTOTPIssuer, Value: "Lodestar"},
+		{Key: SettingKeyPIIRedactionEnabled, Value: "false"},
+		{Key: SettingKeyTurnstileEnabled, Value: "false"},
+		{Key: SettingKeyTurnstileSiteKey, Value: ""},
+		{Key: SettingKeyTurnstileSecretKey, Value: ""},
+		{Key: SettingKeyGuardrailEnabled, Value: "false"},
+		{Key: SettingKeyGuardrailRules, Value: `{"enabled":false,"banned_words":[],"max_input_length":0,"max_output_length":0,"pii_detection":false}`},
 	}
 }
 
@@ -291,7 +303,7 @@ func (s *Setting) Validate() error {
 			}
 		}
 		return nil
-	case SettingKeyRelayLogKeepEnabled, SettingKeySemanticCacheEnabled:
+	case SettingKeyRelayLogKeepEnabled, SettingKeySemanticCacheEnabled, SettingKeyPIIRedactionEnabled, SettingKeyTurnstileEnabled, SettingKeyGuardrailEnabled:
 		if s.Value != "true" && s.Value != "false" {
 			return fmt.Errorf("setting value must be true or false")
 		}
@@ -446,6 +458,14 @@ func (s *Setting) Validate() error {
 		return nil // free-text, allow empty
 	case SettingKeyTOTPIssuer:
 		return nil // free-text, allow empty
+	case SettingKeyTurnstileSiteKey, SettingKeyTurnstileSecretKey:
+		return nil // free-text, allow empty
+	case SettingKeyGuardrailRules:
+		var rules map[string]any
+		if err := json.Unmarshal([]byte(s.Value), &rules); err != nil {
+			return fmt.Errorf("guardrail rules must be a valid JSON object")
+		}
+		return nil
 	}
 
 	return nil

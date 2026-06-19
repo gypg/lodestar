@@ -34,6 +34,7 @@ func init() {
 	publicUserRoutes.AddRoute(
 		router.NewRoute("/register", http.MethodPost).
 			Use(middleware.LoginRateLimit()).
+			Use(middleware.VerifyTurnstile()).
 			Handle(register),
 	)
 
