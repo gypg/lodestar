@@ -76,6 +76,17 @@ Lodestar_DATABASE_PATH=host=172.16.0.87 port=5432 user=lodestar password=*** dbn
 容器/进程监听 `:8080`，把隧道/反代指向它即可。注意放行 SSE（流式响应）——关闭代理缓冲、`proxy_read_timeout` 调大。
 健康检查端点：`GET /api/v1/bootstrap/status`。
 
+部署后验收（热力图 / `per_model` / Banner 字段）：
+
+```bash
+git pull && docker compose up -d --build
+export BASE=http://127.0.0.1:8080
+export TOKEN='<登录 JWT>'
+bash scripts/verify-heatmap-server.sh
+```
+
+需在设置中开启 **保留 relay 历史日志**，钱包热力图与渠道 sparkline 才有按日数据。
+
 ---
 
 ## 与旧 newapi 线上的关系

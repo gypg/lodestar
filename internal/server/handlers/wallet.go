@@ -151,6 +151,11 @@ func getUsage(c *gin.Context) {
 		resp.InternalError(c)
 		return
 	}
+	modelRows, _, merr := walletusage.ModelBreakdownForUser(uid, days, 16, c.Request.Context())
+	if merr != nil {
+		resp.InternalError(c)
+		return
+	}
 	resp.Success(c, gin.H{
 		"total_requests":        totReq,
 		"total_tokens":          totTok,
@@ -159,6 +164,7 @@ func getUsage(c *gin.Context) {
 		"daily_series":          series,
 		"usage_chart_available": chartOK,
 		"heatmap_by_day":        heatmap,
+		"per_model":             modelRows,
 	})
 }
 

@@ -206,15 +206,16 @@ type OpsTelemetryProviderHealth struct {
 }
 
 type OpsTelemetryProviderItem struct {
-	ChannelID        int     `json:"channel_id"`
-	ChannelName      string  `json:"channel_name"`
-	Enabled          bool    `json:"enabled"`
-	BaseURL          string  `json:"base_url"`
-	RequestCount     int64   `json:"request_count"`
-	SuccessRate      float64 `json:"success_rate"`
-	AverageLatencyMs float64 `json:"average_latency_ms"`
-	HealthStatus     string  `json:"health_status"`
-	HealthHint       string  `json:"health_hint"`
+	ChannelID        int       `json:"channel_id"`
+	ChannelName      string    `json:"channel_name"`
+	Enabled          bool      `json:"enabled"`
+	BaseURL          string    `json:"base_url"`
+	RequestCount     int64     `json:"request_count"`
+	SuccessRate      float64   `json:"success_rate"`
+	AverageLatencyMs float64   `json:"average_latency_ms"`
+	HealthStatus     string    `json:"health_status"`
+	HealthHint       string    `json:"health_hint"`
+	Sparkline7d      []float64 `json:"sparkline_7d,omitempty"`
 }
 
 type OpsTelemetryDrilldownShortcut struct {

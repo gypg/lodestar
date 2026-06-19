@@ -7,7 +7,7 @@ import { RefreshCw, Search } from 'lucide-react';
 import { useAuth } from '@/api/endpoints/user';
 import { useCurrentUser, isStaffRole } from '@/api/endpoints/user';
 import { LoginForm } from '@/components/modules/login';
-import { WinterLanding } from '@/components/modules/home/winter-landing';
+import { LandingShell } from '@/components/modules/home/landing-shell';
 import { AccountThemeSync } from '@/components/account-theme-sync';
 import { APIKeyDashboard } from '@/components/modules/apikey-dashboard';
 import { ContentLoader } from '@/route/content-loader';
@@ -200,7 +200,7 @@ function PublicEntry() {
                     transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
                     className="min-h-0 flex-1 p-2.5 md:p-5"
                 >
-                    <WinterLanding variant="public" onLogin={() => setShowLogin(true)} />
+                    <LandingShell variant="public" onLogin={() => setShowLogin(true)} />
                 </motion.div>
             </AnimatePresence>
         </div>

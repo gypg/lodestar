@@ -51,6 +51,7 @@ export const SettingKey = {
     SiteAnnouncement: 'site_announcement',
     SiteFooter: 'site_footer',
     LandingAmbientMode: 'landing_ambient_mode',
+    LandingLayout: 'landing_layout',
     SiteBannerEnabled: 'site_banner_enabled',
     SiteBannerText: 'site_banner_text',
     SiteBannerTone: 'site_banner_tone',

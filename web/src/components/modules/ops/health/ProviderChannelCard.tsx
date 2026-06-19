@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import type { OpsTelemetryProviderItem } from '@/api/endpoints/ops';
 import { StatusBadge } from '@/components/modules/analytics/shared';
 import { formatTelemetryPercent } from '../telemetry-format';
+import { SuccessSparkline } from './SuccessSparkline';
 
 function providerTone(status: string): 'success' | 'warning' | 'danger' | 'neutral' {
     if (status === 'healthy') return 'success';
@@ -64,6 +65,14 @@ export function ProviderChannelCard({ provider }: { provider: OpsTelemetryProvid
                     {provider.request_count.toLocaleString('en-US')}
                 </span>
             </div>
+            {provider.sparkline_7d && provider.sparkline_7d.length > 0 ? (
+                <div className="flex items-center justify-between gap-2 border-t border-border/20 pt-2">
+                    <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                        {t('health.portal.sparkline7d')}
+                    </span>
+                    <SuccessSparkline values={provider.sparkline_7d} />
+                </div>
+            ) : null}
         </article>
     );
 }

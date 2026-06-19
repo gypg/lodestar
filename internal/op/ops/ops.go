@@ -23,6 +23,7 @@ import (
 	"github.com/gypg/lodestar/internal/op/relaylog"
 	"github.com/gypg/lodestar/internal/op/setting"
 	"github.com/gypg/lodestar/internal/op/stats"
+	"github.com/gypg/lodestar/internal/op/walletusage"
 	"github.com/gypg/lodestar/internal/utils/semantic_cache"
 	"github.com/gypg/lodestar/internal/utils/telemetry"
 )
@@ -1218,6 +1219,14 @@ func TelemetrySummaryGet(ctx context.Context) (*model.OpsTelemetrySummary, error
 				baseURL = ch.BaseUrls[0].URL
 			}
 
+			var spark []float64
+			if pts, ok, _ := walletusage.ChannelSuccessSparkline(ch.ID, 7, ctx); ok && len(pts) > 0 {
+				spark = make([]float64, len(pts))
+				for i, p := range pts {
+					spark[i] = p.SuccessRate
+				}
+			}
+
 			providers = append(providers, model.OpsTelemetryProviderItem{
 				ChannelID:        ch.ID,
 				ChannelName:      ch.Name,
@@ -1228,6 +1237,7 @@ func TelemetrySummaryGet(ctx context.Context) (*model.OpsTelemetrySummary, error
 				AverageLatencyMs: avgLat,
 				HealthStatus:     healthStatus,
 				HealthHint:       healthHint,
+				Sparkline7d:      spark,
 			})
 
 			if ch.Enabled {

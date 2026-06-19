@@ -152,6 +152,19 @@ export function SettingWallet() {
                         ))}
                     </div>
                 )}
+                {usage && (usage.per_model?.length ?? 0) > 0 && (
+                    <div className="mt-1 flex flex-col gap-1 border-t border-border/40 pt-2">
+                        <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">按模型（近 14 日日志）</div>
+                        {usage.per_model!.map((m) => (
+                            <div key={m.model} className="flex items-baseline justify-between text-xs">
+                                <span className="mr-3 truncate font-mono text-card-foreground">{m.model}</span>
+                                <span className="shrink-0 tabular-nums text-muted-foreground">
+                                    {m.requests.toLocaleString('en-US')} 次 · ${m.cost.toFixed(4)}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                )}
                 <div className="mt-2 border-t border-border/40 pt-2">
                     <div className="mb-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">近 14 日用量</div>
                     <WalletUsageChart series={usage?.daily_series} available={usage?.usage_chart_available} />

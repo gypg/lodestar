@@ -371,6 +371,7 @@ export interface OpsTelemetryProviderItem {
     average_latency_ms: number;
     health_status: string;
     health_hint: string;
+    sparkline_7d?: number[];
 }
 
 export interface OpsTelemetryProviderHealth {

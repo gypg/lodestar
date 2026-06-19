@@ -92,6 +92,12 @@ export interface UsageHeatmapDay {
     requests: number;
     tokens?: number;
 }
+export interface UsageModelRow {
+    model: string;
+    requests: number;
+    tokens: number;
+    cost: number;
+}
 export interface UsageSummary {
     total_requests: number;
     total_tokens: number;
@@ -100,6 +106,7 @@ export interface UsageSummary {
     daily_series?: UsageDailyPoint[];
     usage_chart_available?: boolean;
     heatmap_by_day?: UsageHeatmapDay[];
+    per_model?: UsageModelRow[];
 }
 export function useUsage() {
     return useQuery({

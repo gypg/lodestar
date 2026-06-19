@@ -25,6 +25,7 @@ export function SiteIdentity() {
     const [announce, setAnnounce] = useState('');
     const [footer, setFooter] = useState('');
     const [ambient, setAmbient] = useState<'photo' | 'color4bg'>('photo');
+    const [layout, setLayout] = useState<'winter' | 'newspaper'>('winter');
     const [bannerOn, setBannerOn] = useState(false);
     const [bannerText, setBannerText] = useState('');
     const [bannerTone, setBannerTone] = useState<'info' | 'warning' | 'success'>('info');
@@ -39,6 +40,8 @@ export function SiteIdentity() {
         setFooter(get(SettingKey.SiteFooter));
         const am = get(SettingKey.LandingAmbientMode);
         setAmbient(am === 'color4bg' ? 'color4bg' : 'photo');
+        const lay = get(SettingKey.LandingLayout);
+        setLayout(lay === 'newspaper' ? 'newspaper' : 'winter');
         setBannerOn(get(SettingKey.SiteBannerEnabled) === 'true');
         setBannerText(get(SettingKey.SiteBannerText));
         const tone = get(SettingKey.SiteBannerTone);
@@ -53,6 +56,7 @@ export function SiteIdentity() {
             { key: SettingKey.SiteAnnouncement, value: announce },
             { key: SettingKey.SiteFooter, value: footer },
             { key: SettingKey.LandingAmbientMode, value: ambient },
+            { key: SettingKey.LandingLayout, value: layout },
             { key: SettingKey.SiteBannerEnabled, value: bannerOn ? 'true' : 'false' },
             { key: SettingKey.SiteBannerText, value: bannerText },
             { key: SettingKey.SiteBannerTone, value: bannerTone },
@@ -106,6 +110,17 @@ export function SiteIdentity() {
                     >
                         <option value="photo">冬日实景照片（默认）</option>
                         <option value="color4bg">动态氛围光（color4bg，失败则回退照片）</option>
+                    </select>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                    <label className="ml-1 text-xs font-medium text-muted-foreground">封面版式</label>
+                    <select
+                        value={layout}
+                        onChange={(e) => setLayout(e.target.value === 'newspaper' ? 'newspaper' : 'winter')}
+                        className="h-9 rounded-lg border border-border/40 bg-background px-2 text-sm"
+                    >
+                        <option value="winter">冬日目录（默认）</option>
+                        <option value="newspaper">报刊三栏（文档版本风）</option>
                     </select>
                 </div>
                 <div className="flex flex-col gap-2 rounded-lg border border-border/30 bg-background/50 p-3">
