@@ -152,7 +152,7 @@ export function SettingWallet() {
                     </div>
                 )}
                 <div className="mt-2 border-t border-border/40 pt-2">
-                    <div className="mb-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">近 14 日请求</div>
+                    <div className="mb-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">近 14 日用量</div>
                     <WalletUsageChart series={usage?.daily_series} available={usage?.usage_chart_available} />
                 </div>
             </div>
