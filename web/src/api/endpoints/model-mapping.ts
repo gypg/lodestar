@@ -1,4 +1,5 @@
 import { apiClient } from '../client'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
 export interface ModelMapping {
   id: number
@@ -51,4 +52,37 @@ export function updateModelMapping(id: number, data: UpdateModelMappingRequest) 
 
 export function deleteModelMapping(id: number) {
   return apiClient.delete<void>(`/api/v1/model-mapping/${id}`)
+}
+
+export function useModelMappings() {
+  return useQuery({
+    queryKey: ['model-mappings'],
+    queryFn: listModelMappings,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useCreateModelMapping() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: createModelMapping,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['model-mappings'] }),
+  })
+}
+
+export function useUpdateModelMapping() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: UpdateModelMappingRequest }) =>
+      updateModelMapping(id, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['model-mappings'] }),
+  })
+}
+
+export function useDeleteModelMapping() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: deleteModelMapping,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['model-mappings'] }),
+  })
 }

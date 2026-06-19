@@ -2202,6 +2202,12 @@
     "tabs": {
       "market": "市场",
       "capabilities": "能力"
+    },
+    "mapping": {
+      "title": "模型映射",
+      "count": "条规则",
+      "empty": "暂无映射规则",
+      "add": "添加映射"
     }
   },
   "log": {

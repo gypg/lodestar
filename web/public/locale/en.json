@@ -2202,6 +2202,12 @@
     "tabs": {
       "market": "Market",
       "capabilities": "Capabilities"
+    },
+    "mapping": {
+      "title": "Model Mapping",
+      "count": "rules",
+      "empty": "No mapping rules yet",
+      "add": "Add mapping"
     }
   },
   "log": {
