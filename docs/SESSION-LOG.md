@@ -49,11 +49,17 @@ go build -tags=jsoniter -o lodestar.exe .
 
 若 `ahead N`：`git push origin main`。
 
+## 2026-06-19 复审（Grok）
+
+- 尝试 `git push`：**Connection was reset**（提交仍在本地 ahead）。
+- 新增 **`docs/HARVEST-REVIEW-2026-06.md`**：对照 `参考项目/`、`GGGZERO/`、`前端优化/` 与当前 ggzero，修正旧 HARVEST-PLAN（Tier1 多数已落地），重排 P0–P3。
+- 行为对齐：上层 **`agent-spec.md`**（模型无关规约）。
+
 ## 下一任务建议（HANDOFF §6）
 
-1. B 线：BaseURL 测速 / ops health 看板（先读 health API 结构）。
-2. Chat 持久化（需 schema/API 设计）。
-3. 可选：billing 预冻结（若商业要严格不超卖）。
+1. **P0**：BaseURL 时延自测（SAPI `BaseUrlLatencySection.jsx`）→ 读 `HARVEST-REVIEW-2026-06.md` §三。
+2. 用量图表、Image 模型列表、push ahead。
+3. 可选：Ops 健康 UI、color4bg、Chat 持久化。
 
 ## 构建与规约
 
