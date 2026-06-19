@@ -2,8 +2,10 @@ package walletusage
 
 import (
 	"context"
+	"strings"
 	"time"
 
+	"github.com/gypg/lodestar/internal/conf"
 	"github.com/gypg/lodestar/internal/db"
 	"github.com/gypg/lodestar/internal/model"
 	"github.com/gypg/lodestar/internal/op/apikey"
@@ -55,10 +57,13 @@ func DailySeriesForUser(uid uint, days int, ctx context.Context) (series []Daily
 		Cost     float64 `gorm:"column:cost"`
 	}
 	var rows []aggRow
-	// SQLite / Postgres both support unixepoch strftime on sqlite; for postgres use to_char - use dialect?
-	// Lodestar default is sqlite; use raw compatible query via GORM for sqlite.
+	logDBType := conf.AppConfig.Database.LogType
+	if logDBType == "" {
+		logDBType = conf.AppConfig.Database.Type
+	}
+	dayExpr := dayBucketSQL(logDBType)
 	q := conn.WithContext(ctx).Model(&model.RelayLog{}).
-		Select(`strftime('%Y%m%d', time, 'unixepoch') as day,
+		Select(dayExpr+` as day,
 			COUNT(*) as requests,
 			COALESCE(SUM(input_tokens + output_tokens), 0) as tokens,
 			COALESCE(SUM(cost), 0) as cost`).
@@ -94,4 +99,13 @@ func fillEmptyDays(days int, byDay map[string]DailyPoint) []DailyPoint {
 		out = append(out, DailyPoint{Date: key})
 	}
 	return out
+}
+
+func dayBucketSQL(dbType string) string {
+	switch strings.ToLower(dbType) {
+	case "postgres", "postgresql":
+		return `to_char(to_timestamp(time), 'YYYYMMDD')`
+	default:
+		return `strftime('%Y%m%d', time, 'unixepoch')`
+	}
 }
