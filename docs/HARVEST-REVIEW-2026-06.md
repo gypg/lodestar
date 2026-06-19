@@ -68,15 +68,12 @@
 
 ### P0 — 快赢、直接改善「真用户」体验（建议接下来 1–2 周）
 
-1. **BaseURL 时延自测**（SAPI → Lodestar 钱包或「如何使用 API」页）  
-   - 参照：`SAPI-main/client/src/user/BaseUrlLatencySection.jsx`（`normalizeHealthURL` + 3× `measureLatency`）。  
-   - Lodestar：用 `public overview` 或配置的 site base + `/health` 或现有 health 路径（**实现前先读** `handlers/ops.go` / public routes）。
+1. ~~**BaseURL 时延自测**~~ ✅ `GET /api/v1/public/ping` + `BaseUrlLatencyPanel`（API 指引页）。
 
 2. **用量可视化升级**（在现有 `useUsage` 上）  
    - 若后端只有汇总：先加 **按日聚合** 端点（用户名下 keys 的 stats/logs），再 recharts 曲线（octopus analytics 已有 recharts 经验）。
 
-3. **Image 模型数据源**（与 chat datalist 对齐）  
-   - 从 public models 或 channel 能力筛 image 模型，减少手填。
+3. ~~**Image 模型数据源**~~ ✅ `filterImageModelNames` + datalist（公开模型表启发式）。
 
 4. **git push** 把 ahead 提交同步到 `gypg/lodestar`，避免只有本机有地基 #2/#3。
 

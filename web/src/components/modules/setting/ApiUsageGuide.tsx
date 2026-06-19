@@ -9,6 +9,7 @@ Base URL 取当前站点 origin + /v1。复制按钮一键拷贝。
 
 import { useEffect, useState } from 'react';
 import { BookOpen, Copy, Check } from 'lucide-react';
+import { BaseUrlLatencyPanel } from './BaseUrlLatencyPanel';
 
 function CopyBox({ label, text }: { label: string; text: string }) {
     const [copied, setCopied] = useState(false);
@@ -64,6 +65,7 @@ print(resp.choices[0].message.content)`;
             </div>
             <div className="flex flex-col gap-3">
                 <CopyBox label="Base URL（OpenAI 兼容）" text={base} />
+                <BaseUrlLatencyPanel />
                 <CopyBox label="curl 示例" text={curl} />
                 <CopyBox label="Python (openai SDK) 示例" text={py} />
             </div>

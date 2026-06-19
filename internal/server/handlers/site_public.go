@@ -29,7 +29,17 @@ func init() {
 		AddRoute(
 			router.NewRoute("/overview", http.MethodGet).
 				Handle(getPublicOverview),
+		).
+		AddRoute(
+			router.NewRoute("/ping", http.MethodGet).
+				Handle(getPublicPing),
 		)
+}
+
+// getPublicPing is a minimal no-auth probe for browser-side latency checks
+// (user portal / API guide). No DB; safe to call frequently.
+func getPublicPing(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"ok": true, "service": "lodestar"})
 }
 
 type publicModel struct {
