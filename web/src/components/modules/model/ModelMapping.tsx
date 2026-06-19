@@ -15,12 +15,6 @@ import {
     type CreateModelMappingRequest,
 } from '@/api/endpoints/model-mapping';
 
-const MATCH_TYPE_LABELS: Record<string, string> = {
-    exact: '精确',
-    wildcard: '通配',
-    regex: '正则',
-};
-
 export function ModelMappingPanel() {
     const t = useTranslations('model');
     const { data: mappings, isLoading } = useModelMappings();
@@ -38,20 +32,25 @@ export function ModelMappingPanel() {
         priority: 0,
     });
 
+    const matchTypeLabel = (type: string) => {
+        const key = `mapping.match${type.charAt(0).toUpperCase() + type.slice(1)}` as const;
+        return t(key as any) || type;
+    };
+
     const handleCreate = () => {
         if (!form.pattern.trim() || !form.target_model.trim()) {
-            toast.error('请输入匹配模式和目标模型');
+            toast.error(t('mapping.toastFillRequired'));
             return;
         }
         createMapping.mutate(
             { ...form, name: form.name || form.pattern },
             {
                 onSuccess: () => {
-                    toast.success('映射已创建');
+                    toast.success(t('mapping.toastCreated'));
                     setForm({ name: '', pattern: '', match_type: 'exact', target_model: '', priority: 0 });
                     setShowCreate(false);
                 },
-                onError: () => toast.error('创建失败'),
+                onError: () => toast.error(t('mapping.toastCreateFailed')),
             },
         );
     };
@@ -59,15 +58,15 @@ export function ModelMappingPanel() {
     const handleToggle = (mapping: ModelMapping) => {
         updateMapping.mutate(
             { id: mapping.id, data: { enabled: !mapping.enabled } },
-            { onError: () => toast.error('更新失败') },
+            { onError: () => toast.error(t('mapping.toastUpdateFailed')) },
         );
     };
 
     const handleDelete = (id: number) => {
-        if (!confirm('确认删除此映射？')) return;
+        if (!confirm(t('mapping.confirmDelete'))) return;
         deleteMapping.mutate(id, {
-            onSuccess: () => toast.success('已删除'),
-            onError: () => toast.error('删除失败'),
+            onSuccess: () => toast.success(t('mapping.toastDeleted')),
+            onError: () => toast.error(t('mapping.toastDeleteFailed')),
         });
     };
 
@@ -79,20 +78,19 @@ export function ModelMappingPanel() {
                 className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-semibold text-card-foreground hover:bg-muted/30 transition-colors"
             >
                 {expanded ? <ChevronDown className="size-4 shrink-0" /> : <ChevronRight className="size-4 shrink-0" />}
-                <span>{t('mapping.title') || '模型映射'}</span>
+                <span>{t('mapping.title')}</span>
                 <span className="ml-auto text-xs text-muted-foreground">
-                    {mappings?.length ?? 0} {t('mapping.count') || '条规则'}
+                    {mappings?.length ?? 0} {t('mapping.count')}
                 </span>
             </button>
 
             {expanded && (
                 <div className="border-t border-border/35 p-4 space-y-3">
-                    {/* Existing mappings */}
-                    {isLoading && <p className="text-sm text-muted-foreground">加载中...</p>}
+                    {isLoading && <p className="text-sm text-muted-foreground">{t('mapping.loading')}</p>}
 
                     {(mappings ?? []).length === 0 && !isLoading && (
                         <p className="text-sm text-muted-foreground text-center py-2">
-                            {t('mapping.empty') || '暂无映射规则'}
+                            {t('mapping.empty')}
                         </p>
                     )}
 
@@ -105,7 +103,7 @@ export function ModelMappingPanel() {
                                 type="button"
                                 onClick={() => handleToggle(m)}
                                 className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
-                                title={m.enabled ? '点击禁用' : '点击启用'}
+                                title={m.enabled ? t('mapping.disableTooltip') : t('mapping.enableTooltip')}
                             >
                                 {m.enabled
                                     ? <ToggleRight className="size-5 text-primary" />
@@ -115,7 +113,7 @@ export function ModelMappingPanel() {
                             <ArrowRight className="size-3.5 shrink-0 text-muted-foreground" />
                             <span className="truncate font-medium text-xs">{m.target_model}</span>
                             <span className="ml-auto shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
-                                {MATCH_TYPE_LABELS[m.match_type] || m.match_type}
+                                {matchTypeLabel(m.match_type)}
                             </span>
                             <button
                                 type="button"
@@ -127,18 +125,17 @@ export function ModelMappingPanel() {
                         </div>
                     ))}
 
-                    {/* Create form */}
                     {showCreate ? (
                         <div className="space-y-2 rounded-lg border border-border/30 bg-muted/20 p-3">
                             <div className="grid grid-cols-2 gap-2">
                                 <Input
-                                    placeholder="匹配模式 (如 gpt-4o)"
+                                    placeholder={t('mapping.patternPlaceholder')}
                                     value={form.pattern}
                                     onChange={(e) => setForm({ ...form, pattern: e.target.value })}
                                     className="rounded-lg text-xs"
                                 />
                                 <Input
-                                    placeholder="目标模型 (如 gpt-4o-2024-08-06)"
+                                    placeholder={t('mapping.targetPlaceholder')}
                                     value={form.target_model}
                                     onChange={(e) => setForm({ ...form, target_model: e.target.value })}
                                     className="rounded-lg text-xs"
@@ -150,23 +147,23 @@ export function ModelMappingPanel() {
                                     onChange={(e) => setForm({ ...form, match_type: e.target.value as CreateModelMappingRequest['match_type'] })}
                                     className="rounded-lg border border-input bg-background px-2 py-1.5 text-xs"
                                 >
-                                    <option value="exact">精确匹配</option>
-                                    <option value="wildcard">通配符</option>
-                                    <option value="regex">正则表达式</option>
+                                    <option value="exact">{t('mapping.matchExact')}</option>
+                                    <option value="wildcard">{t('mapping.matchWildcard')}</option>
+                                    <option value="regex">{t('mapping.matchRegex')}</option>
                                 </select>
                                 <Input
                                     type="number"
-                                    placeholder="优先级"
+                                    placeholder={t('mapping.priorityPlaceholder')}
                                     value={form.priority}
                                     onChange={(e) => setForm({ ...form, priority: Number(e.target.value) })}
                                     className="w-20 rounded-lg text-xs"
                                 />
                                 <div className="ml-auto flex gap-1.5">
                                     <Button variant="ghost" size="sm" onClick={() => setShowCreate(false)} className="rounded-lg text-xs">
-                                        取消
+                                        {t('mapping.cancel')}
                                     </Button>
                                     <Button size="sm" onClick={handleCreate} disabled={createMapping.isPending} className="rounded-lg text-xs">
-                                        {createMapping.isPending ? '创建中...' : '创建'}
+                                        {createMapping.isPending ? t('mapping.creating') : t('mapping.create')}
                                     </Button>
                                 </div>
                             </div>
@@ -178,7 +175,7 @@ export function ModelMappingPanel() {
                             className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-border/50 py-2 text-xs text-muted-foreground hover:text-foreground hover:border-border transition-colors"
                         >
                             <Plus className="size-3.5" />
-                            {t('mapping.add') || '添加映射'}
+                            {t('mapping.add')}
                         </button>
                     )}
                 </div>

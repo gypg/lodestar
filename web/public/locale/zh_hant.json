@@ -2208,7 +2208,26 @@
       "title": "模型映射",
       "count": "條規則",
       "empty": "暫無映射規則",
-      "add": "添加映射"
+      "add": "添加映射",
+      "loading": "載入中...",
+      "patternPlaceholder": "匹配模式 (如 gpt-4o)",
+      "targetPlaceholder": "目標模型 (如 gpt-4o-2024-08-06)",
+      "priorityPlaceholder": "優先級",
+      "cancel": "取消",
+      "create": "建立",
+      "creating": "建立中...",
+      "matchExact": "精確匹配",
+      "matchWildcard": "通配符",
+      "matchRegex": "正規表達式",
+      "enableTooltip": "點擊啟用",
+      "disableTooltip": "點擊停用",
+      "confirmDelete": "確認刪除此映射？",
+      "toastCreated": "映射已建立",
+      "toastCreateFailed": "建立失敗",
+      "toastUpdateFailed": "更新失敗",
+      "toastDeleted": "已刪除",
+      "toastDeleteFailed": "刪除失敗",
+      "toastFillRequired": "請輸入匹配模式和目標模型"
     }
   },
   "log": {

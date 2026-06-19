@@ -2208,7 +2208,26 @@
       "title": "Model Mapping",
       "count": "rules",
       "empty": "No mapping rules yet",
-      "add": "Add mapping"
+      "add": "Add mapping",
+      "loading": "Loading...",
+      "patternPlaceholder": "Pattern (e.g. gpt-4o)",
+      "targetPlaceholder": "Target model (e.g. gpt-4o-2024-08-06)",
+      "priorityPlaceholder": "Priority",
+      "cancel": "Cancel",
+      "create": "Create",
+      "creating": "Creating...",
+      "matchExact": "Exact",
+      "matchWildcard": "Wildcard",
+      "matchRegex": "Regex",
+      "enableTooltip": "Click to enable",
+      "disableTooltip": "Click to disable",
+      "confirmDelete": "Delete this mapping?",
+      "toastCreated": "Mapping created",
+      "toastCreateFailed": "Create failed",
+      "toastUpdateFailed": "Update failed",
+      "toastDeleted": "Deleted",
+      "toastDeleteFailed": "Delete failed",
+      "toastFillRequired": "Please enter pattern and target model"
     }
   },
   "log": {
