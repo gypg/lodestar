@@ -536,7 +536,7 @@ export function AppContainer() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: lightweightMotion ? 0.2 : 0.6, ease: [0.16, 1, 0.3, 1] }}
-            className="relative mx-auto flex min-h-0 flex-1 h-dvh max-h-dvh max-w-[92rem] flex-col overflow-visible px-3 pt-3 pb-3 md:grid md:grid-cols-[auto_minmax(0,1fr)] md:gap-7 md:px-6 md:py-6"
+            className="relative flex min-h-0 flex-1 h-dvh max-h-dvh flex-col overflow-visible px-3 pt-3 pb-3 md:grid md:grid-cols-[13rem_minmax(0,1fr)] md:gap-5 md:px-5 md:py-5"
         >
             <NavBar />
             <AccountThemeSync />

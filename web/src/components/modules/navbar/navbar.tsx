@@ -48,7 +48,7 @@ export function NavBar() {
     }, [restrictToPortal, orderedItems, visibleRouteSet, routeById, allRouteIds])
 
     return (
-        <div className="relative z-50 md:min-h-full md:min-w-48">
+        <div className="relative z-50 md:min-h-full md:w-52">
             <motion.nav
                 aria-label={t('ariaLabel')}
                 className={cn(
