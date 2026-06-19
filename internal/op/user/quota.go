@@ -40,17 +40,20 @@ func AddQuota(userID uint, amount float64, ctx context.Context) error {
 }
 
 // DeductQuota subtracts spent cost from balance and accumulates used_quota.
-// Atomic single-statement update (safe under concurrency).
+// Never drives quota below zero: at most MIN(remaining, amount) is taken (atomic
+// single UPDATE). Concurrent requests may each pass HasBalanceForKey while
+// balance is small; this caps total deduction without negative balances.
 func DeductQuota(userID uint, amount float64, ctx context.Context) error {
 	if amount <= 0 {
 		return nil
 	}
-	return db.GetDB().WithContext(ctx).Model(&model.User{}).
+	res := db.GetDB().WithContext(ctx).Model(&model.User{}).
 		Where("id = ?", userID).
 		Updates(map[string]any{
-			"quota":      gorm.Expr("quota - ?", amount),
-			"used_quota": gorm.Expr("used_quota + ?", amount),
-		}).Error
+			"quota":      gorm.Expr("quota - MIN(quota, ?)", amount),
+			"used_quota": gorm.Expr("used_quota + MIN(quota, ?)", amount),
+		})
+	return res.Error
 }
 
 // SetQuota overwrites a user's balance (admin adjust).

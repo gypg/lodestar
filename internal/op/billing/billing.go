@@ -32,8 +32,9 @@ func Enabled() bool {
 
 // HasBalanceForKey reports whether a request on this key may proceed.
 // Fail-open: billing off, unowned key, or any lookup error => allow (never break
-// the relay hot path on a transient infra error; over-charging is avoided by the
-// post-request deduction, under-charging here is acceptable).
+// the relay hot path on a transient infra error). When billing is on, requires
+// strictly positive balance; post-request ChargeKey uses capped DeductQuota so
+// concurrent overspend cannot drive quota negative.
 func HasBalanceForKey(apiKeyID int, ctx context.Context) bool {
 	if !Enabled() {
 		return true
