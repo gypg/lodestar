@@ -80,6 +80,7 @@ const (
 	SettingKeySiteDescription                      SettingKey = "site_description"                         // Lodestar 站点简介(关于本站)
 	SettingKeySiteAnnouncement                     SettingKey = "site_announcement"                        // Lodestar 站点公告(对外公开展示)
 	SettingKeySiteFooter                           SettingKey = "site_footer"                              // Lodestar 页脚文案
+	SettingKeyLandingAmbientMode                   SettingKey = "landing_ambient_mode"                     // Lodestar 封面氛围: photo | color4bg (失败回退 photo)
 	SettingKeyEpayEnabled                          SettingKey = "epay_enabled"                             // Lodestar 易支付开关
 	SettingKeyPayAddress                           SettingKey = "pay_address"                              // 易支付网关地址 (https://xxx)
 	SettingKeyEpayPID                              SettingKey = "epay_pid"                                 // 易支付商户 PID

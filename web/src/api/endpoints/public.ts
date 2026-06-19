@@ -13,6 +13,7 @@ export interface PublicOverview {
     description: string;
     announcement: string;
     footer: string;
+    landing_ambient_mode?: 'photo' | 'color4bg';
     model_count: number;
     models: PublicModel[];
     total_requests: number;

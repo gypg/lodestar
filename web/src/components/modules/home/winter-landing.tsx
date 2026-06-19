@@ -18,6 +18,7 @@ import { useEffect, useState } from 'react';
 import { useNavStore, type NavItem } from '@/components/modules/navbar';
 import { usePublicOverview } from '@/api/endpoints/public';
 import { useCurrentUser, isStaffRole } from '@/api/endpoints/user';
+import { Color4bgAmbient } from './Color4bgAmbient';
 
 const SNOW_SYMBOLS = ['❄', '❅', '❆', '✻', '✺', '*'];
 const SNOW_COUNT = 72;
@@ -116,6 +117,7 @@ export function WinterLanding({
       className="relative h-full w-full overflow-hidden rounded-xl border border-[#1f1d1a]/15 bg-[#f4f1ec] text-[#1f1d1a]"
       style={{ fontFamily: SERIF }}
     >
+      <Color4bgAmbient active={overview?.landing_ambient_mode === 'color4bg'} />
       {/* 1. 蓝色少女雪景照片背景（靠右，左侧留白给导航） */}
       <div
         className="pointer-events-none absolute inset-0 z-[1]"

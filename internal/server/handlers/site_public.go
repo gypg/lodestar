@@ -53,6 +53,10 @@ func getPublicOverview(c *gin.Context) {
 	description, _ := setting.GetString(model.SettingKeySiteDescription)
 	announcement, _ := setting.GetString(model.SettingKeySiteAnnouncement)
 	footer, _ := setting.GetString(model.SettingKeySiteFooter)
+	ambient, _ := setting.GetString(model.SettingKeyLandingAmbientMode)
+	if ambient != "color4bg" {
+		ambient = "photo"
+	}
 
 	models := make([]publicModel, 0)
 	if list, err := llm.List(c.Request.Context()); err == nil {
@@ -68,6 +72,7 @@ func getPublicOverview(c *gin.Context) {
 		"description":    description,
 		"announcement":   announcement,
 		"footer":         footer,
+		"landing_ambient_mode": ambient,
 		"model_count":    len(models),
 		"models":         models,
 		"total_requests": total.RequestSuccess + total.RequestFailed,

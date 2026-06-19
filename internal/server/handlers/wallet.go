@@ -13,6 +13,7 @@ Balance is float USD; relay deducts per-request cost when commercial_mode is on
 import (
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -23,6 +24,7 @@ import (
 	st "github.com/gypg/lodestar/internal/op/stats"
 	"github.com/gypg/lodestar/internal/op/topup"
 	"github.com/gypg/lodestar/internal/op/user"
+	"github.com/gypg/lodestar/internal/op/walletusage"
 	"github.com/gypg/lodestar/internal/server/auth"
 	"github.com/gypg/lodestar/internal/server/middleware"
 	"github.com/gypg/lodestar/internal/server/resp"
@@ -129,11 +131,24 @@ func getUsage(c *gin.Context) {
 		totTok += tok
 		totCost += cost
 	}
+	days := 14
+	if v := c.Query("days"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 && n <= 90 {
+			days = n
+		}
+	}
+	series, chartOK, uerr := walletusage.DailySeriesForUser(uid, days, c.Request.Context())
+	if uerr != nil {
+		resp.InternalError(c)
+		return
+	}
 	resp.Success(c, gin.H{
-		"total_requests": totReq,
-		"total_tokens":   totTok,
-		"total_cost":     totCost,
-		"per_key":        perKey,
+		"total_requests":        totReq,
+		"total_tokens":          totTok,
+		"total_cost":            totCost,
+		"per_key":               perKey,
+		"daily_series":          series,
+		"usage_chart_available": chartOK,
 	})
 }
 

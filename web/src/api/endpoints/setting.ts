@@ -50,6 +50,7 @@ export const SettingKey = {
     SiteDescription: 'site_description',
     SiteAnnouncement: 'site_announcement',
     SiteFooter: 'site_footer',
+    LandingAmbientMode: 'landing_ambient_mode',
     EpayEnabled: 'epay_enabled',
     PayAddress: 'pay_address',
     EpayPID: 'epay_pid',

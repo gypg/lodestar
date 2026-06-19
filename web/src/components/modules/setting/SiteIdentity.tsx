@@ -22,6 +22,7 @@ export function SiteIdentity() {
     const [desc, setDesc] = useState('');
     const [announce, setAnnounce] = useState('');
     const [footer, setFooter] = useState('');
+    const [ambient, setAmbient] = useState<'photo' | 'color4bg'>('photo');
     const [loaded, setLoaded] = useState(false);
 
     useEffect(() => {
@@ -31,6 +32,8 @@ export function SiteIdentity() {
         setDesc(get(SettingKey.SiteDescription));
         setAnnounce(get(SettingKey.SiteAnnouncement));
         setFooter(get(SettingKey.SiteFooter));
+        const am = get(SettingKey.LandingAmbientMode);
+        setAmbient(am === 'color4bg' ? 'color4bg' : 'photo');
         setLoaded(true);
     }, [settings, loaded]);
 
@@ -40,6 +43,7 @@ export function SiteIdentity() {
             { key: SettingKey.SiteDescription, value: desc },
             { key: SettingKey.SiteAnnouncement, value: announce },
             { key: SettingKey.SiteFooter, value: footer },
+            { key: SettingKey.LandingAmbientMode, value: ambient },
         ];
         Promise.all(entries.map((e) => setSetting.mutateAsync(e)))
             .then(() => toast.success('站点信息已保存'))
@@ -76,6 +80,17 @@ export function SiteIdentity() {
                 <div className="flex flex-col gap-1.5">
                     <label className="ml-1 text-xs font-medium text-muted-foreground">页脚文案</label>
                     <Input value={footer} onChange={(e) => setFooter(e.target.value)} placeholder="© 2026 ..." className="rounded-lg" />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                    <label className="ml-1 text-xs font-medium text-muted-foreground">封面氛围光</label>
+                    <select
+                        value={ambient}
+                        onChange={(e) => setAmbient(e.target.value === 'color4bg' ? 'color4bg' : 'photo')}
+                        className="h-9 rounded-lg border border-border/40 bg-background px-2 text-sm"
+                    >
+                        <option value="photo">冬日实景照片（默认）</option>
+                        <option value="color4bg">动态氛围光（color4bg，失败则回退照片）</option>
+                    </select>
                 </div>
                 <div>
                     <Button type="button" size="sm" onClick={save} disabled={setSetting.isPending}>保存站点信息</Button>

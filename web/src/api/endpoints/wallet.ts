@@ -81,11 +81,19 @@ export interface UsageKey {
     tokens: number;
     cost: number;
 }
+export interface UsageDailyPoint {
+    date: string;
+    requests: number;
+    tokens: number;
+    cost: number;
+}
 export interface UsageSummary {
     total_requests: number;
     total_tokens: number;
     total_cost: number;
     per_key: UsageKey[];
+    daily_series?: UsageDailyPoint[];
+    usage_chart_available?: boolean;
 }
 export function useUsage() {
     return useQuery({
