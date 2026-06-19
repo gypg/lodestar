@@ -59,7 +59,7 @@ function successRateClass(tone: 'danger' | 'warning' | 'success' | 'neutral') {
     }
 }
 
-function GroupHealthCard({
+export function GroupHealthCard({
     item,
     autoItems,
 }: {

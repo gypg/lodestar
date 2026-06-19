@@ -27,6 +27,7 @@
 | **钱包近 14 日用量曲线**（`daily_series`）+ **Tokens / 花费 / 请求** 切换 | ✅ | 波 A + P0 |
 | **公开测速** `GET /api/v1/public/ping` + API 指引延迟展示 | ✅ | P0 参考 |
 | **Staff 健康摘要**（钱包区 `PortalHealthStrip`，读 `ops/health`） | ✅ | 波 A |
+| **运维 · 健康 Tab 卡片墙**（渠道 / 路由分组 / 模型 7d，波 B） | ✅ | 波 B |
 | 维护模式、邀请码注册、意见反馈、SMTP 测试 | ✅ | 运营 |
 | **GitHub Actions quality**（含 web ESLint） | ✅ | CI |
 

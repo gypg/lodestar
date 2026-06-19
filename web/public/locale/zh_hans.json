@@ -680,6 +680,21 @@
         "healthScore": "健康分",
         "failureCount": "近 24 小时失败",
         "noIssues": "当前没有高优先级风险分组。"
+      },
+      "portal": {
+        "providersTitle": "渠道 / 上游",
+        "providersHint": "按渠道聚合的成功率、延迟与请求量（统计周期与遥测一致）。",
+        "telemetryHint": "更完整的渠道表见「遥测」子页。",
+        "routesTitle": "路由分组",
+        "routesHint": "与数据分析台一致的分组健康、失败渠道与 Auto 策略快照。",
+        "routesEmpty": "暂无路由分组数据。",
+        "modelsTitle": "模型用量（近 7 天）",
+        "modelsHint": "按模型汇总请求、成功率与花费，便于对照渠道异常。",
+        "modelsEmpty": "近 7 天暂无模型用量。",
+        "openAnalytics": "数据分析台",
+        "latency": "平均延迟",
+        "successRate": "成功率",
+        "requests": "请求"
       }
     },
     "system": {

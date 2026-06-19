@@ -680,6 +680,21 @@
         "healthScore": "Health Score",
         "failureCount": "Failures in 24h",
         "noIssues": "No high-priority risky groups at the moment."
+      },
+      "portal": {
+        "providersTitle": "Channels / upstreams",
+        "providersHint": "Per-channel success rate, latency, and request volume (same stats window as telemetry).",
+        "telemetryHint": "See the Telemetry tab for the full provider table.",
+        "routesTitle": "Route groups",
+        "routesHint": "Group health, failing channels, and Auto strategy snapshots (same as Analytics).",
+        "routesEmpty": "No route group data.",
+        "modelsTitle": "Model usage (7d)",
+        "modelsHint": "Requests, success rate, and cost by model to correlate with channel issues.",
+        "modelsEmpty": "No model usage in the last 7 days.",
+        "openAnalytics": "Analytics",
+        "latency": "Avg latency",
+        "successRate": "Success rate",
+        "requests": "Requests"
       }
     },
     "system": {

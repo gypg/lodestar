@@ -4,6 +4,7 @@ import { Activity, Database, ShieldCheck, TriangleAlert, Workflow } from 'lucide
 import { useTranslations } from 'next-intl';
 import { useOpsHealthStatus } from '@/api/endpoints/ops';
 import { MetricCard, QueryState, StatusBadge, formatUnixTime } from '@/components/modules/analytics/shared';
+import { OpsHealthCards } from './health/OpsHealthCards';
 
 function HealthSignalCard({
     title,
@@ -172,6 +173,8 @@ export function Health() {
                             </div>
                         </QueryState>
                     </article>
+
+                    <OpsHealthCards />
                 </div>
             </QueryState>
         </section>
