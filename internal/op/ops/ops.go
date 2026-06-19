@@ -1227,6 +1227,14 @@ func TelemetrySummaryGet(ctx context.Context) (*model.OpsTelemetrySummary, error
 				}
 			}
 
+			var spark30 []float64
+			if pts, ok, _ := walletusage.ChannelSuccessSparkline(ch.ID, 30, ctx); ok && len(pts) > 0 {
+				spark30 = make([]float64, len(pts))
+				for i, p := range pts {
+					spark30[i] = p.SuccessRate
+				}
+			}
+
 			providers = append(providers, model.OpsTelemetryProviderItem{
 				ChannelID:        ch.ID,
 				ChannelName:      ch.Name,
@@ -1238,6 +1246,7 @@ func TelemetrySummaryGet(ctx context.Context) (*model.OpsTelemetrySummary, error
 				HealthStatus:     healthStatus,
 				HealthHint:       healthHint,
 				Sparkline7d:      spark,
+				Sparkline30d:     spark30,
 			})
 
 			if ch.Enabled {

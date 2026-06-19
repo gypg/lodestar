@@ -696,7 +696,8 @@
         "latency": "平均延迟",
         "successRate": "成功率",
         "requests": "请求",
-        "sparkline7d": "近 7 日成功率"
+        "sparkline7d": "近 7 日成功率",
+        "availability30d": "近 30 日可用性"
       }
     },
     "system": {

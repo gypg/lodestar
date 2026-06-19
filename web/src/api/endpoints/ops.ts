@@ -372,6 +372,7 @@ export interface OpsTelemetryProviderItem {
     health_status: string;
     health_hint: string;
     sparkline_7d?: number[];
+    sparkline_30d?: number[];
 }
 
 export interface OpsTelemetryProviderHealth {

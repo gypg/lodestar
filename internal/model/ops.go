@@ -216,6 +216,7 @@ type OpsTelemetryProviderItem struct {
 	HealthStatus     string    `json:"health_status"`
 	HealthHint       string    `json:"health_hint"`
 	Sparkline7d      []float64 `json:"sparkline_7d,omitempty"`
+	Sparkline30d     []float64 `json:"sparkline_30d,omitempty"`
 }
 
 type OpsTelemetryDrilldownShortcut struct {

@@ -696,7 +696,8 @@
         "latency": "Avg latency",
         "successRate": "Success rate",
         "requests": "Requests",
-        "sparkline7d": "7d Success Rate"
+        "sparkline7d": "7d Success Rate",
+        "availability30d": "30d Availability"
       }
     },
     "system": {
