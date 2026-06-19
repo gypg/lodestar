@@ -515,8 +515,7 @@ export function AppContainer() {
             <div className="grid min-h-dvh place-items-center bg-background p-6 text-center text-foreground">
                 <div className="flex flex-col items-center gap-4">
                     <Logo size={72} />
-                    <h1 className="text-xl font-semibold">站点维护中</h1>
-                    <p className="max-w-sm text-sm text-muted-foreground">我们正在升级，请稍后再来。给你带来的不便敬请谅解。</p>
+                    <MaintenanceModeText />
                 </div>
             </div>
         );
@@ -607,5 +606,16 @@ export function AppContainer() {
             <ProxyPoolDialog />
         </motion.div>
         </div>
+    );
+}
+
+/** Maintenance mode screen text — extracted for i18n. */
+function MaintenanceModeText() {
+    const t = useTranslations('common.maintenance');
+    return (
+        <>
+            <h1 className="text-xl font-semibold">{t('title')}</h1>
+            <p className="max-w-sm text-sm text-muted-foreground">{t('message')}</p>
+        </>
     );
 }

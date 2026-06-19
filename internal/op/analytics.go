@@ -8,8 +8,8 @@ import (
 )
 
 // Deprecated: Use analytics.AnalyticsOverviewGet from internal/op/analytics instead.
-func AnalyticsOverviewGet(ctx context.Context, r model.AnalyticsRange) (*model.AnalyticsOverview, error) {
-	return analytics.AnalyticsOverviewGet(ctx, r)
+func AnalyticsOverviewGet(ctx context.Context, r model.AnalyticsRange, userID *uint) (*model.AnalyticsOverview, error) {
+	return analytics.AnalyticsOverviewGet(ctx, r, userID)
 }
 
 // Deprecated: Use analytics.AnalyticsUtilizationGet from internal/op/analytics instead.

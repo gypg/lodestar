@@ -85,6 +85,9 @@ func listRemoteSites(c *gin.Context) {
 		resp.InternalError(c)
 		return
 	}
+	// Mask credentials for ALL roles — the edit form fetches the single-site
+	// endpoint for the raw value; the list never needs plaintext secrets.
+	maskRemoteSiteCredentials(sites)
 	if isViewerRole(c.GetString("user_role")) {
 		redactRemoteSiteBaseURLsForViewer(sites)
 	}

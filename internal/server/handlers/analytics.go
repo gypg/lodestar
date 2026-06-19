@@ -65,7 +65,14 @@ func getAnalyticsOverview(c *gin.Context) {
 		return
 	}
 
-	data, err := analytics.AnalyticsOverviewGet(c.Request.Context(), analyticsRange)
+	// Multi-tenant isolation: non-staff users only see their own API key scope.
+	var userID *uint
+	if !isStaff(c) {
+		uid := uint(c.GetInt("user_id"))
+		userID = &uid
+	}
+
+	data, err := analytics.AnalyticsOverviewGet(c.Request.Context(), analyticsRange, userID)
 	if err != nil {
 		resp.InternalError(c)
 		return

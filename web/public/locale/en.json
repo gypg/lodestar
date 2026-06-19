@@ -694,7 +694,8 @@
         "openAnalytics": "Analytics",
         "latency": "Avg latency",
         "successRate": "Success rate",
-        "requests": "Requests"
+        "requests": "Requests",
+        "sparkline7d": "7d Success Rate"
       }
     },
     "system": {
@@ -1035,6 +1036,10 @@
       "title": "Critical Error",
       "message": "The application encountered a critical error and cannot recover automatically.",
       "tryToRecover": "Try to Recover"
+    },
+    "maintenance": {
+      "title": "Site Under Maintenance",
+      "message": "We are currently upgrading. Please check back later. We apologize for the inconvenience."
     }
   },
   "home": {
@@ -2145,6 +2150,7 @@
       "latency": "Average Latency",
       "averageLatency": "Average Latency",
       "successRate": "Success Rate",
+      "sparkline7d": "7d Success Rate",
       "expand": "Expand details",
       "collapse": "Collapse details"
     },

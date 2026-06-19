@@ -120,7 +120,14 @@ func getStatsChannel(c *gin.Context) {
 func getStatsAPIKey(c *gin.Context) {
 	stats := st.APIKeyList()
 
-	apiKeys, err := ak.List(c.Request.Context())
+	// Multi-tenant isolation: non-staff users only see their own API keys.
+	var apiKeys []model.APIKey
+	var err error
+	if isStaff(c) {
+		apiKeys, err = ak.List(c.Request.Context())
+	} else {
+		apiKeys, err = ak.ListByUser(uint(c.GetInt("user_id")), c.Request.Context())
+	}
 	if err != nil {
 		resp.InternalError(c)
 		return
@@ -150,15 +157,18 @@ func getStatsAPIKey(c *gin.Context) {
 		})
 	}
 
-	for apiKeyID, item := range statsByAPIKeyID {
-		name, ok := apiKeyNames[item.APIKeyID]
-		if !ok {
-			name = fmt.Sprintf("Key #%d", apiKeyID)
+	// For non-staff, skip orphan stats entries not belonging to the user's keys.
+	if isStaff(c) {
+		for apiKeyID, item := range statsByAPIKeyID {
+			name, ok := apiKeyNames[item.APIKeyID]
+			if !ok {
+				name = fmt.Sprintf("Key #%d", apiKeyID)
+			}
+			result = append(result, apiKeyStatsResponse{
+				StatsAPIKey: item,
+				Name:        name,
+			})
 		}
-		result = append(result, apiKeyStatsResponse{
-			StatsAPIKey: item,
-			Name:        name,
-		})
 	}
 
 	resp.Success(c, result)

@@ -694,7 +694,8 @@
         "openAnalytics": "資料分析台",
         "latency": "平均延遲",
         "successRate": "成功率",
-        "requests": "請求"
+        "requests": "請求",
+        "sparkline7d": "近 7 日成功率"
       }
     },
     "system": {
@@ -1035,6 +1036,10 @@
       "title": "嚴重錯誤",
       "message": "應用程式遇到嚴重錯誤，無法自動恢復。",
       "tryToRecover": "嘗試恢復"
+    },
+    "maintenance": {
+      "title": "站點維護中",
+      "message": "我們正在升級，請稍後再來。給你帶來的不便敬請見諒。"
     }
   },
   "home": {
@@ -2145,6 +2150,7 @@
       "latency": "平均延遲",
       "averageLatency": "平均延遲",
       "successRate": "成功率",
+      "sparkline7d": "近 7 日成功率",
       "expand": "展開詳情",
       "collapse": "收起詳情"
     },

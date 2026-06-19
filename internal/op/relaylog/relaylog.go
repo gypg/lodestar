@@ -477,6 +477,7 @@ type LogFilter struct {
 	Model        string // 模糊匹配 request_model_name 或 actual_model_name
 	ChannelID    *int
 	APIKeyID     *int
+	APIKeyIDs    []int  // 多租户隔离：限制为指定 API Key ID 集合（非空时生效，与 APIKeyID 互斥）
 	EndpointType string
 	HasError     *bool // nil=全部, false=仅成功, true=仅失败
 	// IncludeAttempts 控制 channel_id / HasError 过滤是否"穿透"到单次尝试维度。
@@ -516,7 +517,7 @@ func RelayLogList(ctx context.Context, filter LogFilter, page, pageSize int) ([]
 		return nil, err
 	}
 	hasFilter := filter.StartTime != nil || filter.EndTime != nil ||
-		filter.Model != "" || filter.ChannelID != nil || filter.APIKeyID != nil ||
+		filter.Model != "" || filter.ChannelID != nil || filter.APIKeyID != nil || len(filter.APIKeyIDs) > 0 ||
 		filter.EndpointType != "" || filter.HasError != nil || filter.IsTest != nil
 	excludedGroups := loadExcludedGroupSet()
 
@@ -550,6 +551,18 @@ func RelayLogList(ctx context.Context, filter LogFilter, page, pageSize int) ([]
 		}
 		if filter.APIKeyID != nil && log.RequestAPIKeyID != *filter.APIKeyID {
 			return false
+		}
+		if len(filter.APIKeyIDs) > 0 {
+			found := false
+			for _, id := range filter.APIKeyIDs {
+				if log.RequestAPIKeyID == id {
+					found = true
+					break
+				}
+			}
+			if !found {
+				return false
+			}
 		}
 		if filter.EndpointType != "" && log.EndpointType != filter.EndpointType {
 			return false
@@ -663,6 +676,9 @@ func RelayLogList(ctx context.Context, filter LogFilter, page, pageSize int) ([]
 			}
 			if filter.APIKeyID != nil {
 				query = query.Where("request_api_key_id = ?", *filter.APIKeyID)
+			}
+			if len(filter.APIKeyIDs) > 0 {
+				query = query.Where("request_api_key_id IN ?", filter.APIKeyIDs)
 			}
 			if filter.EndpointType != "" {
 				query = query.Where("endpoint_type = ?", filter.EndpointType)

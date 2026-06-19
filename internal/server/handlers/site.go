@@ -83,6 +83,11 @@ func listSite(c *gin.Context) {
 		resp.Error(c, http.StatusInternalServerError, err.Error())
 		return
 	}
+	// Mask account credentials for ALL roles — the edit dialog fetches the
+	// single-site endpoint for raw values; the list never needs plaintext.
+	for i := range sites {
+		maskSiteAccountCredentials(sites[i].Accounts)
+	}
 	if isViewerRole(c.GetString("user_role")) {
 		redactSiteBaseURLsForViewer(sites)
 	}

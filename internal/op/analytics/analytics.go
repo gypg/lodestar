@@ -70,7 +70,9 @@ type analyticsFailureAggregateRow struct {
 	LastFailureAt    int64
 }
 
-func AnalyticsOverviewGet(ctx context.Context, r model.AnalyticsRange) (*model.AnalyticsOverview, error) {
+// AnalyticsOverviewGet returns aggregate analytics for the given range.
+// When userID is non-nil, only that user's API keys are counted (multi-tenant isolation).
+func AnalyticsOverviewGet(ctx context.Context, r model.AnalyticsRange, userID *uint) (*model.AnalyticsOverview, error) {
 	daily, err := stats.GetDaily(ctx)
 	if err != nil {
 		return nil, err
@@ -82,7 +84,14 @@ func AnalyticsOverviewGet(ctx context.Context, r model.AnalyticsRange) (*model.A
 	if err != nil {
 		return nil, err
 	}
-	apiKeys, err := apikey.List(ctx)
+
+	// Multi-tenant: scope API key count to the user's own keys when userID is set.
+	var apiKeys []model.APIKey
+	if userID != nil {
+		apiKeys, err = apikey.ListByUser(*userID, ctx)
+	} else {
+		apiKeys, err = apikey.List(ctx)
+	}
 	if err != nil {
 		return nil, err
 	}

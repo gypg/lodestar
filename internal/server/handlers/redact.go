@@ -66,3 +66,43 @@ func redactSettingsURLsForViewer(settings []model.Setting) {
 		}
 	}
 }
+
+// sensitiveSettingKeys are setting keys whose values must never be returned in
+// full via the list endpoint. Only the set/write endpoint exposes raw values.
+var sensitiveSettingKeys = map[string]struct{}{
+	"epay_key":                            {},
+	"smtp_pass":                           {},
+	"semantic_cache_embedding_api_key":    {},
+	"ai_route_api_key":                    {},
+	"webdav_config":                       {},
+}
+
+// maskSensitiveSettings replaces the values of known-secret setting keys with
+// a masked form. Called for ALL roles (including admin) on the list endpoint
+// to limit blast radius of an account compromise.
+func maskSensitiveSettings(settings []model.Setting) {
+	for i := range settings {
+		if _, ok := sensitiveSettingKeys[string(settings[i].Key)]; ok {
+			settings[i].Value = maskSecretValue(settings[i].Value)
+		}
+	}
+}
+
+// maskRemoteSiteCredentials zeroes out credential fields in a copy of the site
+// slice so the list API never returns raw tokens/passwords.
+func maskRemoteSiteCredentials(sites []model.RemoteSite) {
+	for i := range sites {
+		sites[i].AccessToken = maskSecretValue(sites[i].AccessToken)
+		sites[i].Password = maskSecretValue(sites[i].Password)
+	}
+}
+
+// maskSiteAccountCredentials zeroes out credential fields on site accounts.
+func maskSiteAccountCredentials(accounts []model.SiteAccount) {
+	for i := range accounts {
+		accounts[i].Password = maskSecretValue(accounts[i].Password)
+		accounts[i].AccessToken = maskSecretValue(accounts[i].AccessToken)
+		accounts[i].APIKey = maskSecretValue(accounts[i].APIKey)
+		accounts[i].RefreshToken = maskSecretValue(accounts[i].RefreshToken)
+	}
+}

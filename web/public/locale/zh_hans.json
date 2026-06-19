@@ -1036,6 +1036,10 @@
       "title": "严重错误",
       "message": "应用程序遇到严重错误，无法自动恢复。",
       "tryToRecover": "尝试恢复"
+    },
+    "maintenance": {
+      "title": "站点维护中",
+      "message": "我们正在升级，请稍后再来。给你带来的不便敬请谅解。"
     }
   },
   "home": {
@@ -2146,6 +2150,7 @@
       "latency": "平均延迟",
       "averageLatency": "平均延迟",
       "successRate": "成功率",
+      "sparkline7d": "近 7 日成功率",
       "expand": "展开详情",
       "collapse": "收起详情"
     },

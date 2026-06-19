@@ -75,6 +75,8 @@ func getSettingList(c *gin.Context) {
 		resp.InternalError(c)
 		return
 	}
+	// Mask secret values for ALL roles (including admin) to limit blast radius.
+	maskSensitiveSettings(settings)
 	if isViewerRole(c.GetString("user_role")) {
 		redactSettingsURLsForViewer(settings)
 	}

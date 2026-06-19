@@ -10,6 +10,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gypg/lodestar/internal/conf"
+	"github.com/gypg/lodestar/internal/model"
+	ak "github.com/gypg/lodestar/internal/op/apikey"
 	"github.com/gypg/lodestar/internal/op/relaylog"
 	"github.com/gypg/lodestar/internal/server/auth"
 	"github.com/gypg/lodestar/internal/server/middleware"
@@ -40,10 +42,41 @@ func init() {
 		)
 }
 
+// isLogStaff reports whether the caller is admin or editor (staff).
+// Staff sees all logs; regular users are scoped to their own API keys.
+func isLogStaff(c *gin.Context) bool {
+	role := c.GetString("user_role")
+	return role == model.UserRoleAdmin || role == model.UserRoleEditor
+}
+
+// getUserAPIKeyIDs returns the API key IDs owned by the authenticated user.
+// Used to scope log and analytics queries for non-staff users.
+func getUserAPIKeyIDs(c *gin.Context) []int {
+	uid := uint(c.GetInt("user_id"))
+	keys, err := ak.ListByUser(uid, c.Request.Context())
+	if err != nil || len(keys) == 0 {
+		return nil
+	}
+	ids := make([]int, len(keys))
+	for i, k := range keys {
+		ids[i] = k.ID
+	}
+	return ids
+}
+
 func listLog(c *gin.Context) {
 	page, pageSize := parsePagination(c.DefaultQuery("page", "1"), c.DefaultQuery("page_size", "20"))
 
 	filter := relaylog.LogFilter{}
+
+	// Multi-tenant isolation: non-staff users can only see their own API keys' logs.
+	if !isLogStaff(c) {
+		filter.APIKeyIDs = getUserAPIKeyIDs(c)
+		if len(filter.APIKeyIDs) == 0 {
+			resp.Success(c, []model.RelayLogListItem{})
+			return
+		}
+	}
 
 	// include_attempts 默认：显式传 "false" 才关闭；否则当筛选了 channel_id 时默认开启，
 	// 让"在渠道A 失败→重试到B 成功"的请求也能被渠道A 命中（issue #67）。
@@ -162,6 +195,22 @@ func logDetail(c *gin.Context) {
 		return
 	}
 
+	// Multi-tenant isolation: non-staff users can only view their own logs.
+	if !isLogStaff(c) {
+		userKeyIDs := getUserAPIKeyIDs(c)
+		allowed := false
+		for _, kid := range userKeyIDs {
+			if log.RequestAPIKeyID == kid {
+				allowed = true
+				break
+			}
+		}
+		if !allowed {
+			resp.Error(c, http.StatusForbidden, "access denied")
+			return
+		}
+	}
+
 	resp.Success(c, log)
 }
 
@@ -178,6 +227,25 @@ func streamLog(c *gin.Context) {
 	c.Header("Cache-Control", "no-cache")
 	c.Header("Connection", "keep-alive")
 	c.Header("X-Accel-Buffering", "no")
+
+	// Multi-tenant isolation: pre-compute allowed API key IDs for non-staff.
+	var allowedKeyIDs map[int]struct{}
+	if !isLogStaff(c) {
+		ids := getUserAPIKeyIDs(c)
+		if len(ids) == 0 {
+			// User has no API keys; send connected marker then close.
+			if _, err := c.Writer.Write([]byte(": connected\n\n")); err != nil {
+				return
+			}
+			c.Writer.Flush()
+			<-c.Request.Context().Done()
+			return
+		}
+		allowedKeyIDs = make(map[int]struct{}, len(ids))
+		for _, id := range ids {
+			allowedKeyIDs[id] = struct{}{}
+		}
+	}
 
 	logChan := relaylog.RelayLogSubscribe()
 	defer relaylog.RelayLogUnsubscribe(logChan)
@@ -207,6 +275,12 @@ func streamLog(c *gin.Context) {
 			}
 			if relaylog.RelayLogStreamExcluded(log.RequestModelName) {
 				continue
+			}
+			// Multi-tenant isolation: skip logs not belonging to the user's API keys.
+			if allowedKeyIDs != nil {
+				if _, ok := allowedKeyIDs[log.RequestAPIKeyID]; !ok {
+					continue
+				}
 			}
 			// 仅推送列表所需的轻量字段，剥离 request_content / response_content
 			// 大字段（详情按需单独拉取），避免高 QPS 下用大 payload 拖慢前端。

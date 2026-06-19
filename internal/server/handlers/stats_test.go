@@ -64,6 +64,7 @@ func TestGetStatsAPIKeyIncludesNamesAndFallbacks(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(recorder)
 	c.Request = httptest.NewRequest(http.MethodGet, "/api/v1/stats/apikey", nil)
+	c.Set("user_role", model.UserRoleAdmin)
 
 	getStatsAPIKey(c)
 
