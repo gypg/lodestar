@@ -202,9 +202,11 @@ export interface CurrentUser {
 }
 
 export function useCurrentUser() {
+    const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
     return useQuery({
         queryKey: ['user', 'me'],
         queryFn: async () => apiClient.get<CurrentUser>('/api/v1/user/me'),
+        enabled: isAuthenticated,
         staleTime: 60_000,
         retry: false,
         refetchOnWindowFocus: false,
