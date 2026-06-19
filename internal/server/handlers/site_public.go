@@ -57,10 +57,6 @@ func getPublicOverview(c *gin.Context) {
 	if ambient != "color4bg" {
 		ambient = "photo"
 	}
-	layout, _ := setting.GetString(model.SettingKeyLandingLayout)
-	if layout != "newspaper" {
-		layout = "winter"
-	}
 	bannerOn, _ := setting.GetBool(model.SettingKeySiteBannerEnabled)
 	bannerText, _ := setting.GetString(model.SettingKeySiteBannerText)
 	bannerTone, _ := setting.GetString(model.SettingKeySiteBannerTone)
@@ -83,7 +79,6 @@ func getPublicOverview(c *gin.Context) {
 		"announcement":         announcement,
 		"footer":               footer,
 		"landing_ambient_mode": ambient,
-		"landing_layout":       layout,
 		"site_banner_enabled":  bannerOn,
 		"site_banner_text":     bannerText,
 		"site_banner_tone":     bannerTone,

@@ -5,7 +5,7 @@ import { Activity } from './activity';
 import { HomeHero } from './hero';
 import { HomeAnalyticsOverview } from './analytics-overview';
 import { Rank } from './rank';
-import { LandingShell } from './landing-shell';
+import { WinterLanding } from './winter-landing';
 import { PageWrapper } from '@/components/common/PageWrapper';
 
 // StatsChart 拉入了整个 recharts（数百 KB）。home 是默认首页路由，若同步引入
@@ -27,7 +27,7 @@ export function Home() {
     const [showDashboard, setShowDashboard] = useState(false);
 
     if (!showDashboard) {
-        return <LandingShell variant="home" onEnterDashboard={() => setShowDashboard(true)} />;
+        return <WinterLanding onEnterDashboard={() => setShowDashboard(true)} />;
     }
 
     return (
