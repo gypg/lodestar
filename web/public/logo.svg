@@ -1,10 +1,24 @@
 <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <g fill="none" stroke="#6f9ec2" stroke-width="6" stroke-linecap="round">
-        <path d="M50 12 L50 88"/>
-        <path d="M17 31 L83 69"/>
-        <path d="M83 31 L17 69"/>
-        <path d="M50 26 L43 19 M50 26 L57 19 M50 74 L43 81 M50 74 L57 81"/>
-        <path d="M28 33 L20 30 M28 33 L25 41 M72 67 L80 70 M72 67 L75 59"/>
-        <path d="M72 33 L80 30 M72 33 L75 41 M28 67 L20 70 M28 67 L25 59"/>
-    </g>
+  <!-- Lodestar: North Star / Guiding Star -->
+  <defs>
+    <linearGradient id="starGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6f9ec2"/>
+      <stop offset="100%" stop-color="#4a7fa8"/>
+    </linearGradient>
+  </defs>
+  <g fill="none" stroke="url(#starGrad)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Central star: 4-point star -->
+    <path d="M50 15 L55 40 L80 45 L55 50 L50 85 L45 50 L20 45 L45 40 Z"/>
+    <!-- Inner diamond -->
+    <path d="M50 32 L60 45 L50 60 L40 45 Z" stroke-width="3"/>
+    <!-- North arrow -->
+    <path d="M50 10 L47 18 M50 10 L53 18" stroke-width="3"/>
+    <!-- Compass ring -->
+    <circle cx="50" cy="48" r="30" stroke-width="2.5" stroke-dasharray="4 6"/>
+    <!-- Cardinal dots -->
+    <circle cx="50" cy="18" r="2" fill="url(#starGrad)" stroke="none"/>
+    <circle cx="80" cy="48" r="2" fill="url(#starGrad)" stroke="none"/>
+    <circle cx="50" cy="78" r="2" fill="url(#starGrad)" stroke="none"/>
+    <circle cx="20" cy="48" r="2" fill="url(#starGrad)" stroke="none"/>
+  </g>
 </svg>

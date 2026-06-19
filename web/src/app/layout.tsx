@@ -111,12 +111,11 @@ export default function RootLayout({
           <div className="octo-shell">
             <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
               <g className="octo-group">
-                <path pathLength="1" d="M50 12 L50 88" />
-                <path pathLength="1" d="M17 31 L83 69" />
-                <path pathLength="1" d="M83 31 L17 69" />
-                <path pathLength="1" d="M50 26 L43 19 M50 26 L57 19 M50 74 L43 81 M50 74 L57 81" />
-                <path pathLength="1" d="M28 33 L20 30 M28 33 L25 41 M72 67 L80 70 M72 67 L75 59" />
-                <path pathLength="1" d="M72 33 L80 30 M72 33 L75 41 M28 67 L20 70 M28 67 L25 59" />
+                <path pathLength="1" d="M50 14 L58 42 L86 50 L58 58 L50 86 L42 58 L14 50 L42 42 Z" />
+                <path pathLength="1" d="M50 30 L62 50 L50 70 L38 50 Z" />
+                <path pathLength="1" d="M50 8 L47 20 M50 8 L53 20 M50 92 L47 80 M50 92 L53 80" />
+                <path pathLength="1" d="M8 50 L20 47 M8 50 L20 53 M92 50 L80 47 M92 50 L80 53" />
+                <path pathLength="1" d="M50 18 C68 18 82 32 82 50 C82 68 68 82 50 82 C32 82 18 68 18 50 C18 32 32 18 50 18" />
               </g>
             </svg>
           </div>
