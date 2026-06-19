@@ -1218,7 +1218,6 @@ export function Site() {
   useEffect(() => {
     const observerMap = cardObserversRef.current;
     const elementMap = cardElementsRef.current;
-    const callbackMap = cardMeasureRefCallbacks.current;
     const accountMap = accountElementsRef.current;
     return () => {
       for (const observer of observerMap.values()) {
@@ -1226,7 +1225,6 @@ export function Site() {
       }
       observerMap.clear();
       elementMap.clear();
-      callbackMap.clear();
       accountMap.clear();
     };
   }, []);
