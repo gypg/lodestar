@@ -33,6 +33,10 @@ frontend_out.txt
 
 # planning & docs
 docs/plan/
+# local AI handoff / workspace review (live copies under ../_workspace-private/)
+docs/HANDOFF.md
+docs/SESSION-LOG.md
+docs/HARVEST-REVIEW-*.md
 
 # git hooks (husky)
 .husky/

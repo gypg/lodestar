@@ -2,7 +2,7 @@
 
 > 应要求：完整扫描三处参考项目，盘点**还没被 Lodestar 用上、值得拿来**的素材，分级总结，给出执行方案。
 > 扫描范围：`参考项目/`（octopus 原版 / octopus-lingyu版 / SAPI）、`__GLodestar_PROTECT__/`（new-api / home.html / color4bg / 文档版本.html）、`前端优化/`（pretext）。
-> 最后更新：2026-06-18。**本文件是规划，不含实现。**
+> 最后更新：2026-06-18。**本文件是产品向规划**；详细复审见工作区 `_workspace-private/HARVEST-REVIEW-2026-06.md`（本地，不入公开仓库）。
 
 ---
 
