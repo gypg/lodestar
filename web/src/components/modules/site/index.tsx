@@ -638,9 +638,6 @@ export function Site() {
   });
   const cardObserversRef = useRef<Map<number, ResizeObserver>>(new Map());
   const cardElementsRef = useRef<Map<number, HTMLElement>>(new Map());
-  const cardMeasureRefCallbacks = useRef<
-    Map<number, (node: HTMLElement | null) => void>
-  >(new Map());
   const accountElementsRef = useRef<Map<number, HTMLElement>>(new Map());
   const [highlightedSiteId, setHighlightedSiteId] = useState<number | null>(
     null,
@@ -717,22 +714,6 @@ export function Site() {
       );
     },
     [],
-  );
-
-  const getSiteCardMeasureRef = useCallback(
-    (siteID: number) => {
-      const existing = cardMeasureRefCallbacks.current.get(siteID);
-      if (existing) {
-        return existing;
-      }
-
-      const callback = (node: HTMLElement | null) => {
-        setSiteCardMeasureRef(siteID, node);
-      };
-      cardMeasureRefCallbacks.current.set(siteID, callback);
-      return callback;
-    },
-    [setSiteCardMeasureRef],
   );
 
   const setAccountElementRef = useCallback(
@@ -1985,7 +1966,7 @@ export function Site() {
               {visibleSites.map((item) => (
                 <div
                   key={item.site.id}
-                  ref={getSiteCardMeasureRef(item.site.id)}
+                  ref={(node) => setSiteCardMeasureRef(item.site.id, node)}
                 >
                   {renderSiteCard(item)}
                 </div>
@@ -1996,7 +1977,7 @@ export function Site() {
                 {masonryColumns[0].map((item) => (
                   <div
                     key={item.site.id}
-                    ref={getSiteCardMeasureRef(item.site.id)}
+                    ref={(node) => setSiteCardMeasureRef(item.site.id, node)}
                   >
                     {renderSiteCard(item)}
                   </div>
@@ -2006,7 +1987,7 @@ export function Site() {
                 {masonryColumns[1].map((item) => (
                   <div
                     key={item.site.id}
-                    ref={getSiteCardMeasureRef(item.site.id)}
+                    ref={(node) => setSiteCardMeasureRef(item.site.id, node)}
                   >
                     {renderSiteCard(item)}
                   </div>

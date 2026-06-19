@@ -14,7 +14,7 @@ Lodestar — 冬日风落地页（Winter Landing）
 - home（已登录）：目录软路由到控制台 tab；右上「进入数据概览」切仪表盘。
 */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavStore, type NavItem } from '@/components/modules/navbar';
 import { usePublicOverview } from '@/api/endpoints/public';
 import { useCurrentUser, isStaffRole } from '@/api/endpoints/user';
@@ -66,6 +66,18 @@ interface Flake {
   sym: string;
 }
 
+function createSnowflakes(): Flake[] {
+  return Array.from({ length: SNOW_COUNT }, () => ({
+    left: Math.random() * 100,
+    size: Math.random() * 14 + 6,
+    dur: Math.random() * 9 + 8,
+    delay: Math.random() * -15,
+    drift: (Math.random() - 0.5) * 180,
+    opacity: Math.random() * 0.5 + 0.4,
+    sym: SNOW_SYMBOLS[Math.floor(Math.random() * SNOW_SYMBOLS.length)],
+  }));
+}
+
 export function WinterLanding({
   variant = 'home',
   onEnterDashboard,
@@ -93,17 +105,7 @@ export function WinterLanding({
     return () => clearInterval(timer);
   }, []);
 
-  const flakes = useMemo<Flake[]>(() => {
-    return Array.from({ length: SNOW_COUNT }, () => ({
-      left: Math.random() * 100,
-      size: Math.random() * 14 + 6,
-      dur: Math.random() * 9 + 8,
-      delay: Math.random() * -15,
-      drift: (Math.random() - 0.5) * 180,
-      opacity: Math.random() * 0.5 + 0.4,
-      sym: SNOW_SYMBOLS[Math.floor(Math.random() * SNOW_SYMBOLS.length)],
-    }));
-  }, []);
+  const [flakes] = useState(createSnowflakes);
 
   const dateStr = `${now.getFullYear()}.${pad2(now.getMonth() + 1)}.${pad2(now.getDate())}`;
   const clock = `${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
