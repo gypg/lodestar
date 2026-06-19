@@ -99,7 +99,8 @@
     "ariaLabel": "主導航",
     "apikey": "API 金鑰及端點",
     "chat": "對話",
-    "image": "生圖"
+    "image": "生圖",
+    "site": "站點配置"
   },
   "endpoints": {
     "title": "可用端點",
@@ -819,6 +820,7 @@
     "cancel": "取消",
     "deleteUser": "刪除用戶",
     "cannotDeletePrimaryAdmin": "不能刪除主管理員",
+    "logout": "登出",
     "confirmDelete": "確認刪除這個用戶嗎？此操作無法復原。",
     "roles": {
       "admin": "管理員",

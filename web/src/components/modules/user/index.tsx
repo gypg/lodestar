@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Users, UserCog, Trash2, Shield, ShieldCheck, ShieldAlert, Plus } from 'lucide-react';
-import { useUserList, useUpdateUserRole, useDeleteUser, type UserInfo } from '@/api/endpoints/user';
+import { Users, UserCog, Trash2, Shield, ShieldCheck, ShieldAlert, Plus, LogOut } from 'lucide-react';
+import { useUserList, useUpdateUserRole, useDeleteUser, useCurrentUser, useAuth, type UserInfo } from '@/api/endpoints/user';
 import { PageWrapper } from '@/components/common/PageWrapper';
 import { Loader } from 'lucide-react';
 import { toast } from 'sonner';
@@ -34,6 +34,8 @@ function RoleBadge({ role, label }: { role: string; label: string }) {
 export function User() {
     const t = useTranslations('user');
     const { data: users, isLoading } = useUserList();
+    const { data: currentUser } = useCurrentUser();
+    const { logout } = useAuth();
     const updateRole = useUpdateUserRole();
     const deleteUser = useDeleteUser();
     const [editingId, setEditingId] = useState<number | null>(null);
@@ -122,6 +124,13 @@ export function User() {
                                     title={user.id === 1 ? t('cannotDeletePrimaryAdmin') : t('deleteUser')}>
                                     <Trash2 className="h-4 w-4" />
                                 </button>
+                                {currentUser?.id === user.id && (
+                                    <button onClick={logout}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 sm:px-2.5 sm:py-1.5 rounded-xl text-xs font-medium text-red-500 bg-red-500/8 hover:bg-red-500/15 border border-red-500/20 transition-all active:scale-95">
+                                        <LogOut className="h-3.5 w-3.5" />
+                                        {t('logout') || '退出'}
+                                    </button>
+                                )}
                             </div>
                         </div>
                     ))}

@@ -6,6 +6,7 @@ export type NavItem =
     | 'chat'
     | 'image'
     | 'hub'
+    | 'site'
     | 'channel'
     | 'group'
     | 'model'
@@ -22,6 +23,7 @@ export const DEFAULT_NAV_ORDER: NavItem[] = [
     'chat',
     'image',
     'hub',
+    'site',
     'channel',
     'group',
     'model',

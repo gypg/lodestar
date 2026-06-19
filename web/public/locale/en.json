@@ -99,7 +99,8 @@
     "ariaLabel": "Main navigation",
     "apikey": "API Keys & Endpoints",
     "chat": "Chat",
-    "image": "Image"
+    "image": "Image",
+    "site": "Sites"
   },
   "endpoints": {
     "title": "Available Endpoints",
@@ -819,6 +820,7 @@
     "cancel": "Cancel",
     "deleteUser": "Delete user",
     "cannotDeletePrimaryAdmin": "Cannot delete primary admin",
+    "logout": "Log out",
     "confirmDelete": "Delete this user? This cannot be undone.",
     "roles": {
       "admin": "Admin",
