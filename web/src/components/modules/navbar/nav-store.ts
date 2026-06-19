@@ -15,6 +15,7 @@ export type NavItem =
     | 'alert'
     | 'ops'
     | 'apikey'
+    | 'subscription'
     | 'setting'
     | 'user';
 
@@ -32,6 +33,7 @@ export const DEFAULT_NAV_ORDER: NavItem[] = [
     'alert',
     'ops',
     'apikey',
+    'subscription',
     'setting',
     'user',
 ];

@@ -9,11 +9,12 @@ import { Input } from "@/components/ui/input"
 import { useLogin, useRegister, useSendEmailCode } from "@/api/endpoints/user"
 import { useAPIKeyLogin } from "@/api/endpoints/apikey"
 import { isWebAuthnSupported, usePasskeyLogin, useWebAuthnStatus } from "@/api/endpoints/webauthn"
+import { getGitHubAuthURL } from "@/api/endpoints/oauth"
 import { useQuery } from "@tanstack/react-query"
 import { apiClient } from "@/api/client"
 import type { BootstrapStatusResponse } from "@/api/endpoints/bootstrap"
 import Logo from "@/components/modules/logo"
-import { Fingerprint, KeyRound, User } from "lucide-react"
+import { Fingerprint, Github, KeyRound, User } from "lucide-react"
 import { ParticleBackground } from "@/components/nature"
 import { useIsMobile } from "@/hooks/use-mobile"
 import {
@@ -68,6 +69,8 @@ export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
     webauthnStatus.data?.enabled &&
     webauthnStatus.data?.has_credentials
 
+  const githubOAuthEnabled = bootstrapStatus?.github_oauth_enabled === true
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
@@ -112,6 +115,19 @@ export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
   }
 
   const isPending = loginMutation.isPending || registerMutation.isPending || apiKeyLoginMutation.isPending || passkeyLoginMutation.isPending
+  const [githubLoading, setGithubLoading] = useState(false)
+
+  const handleGitHubLogin = async () => {
+    setError(null)
+    setGithubLoading(true)
+    try {
+      const data = await getGitHubAuthURL()
+      window.location.href = data.authorize_url
+    } catch (err: unknown) {
+      setGithubLoading(false)
+      setError(err instanceof Error ? err.message : t('githubOAuthError'))
+    }
+  }
 
   const handleModeChange = (value: string) => {
     setMode(value as LoginMode)
@@ -322,6 +338,28 @@ export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
                   >
                     <Fingerprint className="w-4 h-4" />
                     {t('button.passkey')}
+                  </Button>
+                </>
+              )}
+
+              {githubOAuthEnabled && (
+                <>
+                  {!passkeyAvailable && (
+                    <div className="relative flex items-center gap-3 py-1">
+                      <div className="h-px flex-1 bg-border/30" />
+                      <span className="text-[11px] text-muted-foreground/60">or</span>
+                      <div className="h-px flex-1 bg-border/30" />
+                    </div>
+                  )}
+                  <Button
+                    type="button"
+                    onClick={handleGitHubLogin}
+                    disabled={isPending || githubLoading}
+                    variant="outline"
+                    className="w-full h-12 rounded-xl border-border/40 bg-card hover:bg-muted/50 transition-all active:scale-[0.98]"
+                  >
+                    <Github className="w-4 h-4" />
+                    {githubLoading ? t('button.loading') : t('button.githubOAuth')}
                   </Button>
                 </>
               )}

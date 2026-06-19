@@ -61,6 +61,11 @@ export const SettingKey = {
     EpayKey: 'epay_key',
     TopupRate: 'topup_rate',
     PaymentCallbackBase: 'payment_callback_base',
+    StripeEnabled: 'stripe_enabled',
+    StripeAPIKey: 'stripe_api_key',
+    StripeWebhookSecret: 'stripe_webhook_secret',
+    StripeCurrency: 'stripe_currency',
+    StripeMinTopup: 'stripe_min_topup',
     MaintenanceMode: 'maintenance_mode',
     RegisterInviteRequired: 'register_invite_required',
     SMTPEnabled: 'smtp_enabled',
@@ -106,13 +111,13 @@ export const SettingKey = {
 
 /**
  * 获取 Setting 列表 Hook
- * 
+ *
  * @example
  * const { data: settings, isLoading, error } = useSettingList();
- * 
+ *
  * if (isLoading) return <Loading />;
  * if (error) return <Error message={error.message} />;
- * 
+ *
  * settings?.forEach(setting => console.log(setting.key, setting.value));
  */
 export function useSettingList() {
@@ -128,10 +133,10 @@ export function useSettingList() {
 
 /**
  * 设置 Setting Hook
- * 
+ *
  * @example
  * const setSetting = useSetSetting();
- * 
+ *
  * setSetting.mutate({
  *   key: 'theme',
  *   value: 'dark',

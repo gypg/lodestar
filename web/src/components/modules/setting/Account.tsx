@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { User, KeyRound, Lock, Eye, EyeOff, LogOut, Fingerprint, Trash2, Plus } from 'lucide-react';
+import { User, KeyRound, Lock, Eye, EyeOff, LogOut, Fingerprint, Trash2, Plus, Github, Unlink } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useChangeUsername, useChangePassword, useAuth } from '@/api/endpoints/user';
@@ -11,6 +11,11 @@ import {
     useRegisterPasskey,
     useDeletePasskey,
 } from '@/api/endpoints/webauthn';
+import {
+    useGitHubOAuthStatus,
+    useUnbindGitHub,
+    getGitHubAuthURL,
+} from '@/api/endpoints/oauth';
 import { toast } from '@/components/common/Toast';
 
 const LOGOUT_DELAY_MS = 1000;
@@ -23,6 +28,8 @@ export function SettingAccount() {
     const webauthnCreds = useWebAuthnCredentials();
     const registerPasskey = useRegisterPasskey();
     const deletePasskey = useDeletePasskey();
+    const githubOAuth = useGitHubOAuthStatus();
+    const unbindGitHub = useUnbindGitHub();
 
     const [newUsername, setNewUsername] = useState('');
     const [oldPassword, setOldPassword] = useState('');
@@ -311,11 +318,75 @@ export function SettingAccount() {
                     </div>
                 </div>
 
+                {githubOAuth.data?.enabled && (
+                    <div className={sectionClassName}>
+                        <div className="mb-4 flex items-start gap-3">
+                            <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/12 text-xs font-semibold text-primary shadow-sm">
+                                04
+                            </span>
+                            <div className="space-y-1 min-w-0">
+                                <div className="flex items-center gap-2 text-sm font-medium text-card-foreground">
+                                    <Github className="size-4 text-muted-foreground shrink-0" />
+                                    <span className="truncate">{t('account.githubBind.title')}</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground">{t('account.githubBind.description')}</p>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center justify-between gap-3">
+                            <span className="text-sm text-muted-foreground">
+                                {githubOAuth.data.bound && githubOAuth.data.provider_username
+                                    ? t('account.githubBind.boundAs', { username: githubOAuth.data.provider_username })
+                                    : githubOAuth.data.bound
+                                        ? t('account.githubBind.bound')
+                                        : t('account.githubBind.unbound')
+                                }
+                            </span>
+                            {githubOAuth.data.bound ? (
+                                <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={() => {
+                                        if (confirm(t('account.githubBind.confirmUnbind'))) {
+                                            unbindGitHub.mutate(undefined, {
+                                                onSuccess: () => toast.success(t('account.githubBind.unbindSuccess')),
+                                                onError: () => toast.error(t('account.githubBind.unbindFailed')),
+                                            });
+                                        }
+                                    }}
+                                    disabled={unbindGitHub.isPending}
+                                    className="rounded-lg gap-1.5"
+                                >
+                                    <Unlink className="size-4" />
+                                    {unbindGitHub.isPending ? t('account.saving') : t('account.githubBind.unbind')}
+                                </Button>
+                            ) : (
+                                <Button
+                                    size="sm"
+                                    onClick={async () => {
+                                        try {
+                                            const data = await getGitHubAuthURL();
+                                            toast.success(t('account.githubBind.bindRedirect'));
+                                            window.location.href = data.authorize_url;
+                                        } catch {
+                                            toast.error(t('account.githubBind.unbindFailed'));
+                                        }
+                                    }}
+                                    className="rounded-lg gap-1.5"
+                                >
+                                    <Github className="size-4" />
+                                    {t('account.githubBind.bind')}
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+                )}
+
                 <div className="relative overflow-hidden rounded-xl border border-destructive/20 bg-destructive/6 p-4 sm:p-5 shadow-sm">
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                         <div className="flex items-start gap-3">
                             <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-destructive/12 text-xs font-semibold text-destructive shadow-sm">
-                                04
+                                05
                             </span>
                             <div className="space-y-1 min-w-0">
                                 <div className="flex items-center gap-2 text-sm font-medium text-card-foreground">

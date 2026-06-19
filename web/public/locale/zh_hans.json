@@ -17,8 +17,10 @@
     "button": {
       "loading": "登录中...",
       "submit": "登录",
-      "passkey": "使用 Passkey 登录"
-    }
+      "passkey": "使用 Passkey 登录",
+      "githubOAuth": "使用 GitHub 登录"
+    },
+    "githubOAuthError": "GitHub 登录失败"
   },
   "bootstrap": {
     "title": "完成首次初始化",
@@ -100,7 +102,8 @@
     "apikey": "API 密钥及端点",
     "chat": "对话",
     "image": "生图",
-    "site": "站点配置"
+    "site": "站点配置",
+    "subscription": "订阅"
   },
   "endpoints": {
     "title": "可用端点",
@@ -1636,6 +1639,47 @@
       "saveFailed": "保存失败",
       "needRpid": "填写 Origin 时必须同时填写 RP ID"
     },
+    "twofa": {
+      "title": "两步验证（2FA）",
+      "description": "使用 TOTP 验证器应用添加额外的安全保障",
+      "status": "状态",
+      "statusEnabled": "已启用",
+      "statusDisabled": "未启用",
+      "backupCodesRemaining": "剩余备用码数量",
+      "enable": "启用 2FA",
+      "disable": "关闭 2FA",
+      "settingUp": "正在设置...",
+      "setupFailed": "启动 2FA 设置失败",
+      "setupInstructions": "使用验证器应用（Google Authenticator、Authy 等）扫描下方二维码，或手动输入密钥。",
+      "qrCode": "二维码",
+      "secretKey": "密钥",
+      "hideSecret": "隐藏密钥",
+      "showSecret": "显示密钥",
+      "copySecret": "复制密钥",
+      "backupCodes": "备用码",
+      "newBackupCodes": "新备用码",
+      "copyCodes": "复制",
+      "backupCodesHint": "请将这些备用码保存在安全的地方。当您无法访问验证器应用时，每个备用码只能使用一次。",
+      "verificationCode": "验证码",
+      "codePlaceholder": "6 位验证码",
+      "codeRequired": "请输入 6 位验证码",
+      "confirm": "验证并启用",
+      "verifying": "验证中...",
+      "enableSuccess": "2FA 已成功启用",
+      "enableFailed": "启用 2FA 失败",
+      "disableInstructions": "输入验证器应用中的验证码或备用码以关闭 2FA。",
+      "confirmDisable": "关闭",
+      "disableSuccess": "2FA 已关闭",
+      "disableFailed": "关闭 2FA 失败",
+      "regenCodes": "重新生成备用码",
+      "regenInstructions": "输入验证器应用中的验证码以重新生成备用码。旧备用码将立即失效。",
+      "confirmRegen": "重新生成",
+      "regenSuccess": "新备用码已生成",
+      "regenFailed": "重新生成备用码失败",
+      "copied": "已复制到剪贴板",
+      "copyFailed": "复制失败",
+      "dismiss": "关闭"
+    },
     "account": {
       "title": "账户设置",
       "save": "保存",
@@ -1688,6 +1732,19 @@
         "addFailed": "Passkey 添加失败",
         "deleteSuccess": "Passkey 已删除",
         "deleteFailed": "删除失败"
+      },
+      "githubBind": {
+        "title": "GitHub 账号",
+        "description": "绑定 GitHub 账号以使用 OAuth 登录",
+        "bound": "已绑定",
+        "unbound": "未绑定",
+        "boundAs": "已绑定为 {username}",
+        "bind": "绑定 GitHub",
+        "unbind": "解绑 GitHub",
+        "confirmUnbind": "确定要解绑 GitHub 账号吗？",
+        "unbindSuccess": "GitHub 账号已解绑",
+        "unbindFailed": "解绑 GitHub 账号失败",
+        "bindRedirect": "正在跳转到 GitHub..."
       }
     },
     "info": {
@@ -2626,6 +2683,30 @@
       "logCountUnit": "条"
     }
   },
+  "wallet": {
+    "stripe": {
+      "title": "Stripe 充值",
+      "payWithStripe": "使用 Stripe 支付",
+      "amount": "金额 (USD)",
+      "redirecting": "正在跳转到 Stripe Checkout...",
+      "failed": "发起 Stripe 支付失败（需管理员配置 Stripe）",
+      "enterValidAmount": "请输入有效金额"
+    }
+  },
+  "setting": {
+    "stripe": {
+      "title": "在线支付 · Stripe",
+      "description": "填入 Stripe 凭据并启用后，用户可通过 Stripe Checkout 在线充值。",
+      "enable": "启用 Stripe",
+      "apiKey": "Stripe API Key",
+      "webhookSecret": "Webhook Secret",
+      "currency": "货币（三字母代码）",
+      "minTopup": "最低充值金额",
+      "save": "保存 Stripe 设置",
+      "saved": "Stripe 设置已保存",
+      "saveFailed": "保存失败"
+    }
+  },
   "proxyPool": {
     "site": {
       "inherit": "继承站点"
@@ -2703,5 +2784,77 @@
       "derivedReferences": "+{count} 个托管渠道"
     },
     "selectRequired": "请选择代理配置。"
+  },
+  "subscription": {
+    "tabs": {
+      "plans": "订阅方案",
+      "mySubscription": "我的订阅",
+      "admin": "管理"
+    },
+    "title": "订阅管理",
+    "plans": "订阅方案",
+    "mySubscription": "我的订阅",
+    "purchase": "立即订阅",
+    "unavailable": "暂不可用",
+    "price": "价格",
+    "duration": "时长",
+    "days": "{count} 天",
+    "quota": "配额",
+    "quotaUnit": "tokens",
+    "quotaUsed": "已使用",
+    "noPlan": "暂无可用的订阅方案",
+    "noSubscription": "您尚未订阅任何方案",
+    "expiresAt": "到期时间",
+    "plan": "方案",
+    "confirmPurchase": "确认订阅此方案？",
+    "status": {
+      "active": "生效中",
+      "expired": "已过期",
+      "inactive": "未激活"
+    },
+    "toast": {
+      "purchaseSuccess": "订阅成功！",
+      "planCreated": "方案已创建",
+      "planUpdated": "方案已更新",
+      "planDeleted": "方案已删除",
+      "bindSuccess": "订阅已绑定",
+      "actionFailed": "操作失败"
+    },
+    "admin": {
+      "planManagement": "方案管理",
+      "newPlan": "新建方案",
+      "noPlans": "暂无方案",
+      "enabled": "启用",
+      "disabled": "禁用",
+      "confirmDelete": "确认删除此方案？",
+      "form": {
+        "name": "方案名称",
+        "namePlaceholder": "输入方案名称",
+        "price": "价格（美元）",
+        "pricePlaceholder": "输入价格",
+        "duration": "时长（天）",
+        "durationPlaceholder": "输入天数",
+        "quota": "配额（tokens）",
+        "quotaPlaceholder": "输入配额",
+        "description": "描述（可选）",
+        "descriptionPlaceholder": "输入方案描述",
+        "enabled": "启用此方案"
+      },
+      "actions": {
+        "save": "保存",
+        "cancel": "取消",
+        "edit": "编辑"
+      },
+      "bind": {
+        "title": "绑定订阅",
+        "new": "绑定用户",
+        "userId": "用户 ID",
+        "userIdPlaceholder": "输入用户 ID",
+        "planId": "订阅方案",
+        "selectPlan": "选择方案",
+        "submit": "绑定",
+        "noSubscriptions": "暂无绑定记录"
+      }
+    }
   }
 }

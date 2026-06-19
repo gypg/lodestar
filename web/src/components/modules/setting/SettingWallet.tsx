@@ -14,7 +14,8 @@ import { Wallet } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/common/Toast';
-import { useWallet, useRedeemCode, useGenerateCodes, useTopup, useUsage, useGenerateInvites } from '@/api/endpoints/wallet';
+import { useWallet, useRedeemCode, useGenerateCodes, useTopup, useStripeTopup, useUsage, useGenerateInvites } from '@/api/endpoints/wallet';
+import { SettingKey, useSettingList } from '@/api/endpoints/setting';
 import { useCurrentUser, isStaffRole } from '@/api/endpoints/user';
 import { WalletUsageChart } from './WalletUsageChart';
 import { UsageHeatmap } from './UsageHeatmap';
@@ -28,8 +29,11 @@ export function SettingWallet() {
     const genCodes = useGenerateCodes();
     const genInvites = useGenerateInvites();
     const topup = useTopup();
+    const stripeTopup = useStripeTopup();
+    const { data: settings } = useSettingList();
     const [code, setCode] = useState('');
     const [amount, setAmount] = useState('5');
+    const [stripeAmount, setStripeAmount] = useState('5');
     const [method, setMethod] = useState('alipay');
     const [count, setCount] = useState('10');
     const [quota, setQuota] = useState('1');
@@ -74,6 +78,20 @@ export function SettingWallet() {
                     form.submit();
                 },
                 onError: (e) => toast.error(e instanceof Error ? e.message : '发起支付失败（需管理员配置支付）'),
+            }
+        );
+    };
+
+    const onStripeTopup = () => {
+        const amt = parseFloat(stripeAmount);
+        if (!amt || amt <= 0) {
+            toast.error('请输入有效金额');
+            return;
+        }
+        stripeTopup.mutate(
+            { amount: amt },
+            {
+                onError: (e) => toast.error(e instanceof Error ? e.message : 'Stripe 支付发起失败（需管理员配置 Stripe）'),
             }
         );
     };
@@ -198,6 +216,16 @@ export function SettingWallet() {
                         <option value="wxpay">微信</option>
                     </select>
                     <Button type="button" size="sm" onClick={onTopup} disabled={topup.isPending}>去支付</Button>
+                </div>
+            )}
+
+            {settings?.find((s) => s.key === SettingKey.StripeEnabled)?.value === 'true' && (
+                <div className="flex items-end gap-2">
+                    <div className="flex flex-1 flex-col gap-1.5">
+                        <label className="ml-1 text-xs font-medium text-muted-foreground">Stripe 充值 (USD)</label>
+                        <Input value={stripeAmount} onChange={(e) => setStripeAmount(e.target.value)} type="number" step="0.01" min="0" className="rounded-lg" />
+                    </div>
+                    <Button type="button" size="sm" onClick={onStripeTopup} disabled={stripeTopup.isPending}>Pay with Stripe</Button>
                 </div>
             )}
 

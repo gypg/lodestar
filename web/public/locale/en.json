@@ -17,8 +17,10 @@
     "button": {
       "loading": "Logging in...",
       "submit": "Login",
-      "passkey": "Sign in with Passkey"
-    }
+      "passkey": "Sign in with Passkey",
+      "githubOAuth": "Sign in with GitHub"
+    },
+    "githubOAuthError": "GitHub login failed"
   },
   "bootstrap": {
     "title": "Complete initial setup",
@@ -100,7 +102,8 @@
     "apikey": "API Keys & Endpoints",
     "chat": "Chat",
     "image": "Image",
-    "site": "Sites"
+    "site": "Sites",
+    "subscription": "Subscription"
   },
   "endpoints": {
     "title": "Available Endpoints",
@@ -1636,6 +1639,47 @@
       "saveFailed": "Failed to save",
       "needRpid": "RP ID is required when an Origin is provided"
     },
+    "twofa": {
+      "title": "Two-Factor Authentication (2FA)",
+      "description": "Add an extra layer of security with a TOTP authenticator app",
+      "status": "Status",
+      "statusEnabled": "Enabled",
+      "statusDisabled": "Disabled",
+      "backupCodesRemaining": "Backup codes remaining",
+      "enable": "Enable 2FA",
+      "disable": "Disable 2FA",
+      "settingUp": "Setting up...",
+      "setupFailed": "Failed to start 2FA setup",
+      "setupInstructions": "Scan the QR code below with your authenticator app (Google Authenticator, Authy, etc.), or enter the secret key manually.",
+      "qrCode": "QR Code",
+      "secretKey": "Secret Key",
+      "hideSecret": "Hide secret key",
+      "showSecret": "Show secret key",
+      "copySecret": "Copy secret key",
+      "backupCodes": "Backup Codes",
+      "newBackupCodes": "New Backup Codes",
+      "copyCodes": "Copy",
+      "backupCodesHint": "Save these codes in a safe place. Each code can only be used once if you lose access to your authenticator app.",
+      "verificationCode": "Verification Code",
+      "codePlaceholder": "6-digit code",
+      "codeRequired": "Please enter a 6-digit verification code",
+      "confirm": "Verify & Enable",
+      "verifying": "Verifying...",
+      "enableSuccess": "2FA has been enabled successfully",
+      "enableFailed": "Failed to enable 2FA",
+      "disableInstructions": "Enter a code from your authenticator app or a backup code to disable 2FA.",
+      "confirmDisable": "Disable",
+      "disableSuccess": "2FA has been disabled",
+      "disableFailed": "Failed to disable 2FA",
+      "regenCodes": "Regenerate Backup Codes",
+      "regenInstructions": "Enter a code from your authenticator app to regenerate backup codes. Old codes will be invalidated.",
+      "confirmRegen": "Regenerate",
+      "regenSuccess": "New backup codes generated",
+      "regenFailed": "Failed to regenerate backup codes",
+      "copied": "Copied to clipboard",
+      "copyFailed": "Failed to copy",
+      "dismiss": "Dismiss"
+    },
     "account": {
       "title": "Account Settings",
       "save": "Save",
@@ -1688,6 +1732,19 @@
         "addFailed": "Failed to add Passkey",
         "deleteSuccess": "Passkey removed",
         "deleteFailed": "Failed to remove"
+      },
+      "githubBind": {
+        "title": "GitHub Account",
+        "description": "Link your GitHub account for OAuth sign-in",
+        "bound": "Bound",
+        "unbound": "Not bound",
+        "boundAs": "Bound as {username}",
+        "bind": "Bind GitHub",
+        "unbind": "Unbind GitHub",
+        "confirmUnbind": "Are you sure you want to unbind your GitHub account?",
+        "unbindSuccess": "GitHub account unbound",
+        "unbindFailed": "Failed to unbind GitHub account",
+        "bindRedirect": "Redirecting to GitHub..."
       }
     },
     "info": {
@@ -2626,6 +2683,30 @@
       "logCountUnit": "entries"
     }
   },
+  "wallet": {
+    "stripe": {
+      "title": "Stripe Top-up",
+      "payWithStripe": "Pay with Stripe",
+      "amount": "Amount (USD)",
+      "redirecting": "Redirecting to Stripe Checkout...",
+      "failed": "Failed to start Stripe payment (admin must configure Stripe first)",
+      "enterValidAmount": "Please enter a valid amount"
+    }
+  },
+  "setting": {
+    "stripe": {
+      "title": "Online Payment - Stripe",
+      "description": "Enter Stripe credentials and enable to allow users to top up via Stripe Checkout.",
+      "enable": "Enable Stripe",
+      "apiKey": "Stripe API Key",
+      "webhookSecret": "Webhook Secret",
+      "currency": "Currency (ISO code)",
+      "minTopup": "Minimum top-up amount",
+      "save": "Save Stripe Settings",
+      "saved": "Stripe settings saved",
+      "saveFailed": "Failed to save"
+    }
+  },
   "proxyPool": {
     "site": {
       "inherit": "Inherit from site"
@@ -2703,5 +2784,77 @@
       "derivedReferences": "+{count} managed channels"
     },
     "selectRequired": "Please select a proxy configuration."
+  },
+  "subscription": {
+    "tabs": {
+      "plans": "Plans",
+      "mySubscription": "My Subscription",
+      "admin": "Admin"
+    },
+    "title": "Subscription Management",
+    "plans": "Subscription Plans",
+    "mySubscription": "My Subscription",
+    "purchase": "Subscribe Now",
+    "unavailable": "Unavailable",
+    "price": "Price",
+    "duration": "Duration",
+    "days": "{count} days",
+    "quota": "Quota",
+    "quotaUnit": "tokens",
+    "quotaUsed": "Used",
+    "noPlan": "No subscription plans available",
+    "noSubscription": "You don't have any active subscriptions",
+    "expiresAt": "Expires At",
+    "plan": "Plan",
+    "confirmPurchase": "Confirm subscription to this plan?",
+    "status": {
+      "active": "Active",
+      "expired": "Expired",
+      "inactive": "Inactive"
+    },
+    "toast": {
+      "purchaseSuccess": "Subscription successful!",
+      "planCreated": "Plan created",
+      "planUpdated": "Plan updated",
+      "planDeleted": "Plan deleted",
+      "bindSuccess": "Subscription bound",
+      "actionFailed": "Action failed"
+    },
+    "admin": {
+      "planManagement": "Plan Management",
+      "newPlan": "New Plan",
+      "noPlans": "No plans yet",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "confirmDelete": "Delete this plan?",
+      "form": {
+        "name": "Plan Name",
+        "namePlaceholder": "Enter plan name",
+        "price": "Price (USD)",
+        "pricePlaceholder": "Enter price",
+        "duration": "Duration (days)",
+        "durationPlaceholder": "Enter days",
+        "quota": "Quota (tokens)",
+        "quotaPlaceholder": "Enter quota",
+        "description": "Description (optional)",
+        "descriptionPlaceholder": "Enter plan description",
+        "enabled": "Enable this plan"
+      },
+      "actions": {
+        "save": "Save",
+        "cancel": "Cancel",
+        "edit": "Edit"
+      },
+      "bind": {
+        "title": "Bind Subscription",
+        "new": "Bind User",
+        "userId": "User ID",
+        "userIdPlaceholder": "Enter user ID",
+        "planId": "Plan",
+        "selectPlan": "Select a plan",
+        "submit": "Bind",
+        "noSubscriptions": "No bound subscriptions"
+      }
+    }
   }
 }

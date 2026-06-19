@@ -74,6 +74,17 @@ export function useTopup() {
     });
 }
 
+/** Stripe 在线充值：创建 Checkout Session，返回 hosted page URL */
+export function useStripeTopup() {
+    return useMutation({
+        mutationFn: async (data: { amount: number }) =>
+            apiClient.post<{ pay_link: string }>('/api/v1/wallet/stripe/topup', data),
+        onSuccess: (d) => {
+            window.open(d.pay_link, '_blank', 'noopener');
+        },
+    });
+}
+
 /** 每用户用量（聚合自己名下各 key 的统计） */
 export interface UsageKey {
     name: string;

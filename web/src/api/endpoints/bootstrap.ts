@@ -12,6 +12,8 @@ export interface BootstrapStatusResponse {
   site_banner_enabled?: boolean;
   site_banner_text?: string;
   site_banner_tone?: 'info' | 'warning' | 'success';
+  /** Lodestar: true=GitHub OAuth login enabled */
+  github_oauth_enabled?: boolean;
 }
 
 export interface BootstrapCreateAdminRequest {
