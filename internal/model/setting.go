@@ -100,6 +100,15 @@ const (
 	SettingKeySiteBannerText                       SettingKey = "site_banner_text"
 	SettingKeySiteBannerTone                       SettingKey = "site_banner_tone"
 	SettingKeyBillingExpr                          SettingKey = "billing_expr"                             // Lodestar 表达式计费(JSON: {"model":"expr",...})
+	SettingKeyStripeEnabled                        SettingKey = "stripe_enabled"                           // Stripe 支付开关
+	SettingKeyStripeAPIKey                         SettingKey = "stripe_api_key"                           // Stripe API 密钥 (sk_...)
+	SettingKeyStripeWebhookSecret                  SettingKey = "stripe_webhook_secret"                    // Stripe Webhook 签名密钥 (whsec_...)
+	SettingKeyStripeCurrency                       SettingKey = "stripe_currency"                          // Stripe 货币代码 (默认 usd)
+	SettingKeyStripeMinTopUp                       SettingKey = "stripe_min_topup"                         // Stripe 最低充值金额(USD)
+	SettingKeyGitHubOAuthEnabled                   SettingKey = "github_oauth_enabled"                     // GitHub OAuth 登录开关
+	SettingKeyGitHubOAuthClientID                  SettingKey = "github_oauth_client_id"                   // GitHub OAuth Client ID
+	SettingKeyGitHubOAuthClientSecret              SettingKey = "github_oauth_client_secret"               // GitHub OAuth Client Secret
+	SettingKeyTOTPIssuer                           SettingKey = "totp_issuer"                              // TOTP 两步验证发行者名称(认证器App显示)
 )
 
 type Setting struct {
@@ -199,6 +208,15 @@ func DefaultSettings() []Setting {
 		{Key: SettingKeyWebAuthnRPID, Value: ""},
 		{Key: SettingKeyWebAuthnRPName, Value: "Octopus"},
 		{Key: SettingKeyWebAuthnOrigins, Value: ""},
+		{Key: SettingKeyStripeEnabled, Value: "false"},
+		{Key: SettingKeyStripeAPIKey, Value: ""},
+		{Key: SettingKeyStripeWebhookSecret, Value: ""},
+		{Key: SettingKeyStripeCurrency, Value: "usd"},
+		{Key: SettingKeyStripeMinTopUp, Value: "1"},
+		{Key: SettingKeyGitHubOAuthEnabled, Value: "false"},
+		{Key: SettingKeyGitHubOAuthClientID, Value: ""},
+		{Key: SettingKeyGitHubOAuthClientSecret, Value: ""},
+		{Key: SettingKeyTOTPIssuer, Value: "Lodestar"},
 	}
 }
 
@@ -398,6 +416,36 @@ func (s *Setting) Validate() error {
 			return fmt.Errorf("projected channel auto group mode must be 0 (none), 1 (fuzzy), 2 (exact), or 3 (regex)")
 		}
 		return nil
+	case SettingKeyStripeEnabled:
+		if s.Value != "true" && s.Value != "false" {
+			return fmt.Errorf("stripe enabled must be true or false")
+		}
+		return nil
+	case SettingKeyStripeAPIKey, SettingKeyStripeWebhookSecret:
+		return nil // free-text, allow empty
+	case SettingKeyStripeCurrency:
+		if s.Value == "" {
+			return fmt.Errorf("stripe currency must not be empty")
+		}
+		return nil
+	case SettingKeyStripeMinTopUp:
+		v, err := strconv.Atoi(s.Value)
+		if err != nil {
+			return fmt.Errorf("stripe min topup must be an integer")
+		}
+		if v < 1 {
+			return fmt.Errorf("stripe min topup must be >= 1")
+		}
+		return nil
+	case SettingKeyGitHubOAuthEnabled:
+		if s.Value != "true" && s.Value != "false" {
+			return fmt.Errorf("github oauth enabled must be true or false")
+		}
+		return nil
+	case SettingKeyGitHubOAuthClientID, SettingKeyGitHubOAuthClientSecret:
+		return nil // free-text, allow empty
+	case SettingKeyTOTPIssuer:
+		return nil // free-text, allow empty
 	}
 
 	return nil

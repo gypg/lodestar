@@ -28,6 +28,7 @@ var exemptFromAudit = map[string]string{
 	"POST /api/v1/user/register":         "public self-registration — no authenticated subject to audit (gated by commercial_mode)",
 	"POST /api/v1/user/send-email-code":  "public email-code issuance — no authenticated subject; rate-limited, would flood the log",
 	"POST /api/v1/wallet/epay/notify":    "Epay gateway callback — no session auth, verified by signature; not a management action",
+	"POST /api/v1/webhook/stripe":       "Stripe gateway callback — no session auth, verified by webhook signature; not a management action",
 }
 
 // TestAllManagementWriteRoutesAreAudited verifies that every registered

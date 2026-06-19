@@ -260,9 +260,15 @@ func Migrate(conn *gorm.DB) error {
 		&model.WebAuthnCredential{},
 		&model.TopupCode{},
 		&model.PaymentOrder{},
+		&model.SubscriptionPlan{},
+		&model.SubscriptionOrder{},
+		&model.UserSubscription{},
 		&model.InviteCode{},
 		&model.Feedback{},
 		&model.ChatSession{},
+		&model.TwoFA{},
+		&model.TwoFABackupCode{},
+		&model.OAuthBinding{},
 			&migrate.MigrationRecord{},
 	); err != nil {
 		return err

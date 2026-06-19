@@ -21,6 +21,8 @@ const (
 	PermUsersWrite    Permission = "users:write"
 	PermSitesRead     Permission = "sites:read"
 	PermSitesWrite    Permission = "sites:write"
+	PermSubscriptionsRead  Permission = "subscriptions:read"
+	PermSubscriptionsWrite Permission = "subscriptions:write"
 )
 
 var adminPermissions = []Permission{
@@ -31,6 +33,7 @@ var adminPermissions = []Permission{
 	PermLogsRead, PermLogsWrite, PermStatsRead,
 	PermUsersRead, PermUsersWrite,
 	PermSitesRead, PermSitesWrite,
+	PermSubscriptionsRead, PermSubscriptionsWrite,
 }
 
 var editorPermissions = []Permission{
@@ -40,6 +43,7 @@ var editorPermissions = []Permission{
 	PermSettingsRead, PermSettingsWrite,
 	PermLogsRead, PermLogsWrite, PermStatsRead,
 	PermSitesRead, PermSitesWrite,
+	PermSubscriptionsRead, PermSubscriptionsWrite,
 }
 
 var viewerPermissions = []Permission{
@@ -49,6 +53,7 @@ var viewerPermissions = []Permission{
 	PermSettingsRead,
 	PermLogsRead, PermStatsRead,
 	PermSitesRead,
+	PermSubscriptionsRead,
 }
 
 // Lodestar commercial: end-customer role. Minimal privileges — manage own API keys
@@ -59,6 +64,7 @@ var viewerPermissions = []Permission{
 var userPermissions = []Permission{
 	PermAPIKeysRead, PermAPIKeysWrite,
 	PermStatsRead,
+	PermSubscriptionsRead,
 }
 
 var rolePermissions = map[string][]Permission{
