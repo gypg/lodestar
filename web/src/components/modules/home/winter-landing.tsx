@@ -118,16 +118,17 @@ export function WinterLanding({
       style={{ fontFamily: SERIF }}
     >
       <Color4bgAmbient active={overview?.landing_ambient_mode === 'color4bg'} />
-      {/* 1. 蓝色少女雪景照片背景（靠右，左侧留白给导航） */}
-      <div
-        className="pointer-events-none absolute inset-0 z-[1]"
-        style={{
-          backgroundImage: "url('/winter-bg.jpg')",
-          backgroundSize: 'cover',
-          backgroundPosition: 'right center',
-          backgroundRepeat: 'no-repeat',
-        }}
-      />
+      {/* 1. 蓝色少女雪景照片背景（靠右，左侧留白给导航）；懒加载减轻首屏 */}
+      {overview?.landing_ambient_mode !== 'color4bg' ? (
+        <img
+          src="/winter-bg.jpg"
+          alt=""
+          loading="lazy"
+          decoding="async"
+          fetchPriority="low"
+          className="pointer-events-none absolute inset-0 z-[1] h-full w-full object-cover object-right"
+        />
+      ) : null}
       {/* 2. 左侧雾化（纸感冷白），让左侧文字可读 */}
       <div
         className="pointer-events-none absolute inset-y-0 left-0 z-[2] w-[42%]"

@@ -14,6 +14,9 @@ export interface PublicOverview {
     announcement: string;
     footer: string;
     landing_ambient_mode?: 'photo' | 'color4bg';
+    site_banner_enabled?: boolean;
+    site_banner_text?: string;
+    site_banner_tone?: 'info' | 'warning' | 'success';
     model_count: number;
     models: PublicModel[];
     total_requests: number;

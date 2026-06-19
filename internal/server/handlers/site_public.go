@@ -57,6 +57,12 @@ func getPublicOverview(c *gin.Context) {
 	if ambient != "color4bg" {
 		ambient = "photo"
 	}
+	bannerOn, _ := setting.GetBool(model.SettingKeySiteBannerEnabled)
+	bannerText, _ := setting.GetString(model.SettingKeySiteBannerText)
+	bannerTone, _ := setting.GetString(model.SettingKeySiteBannerTone)
+	if bannerTone != "warning" && bannerTone != "success" {
+		bannerTone = "info"
+	}
 
 	models := make([]publicModel, 0)
 	if list, err := llm.List(c.Request.Context()); err == nil {
@@ -68,14 +74,17 @@ func getPublicOverview(c *gin.Context) {
 	total := stats.TotalGet()
 
 	resp.Success(c, gin.H{
-		"site_name":      siteName,
-		"description":    description,
-		"announcement":   announcement,
-		"footer":         footer,
+		"site_name":            siteName,
+		"description":          description,
+		"announcement":         announcement,
+		"footer":               footer,
 		"landing_ambient_mode": ambient,
-		"model_count":    len(models),
-		"models":         models,
-		"total_requests": total.RequestSuccess + total.RequestFailed,
-		"total_tokens":   total.InputToken + total.OutputToken,
+		"site_banner_enabled":  bannerOn,
+		"site_banner_text":     bannerText,
+		"site_banner_tone":     bannerTone,
+		"model_count":          len(models),
+		"models":               models,
+		"total_requests":       total.RequestSuccess + total.RequestFailed,
+		"total_tokens":         total.InputToken + total.OutputToken,
 	})
 }

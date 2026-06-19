@@ -142,6 +142,15 @@ func getUsage(c *gin.Context) {
 		resp.InternalError(c)
 		return
 	}
+	heatDays := days
+	if heatDays < 30 {
+		heatDays = 30
+	}
+	heatmap, _, herr := walletusage.HeatmapForUser(uid, heatDays, c.Request.Context())
+	if herr != nil {
+		resp.InternalError(c)
+		return
+	}
 	resp.Success(c, gin.H{
 		"total_requests":        totReq,
 		"total_tokens":          totTok,
@@ -149,6 +158,7 @@ func getUsage(c *gin.Context) {
 		"per_key":               perKey,
 		"daily_series":          series,
 		"usage_chart_available": chartOK,
+		"heatmap_by_day":        heatmap,
 	})
 }
 

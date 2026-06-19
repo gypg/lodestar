@@ -13,9 +13,11 @@ import { Globe } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { SettingKey, useSetSetting, useSettingList } from '@/api/endpoints/setting';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/components/common/Toast';
 
 export function SiteIdentity() {
+    const queryClient = useQueryClient();
     const { data: settings } = useSettingList();
     const setSetting = useSetSetting();
     const [name, setName] = useState('');
@@ -23,6 +25,9 @@ export function SiteIdentity() {
     const [announce, setAnnounce] = useState('');
     const [footer, setFooter] = useState('');
     const [ambient, setAmbient] = useState<'photo' | 'color4bg'>('photo');
+    const [bannerOn, setBannerOn] = useState(false);
+    const [bannerText, setBannerText] = useState('');
+    const [bannerTone, setBannerTone] = useState<'info' | 'warning' | 'success'>('info');
     const [loaded, setLoaded] = useState(false);
 
     useEffect(() => {
@@ -34,6 +39,10 @@ export function SiteIdentity() {
         setFooter(get(SettingKey.SiteFooter));
         const am = get(SettingKey.LandingAmbientMode);
         setAmbient(am === 'color4bg' ? 'color4bg' : 'photo');
+        setBannerOn(get(SettingKey.SiteBannerEnabled) === 'true');
+        setBannerText(get(SettingKey.SiteBannerText));
+        const tone = get(SettingKey.SiteBannerTone);
+        setBannerTone(tone === 'warning' || tone === 'success' ? tone : 'info');
         setLoaded(true);
     }, [settings, loaded]);
 
@@ -44,9 +53,16 @@ export function SiteIdentity() {
             { key: SettingKey.SiteAnnouncement, value: announce },
             { key: SettingKey.SiteFooter, value: footer },
             { key: SettingKey.LandingAmbientMode, value: ambient },
+            { key: SettingKey.SiteBannerEnabled, value: bannerOn ? 'true' : 'false' },
+            { key: SettingKey.SiteBannerText, value: bannerText },
+            { key: SettingKey.SiteBannerTone, value: bannerTone },
         ];
         Promise.all(entries.map((e) => setSetting.mutateAsync(e)))
-            .then(() => toast.success('站点信息已保存'))
+            .then(() => {
+                toast.success('站点信息已保存');
+                void queryClient.invalidateQueries({ queryKey: ['public', 'overview'] });
+                void queryClient.invalidateQueries({ queryKey: ['bootstrap', 'status'] });
+            })
             .catch(() => toast.error('保存失败'));
     };
 
@@ -90,6 +106,31 @@ export function SiteIdentity() {
                     >
                         <option value="photo">冬日实景照片（默认）</option>
                         <option value="color4bg">动态氛围光（color4bg，失败则回退照片）</option>
+                    </select>
+                </div>
+                <div className="flex flex-col gap-2 rounded-lg border border-border/30 bg-background/50 p-3">
+                    <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-card-foreground">
+                        <input type="checkbox" checked={bannerOn} onChange={(e) => setBannerOn(e.target.checked)} className="rounded border-border" />
+                        全站顶栏公告条
+                    </label>
+                    <p className="text-xs text-muted-foreground">登录后与访客入口顶部展示；可关闭（仅当次浏览）。</p>
+                    <textarea
+                        value={bannerText}
+                        onChange={(e) => setBannerText(e.target.value)}
+                        rows={2}
+                        className={textareaCls}
+                        placeholder="例如：今晚 22:00–24:00 维护，期间可能短暂不可用"
+                        disabled={!bannerOn}
+                    />
+                    <select
+                        value={bannerTone}
+                        onChange={(e) => setBannerTone(e.target.value === 'warning' || e.target.value === 'success' ? e.target.value : 'info')}
+                        className="h-9 rounded-lg border border-border/40 bg-background px-2 text-sm"
+                        disabled={!bannerOn}
+                    >
+                        <option value="info">信息（默认）</option>
+                        <option value="warning">警告</option>
+                        <option value="success">成功/通知</option>
                     </select>
                 </div>
                 <div>

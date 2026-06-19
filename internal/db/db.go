@@ -262,7 +262,8 @@ func Migrate(conn *gorm.DB) error {
 		&model.PaymentOrder{},
 		&model.InviteCode{},
 		&model.Feedback{},
-		&migrate.MigrationRecord{},
+		&model.ChatSession{},
+			&migrate.MigrationRecord{},
 	); err != nil {
 		return err
 	}

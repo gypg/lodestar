@@ -87,6 +87,11 @@ export interface UsageDailyPoint {
     tokens: number;
     cost: number;
 }
+export interface UsageHeatmapDay {
+    day: string;
+    requests: number;
+    tokens?: number;
+}
 export interface UsageSummary {
     total_requests: number;
     total_tokens: number;
@@ -94,6 +99,7 @@ export interface UsageSummary {
     per_key: UsageKey[];
     daily_series?: UsageDailyPoint[];
     usage_chart_available?: boolean;
+    heatmap_by_day?: UsageHeatmapDay[];
 }
 export function useUsage() {
     return useQuery({

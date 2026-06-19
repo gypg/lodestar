@@ -40,6 +40,12 @@ func getBootstrapStatus(c *gin.Context) {
 	maintenanceMode, _ := setting.GetBool(model.SettingKeyMaintenanceMode)
 	inviteRequired, _ := setting.GetBool(model.SettingKeyRegisterInviteRequired)
 	emailRequired, _ := setting.GetBool(model.SettingKeyRegisterEmailRequired)
+	bannerOn, _ := setting.GetBool(model.SettingKeySiteBannerEnabled)
+	bannerText, _ := setting.GetString(model.SettingKeySiteBannerText)
+	bannerTone, _ := setting.GetString(model.SettingKeySiteBannerTone)
+	if bannerTone != "warning" && bannerTone != "success" {
+		bannerTone = "info"
+	}
 	resp.Success(c, gin.H{
 		"initialized":              initialized,
 		"message":                  message,
@@ -47,6 +53,9 @@ func getBootstrapStatus(c *gin.Context) {
 		"maintenance_mode":         maintenanceMode,
 		"register_invite_required": inviteRequired,
 		"register_email_required":  emailRequired,
+		"site_banner_enabled":      bannerOn,
+		"site_banner_text":         bannerText,
+		"site_banner_tone":         bannerTone,
 	})
 }
 

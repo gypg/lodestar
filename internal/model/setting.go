@@ -96,6 +96,9 @@ const (
 	SettingKeySMTPPass                             SettingKey = "smtp_pass"                                // SMTP 密码/授权码
 	SettingKeySMTPFrom                             SettingKey = "smtp_from"                                // 发件人地址
 	SettingKeyRegisterEmailRequired                SettingKey = "register_email_required"                  // Lodestar 注册需邮箱验证(仅商业模式下生效)
+	SettingKeySiteBannerEnabled                    SettingKey = "site_banner_enabled"
+	SettingKeySiteBannerText                       SettingKey = "site_banner_text"
+	SettingKeySiteBannerTone                       SettingKey = "site_banner_tone"
 )
 
 type Setting struct {

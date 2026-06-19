@@ -9,6 +9,9 @@ export interface BootstrapStatusResponse {
   register_invite_required?: boolean;
   /** Lodestar: true=注册需邮箱验证(仅商业模式下) */
   register_email_required?: boolean;
+  site_banner_enabled?: boolean;
+  site_banner_text?: string;
+  site_banner_tone?: 'info' | 'warning' | 'success';
 }
 
 export interface BootstrapCreateAdminRequest {

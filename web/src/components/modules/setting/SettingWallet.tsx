@@ -17,6 +17,7 @@ import { toast } from '@/components/common/Toast';
 import { useWallet, useRedeemCode, useGenerateCodes, useTopup, useUsage, useGenerateInvites } from '@/api/endpoints/wallet';
 import { useCurrentUser, isStaffRole } from '@/api/endpoints/user';
 import { WalletUsageChart } from './WalletUsageChart';
+import { UsageHeatmap } from './UsageHeatmap';
 import { PortalHealthStrip } from './PortalHealthStrip';
 
 export function SettingWallet() {
@@ -154,6 +155,10 @@ export function SettingWallet() {
                 <div className="mt-2 border-t border-border/40 pt-2">
                     <div className="mb-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">近 14 日用量</div>
                     <WalletUsageChart series={usage?.daily_series} available={usage?.usage_chart_available} />
+                </div>
+                <div className="mt-2 border-t border-border/40 pt-2">
+                    <div className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">近 30 日活跃（热力图）</div>
+                    <UsageHeatmap data={usage?.heatmap_by_day} days={30} />
                 </div>
             </div>
 

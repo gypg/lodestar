@@ -26,6 +26,7 @@ import { parseNavOrder, parseNavVisible } from '@/components/modules/navbar';
 import { apiClient } from '@/api/client';
 import { logger } from '@/lib/logger';
 import { FirstRunSetup } from '@/components/modules/first-run-setup';
+import { SiteBannerStrip, type SiteBannerTone } from '@/components/common/SiteBannerStrip';
 import { ProxyPoolDialog } from '@/components/modules/proxy-pool/ProxyPoolDialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 import type { BootstrapStatusResponse } from '@/api/endpoints/bootstrap';
@@ -111,31 +112,98 @@ function HeaderModelSearch({ activeItem }: { activeItem: NavItem }) {
     );
 }
 
+const BANNER_DISMISS_KEY = 'lodestar-site-banner-dismiss';
+
+function useSiteBannerDismiss() {
+    const [dismissed, setDismissed] = useState(false);
+    useEffect(() => {
+        try {
+            setDismissed(sessionStorage.getItem(BANNER_DISMISS_KEY) === '1');
+        } catch {
+            setDismissed(false);
+        }
+    }, []);
+    const dismiss = useCallback(() => {
+        try {
+            sessionStorage.setItem(BANNER_DISMISS_KEY, '1');
+        } catch {
+            /* ignore */
+        }
+        setDismissed(true);
+    }, []);
+    return { dismissed, dismiss };
+}
+
+function SiteBannerFromBootstrap({
+    enabled,
+    text,
+    tone,
+    dismissed,
+    onDismiss,
+}: {
+    enabled?: boolean;
+    text?: string;
+    tone?: SiteBannerTone;
+    dismissed: boolean;
+    onDismiss: () => void;
+}) {
+    if (!enabled || dismissed || !text?.trim()) return null;
+    return <SiteBannerStrip text={text} tone={tone ?? 'info'} onDismiss={onDismiss} />;
+}
+
 // 公开入口：访客（未登录）先看到冬日封面，点「登录 / 进入」或目录项才唤出登录表单。
 // 主题（含冬日预设）由 ThemeProvider 全局应用，因此封面一进站就是漂亮配色。
 function PublicEntry() {
     const [showLogin, setShowLogin] = useState(false);
+    const { data: bootstrapStatus } = useQuery({
+        queryKey: ['bootstrap', 'status'],
+        queryFn: async () => apiClient.get<BootstrapStatusResponse>('/api/v1/bootstrap/status', undefined, false),
+        retry: false,
+        staleTime: 60_000,
+        refetchOnWindowFocus: false,
+    });
+    const { dismissed, dismiss } = useSiteBannerDismiss();
 
     if (showLogin) {
         return (
-            <AnimatePresence mode="wait">
-                <LoginForm key="login" />
-            </AnimatePresence>
+            <div className="flex min-h-dvh flex-col">
+                <SiteBannerFromBootstrap
+                    enabled={bootstrapStatus?.site_banner_enabled}
+                    text={bootstrapStatus?.site_banner_text}
+                    tone={bootstrapStatus?.site_banner_tone}
+                    dismissed={dismissed}
+                    onDismiss={dismiss}
+                />
+                <div className="min-h-0 flex-1">
+                    <AnimatePresence mode="wait">
+                        <LoginForm key="login" />
+                    </AnimatePresence>
+                </div>
+            </div>
         );
     }
 
     return (
-        <AnimatePresence mode="wait">
-            <motion.div
-                key="public-landing"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                className="h-dvh w-full p-2.5 md:p-5"
-            >
-                <WinterLanding variant="public" onLogin={() => setShowLogin(true)} />
-            </motion.div>
-        </AnimatePresence>
+        <div className="flex h-dvh flex-col">
+            <SiteBannerFromBootstrap
+                enabled={bootstrapStatus?.site_banner_enabled}
+                text={bootstrapStatus?.site_banner_text}
+                tone={bootstrapStatus?.site_banner_tone}
+                dismissed={dismissed}
+                onDismiss={dismiss}
+            />
+            <AnimatePresence mode="wait">
+                <motion.div
+                    key="public-landing"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                    className="min-h-0 flex-1 p-2.5 md:p-5"
+                >
+                    <WinterLanding variant="public" onLogin={() => setShowLogin(true)} />
+                </motion.div>
+            </AnimatePresence>
+        </div>
     );
 }
 
@@ -172,6 +240,7 @@ export function AppContainer() {
     const [bootstrapComplete, setBootstrapComplete] = useState(false);
     const bootstrapStartedRef = useRef(false);
     const warmedRoutesRef = useRef<Set<NavItem>>(new Set());
+    const { dismissed: bannerDismissed, dismiss: dismissBanner } = useSiteBannerDismiss();
 
     // 首屏最早的 server-rendered loader：一旦客户端开始渲染，就淡出移除
     useEffect(() => {
@@ -455,12 +524,20 @@ export function AppContainer() {
 
     // 主界面
     return (
+        <div className="flex min-h-dvh flex-col">
+            <SiteBannerFromBootstrap
+                enabled={bootstrapStatus?.site_banner_enabled}
+                text={bootstrapStatus?.site_banner_text}
+                tone={bootstrapStatus?.site_banner_tone}
+                dismissed={bannerDismissed}
+                onDismiss={dismissBanner}
+            />
         <motion.div
             key="main-app"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: lightweightMotion ? 0.2 : 0.6, ease: [0.16, 1, 0.3, 1] }}
-            className="relative mx-auto flex h-dvh max-w-[92rem] flex-col overflow-visible px-3 pt-3 pb-3 md:grid md:grid-cols-[auto_minmax(0,1fr)] md:gap-7 md:px-6 md:py-6"
+            className="relative mx-auto flex min-h-0 flex-1 h-dvh max-h-dvh max-w-[92rem] flex-col overflow-visible px-3 pt-3 pb-3 md:grid md:grid-cols-[auto_minmax(0,1fr)] md:gap-7 md:px-6 md:py-6"
         >
             <NavBar />
             <AccountThemeSync />
@@ -529,5 +606,6 @@ export function AppContainer() {
             </main>
             <ProxyPoolDialog />
         </motion.div>
+        </div>
     );
 }
