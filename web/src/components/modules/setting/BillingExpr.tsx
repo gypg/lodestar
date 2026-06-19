@@ -7,7 +7,7 @@ Lodestar — 表达式计费设置（billingexpr）可视化编辑器。
 支持实时预览：输入示例 token 数即可看到计算结果。
 */
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { Calculator, Eye, EyeOff, Plus, Trash2, ChevronDown, ChevronRight, Info } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -29,7 +29,6 @@ function previewExpr(expr: string, vars: Record<string, number>): string {
         js = js.replace(/param\s*\([^)]*\)/gi, '0');
         // Safety: only allow numbers, operators, parens, spaces
         if (!/^[\d\s+\-*/().%?:<>=!&|,]+$/.test(js)) return '—';
-        // eslint-disable-next-line no-eval
         const result = Function(`"use strict"; return (${js})`)();
         if (typeof result === 'number' && isFinite(result)) {
             return result.toFixed(6);

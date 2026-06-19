@@ -32,10 +32,12 @@ export function ModelMappingPanel() {
         priority: 0,
     });
 
-    const matchTypeLabel = (type: string) => {
-        const key = `mapping.match${type.charAt(0).toUpperCase() + type.slice(1)}` as const;
-        return t(key as any) || type;
+    const matchTypeLabels: Record<string, string> = {
+        exact: t('mapping.matchExact'),
+        wildcard: t('mapping.matchWildcard'),
+        regex: t('mapping.matchRegex'),
     };
+    const matchTypeLabel = (type: string) => matchTypeLabels[type] || type;
 
     const handleCreate = () => {
         if (!form.pattern.trim() || !form.target_model.trim()) {
