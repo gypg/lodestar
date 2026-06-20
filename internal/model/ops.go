@@ -118,6 +118,7 @@ type OpsSystemSummary struct {
 	BuildTime                    string                     `json:"build_time"`
 	Repo                         string                     `json:"repo"`
 	DatabaseType                 string                     `json:"database_type"`
+	RedisStatus                  string                     `json:"redis_status"`
 	PublicAPIBaseURL             string                     `json:"public_api_base_url"`
 	ProxyURL                     string                     `json:"proxy_url"`
 	RelayLogKeepEnabled          bool                       `json:"relay_log_keep_enabled"`

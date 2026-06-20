@@ -1708,7 +1708,8 @@
       "updateNow": "Update Now",
       "updating": "Updating...",
       "updateSuccess": "Update successful, service will restart shortly",
-      "updateFailed": "Update failed"
+      "updateFailed": "Update failed",
+      "database": "Database"
     },
     "log": {
       "title": "Log Settings",

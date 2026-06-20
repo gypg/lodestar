@@ -1,9 +1,10 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { Info, Tag, Github, AlertTriangle, Download, Loader2 } from 'lucide-react';
+import { Info, Tag, Github, AlertTriangle, Download, Loader2, Database, Server } from 'lucide-react';
 import { APP_VERSION, GITHUB_REPO } from '@/lib/info';
 import { useLatestInfo, useNowVersion, useUpdateCore } from '@/api/endpoints/update';
+import { useOpsSystemSummary } from '@/api/endpoints/ops';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/common/Toast';
 import { isLodestarCacheName, isFontCacheName, SW_MESSAGE_TYPE } from '@/lib/sw';
@@ -15,6 +16,7 @@ export function SettingInfo() {
     const latestInfoQuery = useLatestInfo();
     const nowVersionQuery = useNowVersion();
     const updateCore = useUpdateCore();
+    const systemQuery = useOpsSystemSummary();
 
     const backendNowVersion = nowVersionQuery.data || '';
     const latestVersion = latestInfoQuery.data?.tag_name || '';
@@ -124,6 +126,32 @@ export function SettingInfo() {
                         </code>
                     )}
                 </div>
+            </div>
+
+            {/* 数据库 */}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-lg border-border/30 bg-card px-4 py-3 shadow-sm">
+                <div className="flex items-center gap-3">
+                    <Database className="h-5 w-5 text-muted-foreground shrink-0" />
+                    <span className="text-sm font-medium">{t('info.database')}</span>
+                </div>
+                <code className="text-sm font-mono text-muted-foreground">
+                    {systemQuery.data?.database_type || '—'}
+                </code>
+            </div>
+
+            {/* Redis */}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-lg border-border/30 bg-card px-4 py-3 shadow-sm">
+                <div className="flex items-center gap-3">
+                    <Server className="h-5 w-5 text-muted-foreground shrink-0" />
+                    <span className="text-sm font-medium">Redis</span>
+                </div>
+                <span className={`text-sm font-mono ${
+                    systemQuery.data?.redis_status === 'connected' ? 'text-emerald-500' :
+                    systemQuery.data?.redis_status === 'not configured' ? 'text-muted-foreground' :
+                    'text-destructive'
+                }`}>
+                    {systemQuery.data?.redis_status || '—'}
+                </span>
             </div>
 
             {/* 浏览器缓存问题警告 */}

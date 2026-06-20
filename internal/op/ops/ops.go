@@ -24,6 +24,7 @@ import (
 	"github.com/gypg/lodestar/internal/op/setting"
 	"github.com/gypg/lodestar/internal/op/stats"
 	"github.com/gypg/lodestar/internal/op/walletusage"
+	"github.com/gypg/lodestar/internal/utils/cache"
 	"github.com/gypg/lodestar/internal/utils/semantic_cache"
 	"github.com/gypg/lodestar/internal/utils/telemetry"
 )
@@ -135,6 +136,16 @@ func OpsHealthStatusGet(ctx context.Context) (*model.OpsHealthStatus, error) {
 	return &status, nil
 }
 
+func redisStatus() string {
+	if conf.AppConfig.Redis.Host == "" {
+		return "not configured"
+	}
+	if cache.IsRedisAvailable() {
+		return "connected"
+	}
+	return "disconnected"
+}
+
 func OpsSystemSummaryGet(ctx context.Context) (*model.OpsSystemSummary, error) {
 	proxyURL, err := setting.GetString(model.SettingKeyProxyURL)
 	if err != nil {
@@ -208,6 +219,7 @@ func OpsSystemSummaryGet(ctx context.Context) (*model.OpsSystemSummary, error) {
 		BuildTime:                    conf.BuildTime,
 		Repo:                         conf.Repo,
 		DatabaseType:                 conf.AppConfig.Database.Type,
+		RedisStatus:                  redisStatus(),
 		PublicAPIBaseURL:             strings.TrimSpace(publicAPIBaseURL),
 		ProxyURL:                     strings.TrimSpace(proxyURL),
 		RelayLogKeepEnabled:          relayLogKeepEnabled,
