@@ -221,7 +221,7 @@ export function APIKeyForm({ apiKey, isPending, submitLabel, tagSuggestions = []
     const isEditing = !!apiKey;
 
     // Strip the fixed prefix so the form only edits the suffix part.
-    const apiKeyPrefix = 'sk-octopus-';
+    const apiKeyPrefix = 'sk-lodestar-';
     const initialKeySuffix = apiKey?.api_key?.startsWith(apiKeyPrefix)
         ? apiKey.api_key.slice(apiKeyPrefix.length)
         : (apiKey?.api_key ?? '');
@@ -341,7 +341,7 @@ export function APIKeyForm({ apiKey, isPending, submitLabel, tagSuggestions = []
                     )}
                 </span>
                 <div className="flex items-center gap-0 rounded-xl border border-border bg-muted/20 overflow-hidden transition-colors focus-within:border-primary/40">
-                    <span className="shrink-0 px-3 text-sm font-mono text-muted-foreground select-none">sk-octopus-</span>
+                    <span className="shrink-0 px-3 text-sm font-mono text-muted-foreground select-none">sk-lodestar-</span>
                     <Input
                         type="text"
                         value={form.api_key}

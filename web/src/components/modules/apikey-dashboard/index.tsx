@@ -118,7 +118,7 @@ export function APIKeyDashboard() {
             {/* Header - Consistent with app.tsx */}
             <header className="my-4 sm:my-6 flex items-center gap-2 px-1 sm:px-2">
                 <Logo size={40} />
-                <h1 className="ml-1 sm:ml-2 flex-1 truncate text-xl sm:text-2xl font-bold tracking-tight">octopus</h1>
+                <h1 className="ml-1 sm:ml-2 flex-1 truncate text-xl sm:text-2xl font-bold tracking-tight">Lodestar</h1>
                 <div className="flex items-center gap-1 sm:gap-2">
                     <Button variant="ghost" size="icon" onClick={toggleTheme} className="size-9 sm:size-10 rounded-xl hover:bg-accent">
                         <Sun className="size-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />

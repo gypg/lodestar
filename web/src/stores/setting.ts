@@ -76,7 +76,7 @@ export const useSettingStore = create<SettingState>()(
             setExchangeRate: (exchangeRate) => set({ exchangeRate: normalizeExchangeRate(exchangeRate) }),
         }),
         {
-            name: 'octopus-settings',
+            name: 'lodestar-settings',
             storage: createJSONStorage(() => localStorage),
             merge: (persistedState, currentState) => {
                 const typed = (persistedState as Partial<SettingState> | null) ?? null;

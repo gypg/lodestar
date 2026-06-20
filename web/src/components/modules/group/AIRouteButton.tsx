@@ -41,7 +41,7 @@ type StoredAIRouteTask = {
     groupId?: number;
 };
 
-const AI_ROUTE_PROGRESS_STORAGE_KEY = 'octopus.ai-route-progress';
+const AI_ROUTE_PROGRESS_STORAGE_KEY = 'lodestar.ai-route-progress';
 
 function readStoredAIRouteTask(): StoredAIRouteTask | null {
     if (typeof window === 'undefined') {

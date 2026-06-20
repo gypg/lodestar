@@ -6,7 +6,7 @@ import { APP_VERSION, GITHUB_REPO } from '@/lib/info';
 import { useLatestInfo, useNowVersion, useUpdateCore } from '@/api/endpoints/update';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/common/Toast';
-import { isOctopusCacheName, isFontCacheName, SW_MESSAGE_TYPE } from '@/lib/sw';
+import { isLodestarCacheName, isFontCacheName, SW_MESSAGE_TYPE } from '@/lib/sw';
 
 const CACHE_CLEAR_DELAY_MS = 1500;
 
@@ -39,7 +39,7 @@ export function SettingInfo() {
             const names = await caches.keys();
             await Promise.all(
                 names
-                    .filter((name) => isOctopusCacheName(name) && !isFontCacheName(name))
+                    .filter((name) => isLodestarCacheName(name) && !isFontCacheName(name))
                     .map((name) => caches.delete(name))
             );
         }

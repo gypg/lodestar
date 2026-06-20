@@ -57,7 +57,7 @@ export const DEFAULT_SETTING_ORDER: SettingItemId[] = [
     'billing-expr',
 ];
 
-export const SETTING_ORDER_STORAGE_KEY = 'octopus-setting-order';
+export const SETTING_ORDER_STORAGE_KEY = 'lodestar-setting-order';
 
 function loadStoredOrder(): SettingItemId[] {
     try {

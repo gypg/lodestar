@@ -32,7 +32,7 @@ export function SettingWebDAV() {
     const [baseURL, setBaseURL] = useState('');
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
-    const [remotePath, setRemotePath] = useState('/octopus-backup/');
+    const [remotePath, setRemotePath] = useState('/lodestar-backup/');
     const [intervalHours, setIntervalHours] = useState(6);
     const [includeStats, setIncludeStats] = useState(true);
     const [includeLogs, setIncludeLogs] = useState(false);
@@ -44,7 +44,7 @@ export function SettingWebDAV() {
         setBaseURL(config.base_url);
         setUsername(config.username);
         setPassword(config.password || '');
-        setRemotePath(config.remote_path || '/octopus-backup/');
+        setRemotePath(config.remote_path || '/lodestar-backup/');
         setIntervalHours(config.interval_hours || 6);
         setIncludeStats(config.include_stats);
         setIncludeLogs(config.include_logs);
@@ -176,7 +176,7 @@ export function SettingWebDAV() {
                     <Input
                         value={remotePath}
                         onChange={(e) => setRemotePath(e.target.value)}
-                        placeholder="/octopus-backup/"
+                        placeholder="/lodestar-backup/"
                         className="rounded-xl mt-1"
                     />
                 </div>

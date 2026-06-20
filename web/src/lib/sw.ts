@@ -7,17 +7,17 @@ export const SW_MESSAGE_TYPE = {
 export type SwMessageType = (typeof SW_MESSAGE_TYPE)[keyof typeof SW_MESSAGE_TYPE];
 
 // Keep in sync with `web/public/sw.js`
-export const OCTOPUS_CACHE_PREFIX = 'octopus-';
-export const OCTOPUS_CACHE_VERSION = 'v3';
+export const LODESTAR_CACHE_PREFIX = 'lodestar-';
+export const LODESTAR_CACHE_VERSION = 'v3';
 // Font cache is version-independent and should persist across updates
-export const OCTOPUS_FONT_CACHE_NAME = 'octopus-font';
+export const LODESTAR_FONT_CACHE_NAME = 'lodestar-font';
 
-export function isOctopusCacheName(name: string) {
-    return name.startsWith(OCTOPUS_CACHE_PREFIX);
+export function isLodestarCacheName(name: string) {
+    return name.startsWith(LODESTAR_CACHE_PREFIX);
 }
 
 export function isFontCacheName(name: string) {
-    return name === OCTOPUS_FONT_CACHE_NAME;
+    return name === LODESTAR_FONT_CACHE_NAME;
 }
 
 

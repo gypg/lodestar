@@ -172,7 +172,7 @@ export function SettingBackup() {
                         className="rounded-xl w-full"
                         value={targetPath}
                         onChange={(e) => setTargetPath(e.target.value)}
-                        placeholder={targetType === 'sqlite' ? 'data/data-next.db' : 'user:pass@tcp(host:3306)/octopus'}
+                        placeholder={targetType === 'sqlite' ? 'data/data-next.db' : 'user:pass@tcp(host:3306)/lodestar'}
                     />
                 </div>
 

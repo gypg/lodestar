@@ -84,7 +84,7 @@ function getOrderedItems(order: string[]): SettingItemDef[] {
 
 function loadOrder(): string[] {
     try {
-        const raw = localStorage.getItem('octopus-setting-order');
+        const raw = localStorage.getItem('lodestar-setting-order');
         if (!raw) return [...DEFAULT_SETTING_ORDER];
         const parsed = JSON.parse(raw);
         if (!Array.isArray(parsed)) return [...DEFAULT_SETTING_ORDER];

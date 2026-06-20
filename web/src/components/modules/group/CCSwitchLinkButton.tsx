@@ -84,7 +84,7 @@ export function CCSwitchLinkButton({ className }: { className?: string }) {
     const validGroupNames = useMemo(() => new Set(groupOptions.map((option) => option.value)), [groupOptions]);
 
     const selectedGroupName = selectedGroup?.name ?? '';
-    const autoName = selectedGroupName ? `octopus_${selectedApp}_${selectedGroupName}` : '';
+    const autoName = selectedGroupName ? `lodestar_${selectedApp}_${selectedGroupName}` : '';
     const effectiveName = nameEdited ? customName : autoName;
     const effectiveHaikuModel = validGroupNames.has(haikuModel) ? haikuModel : '';
     const effectiveSonnetModel = validGroupNames.has(sonnetModel) ? sonnetModel : '';
