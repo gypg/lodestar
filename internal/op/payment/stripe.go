@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"strings"
 	"time"
 
@@ -111,7 +112,8 @@ func CreateCheckoutSession(userID uint, amountUSD float64, successURL string, ca
 	}
 
 	// Stripe expects amount in smallest currency unit (cents for USD).
-	amountCents := int64(amountUSD * 100)
+	// Use math.Round to avoid floating-point imprecision (e.g. 19.99*100 = 1998.999...).
+	amountCents := int64(math.Round(amountUSD * 100))
 
 	params := &stripe.CheckoutSessionParams{
 		ClientReferenceID: stripe.String(tradeNo),

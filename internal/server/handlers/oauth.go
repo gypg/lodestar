@@ -230,24 +230,15 @@ func oauthRedirectError(c *gin.Context, errMsg string) {
 }
 
 // oauthFrontendBase returns the frontend URL for OAuth redirect.
-// Uses PublicAPIBaseURL as the origin, falling back to request headers.
+// Requires PublicAPIBaseURL to be configured. Falls back to request Host
+// (server-controlled) but NEVER to Origin/Referer headers (attacker-controlled).
 func oauthFrontendBase(c *gin.Context) string {
 	base, _ := setting.GetString(model.SettingKeyPublicAPIBaseURL)
 	base = strings.TrimSpace(base)
 	if base != "" {
 		return strings.TrimRight(base, "/") + "/#/oauth/callback"
 	}
-	// Fallback: derive from request origin or referer.
-	origin := c.GetHeader("Origin")
-	if origin == "" {
-		origin = c.GetHeader("Referer")
-	}
-	if origin != "" {
-		if u, err := url.Parse(origin); err == nil {
-			return u.Scheme + "://" + u.Host + "/#/oauth/callback"
-		}
-	}
-	// Last resort.
+	// Fallback to request Host (server-controlled, not attacker-controlled).
 	scheme := "http"
 	if c.Request.TLS != nil {
 		scheme = "https"

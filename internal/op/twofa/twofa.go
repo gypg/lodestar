@@ -57,6 +57,11 @@ func Setup(userID uint) (*SetupStatus, error) {
 		return nil, fmt.Errorf("2FA is already enabled; disable it first")
 	}
 
+	// Security: do NOT allow re-setup while locked out (prevents lockout bypass).
+	if existing != nil && !existing.IsEnabled && existing.IsLocked() {
+		return nil, fmt.Errorf("too many failed attempts; try again after %s", existing.LockedUntil.Format("2006-01-02 15:04:05"))
+	}
+
 	// Remove a prior disabled record so we can start fresh.
 	if existing != nil && !existing.IsEnabled {
 		if err := deleteByUserID(userID); err != nil {
@@ -118,7 +123,19 @@ func Enable(userID uint, code string) error {
 		return fmt.Errorf("2FA is already enabled")
 	}
 
+	// Security: check lockout before attempting verification.
+	if twoFA.IsLocked() {
+		return fmt.Errorf("too many failed attempts; try again after %s", twoFA.LockedUntil.Format("2006-01-02 15:04:05"))
+	}
+
 	if !totp.Validate(code, twoFA.Secret) {
+		// Track failed attempts and apply lockout.
+		twoFA.FailedAttempts++
+		if twoFA.FailedAttempts >= model.MaxFailAttempts {
+			lockUntil := time.Now().Add(model.LockoutDuration)
+			twoFA.LockedUntil = &lockUntil
+		}
+		_ = update(twoFA) // best-effort persist
 		return fmt.Errorf("invalid verification code")
 	}
 

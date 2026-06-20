@@ -193,6 +193,10 @@ func adminUpdatePlan(c *gin.Context) {
 		updates["description"] = req.Desc
 	}
 	if req.Price != nil {
+		if *req.Price < 0 {
+			resp.Error(c, http.StatusBadRequest, "price must be non-negative")
+			return
+		}
 		updates["price"] = *req.Price
 	}
 	if req.Currency != "" {
