@@ -35,8 +35,8 @@ export const DEFAULT_NAV_ORDER: NavItem[] = [
     'ops',
     'apikey',
     'subscription',
-    'commercial',
     'setting',
+    'commercial',
     'user',
 ];
 export const MIN_VISIBLE_NAV_ITEMS = 5;

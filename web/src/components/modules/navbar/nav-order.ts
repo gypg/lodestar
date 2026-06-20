@@ -11,8 +11,8 @@ export const DEFAULT_NAV_ORDER = [
     'ops',
     'apikey',
     'subscription',
-    'commercial',
     'setting',
+    'commercial',
     'user',
 ] as const;
 

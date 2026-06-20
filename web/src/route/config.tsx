@@ -50,8 +50,8 @@ export const ROUTES: RouteConfig[] = [
     { id: 'ops', icon: Wrench, component: Ops_Module },
     { id: 'apikey', icon: KeyRound, component: APIKey_Module },
     { id: 'subscription', icon: CreditCard, component: Subscription_Module },
-    { id: 'commercial', icon: Store, component: Commercial_Module },
     { id: 'setting', icon: Settings, component: Setting_Module },
+    { id: 'commercial', icon: Store, component: Commercial_Module },
     { id: 'user', icon: Users, component: User_Module },
 ];
 

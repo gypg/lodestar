@@ -532,39 +532,6 @@ export function SettingAppearance() {
 
                     {showAdmin && <SiteIdentity />}
 
-                    {/* 商业模式（Lodestar 一键开关：开放公开注册 = 释放商业潜力的第一步） */}
-                    {showAdmin && (
-                    <div className="flex flex-col gap-4 rounded-lg border border-primary/20 bg-gradient-to-br from-primary/5 to-transparent p-4 shadow-sm">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/12">
-                                    <Store className="h-5 w-5 text-primary" />
-                                </div>
-                                <div className="space-y-0.5">
-                                    <span className="text-sm font-semibold text-card-foreground">{t('commercialMode.title')}</span>
-                                    <p className="text-xs text-muted-foreground">{t('commercialMode.description')}</p>
-                                </div>
-                            </div>
-                            <Switch
-                                checked={settings?.find((s) => s.key === SettingKey.CommercialMode)?.value === 'true'}
-                                onCheckedChange={(checked) =>
-                                    setSetting.mutate(
-                                        { key: SettingKey.CommercialMode, value: checked ? 'true' : 'false' },
-                                        { onError: () => toast.error(t('saveFailed')) }
-                                    )
-                                }
-                                aria-label={t('commercialMode.title')}
-                            />
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground pl-12">
-                            <span>{t('commercialMode.status')}:</span>
-                            <span className={`font-medium ${settings?.find((s) => s.key === SettingKey.CommercialMode)?.value === 'true' ? 'text-primary' : 'text-muted-foreground'}`}>
-                                {settings?.find((s) => s.key === SettingKey.CommercialMode)?.value === 'true' ? t('commercialMode.statusCommercial') : t('commercialMode.statusSelfUse')}
-                            </span>
-                        </div>
-                    </div>
-                    )}
-
                     {/* 维护模式 */}
                     {showAdmin && (
                     <div className="flex flex-col gap-4 rounded-lg border border-primary/20 bg-gradient-to-br from-primary/5 to-transparent p-4 shadow-sm">
