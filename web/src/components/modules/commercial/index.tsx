@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import {
     Store, CreditCard, ToggleLeft, ToggleRight,
-    ChevronDown, ChevronRight, Calculator, Package, Settings,
+    ChevronDown, ChevronRight, Calculator, Package, Users, Mail, Shield, Globe2,
 } from 'lucide-react';
 import { SettingKey, useSetSetting, useSettingList } from '@/api/endpoints/setting';
 import { toast } from '@/components/common/Toast';
@@ -13,6 +13,8 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { PageWrapper } from '@/components/common/PageWrapper';
 import { useCurrentUser, isStaffRole } from '@/api/endpoints/user';
+import { PaymentSettings } from '@/components/modules/setting/PaymentSettings';
+import { EmailSettings } from '@/components/modules/setting/EmailSettings';
 
 // ── Collapsible Section ─────────────────────────────────────────────────────
 
@@ -96,13 +98,33 @@ function StripeSection() {
     );
 }
 
-// ── BillingExpr Link ────────────────────────────────────────────────────────
+// ── Registration Settings ───────────────────────────────────────────────────
 
-function BillingExprLink() {
+function RegistrationSection() {
     const t = useTranslations('setting');
+    const { data: settings } = useSettingList();
+    const setSetting = useSetSetting();
+    const inviteRequired = settings?.find((s) => s.key === SettingKey.RegisterInviteRequired)?.value === 'true';
+    const emailRequired = settings?.find((s) => s.key === SettingKey.RegisterEmailRequired)?.value === 'true';
+
     return (
-        <Section icon={<Calculator className="h-4 w-4" />} title={t('billingExpr.title')}>
-            <p className="text-xs text-muted-foreground">{t('billingExpr.description')}</p>
+        <Section icon={<Users className="h-4 w-4" />} title="注册设置">
+            <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <span className="text-sm font-medium text-card-foreground">注册需邀请码</span>
+                        <p className="text-xs text-muted-foreground">开启后新用户注册需要有效邀请码</p>
+                    </div>
+                    <Switch checked={inviteRequired} onCheckedChange={(v) => setSetting.mutate({ key: SettingKey.RegisterInviteRequired, value: v ? 'true' : 'false' })} />
+                </div>
+                <div className="flex items-center justify-between">
+                    <div>
+                        <span className="text-sm font-medium text-card-foreground">注册需邮箱验证</span>
+                        <p className="text-xs text-muted-foreground">开启后新用户注册需要邮箱验证码（需配置 SMTP）</p>
+                    </div>
+                    <Switch checked={emailRequired} onCheckedChange={(v) => setSetting.mutate({ key: SettingKey.RegisterEmailRequired, value: v ? 'true' : 'false' })} />
+                </div>
+            </div>
         </Section>
     );
 }
@@ -127,7 +149,6 @@ export function Commercial() {
         );
     };
 
-    // Non-admin: redirect or show nothing
     if (!isAdmin) return null;
 
     return (
@@ -161,10 +182,28 @@ export function Commercial() {
             {/* Commercial features — only when ON */}
             {isCommercial && (
                 <>
+                    {/* Payment gateways */}
+                    <Section icon={<CreditCard className="h-4 w-4" />} title="支付网关">
+                        <PaymentSettings />
+                    </Section>
                     <StripeSection />
-                    <BillingExprLink />
+
+                    {/* Subscription */}
                     <Section icon={<Package className="size-4" />} title="订阅管理">
-                        <p className="text-xs text-muted-foreground">在「订阅」标签管理方案和用户订阅。</p>
+                        <p className="text-xs text-muted-foreground">管理订阅方案和用户订阅，请前往「订阅」标签。</p>
+                    </Section>
+
+                    {/* Billing */}
+                    <Section icon={<Calculator className="h-4 w-4" />} title={t('billingExpr.title')}>
+                        <p className="text-xs text-muted-foreground">{t('billingExpr.description')}</p>
+                    </Section>
+
+                    {/* Registration */}
+                    <RegistrationSection />
+
+                    {/* Email / SMTP */}
+                    <Section icon={<Mail className="h-4 w-4" />} title="邮件设置">
+                        <EmailSettings />
                     </Section>
                 </>
             )}

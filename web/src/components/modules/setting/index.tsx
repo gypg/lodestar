@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import {
     Sun, User, Database, RotateCcw, Zap,
     ScrollText, Monitor, RefreshCw, ChevronsUpDown,
-    Info, Bot, Sparkles, FolderX, Cloud, ShieldAlert, Eraser, Fingerprint, Globe2, Calculator,
+    Info, Bot, Sparkles, FolderX, Cloud, ShieldAlert, Eraser, Fingerprint, Globe2,
     Shield,
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
@@ -27,7 +27,6 @@ import { SettingRouteGroupDanger } from './RouteGroupDanger';
 import { SettingPurgeUnavailableModels } from './PurgeUnavailableModels';
 import { SettingResponseFilter } from './ResponseFilter';
 import { SettingSiteAutomation } from './SiteAutomation';
-import { BillingExpr } from './BillingExpr';
 import { SettingTwoFA } from './TwoFA';
 import { DEFAULT_SETTING_ORDER } from './SettingOrder';
 
@@ -57,7 +56,6 @@ const SETTING_ITEM_DEFS: SettingItemDef[] = [
     { id: 'purge-unavailable', icon: <Eraser className="h-5 w-5" />,           titleKey: 'purgeUnavailable.title', component: <SettingPurgeUnavailableModels /> },
     { id: 'site-automation',   icon: <Globe2 className="h-5 w-5" />,            titleKey: 'siteAutomation.title',   component: <SettingSiteAutomation /> },
     { id: 'route-group-danger',icon: <FolderX className="h-5 w-5" />,          titleKey: 'routeGroups.title',    component: <SettingRouteGroupDanger /> },
-    { id: 'billing-expr',    icon: <Calculator className="h-5 w-5" />,        titleKey: 'billingExpr.title',    component: <BillingExpr /> },
     { id: 'twofa',           icon: <Shield className="h-5 w-5" />,            titleKey: 'twofa.title',          component: <SettingTwoFA /> },
 ];
 

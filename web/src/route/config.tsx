@@ -1,7 +1,7 @@
 import { lazyWithPreload } from './lazy-with-preload';
 import { lazy, ComponentType } from 'react';
 import type { LucideIcon } from 'lucide-react';
-import { Home, Radio, Sparkles, FolderTree, Settings, Logs, Users, Bell, BarChart3, Wrench, KeyRound, Globe, MessageSquare, ImagePlus, Server, CreditCard, Store } from 'lucide-react';
+import { Home, Radio, Sparkles, FolderTree, Settings, Logs, Users, Bell, BarChart3, Wrench, KeyRound, MessageSquare, ImagePlus, Server, CreditCard, Store } from 'lucide-react';
 import { DEFAULT_NAV_ORDER } from '@/components/modules/navbar';
 
 export type LazyComponent = ReturnType<typeof lazy> & {
@@ -30,7 +30,6 @@ const Setting_Module = lazyWithPreload(() => import('@/components/modules/settin
 const User_Module = lazyWithPreload(() => import('@/components/modules/user').then(m => ({ default: m.User })));
 const Alert_Module = lazyWithPreload(() => import('@/components/modules/alert').then(m => ({ default: m.Alert })));
 const Ops_Module = lazyWithPreload(() => import('@/components/modules/ops').then(m => ({ default: m.Ops })));
-const Hub_Module = lazyWithPreload(() => import('@/components/modules/remote-site').then(m => ({ default: m.RemoteSite })));
 const Site_Module = lazyWithPreload(() => import('@/components/modules/site').then(m => ({ default: m.Site })));
 const Subscription_Module = lazyWithPreload(() => import('@/components/modules/subscription').then(m => ({ default: m.Subscription })));
 const Commercial_Module = lazyWithPreload(() => import('@/components/modules/commercial').then(m => ({ default: m.Commercial })));
@@ -39,7 +38,6 @@ export const ROUTES: RouteConfig[] = [
     { id: 'home', icon: Home, component: Home_Module },
     { id: 'chat', icon: MessageSquare, component: Chat_Module },
     { id: 'image', icon: ImagePlus, component: Image_Module },
-    { id: 'hub', icon: Globe, component: Hub_Module },
     { id: 'site', icon: Server, component: Site_Module },
     { id: 'channel', icon: Radio, component: Channel_Module },
     { id: 'group', icon: FolderTree, component: Group_Module },

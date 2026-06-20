@@ -24,7 +24,6 @@ export const DEFAULT_NAV_ORDER: NavItem[] = [
     'home',
     'chat',
     'image',
-    'hub',
     'site',
     'channel',
     'group',
