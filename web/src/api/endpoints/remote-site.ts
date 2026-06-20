@@ -83,7 +83,7 @@ export interface ModelPricingEntry {
 
 export const SITE_TYPES = [
     'new-api', 'veloera', 'done-hub', 'one-hub', 'sub2api',
-    'octopus', 'sapi', 'anyrouter', 'aihubmix', 'axonhub', 'claude-code-hub', 'unknown',
+    'jwt-auth', 'sapi', 'anyrouter', 'aihubmix', 'axonhub', 'claude-code-hub', 'unknown',
 ] as const;
 
 /** Display names for site types (backend values stay unchanged for DB compatibility). */
@@ -93,7 +93,8 @@ export const SITE_TYPE_LABELS: Record<string, string> = {
     'done-hub': 'Done Hub',
     'one-hub': 'One Hub',
     'sub2api': 'Sub2API',
-    'octopus': 'Legacy JWT',
+    'jwt-auth': 'JWT 认证',
+    'octopus': 'JWT 认证',  // Legacy alias
     'sapi': 'SAPI',
     'anyrouter': 'AnyRouter',
     'aihubmix': 'AIHubMix',

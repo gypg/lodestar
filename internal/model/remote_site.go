@@ -9,7 +9,8 @@ const (
 	SiteTypeDoneHub       = "done-hub"
 	SiteTypeOneHub        = "one-hub"
 	SiteTypeSub2API       = "sub2api"
-	SiteTypeOctopus       = "octopus"
+	SiteTypeJWTAuth       = "jwt-auth"   // JWT username/password login (formerly "octopus")
+	SiteTypeOctopus       = "jwt-auth"   // Deprecated alias for backward compatibility
 	SiteTypeAnyRouter     = "anyrouter"
 	SiteTypeAIHubMix      = "aihubmix"
 	SiteTypeAxonHub       = "axonhub"
