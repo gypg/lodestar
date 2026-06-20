@@ -6,7 +6,7 @@ import {
     Sun, User, Database, RotateCcw, Zap,
     ScrollText, Monitor, RefreshCw, ChevronsUpDown,
     Info, Bot, Sparkles, FolderX, Cloud, ShieldAlert, Eraser, Fingerprint, Globe2, Calculator,
-    CreditCard, Shield,
+    CreditCard, Shield, Store,
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { SettingAppearance } from './Appearance';
@@ -30,6 +30,7 @@ import { SettingSiteAutomation } from './SiteAutomation';
 import { BillingExpr } from './BillingExpr';
 import { StripeSettings } from './StripeSettings';
 import { SettingTwoFA } from './TwoFA';
+import { CommercialMode } from './CommercialMode';
 import { DEFAULT_SETTING_ORDER } from './SettingOrder';
 
 type SettingItemDef = {
@@ -42,6 +43,7 @@ type SettingItemDef = {
 const SETTING_ITEM_DEFS: SettingItemDef[] = [
     { id: 'info',              icon: <Info className="h-5 w-5" />,              titleKey: 'info.title',           component: <SettingInfo /> },
     { id: 'appearance',        icon: <Sun className="h-5 w-5" />,              titleKey: 'appearance',           component: <SettingAppearance /> },
+    { id: 'commercial-mode',   icon: <Store className="h-5 w-5" />,             titleKey: 'commercialMode.title', component: <CommercialMode /> },
     { id: 'ai-route',          icon: <Bot className="h-5 w-5" />,              titleKey: 'aiRoute.title',        component: <SettingAIRoute /> },
     { id: 'auto-strategy',     icon: <Sparkles className="h-5 w-5" />,         titleKey: 'autoStrategy.title',   component: <SettingAutoStrategy /> },
     { id: 'account',           icon: <User className="h-5 w-5" />,              titleKey: 'account.title',         component: <SettingAccount /> },

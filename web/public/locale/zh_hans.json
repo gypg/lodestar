@@ -99,7 +99,8 @@
     "ariaLabel": "主导航",
     "apikey": "API 密钥及端点",
     "chat": "对话",
-    "image": "生图"
+    "image": "生图",
+    "subscription": "订阅"
   },
   "endpoints": {
     "title": "可用端点",
@@ -843,7 +844,8 @@
       "deleted": "用户已删除",
       "roleUpdated": "角色已更新",
       "actionFailed": "操作失败"
-    }
+    },
+    "logout": "退出登录"
   },
   "alert": {
     "tabs": {
@@ -1857,6 +1859,15 @@
         "bindSubscription": "绑定订阅",
         "confirmDelete": "确认删除此方案？"
       }
+    },
+    "commercialMode": {
+      "title": "商业模式",
+      "description": "切换商业/自用模式。开启后开放公开注册和计费。",
+      "enable": "启用商业模式",
+      "disable": "关闭商业模式",
+      "status": "当前模式",
+      "statusCommercial": "商业模式",
+      "statusSelfUse": "自用模式"
     }
   },
   "group": {
@@ -2274,6 +2285,31 @@
     "tabs": {
       "market": "市场",
       "capabilities": "能力"
+    },
+    "mapping": {
+      "title": "模型映射",
+      "count": "条规则",
+      "empty": "暂无映射规则",
+      "add": "添加映射",
+      "loading": "加载中...",
+      "patternPlaceholder": "匹配模式 (如 gpt-4o)",
+      "targetPlaceholder": "目标模型 (如 gpt-4o-2024-08-06)",
+      "priorityPlaceholder": "优先级",
+      "cancel": "取消",
+      "create": "创建",
+      "creating": "创建中...",
+      "matchExact": "精确匹配",
+      "matchWildcard": "通配符",
+      "matchRegex": "正则表达式",
+      "enableTooltip": "点击启用",
+      "disableTooltip": "点击禁用",
+      "confirmDelete": "确认删除此映射？",
+      "toastCreated": "映射已创建",
+      "toastCreateFailed": "创建失败",
+      "toastUpdateFailed": "更新失败",
+      "toastDeleted": "已删除",
+      "toastDeleteFailed": "删除失败",
+      "toastFillRequired": "请输入匹配模式和目标模型"
     }
   },
   "log": {
