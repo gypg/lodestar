@@ -827,7 +827,8 @@
     "roles": {
       "admin": "管理員",
       "editor": "編輯者",
-      "viewer": "唯讀者"
+      "viewer": "唯讀者",
+      "user": "用戶"
     },
     "create": {
       "open": "新增用戶",
