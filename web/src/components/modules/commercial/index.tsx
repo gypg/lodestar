@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import {
     Store, CreditCard, ToggleLeft, ToggleRight,
-    ChevronDown, ChevronRight, Calculator, Package, Users, Mail, Shield, Globe2,
+    ChevronDown, ChevronRight, Calculator, Package, Users, Mail, Wrench, Landmark,
 } from 'lucide-react';
 import { SettingKey, useSetSetting, useSettingList } from '@/api/endpoints/setting';
 import { toast } from '@/components/common/Toast';
@@ -13,8 +13,10 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { PageWrapper } from '@/components/common/PageWrapper';
 import { useCurrentUser, isStaffRole } from '@/api/endpoints/user';
+import { useSettingStore } from '@/stores/setting';
 import { PaymentSettings } from '@/components/modules/setting/PaymentSettings';
 import { EmailSettings } from '@/components/modules/setting/EmailSettings';
+import { BillingExpr } from '@/components/modules/setting/BillingExpr';
 
 // ── Collapsible Section ─────────────────────────────────────────────────────
 
@@ -32,7 +34,27 @@ function Section({ icon, title, children }: { icon: React.ReactNode; title: stri
     );
 }
 
-// ── Stripe Settings ─────────────────────────────────────────────────────────
+// ── Toggle Card ─────────────────────────────────────────────────────────────
+
+function ToggleCard({ icon, title, description, checked, onToggle, ariaLabel }: {
+    icon: React.ReactNode; title: string; description: string;
+    checked: boolean; onToggle: (v: boolean) => void; ariaLabel?: string;
+}) {
+    return (
+        <div className="flex items-center justify-between rounded-xl border border-border/30 bg-card px-4 py-3">
+            <div className="flex items-center gap-3 min-w-0">
+                <span className="text-muted-foreground shrink-0">{icon}</span>
+                <div className="min-w-0">
+                    <span className="text-sm font-medium text-card-foreground">{title}</span>
+                    <p className="text-xs text-muted-foreground mt-0.5 truncate">{description}</p>
+                </div>
+            </div>
+            <Switch checked={checked} onCheckedChange={onToggle} aria-label={ariaLabel || title} />
+        </div>
+    );
+}
+
+// ── Stripe Section ──────────────────────────────────────────────────────────
 
 function StripeSection() {
     const t = useTranslations('setting');
@@ -98,34 +120,40 @@ function StripeSection() {
     );
 }
 
-// ── Registration Settings ───────────────────────────────────────────────────
+// ── China Mode ──────────────────────────────────────────────────────────────
 
-function RegistrationSection() {
+function ChinaModeSection() {
     const t = useTranslations('setting');
-    const { data: settings } = useSettingList();
-    const setSetting = useSetSetting();
-    const inviteRequired = settings?.find((s) => s.key === SettingKey.RegisterInviteRequired)?.value === 'true';
-    const emailRequired = settings?.find((s) => s.key === SettingKey.RegisterEmailRequired)?.value === 'true';
+    const { chinaMode, setChinaMode, exchangeRate, setExchangeRate } = useSettingStore();
+    const [localRate, setLocalRate] = useState(exchangeRate.toString());
+    const initialRef = useRef(exchangeRate);
+
+    useEffect(() => { setLocalRate(exchangeRate.toString()); initialRef.current = exchangeRate; }, [exchangeRate]);
 
     return (
-        <Section icon={<Users className="h-4 w-4" />} title="注册设置">
-            <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <span className="text-sm font-medium text-card-foreground">注册需邀请码</span>
-                        <p className="text-xs text-muted-foreground">开启后新用户注册需要有效邀请码</p>
-                    </div>
-                    <Switch checked={inviteRequired} onCheckedChange={(v) => setSetting.mutate({ key: SettingKey.RegisterInviteRequired, value: v ? 'true' : 'false' })} />
+        <div className="space-y-3">
+            <ToggleCard
+                icon={<Landmark className="h-4 w-4" />}
+                title={t('chinaMode.label')}
+                description={t('chinaMode.description')}
+                checked={chinaMode}
+                onToggle={setChinaMode}
+            />
+            {chinaMode && (
+                <div className="flex items-center gap-3 rounded-lg border border-border/30 bg-card px-4 py-3">
+                    <span className="text-sm font-medium">{t('chinaMode.exchangeRate.label')}</span>
+                    <span className="text-xs text-muted-foreground">{t('chinaMode.exchangeRate.hint')}</span>
+                    <Input type="number" step="0.01" min="0" value={localRate}
+                        onChange={(e) => setLocalRate(e.target.value)}
+                        onBlur={() => {
+                            const p = parseFloat(localRate);
+                            if (!isNaN(p) && p > 0) { setExchangeRate(p); initialRef.current = p; }
+                            else setLocalRate(initialRef.current.toString());
+                        }}
+                        className="w-28 rounded-lg text-xs ml-auto" placeholder="7.2" />
                 </div>
-                <div className="flex items-center justify-between">
-                    <div>
-                        <span className="text-sm font-medium text-card-foreground">注册需邮箱验证</span>
-                        <p className="text-xs text-muted-foreground">开启后新用户注册需要邮箱验证码（需配置 SMTP）</p>
-                    </div>
-                    <Switch checked={emailRequired} onCheckedChange={(v) => setSetting.mutate({ key: SettingKey.RegisterEmailRequired, value: v ? 'true' : 'false' })} />
-                </div>
-            </div>
-        </Section>
+            )}
+        </div>
     );
 }
 
@@ -138,6 +166,9 @@ export function Commercial() {
     const { data: settings } = useSettingList();
     const setSetting = useSetSetting();
     const isCommercial = settings?.find((s) => s.key === SettingKey.CommercialMode)?.value === 'true';
+    const maintenanceMode = settings?.find((s) => s.key === SettingKey.MaintenanceMode)?.value === 'true';
+    const inviteRequired = settings?.find((s) => s.key === SettingKey.RegisterInviteRequired)?.value === 'true';
+    const emailRequired = settings?.find((s) => s.key === SettingKey.RegisterEmailRequired)?.value === 'true';
 
     const toggleCommercial = (next: boolean) => {
         setSetting.mutate(
@@ -152,8 +183,8 @@ export function Commercial() {
     if (!isAdmin) return null;
 
     return (
-        <PageWrapper className="h-full min-h-0 overflow-y-auto overscroll-contain rounded-t-xl space-y-4 pb-6">
-            {/* Toggle — always at top */}
+        <PageWrapper className="h-full min-h-0 overflow-y-auto overscroll-contain rounded-t-xl space-y-3 pb-6">
+            {/* Toggle */}
             <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/5 to-transparent p-5 shadow-sm">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -169,9 +200,7 @@ export function Commercial() {
                 </div>
                 <div className="flex items-center gap-2 pl-13 mt-3">
                     <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border ${
-                        isCommercial
-                            ? 'bg-primary/10 text-primary border-primary/20'
-                            : 'bg-muted text-muted-foreground border-border'
+                        isCommercial ? 'bg-primary/10 text-primary border-primary/20' : 'bg-muted text-muted-foreground border-border'
                     }`}>
                         {isCommercial ? <ToggleRight className="size-3.5" /> : <ToggleLeft className="size-3.5" />}
                         {isCommercial ? t('commercialMode.statusCommercial') : t('commercialMode.statusSelfUse')}
@@ -179,30 +208,47 @@ export function Commercial() {
                 </div>
             </div>
 
-            {/* Commercial features — only when ON */}
+            {/* Always-visible operational controls */}
+            <ToggleCard
+                icon={<Wrench className="h-4 w-4" />}
+                title="维护模式"
+                description="开启后对非管理员显示「站点维护中」；管理员仍可正常使用并关闭。"
+                checked={maintenanceMode}
+                onToggle={(v) => setSetting.mutate({ key: SettingKey.MaintenanceMode, value: v ? 'true' : 'false' })}
+            />
+            <ChinaModeSection />
+
+            {/* Commercial-only features */}
             {isCommercial && (
                 <>
-                    {/* Payment gateways */}
                     <Section icon={<CreditCard className="h-4 w-4" />} title="支付网关">
                         <PaymentSettings />
                     </Section>
                     <StripeSection />
 
-                    {/* Subscription */}
                     <Section icon={<Package className="size-4" />} title="订阅管理">
-                        <p className="text-xs text-muted-foreground">管理订阅方案和用户订阅，请前往「订阅」标签。</p>
+                        <p className="text-xs text-muted-foreground">管理订阅方案和用户订阅，请前往侧边栏「订阅」标签。</p>
                     </Section>
 
-                    {/* Billing */}
                     <Section icon={<Calculator className="h-4 w-4" />} title={t('billingExpr.title')}>
-                        <p className="text-xs text-muted-foreground">{t('billingExpr.description')}</p>
+                        <BillingExpr />
                     </Section>
 
-                    {/* Registration */}
-                    <RegistrationSection />
-
-                    {/* Email / SMTP */}
-                    <Section icon={<Mail className="h-4 w-4" />} title="邮件设置">
+                    <ToggleCard
+                        icon={<Users className="h-4 w-4" />}
+                        title="注册需邀请码"
+                        description="开启后新用户注册需要有效邀请码"
+                        checked={inviteRequired}
+                        onToggle={(v) => setSetting.mutate({ key: SettingKey.RegisterInviteRequired, value: v ? 'true' : 'false' })}
+                    />
+                    <ToggleCard
+                        icon={<Mail className="h-4 w-4" />}
+                        title="注册需邮箱验证"
+                        description="开启后新用户注册需要邮箱验证码（需配置 SMTP）"
+                        checked={emailRequired}
+                        onToggle={(v) => setSetting.mutate({ key: SettingKey.RegisterEmailRequired, value: v ? 'true' : 'false' })}
+                    />
+                    <Section icon={<Mail className="h-4 w-4" />} title="邮件设置（SMTP）">
                         <EmailSettings />
                     </Section>
                 </>
