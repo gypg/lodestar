@@ -101,7 +101,8 @@
     "chat": "對話",
     "image": "生圖",
     "subscription": "訂閱",
-    "commercial": "商業模式"
+    "commercial": "商業模式",
+    "site": "站點管理"
   },
   "endpoints": {
     "title": "可用端點",

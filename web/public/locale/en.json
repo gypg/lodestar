@@ -101,7 +101,8 @@
     "chat": "Chat",
     "image": "Image",
     "subscription": "Subscription",
-    "commercial": "Commercial"
+    "commercial": "Commercial",
+    "site": "Sites"
   },
   "endpoints": {
     "title": "Available Endpoints",

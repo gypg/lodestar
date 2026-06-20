@@ -78,7 +78,25 @@ function getDirection(
 export function normalizeNavOrder(value: unknown): NavItem[] {
     const items = Array.isArray(value) ? uniqueNavItems(value.filter(isNavItem)) : [];
     const missingItems = DEFAULT_NAV_ORDER.filter((item) => !items.includes(item));
-    return [...items, ...missingItems];
+    if (missingItems.length === 0) return items;
+
+    // Insert missing items at their DEFAULT position (not at the end).
+    // This ensures new nav items appear in the correct spot, not appended after 'user'.
+    const result = [...items];
+    for (const missing of missingItems) {
+        const defaultIdx = DEFAULT_NAV_ORDER.indexOf(missing);
+        // Find the best insertion point: after the last DEFAULT item that appears before this one.
+        let insertAt = result.length;
+        for (let i = defaultIdx - 1; i >= 0; i--) {
+            const pos = result.indexOf(DEFAULT_NAV_ORDER[i]);
+            if (pos !== -1) {
+                insertAt = pos + 1;
+                break;
+            }
+        }
+        result.splice(insertAt, 0, missing);
+    }
+    return result;
 }
 
 export function normalizeVisibleNavItems(value: unknown, orderedItems: readonly NavItem[]): NavItem[] {
