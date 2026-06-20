@@ -11,6 +11,7 @@ import (
 	"github.com/gypg/lodestar/internal/relay/balancer"
 	"github.com/gypg/lodestar/internal/server"
 	"github.com/gypg/lodestar/internal/task"
+	"github.com/gypg/lodestar/internal/utils/cache"
 	"github.com/gypg/lodestar/internal/utils/crypto"
 	"github.com/gypg/lodestar/internal/utils/log"
 	"github.com/gypg/lodestar/internal/utils/shutdown"
@@ -66,6 +67,11 @@ func runStart() error {
 	if err := op.InitCache(); err != nil {
 		shutdown.Shutdown()
 		return fmt.Errorf("cache init error: %w", err)
+	}
+
+	// Redis is optional — when redis.host is configured, connect; otherwise skip silently.
+	if err := cache.InitRedis(); err != nil {
+		log.Warnf("Redis init failed (continuing without Redis): %v", err)
 	}
 
 	// One-time backfill of site model hourly stats from relay logs.

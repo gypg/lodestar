@@ -46,6 +46,13 @@ type External struct {
 	UpdateAPIURL string `mapstructure:"update_api_url"`
 }
 
+type Redis struct {
+	Host     string `mapstructure:"host"`
+	Port     int    `mapstructure:"port"`
+	Password string `mapstructure:"password"`
+	DB       int    `mapstructure:"db"`
+}
+
 type Security struct {
 	EncryptionKey string `mapstructure:"encryption_key"`
 }
@@ -54,6 +61,7 @@ type Config struct {
 	Server   Server   `mapstructure:"server"`
 	Log      Log      `mapstructure:"log"`
 	Database Database `mapstructure:"database"`
+	Redis    Redis    `mapstructure:"redis"`
 	Auth     Auth     `mapstructure:"auth"`
 	Relay    Relay    `mapstructure:"relay"`
 	External External `mapstructure:"external"`
@@ -140,6 +148,10 @@ func setDefaults() {
 	// 日志库默认留空：留空表示与主库共用连接（向后兼容）。
 	viper.SetDefault("database.log_type", "")
 	viper.SetDefault("database.log_path", "")
+	viper.SetDefault("redis.host", "")
+	viper.SetDefault("redis.port", 6379)
+	viper.SetDefault("redis.password", "")
+	viper.SetDefault("redis.db", 0)
 	viper.SetDefault("log.level", "info")
 	viper.SetDefault("auth.jwt_secret", "")
 	viper.SetDefault("relay.max_json_body_bytes", int64(64<<20))
