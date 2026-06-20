@@ -55,7 +55,7 @@ docker run -d --name octopus \
   -p 8080:8080 \
   -v octopus-data:/app/data \
   -e OCTOPUS_AUTH_JWT_SECRET="replace-with-a-long-random-secret" \
-  lingyuins/octopus:latest
+  gypg/lodestar:latest
 ```
 
 Windows Docker Desktop 推荐直接使用：
@@ -66,7 +66,7 @@ docker run -d --name octopus `
   -p 8080:8080 `
   -v octopus-data:/app/data `
   -e OCTOPUS_AUTH_JWT_SECRET="replace-with-a-long-random-secret" `
-  lingyuins/octopus:latest
+  gypg/lodestar:latest
 ```
 
 或者使用 docker compose 运行
@@ -74,7 +74,7 @@ docker run -d --name octopus `
 ```yaml
 services:
   octopus:
-    image: lingyuins/octopus:latest
+    image: gypg/lodestar:latest
     container_name: octopus
     restart: unless-stopped
     ports:
@@ -102,7 +102,7 @@ docker compose up -d
 
 ### 📦 从 Release 下载
 
-从 [Releases](https://github.com/lingyuins/octopus/releases) 下载对应平台的二进制文件，然后运行：
+从 [Releases](https://github.com/gypg/lodestar/releases) 下载对应平台的二进制文件，然后运行：
 
 ```bash
 ./octopus start
@@ -117,7 +117,7 @@ docker compose up -d
 
 ```bash
 # 克隆项目
-git clone https://github.com/lingyuins/octopus.git
+git clone https://github.com/gypg/lodestar.git
 cd octopus
 # 可选：通过环境变量预置初始管理员账户
 export OCTOPUS_INITIAL_ADMIN_USERNAME="admin"

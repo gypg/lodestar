@@ -72,7 +72,10 @@ func GenerateAPIKey() string {
 	for i := range b {
 		n, err := rand.Int(rand.Reader, maxI)
 		if err != nil {
-			return ""
+			// crypto/rand should never fail on a healthy system. If it does,
+			// returning an empty key would create a zero-entropy credential —
+			// fail loudly instead.
+			panic("GenerateAPIKey: crypto/rand failed: " + err.Error())
 		}
 		b[i] = keyChars[n.Int64()]
 	}

@@ -38,7 +38,7 @@ PRESETS_GO_TEMPLATE = '''package price
 import (
 	"sync"
 
-	"github.com/lingyuins/octopus/internal/model"
+	"github.com/gypg/lodestar/internal/model"
 )
 
 var llmPriceLock sync.RWMutex

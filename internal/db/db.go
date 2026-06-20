@@ -362,10 +362,17 @@ func GetDB() *gorm.DB {
 //   - SQLite：DROP TABLE + AutoMigrate 重建（pure-Go 驱动下 TRUNCATE 不可用），
 //     直接丢弃整张表的数据页，并通过 struct tag 完整恢复索引。
 //
+// FastClearTable clears a table quickly using dialect-specific fast paths.
 // 参数 model 用于 AutoMigrate 重建（SQLite），tableName 用于 TRUNCATE 拼接。
 // 重建依赖 model 的 struct tag 完整声明索引；relay_logs 的 time 索引即来自
 // model.RelayLog 的字段 tag，因此可被正确恢复。
 func FastClearTable(conn *gorm.DB, model any, tableName string) error {
+	// Validate table name: alphanumeric + underscore only, to prevent SQL injection.
+	for _, c := range tableName {
+		if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_') {
+			return fmt.Errorf("invalid table name: %s", tableName)
+		}
+	}
 	// 方言取自连接本身，而非全局 currentDBType——日志库可能与主库不同方言。
 	dialect := ""
 	if conn != nil && conn.Dialector != nil {

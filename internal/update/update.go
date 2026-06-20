@@ -31,7 +31,7 @@ func getUpdateAPIURL() string {
 	if u := conf.AppConfig.External.UpdateAPIURL; u != "" {
 		return u
 	}
-	return "https://api.github.com/repos/lingyuins/octopus/releases/latest"
+	return "https://api.github.com/repos/gypg/lodestar/releases/latest"
 }
 
 type LatestInfo struct {
