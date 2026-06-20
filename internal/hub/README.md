@@ -1,6 +1,6 @@
 # Hub — 远程站点管理
 
-Hub 将多站点账户管理功能内置到 Octopus 中，使其成为一站式 AI 资产管理平台。
+Hub 将多站点账户管理功能内置到 JWT Auth 中，使其成为一站式 AI 资产管理平台。
 
 ## 架构
 
@@ -10,7 +10,7 @@ internal/hub/
 ├── registry.go             # 按 site_type 注册/获取适配器
 ├── httpclient.go           # 共享 HTTP 客户端 (FetchJSON 泛型)
 ├── common/adapter.go       # New API / One API 默认适配器 (兜底)
-├── octopus/adapter.go      # Octopus 类型 (JWT 登录)
+├── JWT 认证/adapter.go      # JWT Auth 类型 (JWT 登录)
 ├── ldoh/adapter.go         # LDOH 公开站点发现
 ├── aihubmix/adapter.go     # AIHubMix 适配器
 ├── axonhub/adapter.go      # AxonHub 适配器
@@ -37,7 +37,7 @@ internal/op/credential/
 | SiteType | 适配器 | 说明 |
 |----------|--------|------|
 | `new-api` | common | One API / New API 系列（默认兜底） |
-| `octopus` | octopus | Octopus 网关（JWT 登录） |
+| `JWT 认证` | JWT 认证 | JWT Auth 网关（JWT 登录） |
 | `veloera` | common | 兼容 New API |
 | `done-hub` | common | 兼容 New API |
 | `one-hub` | common | 兼容 New API |

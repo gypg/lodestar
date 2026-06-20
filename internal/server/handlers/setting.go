@@ -183,7 +183,7 @@ func exportDB(c *gin.Context) {
 	dump.Users = nil
 
 	c.Header("Content-Type", "application/json")
-	c.Header("Content-Disposition", "attachment; filename=\"octopus-export-"+time.Now().Format("20060102150405")+".json\"")
+	c.Header("Content-Disposition", "attachment; filename=\"lodestar-export-"+time.Now().Format("20060102150405")+".json\"")
 	c.Status(http.StatusOK)
 
 	// Stream JSON to avoid buffering the entire dump in memory

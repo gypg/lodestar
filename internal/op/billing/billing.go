@@ -3,7 +3,7 @@ package billing
 /*
 Lodestar commercial layer — request billing glue.
 
-Ties octopus's relay cost accounting to per-user prepaid balance, gated by the
+Ties Lodestar's relay cost accounting to per-user prepaid balance, gated by the
 commercial_mode switch:
   - commercial_mode OFF (self-use): no billing; everything passes (admin uses freely).
   - commercial_mode ON: a request's API key must belong to a user with positive
@@ -12,7 +12,7 @@ commercial_mode switch:
 Admin/legacy keys with UserID==0 are never billed (treated as house keys).
 
 Logic ported from new-api's prepaid-quota model; balance kept in float USD to
-match octopus's StatsMetrics cost (see internal/op/user/quota.go).
+match Lodestar's StatsMetrics cost (see internal/op/user/quota.go).
 */
 
 import (

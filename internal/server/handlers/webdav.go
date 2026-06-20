@@ -96,7 +96,7 @@ func setWebDAVConfig(c *gin.Context) {
 		cfg.MaxBackups = 10
 	}
 	if cfg.RemotePath == "" {
-		cfg.RemotePath = "/octopus-backup/"
+		cfg.RemotePath = "/lodestar-backup/"
 	}
 
 	if err := backup.SetWebDAVConfig(&cfg); err != nil {

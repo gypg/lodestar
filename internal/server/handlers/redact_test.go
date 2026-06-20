@@ -42,7 +42,7 @@ func TestRedactChannelBaseURLsForViewer(t *testing.T) {
 
 func TestRedactSettingsURLsForViewer(t *testing.T) {
 	settings := []model.Setting{
-		{Key: model.SettingKeyPublicAPIBaseURL, Value: "https://octopus.example.com"},
+		{Key: model.SettingKeyPublicAPIBaseURL, Value: "https://lodestar.example.com"},
 		{Key: model.SettingKeySemanticCacheEmbeddingModel, Value: "text-embedding-3-small"},
 	}
 

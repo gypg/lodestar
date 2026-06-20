@@ -130,27 +130,27 @@ func getDownloadFilename() (string, error) {
 	case "windows":
 		switch arch {
 		case "386":
-			return "octopus-windows-x86.zip", nil
+			return "lodestar-windows-x86.zip", nil
 		case "amd64":
-			return "octopus-windows-x86_64.zip", nil
+			return "lodestar-windows-x86_64.zip", nil
 		}
 	case "darwin":
 		switch arch {
 		case "amd64":
-			return "octopus-darwin-x86_64.zip", nil
+			return "lodestar-darwin-x86_64.zip", nil
 		case "arm64":
-			return "octopus-darwin-arm64.zip", nil
+			return "lodestar-darwin-arm64.zip", nil
 		}
 	case "linux":
 		switch arch {
 		case "386":
-			return "octopus-linux-x86.zip", nil
+			return "lodestar-linux-x86.zip", nil
 		case "amd64":
-			return "octopus-linux-x86_64.zip", nil
+			return "lodestar-linux-x86_64.zip", nil
 		case "arm":
-			return "octopus-linux-armv7.zip", nil
+			return "lodestar-linux-armv7.zip", nil
 		case "arm64":
-			return "octopus-linux-arm64.zip", nil
+			return "lodestar-linux-arm64.zip", nil
 		}
 	}
 	return "", fmt.Errorf("unsupported platform: %s/%s", goos, arch)

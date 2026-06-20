@@ -3,7 +3,7 @@ package model
 /*
 Lodestar commercial layer — top-up codes (redeemable credit).
 
-Ported in concept from new-api's redemption codes, adapted to octopus's
+Ported in concept from new-api's redemption codes, adapted to Lodestar's
 float-USD balance: an admin generates codes worth N USD; a user redeems a code
 to credit their balance. This is the no-payment-provider monetization path
 (sell/distribute codes); Epay/Stripe integration is a later sub-phase.

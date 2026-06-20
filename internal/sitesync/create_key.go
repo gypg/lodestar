@@ -262,7 +262,7 @@ func defaultSiteTokenCreateName(account *model.SiteAccount, groupKey string, nam
 	if groupPart == "" {
 		groupPart = model.SiteDefaultGroupKey
 	}
-	return fmt.Sprintf("octopus-%s-%d", groupPart, time.Now().Unix())
+	return fmt.Sprintf("lodestar-%s-%d", groupPart, time.Now().Unix())
 }
 
 func siteTokenCreateSucceeded(payload map[string]any) bool {

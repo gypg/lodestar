@@ -30,7 +30,7 @@ test('formatAPIKeyStatsResponse formats nested stats response without flattening
         info: {
             id: 7,
             name: 'dashboard key',
-            api_key: 'sk-octopus-********1234',
+            api_key: 'sk-lodestar-********1234',
             enabled: true,
             supported_models: 'gpt-4o',
         },

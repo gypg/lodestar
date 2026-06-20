@@ -105,7 +105,7 @@ func SendGotify(channel *model.AlertNotifChannel, payload AlertWebhookPayload) e
 	}
 
 	gotifyMsg := map[string]interface{}{
-		"title":    fmt.Sprintf("Octopus Alert: %s", payload.RuleName),
+		"title":    fmt.Sprintf("Lodestar Alert: %s", payload.RuleName),
 		"message":  fmt.Sprintf("%s\n\nCondition: %s\nState: %s\nThreshold: %.2f\nTime: %s", payload.Message, payload.ConditionType, payload.State, payload.Threshold, payload.Time),
 		"priority": priority,
 	}
@@ -152,7 +152,7 @@ func SendEmail(channel *model.AlertNotifChannel, payload AlertWebhookPayload) er
 		port = 587
 	}
 
-	subject := fmt.Sprintf("Octopus Alert: %s - %s", payload.RuleName, payload.State)
+	subject := fmt.Sprintf("Lodestar Alert: %s - %s", payload.RuleName, payload.State)
 	body := fmt.Sprintf(
 		"Rule: %s\nCondition: %s\nState: %s\nMessage: %s\nThreshold: %.2f\nTime: %s\n",
 		payload.RuleName, payload.ConditionType, payload.State, payload.Message, payload.Threshold, payload.Time,
@@ -443,7 +443,7 @@ func SendNtfy(channel *model.AlertNotifChannel, payload AlertWebhookPayload) err
 	}
 
 	// Title header: RFC 2047 encode if non-ASCII
-	title := fmt.Sprintf("🐙 Octopus Alert: %s", payload.RuleName)
+	title := fmt.Sprintf("Lodestar Alert: %s", payload.RuleName)
 	if needsMimeEncoding(title) {
 		title = mime.QEncoding.Encode("utf-8", title)
 	}
@@ -514,11 +514,11 @@ func buildTestNotificationMessage() string {
 	}
 	switch language {
 	case "zh-Hans":
-		return "这是来自 Octopus 的测试通知。如果你收到了这条消息，说明通知渠道配置正确。"
+		return "这是来自 Lodestar 的测试通知。如果你收到了这条消息，说明通知渠道配置正确。"
 	case "zh-Hant":
-		return "這是來自 Octopus 的測試通知。如果你收到了這條訊息，說明通知管道設定正確。"
+		return "這是來自 Lodestar 的測試通知。如果你收到了這條訊息，說明通知管道設定正確。"
 	default:
-		return "This is a test notification from Octopus. If you received this message, the notification channel is configured correctly."
+		return "This is a test notification from Lodestar. If you received this message, the notification channel is configured correctly."
 	}
 }
 

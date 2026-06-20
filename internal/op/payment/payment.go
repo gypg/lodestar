@@ -4,7 +4,7 @@ package payment
 Lodestar commercial layer — online top-up via 易支付 (Epay).
 
 Ported from new-api's Epay flow (controller/topup.go) using the same go-epay
-library, adapted to octopus float-USD balance: a user pays `money` (gateway
+library, adapted to Lodestar float-USD balance: a user pays `money` (gateway
 currency) = amountUSD * topup_rate, and on a verified TRADE_SUCCESS callback the
 amountUSD is credited to their balance. Order completion is transactional and
 idempotent (status pending->success conditional update), so duplicate callbacks

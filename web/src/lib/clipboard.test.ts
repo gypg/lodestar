@@ -56,14 +56,14 @@ test('writeClipboardText falls back to execCommand when clipboard permission is 
         },
     };
 
-    await assert.doesNotReject(() => writeClipboardText('sk-octopus-test', {
+    await assert.doesNotReject(() => writeClipboardText('sk-lodestar-test', {
         clipboard: clipboardLike,
         document: documentLike,
     }));
     assert.equal(appended.length, 1);
     assert.equal(removed.length, 1);
     assert.equal(appended[0], removed[0]);
-    assert.equal(appended[0].value, 'sk-octopus-test');
+    assert.equal(appended[0].value, 'sk-lodestar-test');
     assert.equal(selected, true);
 });
 
@@ -76,7 +76,7 @@ test('writeClipboardText surfaces the original clipboard error when no fallback 
     };
 
     await assert.rejects(
-        () => writeClipboardText('sk-octopus-test', { clipboard: clipboardLike }),
+        () => writeClipboardText('sk-lodestar-test', { clipboard: clipboardLike }),
         expected
     );
 });

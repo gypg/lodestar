@@ -34,7 +34,7 @@ func initChannelGroupTestDB(t *testing.T) context.Context {
 }
 
 func TestChannelGroupsMigrationBackfillsExistingChannels(t *testing.T) {
-    dbPath := filepath.Join(t.TempDir(), "legacy-octopus.db")
+    dbPath := filepath.Join(t.TempDir(), "legacy-lodestar.db")
     legacyDB, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
     if err != nil {
         t.Fatalf("open legacy db: %v", err)

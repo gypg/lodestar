@@ -305,10 +305,10 @@ func (r *InternalLLMRequest) fillMissingToolCallIDs() {
 				continue
 			}
 
-			candidate := fmt.Sprintf("call_octopus_%d_%d", messageIndex, toolCallIndex)
+			candidate := fmt.Sprintf("call_lodestar_%d_%d", messageIndex, toolCallIndex)
 			if _, exists := usedIDs[candidate]; exists {
 				for {
-					candidate = fmt.Sprintf("call_octopus_%d", sequence)
+					candidate = fmt.Sprintf("call_lodestar_%d", sequence)
 					sequence++
 					if _, conflict := usedIDs[candidate]; !conflict {
 						break

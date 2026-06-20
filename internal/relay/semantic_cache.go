@@ -285,12 +285,12 @@ func semanticCacheHitPayload(responseJSON []byte, req *transmodel.InternalLLMReq
 		return responseJSON
 	}
 
-	octopusValue, ok := payload["octopus"].(map[string]any)
+	lodestarValue, ok := payload["lodestar"].(map[string]any)
 	if !ok {
-		octopusValue = map[string]any{}
-		payload["octopus"] = octopusValue
+		lodestarValue = map[string]any{}
+		payload["lodestar"] = lodestarValue
 	}
-	octopusValue["semantic_cache"] = map[string]any{
+	lodestarValue["semantic_cache"] = map[string]any{
 		"hit": true,
 	}
 

@@ -27,7 +27,7 @@ func TestConfigureConnectionPoolLimitsSQLiteConnections(t *testing.T) {
 }
 
 func TestInitSQLiteCreatesParentDir(t *testing.T) {
-	dbPath := filepath.Join(t.TempDir(), "nested", "octopus.db")
+	dbPath := filepath.Join(t.TempDir(), "nested", "lodestar.db")
 
 	gdb, err := initSQLite(dbPath, &gorm.Config{Logger: logger.Discard})
 	if err != nil {
@@ -52,7 +52,7 @@ func TestInitSQLiteCreatesParentDir(t *testing.T) {
 }
 
 func TestSQLiteDSNAppendsParamsWithExistingQuery(t *testing.T) {
-	dbPath := filepath.Join(t.TempDir(), "octopus.db") + "?_txlock=immediate"
+	dbPath := filepath.Join(t.TempDir(), "lodestar.db") + "?_txlock=immediate"
 
 	dsn, err := sqliteDSN(dbPath)
 	if err != nil {
@@ -65,7 +65,7 @@ func TestSQLiteDSNAppendsParamsWithExistingQuery(t *testing.T) {
 }
 
 func TestInitSQLiteCreatesParentDirForFileURI(t *testing.T) {
-	dbPath := filepath.Join(t.TempDir(), "nested", "octopus.db")
+	dbPath := filepath.Join(t.TempDir(), "nested", "lodestar.db")
 	dsn := "file:" + filepath.ToSlash(dbPath) + "?_txlock=immediate"
 
 	gdb, err := initSQLite(dsn, &gorm.Config{Logger: logger.Discard})
@@ -91,7 +91,7 @@ func TestInitSQLiteCreatesParentDirForFileURI(t *testing.T) {
 }
 
 func TestSQLiteDSNSkipsDirCreationForMemoryFileURI(t *testing.T) {
-	dbPath := filepath.Join(t.TempDir(), "nested", "octopus.db")
+	dbPath := filepath.Join(t.TempDir(), "nested", "lodestar.db")
 	dsn := "file:" + filepath.ToSlash(dbPath) + "?mode=memory&cache=shared"
 
 	got, err := sqliteDSN(dsn)

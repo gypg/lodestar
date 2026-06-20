@@ -336,7 +336,7 @@ func initMySQL(dsn string, config *gorm.Config) (*gorm.DB, error) {
 }
 
 func initPostgres(dsn string, config *gorm.Config) (*gorm.DB, error) {
-	// DSN 格式: host=localhost user=postgres password=xxx dbname=octopus port=5432 sslmode=disable
+	// DSN 格式: host=localhost user=postgres password=xxx dbname=lodestar port=5432 sslmode=disable
 	return gorm.Open(postgres.Open(dsn), config)
 }
 

@@ -20,7 +20,7 @@ func setupSiteOpTestDB(t *testing.T) context.Context {
 		_ = dbpkg.Close()
 	}
 
-	dbPath := filepath.Join(t.TempDir(), "octopus-test.db")
+	dbPath := filepath.Join(t.TempDir(), "lodestar-test.db")
 	if err := dbpkg.InitDB("sqlite", dbPath, false); err != nil {
 		t.Fatalf("InitDB failed: %v", err)
 	}

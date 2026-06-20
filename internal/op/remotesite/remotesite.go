@@ -15,7 +15,7 @@ import (
 	_ "github.com/gypg/lodestar/internal/hub/axonhub"
 	_ "github.com/gypg/lodestar/internal/hub/claudecodehub"
 	_ "github.com/gypg/lodestar/internal/hub/common"
-	_ "github.com/gypg/lodestar/internal/hub/octopus"
+	_ "github.com/gypg/lodestar/internal/hub/jwtauth"
 	_ "github.com/gypg/lodestar/internal/hub/sapi"
 	_ "github.com/gypg/lodestar/internal/hub/sub2api"
 	"github.com/gypg/lodestar/internal/model"
@@ -78,7 +78,7 @@ func Create(ctx context.Context, req *model.RemoteSiteCreateRequest) (*model.Rem
 	}
 	authType := req.AuthType
 	if authType == "" {
-		if req.SiteType == model.SiteTypeOctopus {
+		if req.SiteType == model.SiteTypeJWTAuth {
 			authType = model.AuthTypeAccessToken // uses JWT login internally
 		} else {
 			authType = model.AuthTypeAccessToken

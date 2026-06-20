@@ -200,17 +200,17 @@ func TestSemanticCacheHitPayload_AddsSemanticHitMarkerAndRemovesProviderCachedTo
 	normalized := semanticCacheHitPayload(payload, &transmodel.InternalLLMRequest{})
 
 	var parsed struct {
-		Octopus struct {
+		Lodestar struct {
 			SemanticCache struct {
 				Hit bool `json:"hit"`
 			} `json:"semantic_cache"`
-		} `json:"octopus"`
+		} `json:"lodestar"`
 		Usage map[string]any `json:"usage"`
 	}
 	if err := json.Unmarshal(normalized, &parsed); err != nil {
 		t.Fatalf("unmarshal normalized payload: %v", err)
 	}
-	if !parsed.Octopus.SemanticCache.Hit {
+	if !parsed.Lodestar.SemanticCache.Hit {
 		t.Fatal("expected semantic cache hit marker")
 	}
 	if _, ok := parsed.Usage["cached_tokens"]; ok {

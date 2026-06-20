@@ -10,7 +10,7 @@ import (
 )
 
 const devMockAPIKeyName = "Dev Mock Success Key"
-const devMockAPIKeyValue = "sk-octopus-dev-mock-success-local-0001"
+const devMockAPIKeyValue = "sk-lodestar-dev-mock-success-local-0001"
 
 func EnsureDevBootstrapData(ctx context.Context) error {
 	if !conf.IsDevMockSuccess() {

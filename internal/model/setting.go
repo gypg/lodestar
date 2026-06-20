@@ -200,7 +200,7 @@ func DefaultSettings() []Setting {
 		{Key: SettingKeyFailureHintTTLUnauthorized, Value: "10"}, // 默认10秒
 		{Key: SettingKeyFailureHintTTLRateLimit, Value: "5"},     // 默认5秒
 		{Key: SettingKeyFailureHintTTLNetwork, Value: "2"},       // 默认2秒
-		{Key: SettingKeyWebDAVConfig, Value: `{"enabled":false,"base_url":"","username":"","password":"","remote_path":"/octopus-backup/","interval_hours":6,"include_stats":true,"include_logs":false,"max_backups":10}`},
+		{Key: SettingKeyWebDAVConfig, Value: `{"enabled":false,"base_url":"","username":"","password":"","remote_path":"/lodestar-backup/","interval_hours":6,"include_stats":true,"include_logs":false,"max_backups":10}`},
 		{Key: SettingKeySiteSyncInterval, Value: "12"},
 		{Key: SettingKeySiteCheckinInterval, Value: "24"},
 		{Key: SettingKeyStatsSiteModelBackfilled, Value: "false"},

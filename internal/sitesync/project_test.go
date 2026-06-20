@@ -678,7 +678,7 @@ func setupProjectTestDB(t *testing.T) context.Context {
 		_ = dbpkg.Close()
 	}
 
-	dbPath := filepath.Join(t.TempDir(), "octopus-project-test.db")
+	dbPath := filepath.Join(t.TempDir(), "lodestar-project-test.db")
 	if err := dbpkg.InitDB("sqlite", dbPath, false); err != nil {
 		t.Fatalf("InitDB failed: %v", err)
 	}

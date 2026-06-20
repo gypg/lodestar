@@ -50,10 +50,10 @@
 直接运行
 
 ```bash
-docker run -d --name octopus \
+docker run -d --name lodestar \
   --restart unless-stopped \
   -p 8080:8080 \
-  -v octopus-data:/app/data \
+  -v lodestar-data:/app/data \
   -e OCTOPUS_AUTH_JWT_SECRET="replace-with-a-long-random-secret" \
   gypg/lodestar:latest
 ```
@@ -61,10 +61,10 @@ docker run -d --name octopus \
 Windows Docker Desktop 推荐直接使用：
 
 ```powershell
-docker run -d --name octopus `
+docker run -d --name lodestar `
   --restart unless-stopped `
   -p 8080:8080 `
-  -v octopus-data:/app/data `
+  -v lodestar-data:/app/data `
   -e OCTOPUS_AUTH_JWT_SECRET="replace-with-a-long-random-secret" `
   gypg/lodestar:latest
 ```
@@ -73,9 +73,9 @@ docker run -d --name octopus `
 
 ```yaml
 services:
-  octopus:
+  lodestar:
     image: gypg/lodestar:latest
-    container_name: octopus
+    container_name: lodestar
     restart: unless-stopped
     ports:
       - "8080:8080"
@@ -91,7 +91,7 @@ services:
 docker compose up -d
 ```
 
-注意：官方镜像默认以非 root 用户 `octopus` 运行，UID/GID 为 `1000`。上面的 `docker run` 默认使用 Docker named volume，这样能避开大多数宿主机目录权限问题，尤其是 Windows Docker Desktop。如果把宿主机目录绑定挂载到 `/app/data`，这个目录必须对 UID/GID `1000` 可写，否则启动时创建 `config.json` 或 `data.db` 会报 `permission denied`。
+注意：官方镜像默认以非 root 用户 `lodestar` 运行，UID/GID 为 `1000`。上面的 `docker run` 默认使用 Docker named volume，这样能避开大多数宿主机目录权限问题，尤其是 Windows Docker Desktop。如果把宿主机目录绑定挂载到 `/app/data`，这个目录必须对 UID/GID `1000` 可写，否则启动时创建 `config.json` 或 `data.db` 会报 `permission denied`。
 
 官方 Docker 镜像会在构建阶段重新编译前端，并把最新导出的管理界面嵌入 Go 二进制，因此容器内前端和对应发布版本保持一致。
 
@@ -105,7 +105,7 @@ docker compose up -d
 从 [Releases](https://github.com/gypg/lodestar/releases) 下载对应平台的二进制文件，然后运行：
 
 ```bash
-./octopus start
+./lodestar start
 ```
 
 ### 🛠️ 源码运行
@@ -118,7 +118,7 @@ docker compose up -d
 ```bash
 # 克隆项目
 git clone https://github.com/gypg/lodestar.git
-cd octopus
+cd lodestar
 # 可选：通过环境变量预置初始管理员账户
 export OCTOPUS_INITIAL_ADMIN_USERNAME="admin"
 export OCTOPUS_INITIAL_ADMIN_PASSWORD="change-this-password-long"
@@ -241,7 +241,7 @@ http://localhost:3000
 {
   "database": {
     "type": "mysql",
-    "path": "root:password@tcp(127.0.0.1:3306)/octopus"
+    "path": "root:password@tcp(127.0.0.1:3306)/lodestar"
   }
 }
 ```
@@ -252,7 +252,7 @@ http://localhost:3000
 {
   "database": {
     "type": "postgres",
-    "path": "postgresql://user:password@localhost:5432/octopus?sslmode=disable"
+    "path": "postgresql://user:password@localhost:5432/lodestar?sslmode=disable"
   }
 }
 ```
@@ -425,8 +425,8 @@ Header 和消息策略：
 
 公共 relay API 同时支持 OpenAI 风格和 Anthropic 风格客户端：
 
-- OpenAI 风格客户端：`Authorization: Bearer sk-octopus-...`
-- Anthropic 风格客户端：`x-api-key: sk-octopus-...`
+- OpenAI 风格客户端：`Authorization: Bearer sk-lodestar-...`
+- Anthropic 风格客户端：`x-api-key: sk-lodestar-...`
 
 | 类别 | 路径 | 说明 |
 |------|------|------|
@@ -856,10 +856,10 @@ import os
 
 client = OpenAI(   
     base_url="http://127.0.0.1:8080/v1",   
-    api_key="sk-octopus-P48ROljwJmWBYVARjwQM8Nkiezlg7WOrXXOWDYY8TI5p9Mzg", 
+    api_key="sk-lodestar-P48ROljwJmWBYVARjwQM8Nkiezlg7WOrXXOWDYY8TI5p9Mzg", 
 )
 completion = client.chat.completions.create(
-    model="octopus-openai",  # 填写正确的分组名称
+    model="lodestar-openai",  # 填写正确的分组名称
     messages = [
         {"role": "user", "content": "Hello"},
     ],
@@ -875,14 +875,14 @@ print(completion.choices[0].message.content)
 {
   "env": {
     "ANTHROPIC_BASE_URL": "http://127.0.0.1:8080",
-    "ANTHROPIC_AUTH_TOKEN": "sk-octopus-P48ROljwJmWBYVARjwQM8Nkiezlg7WOrXXOWDYY8TI5p9Mzg",
+    "ANTHROPIC_AUTH_TOKEN": "sk-lodestar-P48ROljwJmWBYVARjwQM8Nkiezlg7WOrXXOWDYY8TI5p9Mzg",
     "API_TIMEOUT_MS": "3000000",
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
-    "ANTHROPIC_MODEL": "octopus-sonnet-4-5",
-    "ANTHROPIC_SMALL_FAST_MODEL": "octopus-haiku-4-5",
-    "ANTHROPIC_DEFAULT_SONNET_MODEL": "octopus-sonnet-4-5",
-    "ANTHROPIC_DEFAULT_OPUS_MODEL": "octopus-sonnet-4-5",
-    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "octopus-haiku-4-5"
+    "ANTHROPIC_MODEL": "lodestar-sonnet-4-5",
+    "ANTHROPIC_SMALL_FAST_MODEL": "lodestar-haiku-4-5",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "lodestar-sonnet-4-5",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "lodestar-sonnet-4-5",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "lodestar-haiku-4-5"
   }
 }
 ```
@@ -892,19 +892,19 @@ print(completion.choices[0].message.content)
 编辑 `~/.codex/config.toml`
 
 ```toml
-model = "octopus-codex" # 填写正确的分组名称
+model = "lodestar-codex" # 填写正确的分组名称
 
-model_provider = "octopus"
+model_provider = "lodestar"
 
-[model_providers.octopus]
-name = "octopus"
+[model_providers.lodestar]
+name = "lodestar"
 base_url = "http://127.0.0.1:8080/v1"
 ```
 编辑 `~/.codex/auth.json`
 
 ```json
 {
-  "OPENAI_API_KEY": "sk-octopus-P48ROljwJmWBYVARjwQM8Nkiezlg7WOrXXOWDYY8TI5p9Mzg"
+  "OPENAI_API_KEY": "sk-lodestar-P48ROljwJmWBYVARjwQM8Nkiezlg7WOrXXOWDYY8TI5p9Mzg"
 }
 ```
 
@@ -999,7 +999,7 @@ Hub 远程站点管理采用适配器架构，注册了 8 种站点适配器：
 | 适配器 | 站点类型 |
 |--------|----------|
 | `common` | `new-api`（One API / New API 族回退适配器） |
-| `octopus` | `octopus`（自适应适配器） |
+| `jwt-auth` | `octopus`（JWT 用户名/密码登录） |
 | `aihubmix` | `aihubmix` |
 | `axonhub` | `axonhub` |
 | `claudecodehub` | `claude-code-hub` |
@@ -1043,7 +1043,7 @@ Octopus 涉及时区的三层独立概念：
 
 - **JWT 认证**：管理 API 使用 JWT 令牌，支持可配置过期时间。登录频率限制可防止暴力破解（可配置窗口期和最大失败次数）。
 - **角色访问控制**：服务端 RBAC，内置 `admin`、`editor`、`viewer` 三种角色，每次请求从数据库重新加载角色。
-- **API Key 安全**：API Key（`sk-octopus-...`）支持模型白名单、IP/CIDR 白名单、过期时间、费用上限、RPM/TPM 限额和按模型配额。
+- **API Key 安全**：API Key（`sk-lodestar-...`）支持模型白名单、IP/CIDR 白名单、过期时间、费用上限、RPM/TPM 限额和按模型配额。
 - **静态加密**：敏感存储数据（凭证档案、站点密码等）通过 `security.encryption_key` 使用 AES-256-GCM 加密。
 - **CORS 管理**：标签式 CORS 白名单管理器，支持 `*`（允许所有）、特定域名或全部拒绝（空）。
 - **Viewer 域名脱敏**：Hub 相关管理数据对 viewer 账号进行域名脱敏，覆盖站点、远程站点、凭证、渠道和 URL 设置。
@@ -1053,4 +1053,4 @@ Octopus 涉及时区的三层独立概念：
 - 🙏 [looplj/axonhub](https://github.com/looplj/axonhub) - 本项目的 LLM API 适配模块直接源自该仓库的实现
 - 📊 [sst/models.dev](https://github.com/sst/models.dev) - AI 模型数据库，提供模型价格数据
 - 💡 [qixing-jk/all-api-hub](https://github.com/qixing-jk/all-api-hub) - Hub 概念和功能设计灵感来源
-- 🛠️ [Hureru/octopus](https://github.com/Hureru/octopus) - Hub 的原始实现
+- 🛠️ [Hureru/lodestar](https://github.com/Hureru/lodestar) - Hub 的原始实现

@@ -3,7 +3,7 @@ package topup
 /*
 Lodestar commercial layer — top-up code operations.
 
-Logic ported from new-api's redemption flow, adapted to octopus float-USD balance.
+Logic ported from new-api's redemption flow, adapted to Lodestar float-USD balance.
 Redeem is transactional and race-safe (conditional update + RowsAffected check),
 so a code can be redeemed at most once even under concurrency.
 */

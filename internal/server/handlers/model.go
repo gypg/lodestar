@@ -126,7 +126,7 @@ func getModelList(c *gin.Context) {
 				ID:      m,
 				Object:  "model",
 				Created: 1763395200,
-				OwnedBy: "octopus",
+				OwnedBy: "lodestar",
 			})
 		}
 		c.JSON(200, model.OpenAIModelList{

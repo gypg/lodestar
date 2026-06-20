@@ -1,5 +1,5 @@
 // Package hub provides adapters for communicating with remote AI relay sites.
-// Each site type (new-api, veloera, octopus, etc.) implements the SiteAdapter
+// Each site type (new-api, veloera, jwt-auth, etc.) implements the SiteAdapter
 // interface; the common adapter covers the One API / New API family that most
 // sites are compatible with.
 package hub

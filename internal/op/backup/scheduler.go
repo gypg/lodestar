@@ -73,7 +73,7 @@ func PerformWebDAVBackup(ctx context.Context) error {
 		return fmt.Errorf("marshal dump: %w", err)
 	}
 
-	filename := fmt.Sprintf("octopus-backup-%s.json", time.Now().UTC().Format("20060102-150405"))
+	filename := fmt.Sprintf("lodestar-backup-%s.json", time.Now().UTC().Format("20060102-150405"))
 	remotePath := strings.TrimSuffix(cfg.RemotePath, "/") + "/" + filename
 
 	if err := client.Upload(remotePath, data); err != nil {

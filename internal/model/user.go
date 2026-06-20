@@ -25,7 +25,7 @@ type User struct {
 	// Lets a user's chosen theme follow their account across devices.
 	Preferences string `gorm:"type:text" json:"preferences,omitempty"`
 	// Lodestar commercial layer (ported from new-api's prepaid-quota model, adapted
-	// to octopus's float-dollar cost): Quota = remaining balance (USD), UsedQuota
+	// to Lodestar's float-dollar cost): Quota = remaining balance (USD), UsedQuota
 	// = cumulative spent. Only enforced when commercial_mode is on.
 	Quota     float64 `gorm:"type:real;default:0" json:"quota"`
 	UsedQuota float64 `gorm:"type:real;default:0;column:used_quota" json:"used_quota"`

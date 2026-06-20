@@ -3,7 +3,7 @@
 import type { AIRouteScope } from '@/api/endpoints/group';
 
 const AI_ROUTE_PROGRESS_STORAGE_KEY = 'lodestar.ai-route-progress';
-const GROUP_TEST_PROGRESS_STORAGE_KEY = 'octopus.group-test-progress';
+const GROUP_TEST_PROGRESS_STORAGE_KEY = 'lodestar.group-test-progress';
 
 export type StoredAIRouteTask = {
     id: string;

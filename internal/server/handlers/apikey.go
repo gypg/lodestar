@@ -274,7 +274,7 @@ func classifyAPIKeyMutationError(err error) (int, string, bool) {
 // apiKeyPrefix is the mandatory prefix for all API keys.
 var apiKeyPrefix = "sk-" + conf.APP_NAME + "-"
 
-// normalizeAPIKeyPrefix ensures the key has the sk-octopus- prefix.
+// normalizeAPIKeyPrefix ensures the key has the sk-lodestar- prefix.
 // If the user provides only a suffix (e.g. "my-key"), the prefix is prepended.
 func normalizeAPIKeyPrefix(key string) string {
 	key = strings.TrimSpace(key)

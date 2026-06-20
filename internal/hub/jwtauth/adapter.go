@@ -1,7 +1,7 @@
-// Package octopus implements the SiteAdapter for remote Octopus-type sites.
-// Unlike the common (New API) adapter which uses Bearer token auth, Octopus
+// Package jwtauth implements the SiteAdapter for remote JWT-auth sites.
+// Unlike the common (New API) adapter which uses Bearer token auth, JWT-auth
 // sites authenticate via JWT login with username/password.
-package octopus
+package jwtauth
 
 import (
 	"context"
@@ -19,10 +19,10 @@ import (
 )
 
 func init() {
-	hub.Register(model.SiteTypeOctopus, &Adapter{})
+	hub.Register(model.SiteTypeJWTAuth, &Adapter{})
 }
 
-// Adapter implements hub.SiteAdapter for Octopus-type remote sites.
+// Adapter implements hub.SiteAdapter for JWT-auth remote sites.
 type Adapter struct{}
 
 // ── JWT token cache ─────────────────────────────────────────────────────────
@@ -134,8 +134,8 @@ func getValidToken(ctx context.Context, site *model.RemoteSite) (string, error) 
 	return envelope.Data.Token, nil
 }
 
-// octopusFetch wraps the standard fetch with JWT auth instead of Bearer token.
-func octopusFetch[T any](ctx context.Context, site *model.RemoteSite, method, endpoint string, reqBody interface{}) (T, error) {
+// jwtFetch wraps the standard fetch with JWT auth instead of Bearer token.
+func jwtFetch[T any](ctx context.Context, site *model.RemoteSite, method, endpoint string, reqBody interface{}) (T, error) {
 	var zero T
 
 	token, err := getValidToken(ctx, site)
@@ -150,7 +150,7 @@ func octopusFetch[T any](ctx context.Context, site *model.RemoteSite, method, en
 	// Override base URL to include /api/v1 prefix if endpoint doesn't already
 	base := strings.TrimRight(site.BaseURL, "/")
 
-	// Octopus API endpoints are under /api/v1
+	// API endpoints are under /api/v1
 	fullURL := base + endpoint
 
 	headers := map[string]string{
@@ -217,14 +217,14 @@ func octopusFetch[T any](ctx context.Context, site *model.RemoteSite, method, en
 
 // ── SiteAdapter implementation ──────────────────────────────────────────────
 
-type octopusUserInfo struct {
+type jwtUserInfo struct {
 	ID       int    `json:"id"`
 	Username string `json:"username"`
 	Role     string `json:"role"`
 }
 
 func (a *Adapter) FetchUserInfo(ctx context.Context, site *model.RemoteSite) (*hub.UserInfoResult, error) {
-	// Octopus doesn't have a /api/user/self that returns quota; the login itself validates credentials.
+	// JWT-auth sites don't have a /api/user/self that returns quota; the login itself validates credentials.
 	// We use the token cache validation as a proxy.
 	_, err := getValidToken(ctx, site)
 	if err != nil {
@@ -236,7 +236,7 @@ func (a *Adapter) FetchUserInfo(ctx context.Context, site *model.RemoteSite) (*h
 }
 
 func (a *Adapter) FetchCheckInStatus(_ context.Context, _ *model.RemoteSite) (*bool, error) {
-	return nil, nil // Octopus does not support check-in
+	return nil, nil // JWT-auth does not support check-in
 }
 
 func (a *Adapter) PerformCheckIn(_ context.Context, _ *model.RemoteSite) (*hub.CheckInResult, error) {
@@ -247,7 +247,7 @@ func (a *Adapter) FetchModels(ctx context.Context, site *model.RemoteSite) ([]st
 	type llmInfo struct {
 		Name string `json:"name"`
 	}
-	infos, err := octopusFetch[[]llmInfo](ctx, site, http.MethodGet, "/api/v1/model/list", nil)
+	infos, err := jwtFetch[[]llmInfo](ctx, site, http.MethodGet, "/api/v1/model/list", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -266,7 +266,7 @@ func (a *Adapter) FetchModelPricing(ctx context.Context, site *model.RemoteSite)
 		CacheRead  float64 `json:"cache_read"`
 		CacheWrite float64 `json:"cache_write"`
 	}
-	infos, err := octopusFetch[[]llmInfo](ctx, site, http.MethodGet, "/api/v1/model/list", nil)
+	infos, err := jwtFetch[[]llmInfo](ctx, site, http.MethodGet, "/api/v1/model/list", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -281,16 +281,16 @@ func (a *Adapter) FetchModelPricing(ctx context.Context, site *model.RemoteSite)
 }
 
 func (a *Adapter) FetchTokens(_ context.Context, _ *model.RemoteSite) ([]hub.RemoteToken, error) {
-	return nil, nil // Not applicable for Octopus managed sites
+	return nil, nil // Not applicable for JWT-auth managed sites
 }
 
 func (a *Adapter) CreateToken(_ context.Context, _ *model.RemoteSite, _ hub.CreateTokenRequest) error {
-	return fmt.Errorf("token creation not supported for octopus sites")
+	return fmt.Errorf("token creation not supported for jwt-auth sites")
 }
 
 // ── Channels ────────────────────────────────────────────────────────────────
 
-type octopusChannel struct {
+type jwtChannel struct {
 	ID       int    `json:"id"`
 	Name     string `json:"name"`
 	Type     int    `json:"type"`
@@ -302,7 +302,7 @@ type octopusChannel struct {
 }
 
 func (a *Adapter) ListChannels(ctx context.Context, site *model.RemoteSite) ([]hub.RemoteChannel, error) {
-	channels, err := octopusFetch[[]octopusChannel](ctx, site, http.MethodGet, "/api/v1/channel/list", nil)
+	channels, err := jwtFetch[[]jwtChannel](ctx, site, http.MethodGet, "/api/v1/channel/list", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -337,7 +337,7 @@ func (a *Adapter) CreateChannel(ctx context.Context, site *model.RemoteSite, ch 
 		"keys":      []map[string]interface{}{{"enabled": true, "channel_key": ch.Key}},
 		"model":     ch.Models,
 	}
-	_, err := octopusFetch[interface{}](ctx, site, http.MethodPost, "/api/v1/channel/create", payload)
+	_, err := jwtFetch[interface{}](ctx, site, http.MethodPost, "/api/v1/channel/create", payload)
 	return err
 }
 
@@ -346,20 +346,20 @@ func (a *Adapter) UpdateChannel(ctx context.Context, site *model.RemoteSite, ch 
 		"id":    ch.ID,
 		"model": ch.Models,
 	}
-	_, err := octopusFetch[interface{}](ctx, site, http.MethodPost, "/api/v1/channel/update", payload)
+	_, err := jwtFetch[interface{}](ctx, site, http.MethodPost, "/api/v1/channel/update", payload)
 	return err
 }
 
 func (a *Adapter) DeleteChannel(ctx context.Context, site *model.RemoteSite, channelID int) error {
 	endpoint := fmt.Sprintf("/api/v1/channel/delete/%d", channelID)
-	_, err := octopusFetch[interface{}](ctx, site, http.MethodDelete, endpoint, nil)
+	_, err := jwtFetch[interface{}](ctx, site, http.MethodDelete, endpoint, nil)
 	return err
 }
 
 // ── Announcements / Status ──────────────────────────────────────────────────
 
 func (a *Adapter) FetchAnnouncement(_ context.Context, _ *model.RemoteSite) (string, error) {
-	return "", nil // Octopus does not have a public notice endpoint
+	return "", nil // JWT-auth does not have a public notice endpoint
 }
 
 func (a *Adapter) FetchSiteStatus(_ context.Context, _ *model.RemoteSite) (*hub.SiteStatusInfo, error) {

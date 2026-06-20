@@ -16,7 +16,7 @@ test('buildCCSwitchProviderLink follows v1 provider import protocol', () => {
     const link = buildCCSwitchProviderLink({
         app: 'codex',
         endpoint: 'https://api.example.com/v1',
-        apiKey: 'sk-octopus-test',
+        apiKey: 'sk-lodestar-test',
         name: 'claude-sonnet',
         model: 'claude-sonnet',
         notes: 'Octopus route group',
@@ -28,12 +28,12 @@ test('buildCCSwitchProviderLink follows v1 provider import protocol', () => {
     assert.equal(parsed.searchParams.get('app'), 'codex');
     assert.equal(parsed.searchParams.get('name'), 'claude-sonnet');
     assert.equal(parsed.searchParams.get('endpoint'), 'https://api.example.com/v1');
-    assert.equal(parsed.searchParams.get('apiKey'), 'sk-octopus-test');
+    assert.equal(parsed.searchParams.get('apiKey'), 'sk-lodestar-test');
     assert.equal(parsed.searchParams.get('model'), 'claude-sonnet');
     assert.equal(parsed.searchParams.get('enabled'), 'true');
 });
 
 test('maskCCSwitchSecret keeps short values and masks long keys', () => {
     assert.equal(maskCCSwitchSecret('short'), 'short');
-    assert.equal(maskCCSwitchSecret('sk-octopus-1234567890'), 'sk-oct...7890');
+    assert.equal(maskCCSwitchSecret('sk-lodestar-1234567890'), 'sk-oct...7890');
 });

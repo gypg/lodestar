@@ -3,8 +3,8 @@ package user
 /*
 Lodestar commercial layer — per-user prepaid quota (balance).
 
-Ported in logic from new-api's prepaid-quota billing, adapted to octopus:
-new-api uses integer quota units (QuotaPerUnit per $1); octopus already computes
+Ported in logic from new-api's prepaid-quota billing, adapted to Lodestar:
+new-api uses integer quota units (QuotaPerUnit per $1); Lodestar already computes
 per-request cost as float USD (StatsMetrics.Input/OutputCost), so we keep the
 balance as float USD for a 1:1 match with the relay's cost accounting.
 

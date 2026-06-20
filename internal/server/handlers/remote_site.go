@@ -8,7 +8,7 @@ import (
 	"github.com/gypg/lodestar/internal/hub"
 	_ "github.com/gypg/lodestar/internal/hub/common"
 	"github.com/gypg/lodestar/internal/hub/ldoh"
-	_ "github.com/gypg/lodestar/internal/hub/octopus"
+	_ "github.com/gypg/lodestar/internal/hub/jwtauth"
 	"github.com/gypg/lodestar/internal/model"
 	"github.com/gypg/lodestar/internal/op/remotesite"
 	"github.com/gypg/lodestar/internal/server/auth"

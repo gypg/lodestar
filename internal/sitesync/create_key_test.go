@@ -101,8 +101,8 @@ func TestCreateAccountTokenCreatesManagedKeyAndSyncsAccount(t *testing.T) {
 		t.Fatalf("expected unlimited_quota=true, got %#v", createdBody["unlimited_quota"])
 	}
 	createdName, _ := createdBody["name"].(string)
-	if !strings.HasPrefix(createdName, "octopus-vip-") {
-		t.Fatalf("expected generated token name to start with octopus-vip-, got %q", createdName)
+	if !strings.HasPrefix(createdName, "lodestar-vip-") {
+		t.Fatalf("expected generated token name to start with lodestar-vip-, got %q", createdName)
 	}
 
 	reloaded, err := op.SiteAccountGet(account.ID, ctx)
