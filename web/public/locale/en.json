@@ -100,7 +100,8 @@
     "apikey": "API Keys & Endpoints",
     "chat": "Chat",
     "image": "Image",
-    "subscription": "Subscription"
+    "subscription": "Subscription",
+    "commercial": "Commercial"
   },
   "endpoints": {
     "title": "Available Endpoints",

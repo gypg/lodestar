@@ -100,7 +100,8 @@
     "apikey": "API 金鑰及端點",
     "chat": "對話",
     "image": "生圖",
-    "subscription": "訂閱"
+    "subscription": "訂閱",
+    "commercial": "商業模式"
   },
   "endpoints": {
     "title": "可用端點",

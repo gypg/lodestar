@@ -100,7 +100,8 @@
     "apikey": "API 密钥及端点",
     "chat": "对话",
     "image": "生图",
-    "subscription": "订阅"
+    "subscription": "订阅",
+    "commercial": "商业模式"
   },
   "endpoints": {
     "title": "可用端点",

@@ -1,7 +1,7 @@
 import { lazyWithPreload } from './lazy-with-preload';
 import { lazy, ComponentType } from 'react';
 import type { LucideIcon } from 'lucide-react';
-import { Home, Radio, Sparkles, FolderTree, Settings, Logs, Users, Bell, BarChart3, Wrench, KeyRound, Globe, MessageSquare, ImagePlus, Server, CreditCard } from 'lucide-react';
+import { Home, Radio, Sparkles, FolderTree, Settings, Logs, Users, Bell, BarChart3, Wrench, KeyRound, Globe, MessageSquare, ImagePlus, Server, CreditCard, Store } from 'lucide-react';
 import { DEFAULT_NAV_ORDER } from '@/components/modules/navbar';
 
 export type LazyComponent = ReturnType<typeof lazy> & {
@@ -33,6 +33,7 @@ const Ops_Module = lazyWithPreload(() => import('@/components/modules/ops').then
 const Hub_Module = lazyWithPreload(() => import('@/components/modules/remote-site').then(m => ({ default: m.RemoteSite })));
 const Site_Module = lazyWithPreload(() => import('@/components/modules/site').then(m => ({ default: m.Site })));
 const Subscription_Module = lazyWithPreload(() => import('@/components/modules/subscription').then(m => ({ default: m.Subscription })));
+const Commercial_Module = lazyWithPreload(() => import('@/components/modules/commercial').then(m => ({ default: m.Commercial })));
 
 export const ROUTES: RouteConfig[] = [
     { id: 'home', icon: Home, component: Home_Module },
@@ -49,6 +50,7 @@ export const ROUTES: RouteConfig[] = [
     { id: 'ops', icon: Wrench, component: Ops_Module },
     { id: 'apikey', icon: KeyRound, component: APIKey_Module },
     { id: 'subscription', icon: CreditCard, component: Subscription_Module },
+    { id: 'commercial', icon: Store, component: Commercial_Module },
     { id: 'setting', icon: Settings, component: Setting_Module },
     { id: 'user', icon: Users, component: User_Module },
 ];
