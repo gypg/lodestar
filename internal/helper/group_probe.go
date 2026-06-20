@@ -617,8 +617,6 @@ func validateGroupProbeChannelType(endpointType string, channelType outbound.Out
 		}
 		return fmt.Errorf("group probe does not support endpoint type: %s", normalizedEndpointType)
 	}
-
-	return nil
 }
 
 func normalizeGroupProbeEndpointType(endpointType string) string {
