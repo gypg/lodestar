@@ -18,11 +18,6 @@ type providerPromptCacheUsagePayload struct {
 			Hit bool `json:"hit"`
 		} `json:"semantic_cache"`
 	} `json:"lodestar"`
-	OctopusCompat *struct {
-		SemanticCache *struct {
-			Hit bool `json:"hit"`
-		} `json:"semantic_cache"`
-	} `json:"lodestar"` // backward compat: Lodestar semantic cache payload key
 	Usage *struct {
 		InputTokens        int64 `json:"input_tokens"`
 		PromptTokens       int64 `json:"prompt_tokens"`
@@ -78,9 +73,6 @@ func ParseProviderPromptCacheUsageSignals(responseContent string) (ProviderPromp
 	}
 	if payload.Lodestar != nil && payload.Lodestar.SemanticCache != nil {
 		usage.SemanticCacheHit = payload.Lodestar.SemanticCache.Hit
-	}
-	if !usage.SemanticCacheHit && payload.OctopusCompat != nil && payload.OctopusCompat.SemanticCache != nil {
-		usage.SemanticCacheHit = payload.OctopusCompat.SemanticCache.Hit
 	}
 
 	if usage.PromptTokens <= 0 && usage.CachedTokens <= 0 && usage.CacheCreationInputTokens <= 0 && !usage.SemanticCacheHit {
