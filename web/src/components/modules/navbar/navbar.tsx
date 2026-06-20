@@ -10,10 +10,15 @@ import { ENTRANCE_VARIANTS } from "@/lib/animations/fluid-transitions"
 import { useTranslations } from "next-intl"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { useCurrentUser, isStaffRole } from "@/api/endpoints/user"
+import { useQuery } from "@tanstack/react-query"
+import { apiClient } from "@/api/client"
+import type { BootstrapStatusResponse } from "@/api/endpoints/bootstrap"
 
 // Lodestar 多租户：非 staff（viewer/商业注册用户）只见用户自助门户导航（固定顺序）；
 // 渠道/分组/告警/运维/用户管理/多站聚合等管理项对其隐藏。
-const USER_PORTAL_NAV: NavItem[] = ['home', 'chat', 'image', 'model', 'subscription', 'apikey', 'setting']
+// 订阅仅在商业模式下对非 staff 可见。
+const USER_PORTAL_NAV: NavItem[] = ['home', 'chat', 'image', 'model', 'apikey', 'setting']
+const USER_PORTAL_NAV_COMMERCIAL: NavItem[] = ['home', 'chat', 'image', 'model', 'subscription', 'apikey', 'setting']
 
 export function NavBar() {
     const { activeItem, orderedItems, visibleItems, setActiveItem } = useNavStore()
@@ -26,6 +31,13 @@ export function NavBar() {
     const { data: me } = useCurrentUser()
     // 角色未知时不限制（避免管理员加载瞬间误藏管理项）
     const restrictToPortal = me !== undefined && !isStaffRole(me.role)
+    const { data: bootstrap } = useQuery({
+        queryKey: ['bootstrap', 'status'],
+        queryFn: async () => apiClient.get<BootstrapStatusResponse>('/api/v1/bootstrap/status', undefined, false),
+        staleTime: 60_000,
+        refetchOnWindowFocus: false,
+    })
+    const isCommercial = bootstrap?.commercial_mode === true
     const visibleRouteSet = useMemo(() => new Set(visibleItems), [visibleItems])
     const routeById = useMemo(
         () => new Map(ROUTES.map((route) => [route.id as NavItem, route])),
@@ -35,7 +47,7 @@ export function NavBar() {
     const orderedRoutes = useMemo(() => {
         let items: NavItem[]
         if (restrictToPortal) {
-            items = USER_PORTAL_NAV
+            items = isCommercial ? USER_PORTAL_NAV_COMMERCIAL : USER_PORTAL_NAV
         } else {
             const configured = orderedItems.filter((item) => visibleRouteSet.has(item))
             // 追加配置中尚无的新路由（如新增的 'chat'），保证新功能对管理员也可见
@@ -45,7 +57,7 @@ export function NavBar() {
         return items
             .map((item) => routeById.get(item))
             .filter((route) => route !== undefined)
-    }, [restrictToPortal, orderedItems, visibleRouteSet, routeById, allRouteIds])
+    }, [restrictToPortal, isCommercial, orderedItems, visibleRouteSet, routeById, allRouteIds])
 
     return (
         <div className="relative z-50 md:min-h-full md:w-52">
