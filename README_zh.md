@@ -999,7 +999,7 @@ Hub 远程站点管理采用适配器架构，注册了 8 种站点适配器：
 | 适配器 | 站点类型 |
 |--------|----------|
 | `common` | `new-api`（One API / New API 族回退适配器） |
-| `jwt-auth` | `octopus`（JWT 用户名/密码登录） |
+| `jwt-auth` | `jwt-auth`（JWT 用户名/密码登录） |
 | `aihubmix` | `aihubmix` |
 | `axonhub` | `axonhub` |
 | `claudecodehub` | `claude-code-hub` |

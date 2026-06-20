@@ -94,7 +94,6 @@ export const SITE_TYPE_LABELS: Record<string, string> = {
     'one-hub': 'One Hub',
     'sub2api': 'Sub2API',
     'jwt-auth': 'JWT 认证',
-    'octopus': 'JWT 认证',  // Legacy alias
     'sapi': 'SAPI',
     'anyrouter': 'AnyRouter',
     'aihubmix': 'AIHubMix',

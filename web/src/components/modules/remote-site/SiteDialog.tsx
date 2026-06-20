@@ -73,7 +73,7 @@ export function SiteDialog({ open, onOpenChange, editingSite }: SiteDialogProps)
         }
     }, [open, editingSite]);
 
-    const usesPasswordAuth = siteType === 'jwt-auth' || siteType === 'octopus' || siteType === 'sapi';
+    const usesPasswordAuth = siteType === 'jwt-auth' || siteType === 'sapi';
 
     const handleDetect = () => {
         if (!baseUrl) return;

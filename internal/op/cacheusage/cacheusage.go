@@ -22,7 +22,7 @@ type providerPromptCacheUsagePayload struct {
 		SemanticCache *struct {
 			Hit bool `json:"hit"`
 		} `json:"semantic_cache"`
-	} `json:"octopus"` // backward compat: upstream servers may still send "octopus" key
+	} `json:"lodestar"` // backward compat: Lodestar semantic cache payload key
 	Usage *struct {
 		InputTokens        int64 `json:"input_tokens"`
 		PromptTokens       int64 `json:"prompt_tokens"`
