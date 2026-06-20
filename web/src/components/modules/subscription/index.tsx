@@ -29,6 +29,9 @@ import {
     type UserSubscription,
 } from '@/api/endpoints/subscription';
 import { useCurrentUser, isStaffRole } from '@/api/endpoints/user';
+import { useQuery } from '@tanstack/react-query';
+import { apiClient } from '@/api/client';
+import type { BootstrapStatusResponse } from '@/api/endpoints/bootstrap';
 import { PageWrapper } from '@/components/common/PageWrapper';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -43,10 +46,12 @@ function PlanCard({
     plan,
     onPurchase,
     purchasing,
+    commercialMode,
 }: {
     plan: SubscriptionPlan;
     onPurchase: () => void;
     purchasing: boolean;
+    commercialMode: boolean;
 }) {
     const t = useTranslations('subscription');
 
@@ -77,18 +82,24 @@ function PlanCard({
                     </div>
                 </div>
                 <div className="mt-auto pt-2">
-                    <Button
-                        className="w-full rounded-xl"
-                        onClick={onPurchase}
-                        disabled={purchasing || !plan.enabled}
-                    >
-                        {purchasing ? (
-                            <Loader className="h-4 w-4 animate-spin" />
-                        ) : (
-                            <CreditCard className="h-4 w-4" />
-                        )}
-                        {plan.enabled ? t('purchase') : t('unavailable')}
-                    </Button>
+                    {commercialMode ? (
+                        <Button
+                            className="w-full rounded-xl"
+                            onClick={onPurchase}
+                            disabled={purchasing || !plan.enabled}
+                        >
+                            {purchasing ? (
+                                <Loader className="h-4 w-4 animate-spin" />
+                            ) : (
+                                <CreditCard className="h-4 w-4" />
+                            )}
+                            {plan.enabled ? t('purchase') : t('unavailable')}
+                        </Button>
+                    ) : (
+                        <div className="rounded-xl border border-dashed border-muted-foreground/30 bg-muted/30 px-3 py-2 text-center text-xs text-muted-foreground">
+                            自用模式下不可购买
+                        </div>
+                    )}
                 </div>
             </CardContent>
         </Card>
@@ -351,6 +362,13 @@ export function Subscription() {
     const t = useTranslations('subscription');
     const { data: currentUser } = useCurrentUser();
     const isAdmin = currentUser !== undefined && isStaffRole(currentUser.role);
+    const { data: bootstrap } = useQuery({
+        queryKey: ['bootstrap', 'status'],
+        queryFn: async () => apiClient.get<BootstrapStatusResponse>('/api/v1/bootstrap/status', undefined, false),
+        staleTime: 60_000,
+        refetchOnWindowFocus: false,
+    });
+    const isCommercial = bootstrap?.commercial_mode === true;
 
     const [tab, setTab] = useState<'plans' | 'my' | 'admin'>('plans');
     const [showNewPlan, setShowNewPlan] = useState(false);
@@ -453,6 +471,7 @@ export function Subscription() {
                                     plan={plan}
                                     onPurchase={() => handlePurchase(plan.id)}
                                     purchasing={purchase.isPending}
+                                    commercialMode={isCommercial}
                                 />
                             ))}
                         </div>

@@ -541,8 +541,8 @@ export function SettingAppearance() {
                                     <Store className="h-5 w-5 text-primary" />
                                 </div>
                                 <div className="space-y-0.5">
-                                    <span className="text-sm font-semibold text-card-foreground">商业模式</span>
-                                    <p className="text-xs text-muted-foreground">开启=开放公开注册（访客自助注册）；关闭=自用模式（仅管理员建号）。这是「一键释放商业潜力」的总开关。</p>
+                                    <span className="text-sm font-semibold text-card-foreground">{t('commercialMode.title')}</span>
+                                    <p className="text-xs text-muted-foreground">{t('commercialMode.description')}</p>
                                 </div>
                             </div>
                             <Switch
@@ -553,8 +553,14 @@ export function SettingAppearance() {
                                         { onError: () => toast.error(t('saveFailed')) }
                                     )
                                 }
-                                aria-label="商业模式"
+                                aria-label={t('commercialMode.title')}
                             />
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground pl-12">
+                            <span>{t('commercialMode.status')}:</span>
+                            <span className={`font-medium ${settings?.find((s) => s.key === SettingKey.CommercialMode)?.value === 'true' ? 'text-primary' : 'text-muted-foreground'}`}>
+                                {settings?.find((s) => s.key === SettingKey.CommercialMode)?.value === 'true' ? t('commercialMode.statusCommercial') : t('commercialMode.statusSelfUse')}
+                            </span>
                         </div>
                     </div>
                     )}

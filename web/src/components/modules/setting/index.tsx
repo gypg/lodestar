@@ -30,7 +30,6 @@ import { SettingSiteAutomation } from './SiteAutomation';
 import { BillingExpr } from './BillingExpr';
 import { StripeSettings } from './StripeSettings';
 import { SettingTwoFA } from './TwoFA';
-import { CommercialMode } from './CommercialMode';
 import { DEFAULT_SETTING_ORDER } from './SettingOrder';
 
 type SettingItemDef = {
@@ -43,7 +42,6 @@ type SettingItemDef = {
 const SETTING_ITEM_DEFS: SettingItemDef[] = [
     { id: 'info',              icon: <Info className="h-5 w-5" />,              titleKey: 'info.title',           component: <SettingInfo /> },
     { id: 'appearance',        icon: <Sun className="h-5 w-5" />,              titleKey: 'appearance',           component: <SettingAppearance /> },
-    { id: 'commercial-mode',   icon: <Store className="h-5 w-5" />,             titleKey: 'commercialMode.title', component: <CommercialMode /> },
     { id: 'ai-route',          icon: <Bot className="h-5 w-5" />,              titleKey: 'aiRoute.title',        component: <SettingAIRoute /> },
     { id: 'auto-strategy',     icon: <Sparkles className="h-5 w-5" />,         titleKey: 'autoStrategy.title',   component: <SettingAutoStrategy /> },
     { id: 'account',           icon: <User className="h-5 w-5" />,              titleKey: 'account.title',         component: <SettingAccount /> },
@@ -132,7 +130,7 @@ export function Setting() {
             </div>
 
             <Dialog open={openId !== null} onOpenChange={(open) => { if (!open) setOpenId(null); }}>
-                <DialogContent aria-describedby={undefined} className="w-[100vw] sm:w-[min(95vw,720px)] lg:w-[min(95vw,1040px)] sm:max-w-[min(95vw,720px)] lg:max-w-[min(95vw,1040px)] max-h-[100dvh] sm:max-h-[90vh] overflow-y-auto p-0 gap-0 rounded-none sm:rounded-2xl">
+                <DialogContent aria-describedby={undefined} className="w-[100vw] sm:w-[min(95vw,720px)] lg:w-[min(95vw,1040px)] sm:max-w-[min(95vw,720px)] lg:max-w-[min(95vw,1040px)] max-h-[100dvh] sm:max-h-[90vh] overflow-y-auto pt-12 p-0 sm:p-0 gap-0 rounded-none sm:rounded-2xl">
                     <DialogTitle className="sr-only">{activeItem ? t(activeItem.titleKey) : ''}</DialogTitle>
                     {activeItem && activeItem.component}
                 </DialogContent>
