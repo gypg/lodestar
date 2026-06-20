@@ -9,8 +9,8 @@ const (
 	SiteTypeDoneHub       = "done-hub"
 	SiteTypeOneHub        = "one-hub"
 	SiteTypeSub2API       = "sub2api"
-	SiteTypeJWTAuth       = "jwt-auth"   // JWT username/password login
-	SiteTypeOctopus       = "jwt-auth"   // Deprecated alias; use SiteTypeJWTAuth
+	SiteTypeLodestar       = "jwt-auth"   // JWT username/password login
+	SiteTypeOctopus       = "jwt-auth"   // Deprecated alias; use SiteTypeLodestar
 	SiteTypeAnyRouter     = "anyrouter"
 	SiteTypeAIHubMix      = "aihubmix"
 	SiteTypeAxonHub       = "axonhub"
@@ -165,7 +165,7 @@ func AllSiteTypes() []string {
 		SiteTypeDoneHub,
 		SiteTypeOneHub,
 		SiteTypeSub2API,
-		SiteTypeJWTAuth,
+		SiteTypeLodestar,
 		SiteTypeAnyRouter,
 		SiteTypeAIHubMix,
 		SiteTypeAxonHub,

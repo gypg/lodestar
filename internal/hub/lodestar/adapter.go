@@ -1,7 +1,7 @@
-// Package jwtauth implements the SiteAdapter for remote JWT-auth sites.
+// Package lodestar implements the SiteAdapter for remote JWT-auth sites.
 // Unlike the common (New API) adapter which uses Bearer token auth, JWT-auth
 // sites authenticate via JWT login with username/password.
-package jwtauth
+package lodestar
 
 import (
 	"context"
@@ -19,7 +19,7 @@ import (
 )
 
 func init() {
-	hub.Register(model.SiteTypeJWTAuth, &Adapter{})
+	hub.Register(model.SiteTypeLodestar, &Adapter{})
 }
 
 // Adapter implements hub.SiteAdapter for JWT-auth remote sites.
