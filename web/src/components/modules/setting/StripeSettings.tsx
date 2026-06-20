@@ -1,14 +1,7 @@
 'use client';
 
-/*
-Lodestar commercial layer — Stripe payment settings.
-
-Admin fills in Stripe API key, webhook secret, currency, and minimum topup amount.
-Follows the same pattern as PaymentSettings.tsx (Epay).
-Sensitive fields (API key, webhook secret) are masked in the display.
-*/
-
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { CreditCard } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -16,13 +9,13 @@ import { Switch } from '@/components/ui/switch';
 import { SettingKey, useSetSetting, useSettingList } from '@/api/endpoints/setting';
 import { toast } from '@/components/common/Toast';
 
-/** Mask a secret: show first 4 + last 4 chars, replace middle with asterisks. */
 function maskSecret(value: string): string {
     if (!value || value.length <= 10) return value;
     return `${value.slice(0, 4)}${'*'.repeat(value.length - 8)}${value.slice(-4)}`;
 }
 
 export function StripeSettings() {
+    const t = useTranslations('setting');
     const { data: settings } = useSettingList();
     const setSetting = useSetSetting();
     const [enabled, setEnabled] = useState(false);
@@ -51,8 +44,8 @@ export function StripeSettings() {
             setSetting.mutateAsync({ key: SettingKey.StripeCurrency, value: currency }),
             setSetting.mutateAsync({ key: SettingKey.StripeMinTopup, value: minTopup }),
         ])
-            .then(() => toast.success('Stripe 设置已保存'))
-            .catch(() => toast.error('保存失败'));
+            .then(() => toast.success(t('stripe.saved')))
+            .catch(() => toast.error(t('stripe.saveFailed')));
     };
 
     return (
@@ -63,15 +56,15 @@ export function StripeSettings() {
                         <CreditCard className="h-5 w-5 text-primary" />
                     </div>
                     <div className="space-y-0.5">
-                        <span className="text-sm font-semibold text-card-foreground">在线支付 · Stripe</span>
-                        <p className="text-xs text-muted-foreground">填入 Stripe 凭据并启用后，用户可通过 Stripe Checkout 在线充值。</p>
+                        <span className="text-sm font-semibold text-card-foreground">{t('stripe.title')}</span>
+                        <p className="text-xs text-muted-foreground">{t('stripe.description')}</p>
                     </div>
                 </div>
-                <Switch checked={enabled} onCheckedChange={setEnabled} aria-label="启用 Stripe" />
+                <Switch checked={enabled} onCheckedChange={setEnabled} aria-label={t('stripe.enable')} />
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
                 <div className="flex flex-col gap-1.5">
-                    <label className="ml-1 text-xs font-medium text-muted-foreground">Stripe API Key</label>
+                    <label className="ml-1 text-xs font-medium text-muted-foreground">{t('stripe.apiKey')}</label>
                     <Input
                         value={apiKey}
                         onChange={(e) => setApiKey(e.target.value)}
@@ -81,7 +74,7 @@ export function StripeSettings() {
                     />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                    <label className="ml-1 text-xs font-medium text-muted-foreground">Webhook Secret</label>
+                    <label className="ml-1 text-xs font-medium text-muted-foreground">{t('stripe.webhookSecret')}</label>
                     <Input
                         value={webhookSecret}
                         onChange={(e) => setWebhookSecret(e.target.value)}
@@ -91,16 +84,16 @@ export function StripeSettings() {
                     />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                    <label className="ml-1 text-xs font-medium text-muted-foreground">货币（三字母代码）</label>
+                    <label className="ml-1 text-xs font-medium text-muted-foreground">{t('stripe.currency')}</label>
                     <Input value={currency} onChange={(e) => setCurrency(e.target.value)} placeholder="usd" className="rounded-lg" />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                    <label className="ml-1 text-xs font-medium text-muted-foreground">最低充值金额</label>
+                    <label className="ml-1 text-xs font-medium text-muted-foreground">{t('stripe.minTopup')}</label>
                     <Input value={minTopup} onChange={(e) => setMinTopup(e.target.value)} type="number" step="0.01" min="0" className="rounded-lg" />
                 </div>
             </div>
             <div>
-                <Button type="button" size="sm" onClick={save} disabled={setSetting.isPending}>保存 Stripe 设置</Button>
+                <Button type="button" size="sm" onClick={save} disabled={setSetting.isPending}>{t('stripe.save')}</Button>
             </div>
         </div>
     );
