@@ -22,6 +22,7 @@ import (
 	st "github.com/gypg/lodestar/internal/op/stats"
 	"github.com/gypg/lodestar/internal/relay/balancer"
 	"github.com/gypg/lodestar/internal/relay/condition"
+	"github.com/gypg/lodestar/internal/relay/guardrail"
 	"github.com/gypg/lodestar/internal/server/resp"
 	"github.com/gypg/lodestar/internal/transformer/inbound"
 	"github.com/gypg/lodestar/internal/transformer/model"
@@ -186,18 +187,18 @@ func Handler(endpointType string, inboundType inbound.InboundType, c *gin.Contex
 	}
 
 	// ── Guardrail input check ──────────────────────────────────────────
-	// The guardrail package provides CheckInput/CheckOutput for content
-	// filtering (banned words, PII detection, length limits).
-	// To enable, uncomment the block below and add the import:
-	//   "github.com/gypg/lodestar/internal/relay/guardrail"
-	//
-	//   if cfg := guardrail.LoadConfig(); cfg.Enabled {
-	//       content := extractRequestText(internalRequest)
-	//       if v := guardrail.CheckInput(content, cfg); v != nil {
-	//           resp.Error(c, http.StatusBadRequest, v.Message)
-	//           return
-	//       }
-	//   }
+	// Scan the user's input against guardrail rules (banned words, PII,
+	// length limits) configured via Settings → Guardrail. No-op unless the
+	// guardrail toggle is on. Output-side scanning is intentionally not wired
+	// here: streaming (SSE) responses can't be buffered without breaking the
+	// stream, and non-stream output filtering is already covered by the
+	// separate response-keyword filter (see errResponseFilterBlocked).
+	if cfg := guardrail.LoadConfig(); cfg.Enabled {
+		if v := guardrail.CheckInput(extractRequestText(internalRequest), cfg); v != nil {
+			resp.Error(c, http.StatusBadRequest, v.Message)
+			return
+		}
+	}
 	// ── End guardrail input check ──────────────────────────────────────
 
 	supportedModels := c.GetString("supported_models")

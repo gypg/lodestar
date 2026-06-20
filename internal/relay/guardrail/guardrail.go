@@ -59,6 +59,11 @@ func LoadConfig() GuardrailConfig {
 	if raw != "" {
 		_ = json.Unmarshal([]byte(raw), &cfg)
 	}
+	// The standalone guardrail_enabled setting is the authoritative switch:
+	// it wins over whatever the rules JSON's "enabled" field says, so a stale
+	// enabled=true inside the JSON cannot keep guardrail active after the user
+	// toggles the setting off.
+	cfg.Enabled = enabled
 	return cfg
 }
 
