@@ -119,6 +119,13 @@ func GetLatestInfo() (*LatestInfo, error) {
 		return nil, err
 	}
 	if latestInfo.Message != "" {
+		// GitHub API responds 404 + {"message":"Not Found"} when the repo has no
+		// releases yet. Treat that as "no release published" rather than a hard
+		// error, so the settings page doesn't surface a 500 on a brand-new repo.
+		if strings.Contains(strings.ToLower(latestInfo.Message), "not found") {
+			log.Infof("no release published yet for current repo")
+			return &LatestInfo{}, nil
+		}
 		return nil, fmt.Errorf("failed to get latest info: %s", latestInfo.Message)
 	}
 	return &latestInfo, nil
