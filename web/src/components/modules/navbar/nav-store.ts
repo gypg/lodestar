@@ -89,12 +89,15 @@ export function normalizeVisibleNavItems(value: unknown, orderedItems: readonly 
     const withFixedItems = uniqueNavItems([...requested, ...FIXED_VISIBLE_NAV_ITEMS]);
     const orderedVisibleItems = getOrderedVisibleItems(orderedItems, withFixedItems);
 
-    if (orderedVisibleItems.length >= MIN_VISIBLE_NAV_ITEMS) {
-        return orderedVisibleItems;
+    // Always append any ordered items that are missing from visible (e.g. newly added nav items).
+    const missingItems = orderedItems.filter((item) => !orderedVisibleItems.includes(item));
+    const full = [...orderedVisibleItems, ...missingItems];
+
+    if (full.length >= MIN_VISIBLE_NAV_ITEMS) {
+        return full;
     }
 
-    const missingItems = orderedItems.filter((item) => !orderedVisibleItems.includes(item));
-    return [...orderedVisibleItems, ...missingItems.slice(0, MIN_VISIBLE_NAV_ITEMS - orderedVisibleItems.length)];
+    return full.slice(0, MIN_VISIBLE_NAV_ITEMS);
 }
 
 export function isFixedVisibleNavItem(item: NavItem): boolean {
