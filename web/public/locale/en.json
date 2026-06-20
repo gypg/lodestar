@@ -2736,5 +2736,75 @@
       "derivedReferences": "+{count} managed channels"
     },
     "selectRequired": "Please select a proxy configuration."
+  },
+  "subscription": {
+    "tabs": {
+      "plans": "Plans",
+      "mySubscription": "My Subscription",
+      "admin": "Admin"
+    },
+    "plan": "Plan",
+    "price": "Price",
+    "duration": "Duration",
+    "days": "days",
+    "quota": "Quota",
+    "quotaUnit": "Credits",
+    "quotaUsed": "Credits Used",
+    "purchase": "Purchase",
+    "confirmPurchase": "Confirm purchase this plan?",
+    "noPlan": "No plans available",
+    "mySubscription": "My Subscription",
+    "noSubscription": "No active subscription",
+    "expiresAt": "Expires At",
+    "unavailable": "Unavailable",
+    "status": {
+      "active": "Active",
+      "expired": "Expired",
+      "inactive": "Inactive"
+    },
+    "toast": {
+      "purchaseSuccess": "Purchase successful",
+      "actionFailed": "Action failed",
+      "planCreated": "Plan created",
+      "planUpdated": "Plan updated",
+      "planDeleted": "Plan deleted",
+      "bindSuccess": "Subscription bound"
+    },
+    "admin": {
+      "planManagement": "Plan Management",
+      "newPlan": "New Plan",
+      "noPlans": "No plans yet",
+      "confirmDelete": "Delete this plan?",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "form": {
+        "name": "Plan Name",
+        "namePlaceholder": "Enter plan name",
+        "description": "Description",
+        "descriptionPlaceholder": "Enter description",
+        "price": "Price",
+        "pricePlaceholder": "0.00",
+        "duration": "Duration (days)",
+        "durationPlaceholder": "30",
+        "quota": "Quota",
+        "quotaPlaceholder": "1000000",
+        "enabled": "Enabled"
+      },
+      "actions": {
+        "edit": "Edit",
+        "save": "Save",
+        "cancel": "Cancel"
+      },
+      "bind": {
+        "title": "Bind Subscription",
+        "userId": "User ID",
+        "userIdPlaceholder": "Enter user ID",
+        "planId": "Plan",
+        "selectPlan": "Select plan",
+        "submit": "Bind",
+        "noSubscriptions": "No subscription records",
+        "new": "New Binding"
+      }
+    }
   }
 }

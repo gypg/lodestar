@@ -2736,5 +2736,75 @@
       "derivedReferences": "+{count} 个托管渠道"
     },
     "selectRequired": "请选择代理配置。"
+  },
+  "subscription": {
+    "tabs": {
+      "plans": "订阅方案",
+      "mySubscription": "我的订阅",
+      "admin": "管理"
+    },
+    "plan": "方案",
+    "price": "价格",
+    "duration": "时长",
+    "days": "天",
+    "quota": "配额",
+    "quotaUnit": "额度",
+    "quotaUsed": "已用额度",
+    "purchase": "购买",
+    "confirmPurchase": "确认购买此方案？",
+    "noPlan": "暂无可用方案",
+    "mySubscription": "我的订阅",
+    "noSubscription": "暂无订阅",
+    "expiresAt": "到期时间",
+    "unavailable": "不可用",
+    "status": {
+      "active": "生效中",
+      "expired": "已过期",
+      "inactive": "未激活"
+    },
+    "toast": {
+      "purchaseSuccess": "购买成功",
+      "actionFailed": "操作失败",
+      "planCreated": "方案已创建",
+      "planUpdated": "方案已更新",
+      "planDeleted": "方案已删除",
+      "bindSuccess": "绑定成功"
+    },
+    "admin": {
+      "planManagement": "方案管理",
+      "newPlan": "新建方案",
+      "noPlans": "暂无方案",
+      "confirmDelete": "确认删除此方案？",
+      "enabled": "已启用",
+      "disabled": "已禁用",
+      "form": {
+        "name": "方案名称",
+        "namePlaceholder": "输入方案名称",
+        "description": "描述",
+        "descriptionPlaceholder": "输入描述",
+        "price": "价格",
+        "pricePlaceholder": "0.00",
+        "duration": "时长（天）",
+        "durationPlaceholder": "30",
+        "quota": "配额",
+        "quotaPlaceholder": "1000000",
+        "enabled": "启用"
+      },
+      "actions": {
+        "edit": "编辑",
+        "save": "保存",
+        "cancel": "取消"
+      },
+      "bind": {
+        "title": "绑定订阅",
+        "userId": "用户 ID",
+        "userIdPlaceholder": "输入用户 ID",
+        "planId": "方案",
+        "selectPlan": "选择方案",
+        "submit": "绑定",
+        "noSubscriptions": "暂无订阅记录",
+        "new": "新建绑定"
+      }
+    }
   }
 }

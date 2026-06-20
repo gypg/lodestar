@@ -2736,5 +2736,75 @@
       "derivedReferences": "+{count} 個託管渠道"
     },
     "selectRequired": "請選擇代理配置。"
+  },
+  "subscription": {
+    "tabs": {
+      "plans": "訂閱方案",
+      "mySubscription": "我的訂閱",
+      "admin": "管理"
+    },
+    "plan": "方案",
+    "price": "價格",
+    "duration": "時長",
+    "days": "天",
+    "quota": "配額",
+    "quotaUnit": "額度",
+    "quotaUsed": "已用額度",
+    "purchase": "購買",
+    "confirmPurchase": "確認購買此方案？",
+    "noPlan": "暫無可用方案",
+    "mySubscription": "我的訂閱",
+    "noSubscription": "暫無訂閱",
+    "expiresAt": "到期時間",
+    "unavailable": "不可用",
+    "status": {
+      "active": "生效中",
+      "expired": "已過期",
+      "inactive": "未啟用"
+    },
+    "toast": {
+      "purchaseSuccess": "購買成功",
+      "actionFailed": "操作失敗",
+      "planCreated": "方案已建立",
+      "planUpdated": "方案已更新",
+      "planDeleted": "方案已刪除",
+      "bindSuccess": "綁定成功"
+    },
+    "admin": {
+      "planManagement": "方案管理",
+      "newPlan": "新建方案",
+      "noPlans": "暫無方案",
+      "confirmDelete": "確認刪除此方案？",
+      "enabled": "已啟用",
+      "disabled": "已停用",
+      "form": {
+        "name": "方案名稱",
+        "namePlaceholder": "輸入方案名稱",
+        "description": "描述",
+        "descriptionPlaceholder": "輸入描述",
+        "price": "價格",
+        "pricePlaceholder": "0.00",
+        "duration": "時長（天）",
+        "durationPlaceholder": "30",
+        "quota": "配額",
+        "quotaPlaceholder": "1000000",
+        "enabled": "啟用"
+      },
+      "actions": {
+        "edit": "編輯",
+        "save": "儲存",
+        "cancel": "取消"
+      },
+      "bind": {
+        "title": "綁定訂閱",
+        "userId": "用戶 ID",
+        "userIdPlaceholder": "輸入用戶 ID",
+        "planId": "方案",
+        "selectPlan": "選擇方案",
+        "submit": "綁定",
+        "noSubscriptions": "暫無訂閱記錄",
+        "new": "新建綁定"
+      }
+    }
   }
 }
