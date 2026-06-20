@@ -17,10 +17,8 @@
     "button": {
       "loading": "Logging in...",
       "submit": "Login",
-      "passkey": "Sign in with Passkey",
-      "githubOAuth": "Sign in with GitHub"
-    },
-    "githubOAuthError": "GitHub login failed"
+      "passkey": "Sign in with Passkey"
+    }
   },
   "bootstrap": {
     "title": "Complete initial setup",
@@ -101,9 +99,7 @@
     "ariaLabel": "Main navigation",
     "apikey": "API Keys & Endpoints",
     "chat": "Chat",
-    "image": "Image",
-    "site": "Sites",
-    "subscription": "Subscription"
+    "image": "Image"
   },
   "endpoints": {
     "title": "Available Endpoints",
@@ -699,8 +695,7 @@
         "latency": "Avg latency",
         "successRate": "Success rate",
         "requests": "Requests",
-        "sparkline7d": "7d Success Rate",
-        "availability30d": "30d Availability"
+        "sparkline7d": "7d Success Rate"
       }
     },
     "system": {
@@ -824,7 +819,6 @@
     "cancel": "Cancel",
     "deleteUser": "Delete user",
     "cannotDeletePrimaryAdmin": "Cannot delete primary admin",
-    "logout": "Log out",
     "confirmDelete": "Delete this user? This cannot be undone.",
     "roles": {
       "admin": "Admin",
@@ -1126,38 +1120,670 @@
       "loading": "Loading...",
       "noData": "No ranking data",
       "successRate": "Success Rate"
-    },
-    "pretext": {
-      "mastheadTitle": "{siteName}",
-      "mastheadSubtitle": "your fully-customizable AI gateway",
-      "tocTitle": "Table of Contents",
-      "tocIntro": "Each entry is a window into the digital world. Where the wind blows today is up to you.",
-      "featureTitle": "Today's Feature",
-      "featureBody": "{siteName} — highly customizable, self-use first, an aggregating personal AI gateway. Every token, every request lands like movable type on paper.",
-      "featureBody2": "We built {siteName} to be as steady and reliable as lead type. Every token, every request, every invoice falls into place like type on a galley. What matters is not how prominent it is, but whether it lands in the right place.",
-      "featureQuote": "Words fall silent, heart finds its way",
-      "featureOutro": "May you open this page today with quiet focus and a touch of curiosity. Leave the rest to time.",
-      "editorial": "Editorial",
-      "statsTitle": "Live Numbers",
-      "statsOnlineModels": "Online Models",
-      "statsTodayRequests": "Today's Requests",
-      "statsTotalTokens": "Total Tokens",
-      "statsDesc": "These numbers keep ticking, like type dropping from the composing frame. They form the quietest conversation between you and this system.",
-      "statsSignoff": "— The type keeps being set, and we keep listening.",
-      "footerCopyright": "© {year} {siteName} · Personal Edition",
-      "footerDashboard": "Enter Dashboard",
-      "footerLogin": "Sign In",
-      "announcement": "Announcements",
-      "modelsPlaza": "Model Plaza",
-      "usageOverview": "Usage Overview",
-      "aboutSite": "About {siteName}",
-      "modelsCount": "{count} models available",
-      "noPublicModels": "No public models yet.",
-      "noAnnouncement": "No announcements.",
-      "close": "Close"
     }
   },
   "setting": {
+    "appearance": "Appearance",
+    "system": "System",
+    "theme": {
+      "label": "Theme",
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System"
+    },
+    "language": {
+      "label": "Language",
+      "zh_hans": "Chinese (Simplified)",
+      "zh_hant": "Chinese (Traditional)",
+      "en": "English"
+    },
+    "timeZone": {
+      "label": "User time zone",
+      "description": "Used for date and time display across the UI. Defaults to Asia/Shanghai.",
+      "options": {
+        "Asia/Shanghai": "Asia/Shanghai (UTC+08:00)",
+        "Asia/Tokyo": "Asia/Tokyo (UTC+09:00)",
+        "Asia/Singapore": "Asia/Singapore (UTC+08:00)",
+        "UTC": "UTC (UTC+00:00)",
+        "Europe/London": "Europe/London (UTC+00:00/UTC+01:00)",
+        "Europe/Berlin": "Europe/Berlin (UTC+01:00/UTC+02:00)",
+        "America/New_York": "America/New_York (UTC-05:00/UTC-04:00)",
+        "America/Chicago": "America/Chicago (UTC-06:00/UTC-05:00)",
+        "America/Denver": "America/Denver (UTC-07:00/UTC-06:00)",
+        "America/Los_Angeles": "America/Los_Angeles (UTC-08:00/UTC-07:00)"
+      }
+    },
+    "alertLanguage": {
+      "label": "Alert Send Language",
+      "zh_hans": "Chinese (Simplified)",
+      "zh_hant": "Chinese (Traditional)",
+      "en": "English"
+    },
+    "proxyUrl": {
+      "label": "Proxy URL",
+      "placeholder": "Enter proxy URL"
+    },
+    "publicApiBaseUrl": {
+      "label": "Public API Base URL",
+      "placeholder": "Enter public API base URL",
+      "hint": "Used to generate curl examples and onboarding links. Leave empty to hide these helpers."
+    },
+    "statsSaveInterval": {
+      "label": "Stats Save Interval",
+      "placeholder": "Enter interval in minutes"
+    },
+    "corsAllowOrigins": {
+      "label": "CORS Allowed Origins",
+      "hint": "Empty = deny all, * = allow all",
+      "example": "Only allow specific domains: https://example.com,https://example2.com",
+      "removeAriaLabel": "Remove {origin}"
+    },
+    "circuitBreaker": {
+      "title": "Circuit Breaker",
+      "threshold": {
+        "label": "Failure Threshold (consecutive failures)",
+        "placeholder": "Enter threshold"
+      },
+      "cooldown": {
+        "label": "Base Cooldown (seconds)",
+        "placeholder": "Enter cooldown in seconds"
+      },
+      "maxCooldown": {
+        "label": "Max Cooldown (seconds)",
+        "placeholder": "Enter max cooldown in seconds"
+      },
+      "hint": "When a channel fails consecutively up to the threshold, circuit breaker trips. Cooldown grows exponentially up to the max cooldown"
+    },
+    "responseFilter": {
+      "title": "Response Keyword Filter",
+      "description": "Intercept model output based on keywords. Supports blocking or replacing matched content.",
+      "enabled": {
+        "label": "Enable response keyword filter"
+      },
+      "action": {
+        "label": "Filter action",
+        "block": "Block",
+        "replace": "Replace",
+        "blockHint": "Immediately stop the response and return an error when a keyword is detected.",
+        "replaceHint": "Replace matched keywords with asterisks (*), the response continues normally."
+      },
+      "keywords": {
+        "label": "Blocked keywords",
+        "placeholder": "Type a keyword and press Enter to add",
+        "add": "Add",
+        "empty": "No keywords yet. Add keywords to block.",
+        "duplicate": "This keyword already exists",
+        "removeHint": "Click to remove"
+      },
+      "errorMessage": {
+        "label": "Block error message",
+        "placeholder": "Enter the error message returned when blocked",
+        "hint": "The error message text returned to the client when a keyword is detected in block mode."
+      }
+    },
+    "retry": {
+      "title": "Retry Settings",
+      "count": {
+        "label": "Max retries per channel",
+        "placeholder": "Enter retry count"
+      },
+      "ratelimitCooldown": {
+        "label": "Key cooldown (seconds)",
+        "hint": "After a channel key returns an upstream error (e.g. 429 rate limit, 401/403 auth failure), the key is skipped for this cooldown period. Set to 0 to disable cooldown.",
+        "placeholder": "Enter cooldown seconds"
+      },
+      "maxTotalAttempts": {
+        "label": "Max total attempts",
+        "hint": "Limits total forwarded attempts across all candidate channels for one request. 0 means unlimited.",
+        "placeholder": "Enter max total attempts"
+      }
+    },
+    "autoStrategy": {
+      "title": "Auto Strategy",
+      "hint": "Configure the automatic channel selection strategy. Channels with insufficient samples are explored first, then selection is based on success rate.",
+      "minSamples": {
+        "label": "Min Samples",
+        "hint": "Minimum requests before using success rate for selection",
+        "placeholder": "10"
+      },
+      "timeWindow": {
+        "label": "Time Window (sec)",
+        "hint": "Time window for calculating success rate",
+        "placeholder": "300"
+      },
+      "sampleThreshold": {
+        "label": "Sample Threshold",
+        "hint": "Maximum number of samples to keep in sliding window",
+        "placeholder": "100"
+      },
+      "latencyWeight": {
+        "label": "Latency Weight (0-100)",
+        "hint": "Higher values prefer lower-latency channels more strongly; lower values lean more on success rate.",
+        "placeholder": "30"
+      }
+    },
+    "aiRoute": {
+      "title": "AI Routing Settings",
+      "badge": "Command Habitat",
+      "group": {
+        "label": "Default Target Group for Single-Group AI Routing",
+        "placeholder": "Select a default target group",
+        "hint": "Used by the compatibility single-group AI routing flow. Clicking “AI Route” on the route page generates the full routing table directly."
+      },
+      "baseUrl": {
+        "label": "AI Base URL",
+        "placeholder": "Enter an OpenAI-compatible base URL"
+      },
+      "apiKey": {
+        "label": "AI API Key",
+        "placeholder": "Enter the AI API key"
+      },
+      "model": {
+        "label": "AI Model",
+        "placeholder": "Enter the model used for route analysis"
+      },
+      "timeoutSeconds": {
+        "label": "AI Timeout (seconds)",
+        "placeholder": "Enter the per-request timeout",
+        "hint": "Applies to a single AI route analysis request. Increase it if the model is slow or the model list is large."
+      },
+      "parallelism": {
+        "label": "Batch Parallelism",
+        "placeholder": "Enter an integer greater than 0",
+        "hint": "Controls the maximum number of AI route buckets analyzed in parallel. Defaults to 3, allows higher values, and never exceeds the number of batches in the current task."
+      },
+      "services": {
+        "label": "AI Service Pool (JSON)",
+        "placeholder": "Enter a JSON array of AI services",
+        "hint": "Leave empty or [] to keep using the single-service settings above. A JSON array enables multi-service pooling and failover.",
+        "invalid": "AI service pool JSON must be an array"
+      }
+    },
+    "semanticCache": {
+      "title": "Semantic Cache",
+      "description": "Configure the semantic cache runtime and its dedicated embedding service without leaving the current card layout.",
+      "enabled": {
+        "label": "Enable Semantic Cache"
+      },
+      "ttl": {
+        "label": "Cache TTL (seconds)",
+        "placeholder": "Enter TTL in seconds",
+        "hint": "Cached entries expire after this duration."
+      },
+      "threshold": {
+        "label": "Similarity Threshold (0-100)",
+        "placeholder": "Enter similarity threshold",
+        "hint": "Higher values require a closer semantic match before a cached response is reused."
+      },
+      "maxEntries": {
+        "label": "Max Entries",
+        "placeholder": "Enter the maximum number of cached entries",
+        "hint": "When the limit is reached, older cached entries are evicted first."
+      },
+      "embedding": {
+        "title": "Embedding Service",
+        "description": "These settings are used only for semantic-cache embedding requests and are not shared with AI Route."
+      },
+      "baseUrl": {
+        "label": "Embedding Base URL",
+        "placeholder": "Enter an OpenAI-compatible embedding base URL"
+      },
+      "apiKey": {
+        "label": "Embedding API Key",
+        "placeholder": "Enter the embedding API key"
+      },
+      "model": {
+        "label": "Embedding Model",
+        "placeholder": "Enter the embedding model name"
+      },
+      "timeoutSeconds": {
+        "label": "Embedding Timeout (seconds)",
+        "placeholder": "Enter the embedding request timeout",
+        "hint": "Applies only to semantic-cache embedding requests."
+      }
+    },
+    "pageOrder": {
+      "title": "Page Order",
+      "description": "Drag the top-level pages into the order you want. Changes are saved globally as soon as the drop completes.",
+      "reset": "Restore Default Order",
+      "hint": "This setting controls only the stored page order. The actual navbar integration is handled separately."
+    },
+    "saved": "Saved",
+    "saveFailed": "Save failed",
+    "backup": {
+      "title": "Backup / Restore",
+      "export": {
+        "title": "Export",
+        "includeLogs": "Include Logs",
+        "includeLogsHint": "Up to 500k most recent log entries",
+        "includeStats": "Include Stats",
+        "button": "Download JSON",
+        "exporting": "Exporting...",
+        "success": "Export started"
+      },
+      "import": {
+        "title": "Import",
+        "selected": "File selected",
+        "button": "Import JSON",
+        "importing": "Importing...",
+        "noFile": "Please select a JSON file first",
+        "success": "Import successful",
+        "failed": "Import failed",
+        "result": "Import result",
+        "mode": {
+          "label": "Import mode",
+          "incremental": "Incremental",
+          "full": "Full Restore",
+          "fullWarning": "Full restore will clear ALL existing data before importing. This is irreversible. Make sure you have a current backup."
+        }
+      },
+      "migration": {
+        "title": "Database migration",
+        "description": "Migrate data to another database and update config. The current process keeps using the old database until restart.",
+        "migrateLogs": "Migrate logs",
+        "migrateStats": "Migrate stats",
+        "targetRequired": "Please enter target database path / DSN",
+        "testSuccess": "Database connection OK",
+        "testFailed": "Database connection failed",
+        "confirm": "Migrate current data to target database and update config? Restart is required after success.",
+        "success": "Database migrated. Please restart Lodestar to use the new database.",
+        "failed": "Database migration failed",
+        "migrating": "Migrating...",
+        "button": "Migrate and switch after restart",
+        "migrateLogsHint": "Includes relay logs and audit logs; can be large.",
+        "testButton": "Test connection",
+        "successDetail": "Migration complete. Restart Lodestar to use {type}: {path}"
+      }
+    },
+    "webdav": {
+      "title": "WebDAV Cloud Backup",
+      "enabled": "Auto Backup",
+      "enabledHint": "Automatically backup to WebDAV server on schedule",
+      "baseUrl": "Server URL",
+      "username": "Username",
+      "password": "Password",
+      "remotePath": "Remote Path",
+      "includeStats": "Include statistics data",
+      "includeLogs": "Include relay & audit logs",
+      "intervalHours": "Interval (hours)",
+      "maxBackups": "Max backups to keep",
+      "save": "Save Config",
+      "saved": "WebDAV config saved",
+      "saveFailed": "Failed to save config",
+      "test": "Test Connection",
+      "testSuccess": "WebDAV connection successful",
+      "testFailed": "WebDAV connection failed",
+      "backupNow": "Backup Now",
+      "backupStarted": "Backup started in background",
+      "backupFailed": "Backup failed",
+      "remoteBackups": "Remote Backups",
+      "restore": "Restore",
+      "restoreConfirm": "Restore from backup {filename}? This will merge data into the current database.",
+      "restoreSuccess": "Backup restored successfully",
+      "restoreFailed": "Restore failed",
+      "delete": "Delete",
+      "deleteConfirm": "Delete backup {filename}?",
+      "deleteSuccess": "Backup deleted",
+      "deleteFailed": "Failed to delete backup"
+    },
+    "routeGroups": {
+      "title": "Route Groups",
+      "description": "Delete all route groups and all route items at once. This action cannot be undone.",
+      "count": "{count, plural, =0 {No route groups} one {# route group} other {# route groups}}",
+      "button": "Delete All Route Groups",
+      "deleting": "Deleting...",
+      "confirmTitle": "Delete all route groups?",
+      "confirmDescription": "This will permanently delete {count, plural, =0 {all route groups} one {# route group} other {# route groups}} and all route items.\nThe default target group for single-group AI routing will also be reset.\nThis action cannot be undone.\nContinue?",
+      "cancel": "Cancel",
+      "confirm": "Delete All",
+      "success": "Deleted {count} route groups",
+      "failed": "Failed to delete route groups"
+    },
+    "purgeUnavailable": {
+      "title": "Clean Up Unavailable Models",
+      "description": "Scan all route groups and remove items pointing to unavailable models: disabled channels, models that disappeared after a channel update, and items left over after a channel was deleted.",
+      "button": "Clean Up Unavailable Models",
+      "purging": "Cleaning up...",
+      "confirmTitle": "Clean up unavailable models?",
+      "confirmDescription": "This removes three kinds of items from all route groups:\n1. Models whose channel is disabled\n2. Models a channel no longer provides after an update\n3. Models left over after a channel was deleted\nThe groups themselves are kept. Continue?",
+      "cancel": "Cancel",
+      "confirm": "Clean Up",
+      "success": "Cleaned up {count} unavailable items",
+      "successNone": "No unavailable items found",
+      "summary": "Channel disabled {disabled} · Model gone {missing} · Channel deleted {removed}",
+      "failed": "Failed to clean up unavailable models"
+    },
+    "siteAutomation": {
+      "title": "Site Automation",
+      "autoGroupMode": {
+        "label": "Projected Channel Auto-Group Strategy",
+        "description": "Global strategy overrides per-channel settings",
+        "none": "None",
+        "fuzzy": "Fuzzy Match",
+        "exact": "Exact Match",
+        "regex": "Regex Match"
+      },
+      "syncInterval": {
+        "label": "Auto Sync Interval (hours)",
+        "placeholder": "Enter interval (hours)"
+      },
+      "checkinInterval": {
+        "label": "Auto Check-in Interval (hours)",
+        "placeholder": "Enter interval (hours)"
+      },
+      "manualSync": {
+        "label": "Manual Full Site Sync",
+        "button": "Sync Now",
+        "syncing": "Syncing..."
+      },
+      "manualCheckin": {
+        "label": "Manual Full Site Check-in",
+        "button": "Check in Now",
+        "checking": "Checking in..."
+      },
+      "saveFailed": "Save failed",
+      "syncTriggered": "Full site sync triggered in background",
+      "syncFailed": "Failed to trigger sync",
+      "checkinTriggered": "Full site check-in triggered in background",
+      "checkinFailed": "Failed to trigger check-in"
+    },
+    "apiKey": {
+      "title": "API Keys",
+      "empty": "No API keys",
+      "add": "Add Key",
+      "loadFailed": "Failed to load",
+      "form": {
+        "name": "Name",
+        "customKey": "Custom Key",
+        "optional": "Optional",
+        "customKeyPlaceholder": "Leave empty to auto-generate",
+        "customKeyHint": "You can set any custom key value",
+        "maxCost": "Max Cost",
+        "maxCostPlaceholder": "Enter amount",
+        "rateLimitRpm": {
+          "label": "Rate Limit (RPM)",
+          "placeholder": "Requests per minute, 0 = unlimited"
+        },
+        "rateLimitTpm": {
+          "label": "Rate Limit (TPM)",
+          "placeholder": "Tokens per minute, 0 = unlimited"
+        },
+        "perModelQuota": {
+          "label": "Per-Model Quota (JSON)",
+          "placeholder": "{\"gpt-4o\":{\"rpm\":5,\"tpm\":50000}}"
+        },
+        "allowedIPs": "Allowed IPs",
+        "allowedIPsPlaceholder": "Comma-separated IPs or CIDR, e.g. 10.0.0.1,192.168.0.0/16",
+        "unlimited": "Unlimited",
+        "expireAt": "Expire Date",
+        "expireTimePlaceholder": "HH:mm",
+        "selectDate": "Select date",
+        "neverExpire": "Never Expire",
+        "supportedModels": "Supported Models",
+        "noModels": "No models available",
+        "modelsHint": "Leave empty for unlimited",
+        "excludedChannels": "Excluded channels",
+        "noChannels": "No channels available",
+        "excludedChannelsHint": "Selected channels will not be used by this key",
+        "enabled": "Enabled",
+        "tags": "Tags",
+        "tagsPlaceholder": "Type and press Enter to add",
+        "tagsHint": "Use tags to group and quickly find keys",
+        "cancel": "Cancel",
+        "create": "Create",
+        "save": "Save",
+        "confirm": "Confirm"
+      },
+      "stats": {
+        "noData": "No statistics available",
+        "inputToken": "Input Token",
+        "outputToken": "Output Token",
+        "inputCost": "Input Cost",
+        "outputCost": "Output Cost",
+        "requestSuccess": "Request Success",
+        "requestFailed": "Request Failed"
+      },
+      "page": {
+        "searchPlaceholder": "Search by name or tag",
+        "newKey": "New Key",
+        "allTags": "All",
+        "untagged": "Untagged",
+        "filterByTag": "Filter by tag",
+        "count": "{count, plural, =0 {No keys} one {# key} other {# keys}}",
+        "noMatch": "No keys match the current filters",
+        "clearFilters": "Clear filters",
+        "createTitle": "Create API Key",
+        "editTitle": "Edit API Key",
+        "createDescription": "Configure limits, models and tags for the new key.",
+        "editDescription": "Update limits, models and tags for this key.",
+        "statusEnabled": "Enabled",
+        "statusDisabled": "Disabled",
+        "expires": "Expires",
+        "neverExpires": "Never expires",
+        "expired": "Expired",
+        "maxCost": "Max cost",
+        "unlimited": "Unlimited",
+        "requests": "Requests",
+        "successRate": "Success rate",
+        "tokens": "Tokens",
+        "cost": "Cost",
+        "noStats": "No usage yet",
+        "copyKey": "Copy key",
+        "viewStats": "Stats",
+        "edit": "Edit",
+        "delete": "Delete",
+        "deleteConfirm": "Delete this key?"
+      },
+      "actions": {
+        "viewStats": "View stats",
+        "edit": "Edit",
+        "close": "Close"
+      },
+      "toast": {
+        "createSuccess": "API key created",
+        "createError": "Failed to create API key",
+        "updateSuccess": "API key updated",
+        "updateError": "Failed to update API key",
+        "deleteSuccess": "API key deleted",
+        "deleteError": "Failed to delete API key"
+      }
+    },
+    "llmPrice": {
+      "title": "Model Pricing",
+      "updateInterval": {
+        "label": "Auto Update Interval (hours)",
+        "placeholder": "Enter interval in hours"
+      },
+      "manualUpdate": {
+        "label": "Manual Price Update",
+        "button": "Update Now",
+        "updating": "Updating..."
+      },
+      "lastUpdate": "Last Update",
+      "neverUpdated": "Never updated",
+      "updateSuccess": "Price updated successfully",
+      "updateFailed": "Failed to update price"
+    },
+    "llmSync": {
+      "title": "Automated Tasks",
+      "syncInterval": {
+        "label": "Auto Sync Interval (hours)",
+        "placeholder": "Enter interval in hours"
+      },
+      "manualSync": {
+        "label": "Manual Channel Sync",
+        "button": "Sync All Channel Models Now",
+        "syncing": "Syncing..."
+      },
+      "lastSync": "Last Sync",
+      "neverSynced": "Never synced",
+      "syncSuccess": "Channel synced successfully",
+      "syncFailed": "Failed to sync channel"
+    },
+    "webauthn": {
+      "title": "Passkey (WebAuthn)",
+      "description": "Configure the Relying Party used for Passkey login",
+      "hint": "RP ID is typically your site domain (no scheme or port); Origins are full URLs (with https://). Browsers require HTTPS (localhost excepted).",
+      "rpId": "RP ID",
+      "rpIdHint": "e.g. example.com — no https:// or port",
+      "rpName": "Display Name",
+      "origins": "Allowed Origins",
+      "originsHint": "Full URLs, comma-separated, e.g. https://example.com",
+      "saved": "Passkey configuration saved",
+      "saveFailed": "Failed to save",
+      "needRpid": "RP ID is required when an Origin is provided"
+    },
+    "account": {
+      "title": "Account Settings",
+      "save": "Save",
+      "saving": "Saving...",
+      "form": {
+        "cancel": "Cancel",
+        "save": "Save"
+      },
+      "username": {
+        "label": "Change Username",
+        "placeholder": "Enter new username",
+        "empty": "Username cannot be empty",
+        "success": "Username changed successfully",
+        "failed": "Failed to change username"
+      },
+      "password": {
+        "label": "Change Password",
+        "oldPlaceholder": "Enter current password",
+        "newPlaceholder": "Enter new password",
+        "confirmPlaceholder": "Confirm new password",
+        "showOld": "Show current password",
+        "hideOld": "Hide current password",
+        "showNew": "Show new password",
+        "hideNew": "Hide new password",
+        "showConfirm": "Show password confirmation",
+        "hideConfirm": "Hide password confirmation",
+        "oldEmpty": "Please enter current password",
+        "newEmpty": "Please enter new password",
+        "mismatch": "Passwords do not match",
+        "tooShort": "Password must be at least 6 characters",
+        "change": "Change Password",
+        "success": "Password changed successfully",
+        "failed": "Failed to change password"
+      },
+      "logout": {
+        "label": "Sign out current session",
+        "button": "Logout"
+      },
+      "passkey": {
+        "title": "Passkey Login",
+        "description": "Register a Passkey to sign in from the login page without a password",
+        "unnamed": "Unnamed credential",
+        "lastUsed": "Last used",
+        "created": "Created",
+        "delete": "Delete",
+        "namePlaceholder": "Credential name (e.g. \"MacBook\")",
+        "add": "Add Passkey",
+        "adding": "Adding...",
+        "addSuccess": "Passkey added",
+        "addFailed": "Failed to add Passkey",
+        "deleteSuccess": "Passkey removed",
+        "deleteFailed": "Failed to remove"
+      }
+    },
+    "info": {
+      "title": "Version Info",
+      "currentVersion": "Current Version",
+      "latestVersion": "Latest Version",
+      "buildTime": "Build Time",
+      "publishedAt": "Published At",
+      "github": "GitHub Repository",
+      "unknown": "Unknown",
+      "versionMismatch": "Version Mismatch",
+      "versionMismatchHint": "Frontend version ({frontend}) does not match backend version ({backend}). This may be a browser cache issue. Please force refresh the page.",
+      "forceRefresh": "Force Refresh",
+      "newVersionAvailable": "New version available",
+      "newVersionAvailableHint": "Please backup your data first, then update the system",
+      "updateNow": "Update Now",
+      "updating": "Updating...",
+      "updateSuccess": "Update successful, service will restart shortly",
+      "updateFailed": "Update failed"
+    },
+    "log": {
+      "title": "Log Settings",
+      "enabled": {
+        "label": "Enable History Logs",
+        "description": "When disabled, logs will not be saved and existing logs will be cleaned up"
+      },
+      "keepPeriod": {
+        "label": "Log Retention Days",
+        "placeholder": "e.g. 7",
+        "description": "Logs older than the specified days will be automatically deleted"
+      },
+      "clear": {
+        "label": "Clear History Logs",
+        "button": "Clear",
+        "clearing": "Clearing..."
+      },
+      "clearSuccess": "Logs cleared",
+      "clearFailed": "Failed to clear logs",
+      "keepCount": {
+        "label": "Log Retention Count",
+        "description": "Automatically deletes oldest 50% of logs when exceeding the limit, avoiding frequent cleanup overhead",
+        "placeholder": "e.g. 1000"
+      },
+      "keepMode": {
+        "label": "Retention Mode",
+        "count": "By Count",
+        "days": "By Days"
+      },
+      "mode": {
+        "label": "Log Retention Mode",
+        "description": "Choose to auto-clean logs by count or by days",
+        "count": "By Count",
+        "days": "By Days"
+      },
+      "logLevel": {
+        "label": "Application Log Level",
+        "description": "Control the verbosity of backend console output",
+        "debug": "Debug",
+        "info": "Info",
+        "warn": "Warn",
+        "error": "Error"
+      },
+      "excludedGroups": {
+        "label": "Hidden Groups",
+        "description": "Logs from selected groups will not be shown or loaded in the log list and live stream",
+        "empty": "No groups available",
+        "addHint": "Click to hide this group's logs",
+        "removeHint": "Click to stop hiding this group's logs"
+      }
+    },
+    "navOrder": {
+      "title": "Page Order & Visibility",
+      "description": "Drag to reorder navigation pages and hide non-critical pages. The Settings page always stays visible.",
+      "reset": "Reset Default",
+      "resetSuccess": "Page order has been reset",
+      "visible": "Visible",
+      "hidden": "Hidden",
+      "fixed": "Pinned",
+      "minimumVisibleHint": "Keep at least {count} pages visible. The Settings page cannot be hidden.",
+      "minimumVisibleError": "At least {count} pages must remain visible",
+      "toggleAriaLabel": "Toggle page visibility: {page}"
+    },
+    "settingOrder": {
+      "title": "Setting Item Order",
+      "description": "Drag to reorder setting page sections. Changes are saved immediately on drop.",
+      "reset": "Reset to Default",
+      "resetSuccess": "Setting item order has been reset"
+    },
+    "chinaMode": {
+      "label": "China Localization",
+      "description": "Display costs in CNY, numbers in 万/亿 units",
+      "exchangeRate": {
+        "label": "USD to CNY Rate",
+        "hint": "Default 7.2, adjustable"
+      }
+    },
+    "billingExpr": {
+      "title": "Billing Expressions"
+    },
     "stripe": {
       "title": "Online Payment · Stripe",
       "description": "Configure Stripe payment gateway",
@@ -1206,6 +1832,31 @@
       "confirm": "Confirm",
       "confirmRegen": "Confirm regenerate",
       "dismiss": "Dismiss"
+    },
+    "subscription": {
+      "title": "Subscription",
+      "plans": "Plans",
+      "mySubscription": "My Subscription",
+      "purchase": "Purchase",
+      "price": "Price",
+      "duration": "Duration",
+      "quota": "Quota",
+      "noPlan": "No subscription plans available",
+      "expiresAt": "Expires at",
+      "status": "Status",
+      "active": "Active",
+      "expired": "Expired",
+      "cancelled": "Cancelled",
+      "purchaseSuccess": "Purchase successful",
+      "purchaseFailed": "Purchase failed",
+      "admin": {
+        "title": "Subscription Management",
+        "createPlan": "Create Plan",
+        "editPlan": "Edit Plan",
+        "deletePlan": "Delete Plan",
+        "bindSubscription": "Bind Subscription",
+        "confirmDelete": "Delete this plan?"
+      }
     }
   },
   "group": {
@@ -1623,31 +2274,6 @@
     "tabs": {
       "market": "Market",
       "capabilities": "Capabilities"
-    },
-    "mapping": {
-      "title": "Model Mapping",
-      "count": "rules",
-      "empty": "No mapping rules yet",
-      "add": "Add mapping",
-      "loading": "Loading...",
-      "patternPlaceholder": "Pattern (e.g. gpt-4o)",
-      "targetPlaceholder": "Target model (e.g. gpt-4o-2024-08-06)",
-      "priorityPlaceholder": "Priority",
-      "cancel": "Cancel",
-      "create": "Create",
-      "creating": "Creating...",
-      "matchExact": "Exact",
-      "matchWildcard": "Wildcard",
-      "matchRegex": "Regex",
-      "enableTooltip": "Click to enable",
-      "disableTooltip": "Click to disable",
-      "confirmDelete": "Delete this mapping?",
-      "toastCreated": "Mapping created",
-      "toastCreateFailed": "Create failed",
-      "toastUpdateFailed": "Update failed",
-      "toastDeleted": "Deleted",
-      "toastDeleteFailed": "Delete failed",
-      "toastFillRequired": "Please enter pattern and target model"
     }
   },
   "log": {
@@ -2033,16 +2659,6 @@
       "logCountUnit": "entries"
     }
   },
-  "wallet": {
-    "stripe": {
-      "title": "Stripe Top-up",
-      "payWithStripe": "Pay with Stripe",
-      "amount": "Amount (USD)",
-      "redirecting": "Redirecting to Stripe Checkout...",
-      "failed": "Failed to start Stripe payment (admin must configure Stripe first)",
-      "enterValidAmount": "Please enter a valid amount"
-    }
-  },
   "proxyPool": {
     "site": {
       "inherit": "Inherit from site"
@@ -2120,77 +2736,5 @@
       "derivedReferences": "+{count} managed channels"
     },
     "selectRequired": "Please select a proxy configuration."
-  },
-  "subscription": {
-    "tabs": {
-      "plans": "Plans",
-      "mySubscription": "My Subscription",
-      "admin": "Admin"
-    },
-    "title": "Subscription Management",
-    "plans": "Subscription Plans",
-    "mySubscription": "My Subscription",
-    "purchase": "Subscribe Now",
-    "unavailable": "Unavailable",
-    "price": "Price",
-    "duration": "Duration",
-    "days": "{count} days",
-    "quota": "Quota",
-    "quotaUnit": "tokens",
-    "quotaUsed": "Used",
-    "noPlan": "No subscription plans available",
-    "noSubscription": "You don't have any active subscriptions",
-    "expiresAt": "Expires At",
-    "plan": "Plan",
-    "confirmPurchase": "Confirm subscription to this plan?",
-    "status": {
-      "active": "Active",
-      "expired": "Expired",
-      "inactive": "Inactive"
-    },
-    "toast": {
-      "purchaseSuccess": "Subscription successful!",
-      "planCreated": "Plan created",
-      "planUpdated": "Plan updated",
-      "planDeleted": "Plan deleted",
-      "bindSuccess": "Subscription bound",
-      "actionFailed": "Action failed"
-    },
-    "admin": {
-      "planManagement": "Plan Management",
-      "newPlan": "New Plan",
-      "noPlans": "No plans yet",
-      "enabled": "Enabled",
-      "disabled": "Disabled",
-      "confirmDelete": "Delete this plan?",
-      "form": {
-        "name": "Plan Name",
-        "namePlaceholder": "Enter plan name",
-        "price": "Price (USD)",
-        "pricePlaceholder": "Enter price",
-        "duration": "Duration (days)",
-        "durationPlaceholder": "Enter days",
-        "quota": "Quota (tokens)",
-        "quotaPlaceholder": "Enter quota",
-        "description": "Description (optional)",
-        "descriptionPlaceholder": "Enter plan description",
-        "enabled": "Enable this plan"
-      },
-      "actions": {
-        "save": "Save",
-        "cancel": "Cancel",
-        "edit": "Edit"
-      },
-      "bind": {
-        "title": "Bind Subscription",
-        "new": "Bind User",
-        "userId": "User ID",
-        "userIdPlaceholder": "Enter user ID",
-        "planId": "Plan",
-        "selectPlan": "Select a plan",
-        "submit": "Bind",
-        "noSubscriptions": "No bound subscriptions"
-      }
-    }
   }
 }
