@@ -29,7 +29,6 @@ import { useSettingStore, type Locale } from '@/stores/setting';
 import { useThemePresetStore } from '@/stores/theme-preset';
 import { useSetUserPreferences, useCurrentUser, isStaffRole } from '@/api/endpoints/user';
 import { SiteIdentity } from './SiteIdentity';
-import { SettingWallet } from './SettingWallet';
 import { ApiUsageGuide } from './ApiUsageGuide';
 import { Feedback } from './Feedback';
 import { BUILTIN_PRESETS } from '@/lib/theme-presets';
@@ -517,8 +516,6 @@ export function SettingAppearance() {
                             </Select>
                         </div>
                     </div>
-
-                    <SettingWallet />
 
                     <ApiUsageGuide />
 

@@ -9,6 +9,7 @@ export const DEFAULT_NAV_ORDER = [
     'alert',
     'ops',
     'apikey',
+    'wallet',
     'subscription',
     'setting',
     'commercial',

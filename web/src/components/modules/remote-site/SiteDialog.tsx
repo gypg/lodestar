@@ -20,6 +20,7 @@ import {
     useUpdateRemoteSite,
     useDetectSiteType,
     SITE_TYPES,
+    SITE_TYPE_LABELS,
     type RemoteSite,
     type RemoteSiteUpdateRequest,
 } from '@/api/endpoints/remote-site';
@@ -173,7 +174,7 @@ export function SiteDialog({ open, onOpenChange, editingSite }: SiteDialogProps)
                             </SelectTrigger>
                             <SelectContent>
                                 {SITE_TYPES.map(type => (
-                                    <SelectItem key={type} value={type}>{type}</SelectItem>
+                                    <SelectItem key={type} value={type}>{SITE_TYPE_LABELS[type] || type}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>

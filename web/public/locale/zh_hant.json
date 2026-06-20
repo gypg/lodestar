@@ -102,7 +102,8 @@
     "image": "生圖",
     "subscription": "訂閱",
     "commercial": "商業模式",
-    "site": "站點管理"
+    "site": "站點管理",
+    "wallet": "錢包"
   },
   "endpoints": {
     "title": "可用端點",

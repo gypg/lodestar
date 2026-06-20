@@ -33,6 +33,7 @@ export const DEFAULT_NAV_ORDER: NavItem[] = [
     'alert',
     'ops',
     'apikey',
+    'wallet',
     'subscription',
     'setting',
     'commercial',
