@@ -1786,7 +1786,20 @@
       }
     },
     "billingExpr": {
-      "title": "表達式計費"
+      "title": "表達式計費",
+      "description": "為模型配置表達式定價（可選）。留空則使用上游 USD 成本直通。",
+      "variables": "變數參考",
+      "functions": "函數",
+      "preview": "預覽",
+      "sampleTokens": "範例 token 數",
+      "modelPlaceholder": "模型名 (如 gpt-4o)",
+      "addModel": "添加模型",
+      "save": "儲存表達式",
+      "saving": "儲存中...",
+      "showPreview": "顯示預覽",
+      "hidePreview": "隱藏預覽",
+      "toastSaved": "表達式計費已儲存",
+      "toastFailed": "儲存失敗"
     },
     "stripe": {
       "title": "線上支付 · Stripe",

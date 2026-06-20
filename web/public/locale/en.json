@@ -1786,7 +1786,20 @@
       }
     },
     "billingExpr": {
-      "title": "Billing Expressions"
+      "title": "Billing Expressions",
+      "description": "Configure expression-based pricing per model (optional). Leave empty for direct upstream USD cost pass-through.",
+      "variables": "Variable Reference",
+      "functions": "Functions",
+      "preview": "Preview",
+      "sampleTokens": "Sample tokens",
+      "modelPlaceholder": "Model name (e.g. gpt-4o)",
+      "addModel": "Add model",
+      "save": "Save expressions",
+      "saving": "Saving...",
+      "showPreview": "Show preview",
+      "hidePreview": "Hide preview",
+      "toastSaved": "Billing expressions saved",
+      "toastFailed": "Save failed"
     },
     "stripe": {
       "title": "Online Payment · Stripe",

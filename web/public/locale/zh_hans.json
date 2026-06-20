@@ -1786,7 +1786,20 @@
       }
     },
     "billingExpr": {
-      "title": "表达式计费"
+      "title": "表达式计费",
+      "description": "为模型配置表达式定价（可选）。留空则使用上游 USD 成本直通。",
+      "variables": "变量参考",
+      "functions": "函数",
+      "preview": "预览",
+      "sampleTokens": "示例 token 数",
+      "modelPlaceholder": "模型名 (如 gpt-4o)",
+      "addModel": "添加模型",
+      "save": "保存表达式",
+      "saving": "保存中...",
+      "showPreview": "显示预览",
+      "hidePreview": "隐藏预览",
+      "toastSaved": "表达式计费已保存",
+      "toastFailed": "保存失败"
     },
     "stripe": {
       "title": "在线支付 · Stripe",
