@@ -7,22 +7,25 @@
 
 ## 方式一：Docker Compose（推荐，全栈 PG + Redis）
 
-仓库自带 `docker-compose.yml`（应用）与 `.env.example`（密钥模板）。
+镜像由 CI 构建并推到 GHCR（`.github/workflows/docker.yml`，**quality 全绿后才推**），服务器侧不 build，直接 pull。
 
 ```bash
+# 0. 把 docker-compose.yml 和 .env.example 传到服务器（/opt/docker/lodestar/）
 # 1. 准备密钥（一次性，妥善备份，勿改动）
 cp .env.example .env
 # 填好 LODESTAR_AUTH_JWT_SECRET / LODESTAR_SECURITY_ENCRYPTION_KEY / PG 密码 / Redis 配置
 # 生成随机值：openssl rand -hex 32
 
-# 2. 启动（首次构建较久：前端 Next 构建 + Go 编译）
-docker compose up -d --build
+# 2. 拉镜像并启动（不再有 --build）
+docker compose pull
+docker compose up -d
 # 访问 http://<server>:8080
 ```
 - 默认连服务器现有 PG（`172.16.0.87:5432`，独立库 `lodestar`）+ Redis（独立 `db=2`）。
+- 镜像 tag：`:latest` 跟最新 main；`:sha-<commit>` 钉版本可回滚。
 - 若目标服务器没有现成 PG/Redis，取消注释 compose 末尾的 `postgres`/`redis` 块随栈自带。
 - 数据持久化在 `./data`（SQLite 回落场景的库 + 配置）；PG 数据在 PG 侧。
-- 改配置：编辑 `.env` 后 `docker compose up -d`。
+- 改配置：编辑 `.env` 后 `docker compose up -d`。更新代码：push 后等 CI 推完镜像 → `docker compose pull && docker compose up -d`。
 
 > **关键提示：商业模式准备**。即使当前自用（`commercial_mode=false`），架构搭建时就把
 > `LODESTAR_SECURITY_ENCRYPTION_KEY` 一次性设好并备份——它加密存储的渠道 API key，
@@ -121,7 +124,7 @@ bash scripts/verify-heatmap-server.sh
 Lodestar 是**全新自研栈**（非 newapi 容器），重新部署、独立数据库（独立 PG 库 `lodestar` + Redis `db=2`），不与旧 `ghcr.io/futureppo/new-api` 镜像/库冲突。
 切换时建议新库新域名灰度，确认无误再切流量。凭据请走 env / secret，勿写入仓库。
 
-> 注：Docker 构建未在本机实测（本机 Docker 守护进程未运行）；Dockerfile/compose 已按 Lodestar 改名校对（二进制名、`LODESTAR_DATA_DIR`、Author）。首次 `docker compose up -d --build` 若遇问题，多为前端 `pnpm install --frozen-lockfile` 的 lockfile 漂移——可临时去掉 `--frozen-lockfile`。
+> 注：Docker 构建在 CI 完成（`.github/workflows/docker.yml`），镜像推 GHCR；服务器侧 `docker compose pull` 即用，不在弱机上 build。首次 `docker compose pull` 若拉取慢，可配国内镜像加速或预拉。旧 newapi 也是拉 `ghcr.io`，链路已验证。
 
 ---
 

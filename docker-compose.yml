@@ -5,19 +5,19 @@
 #   - PostgreSQL @ 172.16.0.87:5432 → 为 Lodestar 新建独立库 `lodestar` + 独立角色（新鲜密码）
 #   - Redis      @ 172.16.0.87:6379 → 用独立 db 索引（旧 newapi 用 /1，Lodestar 用 /2）
 #
-# 所有密钥走 .env（不入 git）：cp .env.example .env && 填值
-# 首次：docker compose up -d --build
+# 镜像由 CI 构建并推到 GHCR（.github/workflows/docker.yml，quality 全绿后才推），
+# 服务器侧不 build——直接 pull。所有密钥走 .env（不入 git）。
+# 用法：cp .env.example .env && 填值 → docker compose pull && docker compose up -d
 # 详见 docs/DEPLOY.md「生产全栈」。
 # =============================================================================
 services:
   lodestar:
-    build:
-      context: .
-      args:
-        APP_VERSION: dev
-    image: lodestar:latest
+    # CI 构建的多阶段镜像（非 root + healthcheck + 前端嵌入二进制）。
+    # 弱服务器无需 build，pull 即用。版本钉 sha-<commit> 可回滚，:latest 跟最新 main。
+    image: ghcr.io/gypg/lodestar:latest
     container_name: lodestar
     restart: unless-stopped
+    pull_policy: always
     ports:
       - "8080:8080"
     volumes:
