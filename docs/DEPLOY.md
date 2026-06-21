@@ -109,7 +109,7 @@ LODESTAR_REDIS_DB=2
 部署后验收（热力图 / `per_model` / Banner 字段）：
 
 ```bash
-git pull && docker compose up -d --build
+docker compose pull && docker compose up -d
 export BASE=http://127.0.0.1:8080
 export TOKEN='<登录 JWT>'
 bash scripts/verify-heatmap-server.sh
