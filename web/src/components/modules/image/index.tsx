@@ -4,12 +4,14 @@
 Lodestar — 生图工坊（消费级，思路源自 SAPI ImagePlayground，UI 用本栈重写）。
 
 登录用户用自己的 API Key 调本站 OpenAI 兼容 `/v1/images/generations` 生图，站内预览/下载。
+生成成功后持久化到服务端，侧栏/底部历史可回看与删除。
 */
 
 import { useEffect, useMemo, useState } from 'react';
-import { ImageIcon, Download, Loader2 } from 'lucide-react';
+import { ImageIcon, Download, Loader2, Trash2 } from 'lucide-react';
 import { useAPIKeyList } from '@/api/endpoints/apikey';
 import { usePublicOverview } from '@/api/endpoints/public';
+import { useCreateImageRecord, useDeleteImageRecord, useImageRecords, type ImageRecordSummary } from '@/api/endpoints/image';
 import { filterImageModelNames } from '@/lib/image-models';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,19 +26,32 @@ export function ImageStudio() {
         [overview],
     );
     const enabledKeys = useMemo(() => (keys ?? []).filter((k) => k.enabled && k.api_key), [keys]);
+
+    const { data: records, isLoading: recordsLoading } = useImageRecords();
+    const createRecord = useCreateImageRecord();
+    const deleteRecord = useDeleteImageRecord();
+
     const [keyId, setKeyId] = useState<number | null>(null);
     const [model, setModel] = useState('dall-e-3');
     const [size, setSize] = useState('1024x1024');
     const [prompt, setPrompt] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [images, setImages] = useState<string[]>([]);
 
     useEffect(() => {
         if (keyId === null && enabledKeys.length > 0) setKeyId(enabledKeys[0].id);
     }, [enabledKeys, keyId]);
 
     const selectedKey = enabledKeys.find((k) => k.id === keyId);
+
+    const persist = (urls: string[], p: string) => {
+        const kid = keyId ?? 0;
+        if (kid <= 0) return;
+        // Persist each generated image; the most recent ends up on top of the list.
+        urls.forEach((url) => {
+            createRecord.mutate({ model, prompt: p, size, api_key_id: kid, url });
+        });
+    };
 
     const generate = async () => {
         const p = prompt.trim();
@@ -62,7 +77,7 @@ export function ImageStudio() {
                 setError('未返回图片，请检查模型是否支持生图。');
                 return;
             }
-            setImages((prev) => [...urls, ...prev]);
+            persist(urls, p);
         } catch (e) {
             setError(e instanceof Error ? e.message : '请求出错');
         } finally {
@@ -110,24 +125,77 @@ export function ImageStudio() {
             {error && <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-2 text-xs text-destructive">{error}</div>}
 
             <div className="grid flex-1 grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                {images.length === 0 && !loading && (
+                {recordsLoading && (
+                    <div className="col-span-full grid place-items-center py-10 text-sm text-muted-foreground">加载历史…</div>
+                )}
+                {!recordsLoading && (records ?? []).length === 0 && !loading && (
                     <div className="col-span-full grid place-items-center py-10 text-sm text-muted-foreground">输入描述并生成 · 使用你自己的密钥与余额</div>
                 )}
-                {images.map((src, i) => (
-                    <div key={i} className="group relative overflow-hidden rounded-lg border border-border/40">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={src} alt={`generated-${i}`} className="aspect-square w-full object-cover" />
-                        <a
-                            href={src}
-                            download={`Lodestar-${i}.png`}
-                            className="absolute right-2 top-2 grid size-8 place-items-center rounded-lg bg-background/80 text-foreground opacity-0 transition-opacity group-hover:opacity-100"
-                            aria-label="下载"
-                        >
-                            <Download className="size-4" />
-                        </a>
-                    </div>
+                {(records ?? []).map((r: ImageRecordSummary) => (
+                    <ImageCard key={r.id} record={r} onDelete={(id) => deleteRecord.mutate(id)} deleting={deleteRecord.isPending} />
                 ))}
             </div>
+        </div>
+    );
+}
+
+function ImageCard({ record, onDelete, deleting }: { record: ImageRecordSummary; onDelete: (id: number) => void; deleting: boolean }) {
+    const [src, setSrc] = useState<string>('');
+    const [failed, setFailed] = useState(false);
+
+    useEffect(() => {
+        let cancelled = false;
+        setSrc('');
+        setFailed(false);
+        // The list endpoint omits the (potentially large) URL; fetch the detail on
+        // demand to render the image.
+        fetch(`${window.location.origin}/api/v1/image/records/${record.id}`, { headers: { Accept: 'application/json' } })
+            .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+            .then((j) => {
+                if (cancelled) return;
+                const url = j?.data?.url as string | undefined;
+                if (url) setSrc(url);
+                else setFailed(true);
+            })
+            .catch(() => !cancelled && setFailed(true));
+        return () => {
+            cancelled = true;
+        };
+    }, [record.id]);
+
+    return (
+        <div className="group relative overflow-hidden rounded-lg border border-border/40">
+            {src && !failed ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={src} alt={`generated-${record.id}`} className="aspect-square w-full object-cover" />
+            ) : (
+                <div className="grid aspect-square w-full place-items-center text-xs text-muted-foreground">
+                    {failed ? '加载失败' : '加载…'}
+                </div>
+            )}
+            <a
+                href={src || undefined}
+                download={`Lodestar-${record.id}.png`}
+                className="absolute right-2 top-2 grid size-8 place-items-center rounded-lg bg-background/80 text-foreground opacity-0 transition-opacity group-hover:opacity-100"
+                aria-label="下载"
+                aria-disabled={!src}
+            >
+                <Download className="size-4" />
+            </a>
+            <button
+                type="button"
+                onClick={() => onDelete(record.id)}
+                disabled={deleting}
+                className="absolute left-2 top-2 grid size-8 place-items-center rounded-lg bg-background/80 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
+                aria-label="删除"
+            >
+                <Trash2 className="size-4" />
+            </button>
+            {record.prompt && (
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+                    <p className="line-clamp-2 text-[11px] text-white/90">{record.prompt}</p>
+                </div>
+            )}
         </div>
     );
 }

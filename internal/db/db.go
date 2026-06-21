@@ -266,6 +266,7 @@ func Migrate(conn *gorm.DB) error {
 		&model.InviteCode{},
 		&model.Feedback{},
 		&model.ChatSession{},
+		&model.ImageRecord{},
 		&model.TwoFA{},
 		&model.TwoFABackupCode{},
 		&model.OAuthBinding{},
