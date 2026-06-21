@@ -186,8 +186,6 @@ func login(c *gin.Context) {
 	// 2FA: if the user has two-factor auth enabled, require a valid TOTP/backup
 	// code before issuing a token. Without this check, a successful 2FA setup is
 	// purely decorative — any holder of the password could log in regardless.
-	// (twofa.VerifyLogin is otherwise unreferenced on the login path; wiring it
-	// here closes that gap.)
 	twoFAStatus, err := twofa.GetStatus(userObj.ID)
 	if err != nil {
 		resp.Error(c, http.StatusInternalServerError, resp.ErrDatabase)

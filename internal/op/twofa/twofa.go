@@ -172,9 +172,10 @@ func Disable(userID uint, code string) error {
 	return deleteByUserID(userID)
 }
 
-// VerifyLogin verifies a TOTP or backup code during login. This is a
-// standalone verification (not tied to the login session yet — that
-// integration is deferred).
+// VerifyLogin verifies a TOTP or backup code during login. The login handler
+// calls this after the password check passes; if 2FA is enabled for the user
+// and the code is missing/invalid, the handler returns requires_two_factor
+// or 401 respectively (see internal/server/handlers/user.go).
 func VerifyLogin(userID uint, code string) error {
 	code = sanitizeCode(code)
 
