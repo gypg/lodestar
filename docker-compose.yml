@@ -1,6 +1,16 @@
+# =============================================================================
+# Lodestar 生产部署（PostgreSQL + Redis 全栈）
+#
+# 复用服务器现有基础设施（与旧 newapi 同款）：
+#   - PostgreSQL @ 172.16.0.87:5432 → 为 Lodestar 新建独立库 `lodestar` + 独立角色（新鲜密码）
+#   - Redis      @ 172.16.0.87:6379 → 用独立 db 索引（旧 newapi 用 /1，Lodestar 用 /2）
+#
+# 所有密钥走 .env（不入 git）：cp .env.example .env && 填值
+# 首次：docker compose up -d --build
+# 详见 docs/DEPLOY.md「生产全栈」。
+# =============================================================================
 services:
   lodestar:
-    # 本地构建（暂无发布镜像）。首次：docker compose up -d --build
     build:
       context: .
       args:
@@ -12,25 +22,40 @@ services:
       - "8080:8080"
     volumes:
       - ./data:/app/data
+    env_file:
+      - .env
     environment:
       # 容器时区；海外部署可改为显式 IANA 时区名，例如 America/Los_Angeles
       TZ: "Asia/Shanghai"
-      # 强烈建议设置一个随机长字符串，保持 JWT 跨重启有效（留空则每次启动生成临时密钥，重启即掉登录）
-      # LODESTAR_AUTH_JWT_SECRET: "change-me-to-a-long-random-string"
-      #
-      # ── 默认 SQLite（数据落在 ./data，零外部依赖）。如需用 PostgreSQL（你的服务器已有 PG）：
-      # LODESTAR_DATABASE_TYPE: "postgres"
-      # LODESTAR_DATABASE_PATH: "host=172.16.0.87 port=5432 user=lodestar password=*** dbname=lodestar sslmode=disable"
-      # （MySQL 同理：LODESTAR_DATABASE_TYPE=mysql，DATABASE_PATH 填 MySQL DSN）
+    # PG/Redis 为外部服务（172.16.0.87），无 depends_on。
+    # 容器需能路由到 172.16.0.87——旧 newapi 容器在同主机已验证可达，Lodestar 同法部署即可。
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/api/v1/bootstrap/status"]
+      interval: 30s
+      timeout: 3s
+      start_period: 10s
+      retries: 3
 
-  # ── 可选：随栈带一个 PostgreSQL（若不用外部 PG，取消注释并把上面 DATABASE_* 指向它）
-  # postgres:
-  #   image: postgres:16-alpine
-  #   container_name: lodestar-pg
-  #   restart: unless-stopped
-  #   environment:
-  #     POSTGRES_USER: lodestar
-  #     POSTGRES_PASSWORD: change-me
-  #     POSTGRES_DB: lodestar
-  #   volumes:
-  #     - ./pgdata:/var/lib/postgresql/data
+# -----------------------------------------------------------------------------
+# 仅当目标服务器「没有」现成 PG/Redis 时，取消注释随栈自带独立实例。
+# 本服务器（西安 2C2G）已有 PG+Redis，保持注释、走上面的外部连接即可。
+# 若启用本块，.env 里 LODESTAR_DATABASE_PATH 的 host 要改成 lodestar-pg、
+# LODESTAR_REDIS_HOST 改成 lodestar-redis。
+# -----------------------------------------------------------------------------
+#  postgres:
+#    image: postgres:16-alpine
+#    container_name: lodestar-pg
+#    restart: unless-stopped
+#    environment:
+#      POSTGRES_USER: lodestar
+#      POSTGRES_PASSWORD: ${LODESTAR_PG_PASSWORD}
+#      POSTGRES_DB: lodestar
+#    volumes:
+#      - ./pgdata:/var/lib/postgresql/data
+#  redis:
+#    image: redis:7-alpine
+#    container_name: lodestar-redis
+#    restart: unless-stopped
+#    command: ["redis-server", "--requirepass", "${LODESTAR_REDIS_PASSWORD}", "--save", "60", "1"]
+#    volumes:
+#      - ./redisdata:/data

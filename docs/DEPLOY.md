@@ -5,15 +5,29 @@
 
 ---
 
-## 方式一：Docker Compose（推荐）
+## 方式一：Docker Compose（推荐，全栈 PG + Redis）
+
+仓库自带 `docker-compose.yml`（应用）与 `.env.example`（密钥模板）。
 
 ```bash
-# 在仓库根目录（含 Dockerfile / docker-compose.yml）
+# 1. 准备密钥（一次性，妥善备份，勿改动）
+cp .env.example .env
+# 填好 LODESTAR_AUTH_JWT_SECRET / LODESTAR_SECURITY_ENCRYPTION_KEY / PG 密码 / Redis 配置
+# 生成随机值：openssl rand -hex 32
+
+# 2. 启动（首次构建较久：前端 Next 构建 + Go 编译）
 docker compose up -d --build
-# 首次构建较久（前端 Next 构建 + Go 编译）。完成后访问 http://<server>:8080
+# 访问 http://<server>:8080
 ```
-- 数据持久化在 `./data`（SQLite 库 + 配置）。
-- 改配置：编辑 `docker-compose.yml` 的 `environment` 后 `docker compose up -d`。
+- 默认连服务器现有 PG（`172.16.0.87:5432`，独立库 `lodestar`）+ Redis（独立 `db=2`）。
+- 若目标服务器没有现成 PG/Redis，取消注释 compose 末尾的 `postgres`/`redis` 块随栈自带。
+- 数据持久化在 `./data`（SQLite 回落场景的库 + 配置）；PG 数据在 PG 侧。
+- 改配置：编辑 `.env` 后 `docker compose up -d`。
+
+> **关键提示：商业模式准备**。即使当前自用（`commercial_mode=false`），架构搭建时就把
+> `LODESTAR_SECURITY_ENCRYPTION_KEY` 一次性设好并备份——它加密存储的渠道 API key，
+> 一旦有数据**不可更改**。事后开商业模式时无需再迁移凭据。Redis 也是同理：自用单实例可留空，
+> 但既然要为商业化铺路，建议一上来就启用（多实例共享缓存/限流状态需要它）。
 
 ## 方式二：纯 Docker
 
@@ -48,8 +62,11 @@ LODESTAR_AUTH_JWT_SECRET="$(openssl rand -hex 32)" ./lodestar start
 | `LODESTAR_SERVER_HOST` | 监听地址 | 全网卡 |
 | `LODESTAR_DATA_DIR` | 数据/配置目录 | `./data`（容器内 `/app/data`） |
 | `LODESTAR_AUTH_JWT_SECRET` | JWT 签名密钥（**务必设**，否则重启掉登录） | 随机长字符串 |
+| `LODESTAR_SECURITY_ENCRYPTION_KEY` | 敏感凭据加密密钥（加密存储的渠道 API key；**一旦有数据不可改**，架构搭建时一次性生成并备份） | 随机长字符串 |
 | `LODESTAR_DATABASE_TYPE` | `sqlite`(默认) / `postgres` / `mysql` | `sqlite` |
 | `LODESTAR_DATABASE_PATH` | DB 连接串：sqlite=文件路径；postgres/mysql=DSN | 见下 |
+| `LODESTAR_DATABASE_LOG_TYPE` / `_LOG_PATH` | 可选独立日志库（仅 relay_logs；留空共用主库） | 空 |
+| `LODESTAR_REDIS_HOST` / `_PORT` / `_PASSWORD` / `_DB` | Redis；留空 host 则跳过、回落内存缓存 | 空 |
 | `TZ` | 时区 | `Asia/Shanghai` |
 
 **接你服务器现有 PostgreSQL**：
@@ -57,9 +74,19 @@ LODESTAR_AUTH_JWT_SECRET="$(openssl rand -hex 32)" ./lodestar start
 LODESTAR_DATABASE_TYPE=postgres
 LODESTAR_DATABASE_PATH=host=172.16.0.87 port=5432 user=lodestar password=*** dbname=lodestar sslmode=disable
 ```
-> 建库后首启会自动迁移建表（GORM AutoMigrate + 版本化迁移），无需手动建表。
+> 为 Lodestar 新建独立库 `lodestar` + 独立角色（新鲜密码，勿复用暴露过的 postgres 超管密码）。
+> 首启会自动迁移建表（GORM AutoMigrate + 版本化迁移），无需手动建表。
+
+**接你服务器现有 Redis**：用独立 `db` 索引与旧 newapi 隔离（旧用 `/1`，Lodestar 用 `/2`）。
+```
+LODESTAR_REDIS_HOST=172.16.0.87
+LODESTAR_REDIS_PORT=6379
+LODESTAR_REDIS_PASSWORD=
+LODESTAR_REDIS_DB=2
+```
 
 配置也可写在 `data/config.json`（JSON），env 优先级高于文件。
+**生产部署建议所有密钥走 `.env`**（见 `.env.example`，`.env` 已 gitignore，`.env.example` 入库做模板）。
 
 ---
 
@@ -91,7 +118,21 @@ bash scripts/verify-heatmap-server.sh
 
 ## 与旧 newapi 线上的关系
 
-Lodestar 是**全新自研栈**（非 newapi 容器），重新部署、独立数据库，不与旧 `ghcr.io/futureppo/new-api` 镜像/库冲突。
+Lodestar 是**全新自研栈**（非 newapi 容器），重新部署、独立数据库（独立 PG 库 `lodestar` + Redis `db=2`），不与旧 `ghcr.io/futureppo/new-api` 镜像/库冲突。
 切换时建议新库新域名灰度，确认无误再切流量。凭据请走 env / secret，勿写入仓库。
 
 > 注：Docker 构建未在本机实测（本机 Docker 守护进程未运行）；Dockerfile/compose 已按 Lodestar 改名校对（二进制名、`LODESTAR_DATA_DIR`、Author）。首次 `docker compose up -d --build` 若遇问题，多为前端 `pnpm install --frozen-lockfile` 的 lockfile 漂移——可临时去掉 `--frozen-lockfile`。
+
+---
+
+## 商业化架构就绪清单
+
+当前自用模式下（`commercial_mode=false`）商业面/计费/充值/多租户全部 gate 住、零影响。但下列「一次定终身的」基础设施务必在首次部署时配好，否则日后开商业模式需迁移：
+
+- [ ] `LODESTAR_SECURITY_ENCRYPTION_KEY`：加密存储的渠道 API key，**有数据后不可改**——架构期生成并备份。
+- [ ] PostgreSQL 接好：多用户/计费/兑换/订单均依赖关系库（SQLite 单连接不扛商业并发）。
+- [ ] Redis 接好：多实例共享缓存、限流、会话状态需要它（单实例自用可空，但商业建议启用）。
+- [ ] `LODESTAR_AUTH_JWT_SECRET`：固定值，否则重启全员掉登录。
+- [ ] 独立日志库（可选）：`LODESTAR_DATABASE_LOG_*`，relay 日志量大时可秒级清理而不动主库。
+
+切换商业模式：设置 → 开 `commercial_mode`（可逆）。详见 `docs/COMMERCIAL-PORT.md`。

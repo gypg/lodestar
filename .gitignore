@@ -48,6 +48,11 @@ docs/HARVEST-REVIEW-*.md
 .omo/
 .vscode/
 
+# secrets (docker-compose env — never commit)
+.env
+.env.*
+!.env.example
+
 # OS files
 .DS_Store
 Thumbs.db
