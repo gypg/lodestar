@@ -12,6 +12,7 @@ import { logger } from '@/lib/logger';
 export interface UserLoginRequest {
     username: string;
     password: string;
+    totp_code?: string; // 仅当用户启用了 2FA 时需要
     expire: number; // token 过期时间（分钟）
 }
 
@@ -21,6 +22,7 @@ export interface UserLoginRequest {
 export interface UserLoginResponse {
     token: string;
     expire_at: string; // ISO 8601 格式
+    requires_two_factor?: boolean; // true = 该用户启用了 2FA，需带 totp_code 重新提交
 }
 
 /**
@@ -164,6 +166,8 @@ export function useLogin() {
             return apiClient.post<UserLoginResponse>('/api/v1/user/login', data, undefined, false);
         },
         onSuccess: (data) => {
+            // requires_two_factor 表示需要 TOTP，此时后端不发 token，不要写入 auth
+            if (data.requires_two_factor) return;
             // 保存到 zustand store
             setAuth(data.token, data.expire_at);
         },

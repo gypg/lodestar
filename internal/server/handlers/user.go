@@ -12,6 +12,7 @@ import (
 	"github.com/gypg/lodestar/internal/op/email"
 	"github.com/gypg/lodestar/internal/op/invite"
 	"github.com/gypg/lodestar/internal/op/setting"
+	"github.com/gypg/lodestar/internal/op/twofa"
 	usr "github.com/gypg/lodestar/internal/op/user"
 	"github.com/gypg/lodestar/internal/server/auth"
 	"github.com/gypg/lodestar/internal/server/middleware"
@@ -181,6 +182,30 @@ func login(c *gin.Context) {
 		return
 	}
 	middleware.ClearLoginFailures(loginKey)
+
+	// 2FA: if the user has two-factor auth enabled, require a valid TOTP/backup
+	// code before issuing a token. Without this check, a successful 2FA setup is
+	// purely decorative — any holder of the password could log in regardless.
+	// (twofa.VerifyLogin is otherwise unreferenced on the login path; wiring it
+	// here closes that gap.)
+	twoFAStatus, err := twofa.GetStatus(userObj.ID)
+	if err != nil {
+		resp.Error(c, http.StatusInternalServerError, resp.ErrDatabase)
+		return
+	}
+	if twoFAStatus != nil && twoFAStatus.Enabled {
+		if strings.TrimSpace(user.TOTPCode) == "" {
+			// Tell the client to prompt for a TOTP code and resubmit.
+			resp.Success(c, model.UserLoginResponse{RequiresTwoFactor: true})
+			return
+		}
+		if err := twofa.VerifyLogin(userObj.ID, user.TOTPCode); err != nil {
+			middleware.RecordLoginFailure(loginKey, time.Now())
+			resp.Error(c, http.StatusUnauthorized, "invalid two-factor code")
+			return
+		}
+	}
+
 	token, expire, err := auth.GenerateJWTToken(user.Expire, userObj.ID, userObj.Role)
 	if err != nil {
 		resp.Error(c, http.StatusInternalServerError, resp.ErrInternalServer)

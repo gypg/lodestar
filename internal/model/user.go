@@ -36,6 +36,7 @@ type User struct {
 type UserLogin struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
+	TOTPCode string `json:"totp_code,omitempty"` // required only when the user has 2FA enabled
 	Expire   int    `json:"expire"`
 }
 
@@ -60,8 +61,9 @@ type UserCreateRequest struct {
 }
 
 type UserLoginResponse struct {
-	Token    string `json:"token"`
-	ExpireAt string `json:"expire_at"`
+	Token             string `json:"token"`
+	ExpireAt          string `json:"expire_at"`
+	RequiresTwoFactor bool   `json:"requires_two_factor,omitempty"` // true when 2FA is on and totp_code was not supplied
 }
 
 // TableName explicitly returns "-" to prevent GORM from treating these DTOs as database tables.

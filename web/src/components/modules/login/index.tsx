@@ -36,6 +36,8 @@ export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
   const [emailCode, setEmailCode] = useState("")
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
+  const [totpCode, setTotpCode] = useState("")
+  const [needsTwoFactor, setNeedsTwoFactor] = useState(false)
   const [apiKey, setApiKey] = useState("")
   const [error, setError] = useState<string | null>(null)
   const isMobile = useIsMobile()
@@ -87,11 +89,16 @@ export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
             email_code: emailCode.trim(),
           })
         } else {
-          await loginMutation.mutateAsync({
+          const data = await loginMutation.mutateAsync({
             username: username.trim(),
             password,
+            totp_code: needsTwoFactor ? totpCode.trim() : undefined,
             expire: 1440,
           })
+          if (data.requires_two_factor) {
+            setNeedsTwoFactor(true)
+            return // 等用户填 TOTP 后再次提交；不调 onLoginSuccess
+          }
         }
       } else {
         await apiKeyLoginMutation.mutateAsync(apiKey)
@@ -209,6 +216,25 @@ export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
                       disabled={isPending}
                     />
                   </Field>
+                  {needsTwoFactor && !isRegister && (
+                    <Field>
+                      <FieldLabel className="text-xs font-semibold text-muted-foreground/70 ml-1" htmlFor="totp">两步验证码</FieldLabel>
+                      <Input
+                        id="totp"
+                        type="text"
+                        placeholder="请输入 6 位验证码或备份码"
+                        value={totpCode}
+                        onChange={(e) => setTotpCode(e.target.value)}
+                        className="h-12 rounded-xl bg-card border-border/30"
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        spellCheck={false}
+                        autoComplete="one-time-code"
+                        required
+                        disabled={isPending}
+                      />
+                    </Field>
+                  )}
                   {isRegister && registerEmailRequired && (
                     <>
                     <Field>
