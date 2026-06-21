@@ -35,5 +35,5 @@ test('buildCCSwitchProviderLink follows v1 provider import protocol', () => {
 
 test('maskCCSwitchSecret keeps short values and masks long keys', () => {
     assert.equal(maskCCSwitchSecret('short'), 'short');
-    assert.equal(maskCCSwitchSecret('sk-lodestar-1234567890'), 'sk-oct...7890');
+    assert.equal(maskCCSwitchSecret('sk-lodestar-1234567890'), 'sk-lod...7890');
 });
