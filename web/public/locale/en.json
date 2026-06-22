@@ -394,7 +394,13 @@
       "sortByName": "Sort by Name",
       "searchModels": "Search models...",
       "viewTable": "Table",
-      "viewList": "List"
+      "viewList": "List",
+      "modelLatency": "Model Latency",
+      "sortByAvg": "Avg Latency",
+      "sortByName": "Model Name",
+      "sortByRequests": "Requests",
+      "searchModels": "Search models...",
+      "viewCard": "Card"
     },
     "overview": {
       "description": "Phase-one overview built from existing daily stats and replay data, focused on readable signals instead of new configuration."

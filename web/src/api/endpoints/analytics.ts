@@ -301,3 +301,29 @@ export function useAnalyticsAutoStrategy(groupId?: number) {
         refetchOnMount: 'always',
     });
 }
+
+export interface ModelLatencyItem {
+    model_name: string;
+    total_requests: number;
+    avg_ms: number;
+    p50_ms: number;
+    p95_ms: number;
+    p99_ms: number;
+}
+
+export function useAnalyticsModelLatency(range: AnalyticsRange) {
+    return useQuery({
+        queryKey: ['analytics', 'model-latency', range],
+        queryFn: async () =>
+            apiClient.get<ModelLatencyItem[]>('/api/v1/analytics/model-latency', { range }),
+        refetchInterval: REFETCH_INTERVAL_CONFIG,
+        refetchOnMount: 'always',
+        retry: (failureCount, error) => {
+            if (error && typeof error === 'object' && 'code' in error && (error as { code: number }).code === 404) {
+                return false;
+            }
+            return failureCount < 2;
+        },
+        placeholderData: (previousData) => previousData,
+    });
+}

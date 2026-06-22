@@ -1446,6 +1446,88 @@ func AnalyticsLatencyModelsGet(ctx context.Context, r model.AnalyticsRange) ([]s
 	return models, nil
 }
 
+// AnalyticsModelLatencyListGet returns per-model latency stats for all models in the time range.
+func AnalyticsModelLatencyListGet(ctx context.Context, r model.AnalyticsRange) ([]model.ModelLatencyItem, error) {
+	startUnix := analyticsRangeStartUnix(r, stats.Now())
+
+	keepEnabled, err := setting.GetBool(model.SettingKeyRelayLogKeepEnabled)
+	if err != nil {
+		return nil, err
+	}
+
+	type rawRow struct {
+		ModelName string `gorm:"column:model_name"`
+		UseTime   int    `gorm:"column:use_time"`
+	}
+
+	var rows []rawRow
+
+	if keepEnabled {
+		query := db.GetDB().WithContext(ctx).
+			Model(&model.RelayLog{}).
+			Select("request_model_name AS model_name, use_time").
+			Where("request_model_name <> ''")
+		if startUnix != nil {
+			query = query.Where("time >= ?", *startUnix)
+		}
+		if err := query.Scan(&rows).Error; err != nil {
+			return nil, err
+		}
+	}
+
+	// Merge in-memory cache
+	cache, lock := relaylog.GetCacheAndLock()
+	lock.Lock()
+	for _, entry := range cache {
+		if startUnix != nil && entry.Time < *startUnix {
+			continue
+		}
+		if entry.RequestModelName != "" {
+			rows = append(rows, rawRow{ModelName: entry.RequestModelName, UseTime: entry.UseTime})
+		}
+	}
+	lock.Unlock()
+
+	// Group by model and compute percentiles
+	byModel := make(map[string][]int64)
+	for _, row := range rows {
+		byModel[row.ModelName] = append(byModel[row.ModelName], int64(row.UseTime))
+	}
+
+	result := make([]model.ModelLatencyItem, 0, len(byModel))
+	for modelName, times := range byModel {
+		var total int64
+		for _, t := range times {
+			total += t
+		}
+		avgMs := int64(0)
+		if len(times) > 0 {
+			avgMs = total / int64(len(times))
+		}
+		// Convert to float64 for percentile computation
+		fTimes := make([]float64, len(times))
+		for i, t := range times {
+			fTimes[i] = float64(t)
+		}
+		sort.Float64s(fTimes)
+		item := model.ModelLatencyItem{
+			ModelName:     modelName,
+			TotalRequests: int64(len(times)),
+			AvgMs:         avgMs,
+			P50Ms:         int64(percentileFromSorted(fTimes, 0.50)),
+			P95Ms:         int64(percentileFromSorted(fTimes, 0.95)),
+			P99Ms:         int64(percentileFromSorted(fTimes, 0.99)),
+		}
+		result = append(result, item)
+	}
+
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].AvgMs < result[j].AvgMs
+	})
+
+	return result, nil
+}
+
 func loadLatencyDistribution(ctx context.Context, r model.AnalyticsRange, modelFilter string) (*model.LatencyDistribution, error) {
 	startUnix := analyticsRangeStartUnix(r, stats.Now())
 	result := &model.LatencyDistribution{}

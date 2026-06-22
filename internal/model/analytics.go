@@ -158,6 +158,16 @@ type LatencyDistribution struct {
 	Buckets       []HistogramBucket `json:"buckets"`
 }
 
+// ModelLatencyItem holds per-model latency statistics.
+type ModelLatencyItem struct {
+	ModelName     string `json:"model_name"`
+	TotalRequests int64  `json:"total_requests"`
+	AvgMs         int64  `json:"avg_ms"`
+	P50Ms         int64  `json:"p50_ms"`
+	P95Ms         int64  `json:"p95_ms"`
+	P99Ms         int64  `json:"p99_ms"`
+}
+
 // HistogramBucket is a single bucket in a latency histogram.
 type HistogramBucket struct {
 	Label string `json:"label"`

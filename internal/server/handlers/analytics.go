@@ -60,6 +60,10 @@ func init() {
 		AddRoute(
 			router.NewRoute("/latency-models", http.MethodGet).
 				Handle(getAnalyticsLatencyModels),
+		).
+		AddRoute(
+			router.NewRoute("/model-latency", http.MethodGet).
+				Handle(getAnalyticsModelLatency),
 		)
 }
 
@@ -220,6 +224,19 @@ func getAnalyticsLatencyModels(c *gin.Context) {
 		return
 	}
 	data, err := analytics.AnalyticsLatencyModelsGet(c.Request.Context(), analyticsRange)
+	if err != nil {
+		resp.InternalError(c)
+		return
+	}
+	resp.Success(c, data)
+}
+
+func getAnalyticsModelLatency(c *gin.Context) {
+	analyticsRange, ok := parseAnalyticsRange(c)
+	if !ok {
+		return
+	}
+	data, err := analytics.AnalyticsModelLatencyListGet(c.Request.Context(), analyticsRange)
 	if err != nil {
 		resp.InternalError(c)
 		return

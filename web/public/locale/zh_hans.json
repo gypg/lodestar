@@ -394,7 +394,13 @@
       "sortByName": "按名称排序",
       "searchModels": "搜索模型...",
       "viewTable": "表格",
-      "viewList": "列表"
+      "viewList": "列表",
+      "modelLatency": "模型延迟",
+      "sortByAvg": "平均延迟",
+      "sortByName": "模型名称",
+      "sortByRequests": "请求量",
+      "searchModels": "搜索模型...",
+      "viewCard": "卡片"
     },
     "overview": {
       "description": "用现有日统计与请求回放结果聚合出一期总览，优先提供可读指标而不是额外设定项。"
