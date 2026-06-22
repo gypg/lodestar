@@ -53,7 +53,14 @@ export function useSubscriptionPlans() {
 export function useMySubscription() {
     return useQuery({
         queryKey: ['subscription', 'self'],
-        queryFn: async () => apiClient.get<UserSubscription | null>('/api/v1/subscription/self'),
+        queryFn: async () => {
+            const result = await apiClient.get<UserSubscription | null>('/api/v1/subscription/self');
+            // 后端无订阅时返回 {code, message} 无 data 字段，apiClient 会返回整个对象
+            if (!result || typeof result !== 'object' || !('end_time' in result)) {
+                return null;
+            }
+            return result;
+        },
         refetchOnWindowFocus: false,
     });
 }
