@@ -1433,6 +1433,15 @@
       "deleteSuccess": "備份已刪除",
       "deleteFailed": "刪除備份失敗"
     },
+    "imageBed": {
+      "title": "圖床",
+      "enabled": "啟用圖床",
+      "enabledDescription": "自動將生成的圖片上傳到外部圖床",
+      "endpoint": "API 位址",
+      "endpointPlaceholder": "https://your-image-bed.example.com/api/upload",
+      "token": "API Token",
+      "tokenPlaceholder": "輸入圖床 API Token"
+    },
     "routeGroups": {
       "title": "路由分組",
       "description": "一次刪除全部路由分組及其路由項。此操作無法復原。",

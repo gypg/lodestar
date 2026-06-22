@@ -22,6 +22,7 @@ import { SettingAutoStrategy } from './AutoStrategy';
 import { SettingAIRoute } from './AIRoute';
 import { SettingSemanticCache } from './SemanticCache';
 import { SettingWebDAV } from './WebDAV';
+import { SettingImageBed } from './ImageBed';
 import { SettingWebAuthn } from './WebAuthn';
 import { SettingRouteGroupDanger } from './RouteGroupDanger';
 import { SettingPurgeUnavailableModels } from './PurgeUnavailableModels';
@@ -52,9 +53,9 @@ const SETTING_ITEM_DEFS: SettingItemDef[] = [
     { id: 'response-filter',   icon: <ShieldAlert className="h-5 w-5" />,      titleKey: 'responseFilter.title', component: <SettingResponseFilter /> },
     { id: 'backup',            icon: <Database className="h-5 w-5" />,          titleKey: 'backup.title',         component: <SettingBackup /> },
     { id: 'webdav',            icon: <Cloud className="h-5 w-5" />,             titleKey: 'webdav.title',         component: <SettingWebDAV /> },
+    { id: 'image-bed',         icon: <Cloud className="h-5 w-5" />,             titleKey: 'imageBed.title',       component: <SettingImageBed /> },
     { id: 'webauthn',          icon: <Fingerprint className="h-5 w-5" />,      titleKey: 'webauthn.title',       component: <SettingWebAuthn /> },
     { id: 'purge-unavailable', icon: <Eraser className="h-5 w-5" />,           titleKey: 'purgeUnavailable.title', component: <SettingPurgeUnavailableModels /> },
-    { id: 'site-automation',   icon: <Globe2 className="h-5 w-5" />,            titleKey: 'siteAutomation.title',   component: <SettingSiteAutomation /> },
     { id: 'route-group-danger',icon: <FolderX className="h-5 w-5" />,          titleKey: 'routeGroups.title',    component: <SettingRouteGroupDanger /> },
     { id: 'twofa',           icon: <Shield className="h-5 w-5" />,            titleKey: 'twofa.title',          component: <SettingTwoFA /> },
 ];

@@ -105,6 +105,27 @@ export function Group() {
 
     return (
         <div className="flex h-full min-h-0 flex-col overflow-y-auto overscroll-contain rounded-t-xl pb-3 md:pb-4">
+            <div className="flex items-center gap-2 border-b border-border/50 bg-card/50 px-3 py-2 md:px-4">
+                <AutoGroupButton />
+                <AIRouteButton />
+                <MorphingDialog>
+                    <MorphingDialogTrigger
+                        className={buttonVariants({
+                            variant: 'ghost',
+                            size: 'default',
+                            className:
+                                'rounded-lg border border-border/25 bg-card px-3 text-muted-foreground transition-[transform,border-color,background-color] duration-300 hover:-translate-y-0.5 hover:bg-card hover:text-foreground',
+                        })}
+                    >
+                        {t('create.submit')}
+                    </MorphingDialogTrigger>
+                    <MorphingDialogContainer>
+                        <MorphingDialogContent className="h-[calc(100dvh-2.5rem)] w-[min(100vw-2rem,92rem)] max-w-full flex-col overflow-hidden rounded-xl border border-border bg-card px-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] text-card-foreground md:h-[calc(100dvh-3rem)] md:px-6 md:py-5">
+                            <CreateDialogContent />
+                        </MorphingDialogContent>
+                    </MorphingDialogContainer>
+                </MorphingDialog>
+            </div>
             <section className="relative min-h-0 flex-1">
                 <VirtualizedGrid
                     items={visibleGroups}

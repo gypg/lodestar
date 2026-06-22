@@ -31,8 +31,9 @@ export type SettingItemId =
     | 'webdav'
     | 'webauthn'
     | 'purge-unavailable'
-    | 'site-automation'
     | 'route-group-danger'
+    | 'image-bed'
+    | 'twofa'
     | 'billing-expr';
 
 export const DEFAULT_SETTING_ORDER: SettingItemId[] = [
@@ -50,10 +51,11 @@ export const DEFAULT_SETTING_ORDER: SettingItemId[] = [
     'response-filter',
     'backup',
     'webdav',
+    'image-bed',
     'webauthn',
     'purge-unavailable',
-    'site-automation',
     'route-group-danger',
+    'twofa',
     'billing-expr',
 ];
 
@@ -129,10 +131,11 @@ export function SettingOrder() {
             'response-filter': settingT('responseFilter.title'),
             backup: settingT('backup.title'),
             webdav: settingT('webdav.title'),
+            'image-bed': settingT('imageBed.title'),
             webauthn: settingT('webauthn.title'),
             'purge-unavailable': settingT('purgeUnavailable.title'),
-            'site-automation': settingT('siteAutomation.title'),
             'route-group-danger': settingT('routeGroups.title'),
+            twofa: settingT('twofa.title'),
             'billing-expr': settingT('billingExpr.title'),
         };
         return map;

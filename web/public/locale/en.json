@@ -1433,6 +1433,15 @@
       "deleteSuccess": "Backup deleted",
       "deleteFailed": "Failed to delete backup"
     },
+    "imageBed": {
+      "title": "Image Bed",
+      "enabled": "Enable Image Bed",
+      "enabledDescription": "Auto-upload generated images to external image bed",
+      "endpoint": "API Endpoint",
+      "endpointPlaceholder": "https://your-image-bed.example.com/api/upload",
+      "token": "API Token",
+      "tokenPlaceholder": "Your image bed API token"
+    },
     "routeGroups": {
       "title": "Route Groups",
       "description": "Delete all route groups and all route items at once. This action cannot be undone.",

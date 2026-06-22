@@ -78,6 +78,7 @@ import {
 } from "./checkin-status";
 import { translateSiteMessage } from "./site-message";
 import { useSiteUIStore } from "./ui-store";
+import { SettingSiteAutomation } from "@/components/modules/setting/SiteAutomation";
 import {
   isSiteJumpTarget,
   type PendingJump,
@@ -99,6 +100,7 @@ import {
   Power,
   Plus,
   RefreshCw,
+  Settings,
   Square,
   Archive,
   ArchiveRestore,
@@ -1800,6 +1802,8 @@ export function Site() {
     );
   };
 
+  const [showAutomation, setShowAutomation] = useState(false);
+
   return (
     <div className="rounded-t-3xl">
       <PageWrapper
@@ -1817,6 +1821,20 @@ export function Site() {
           activeFilterStatuses={checkinFilterStatuses}
           onFilterChange={handleCheckinFilterChange}
         />
+
+        <div className="flex justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-xl"
+            onClick={() => setShowAutomation((v) => !v)}
+          >
+            <Settings className="size-4" />
+            {showAutomation ? '隐藏自动化设置' : '自动化设置'}
+          </Button>
+        </div>
+
+        {showAutomation && <SettingSiteAutomation />}
 
         {batchMode ? (
           <section className="rounded-3xl border border-primary/30 bg-primary/5 p-4">

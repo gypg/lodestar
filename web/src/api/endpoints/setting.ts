@@ -107,6 +107,9 @@ export const SettingKey = {
     WebAuthnRPID: 'webauthn_rp_id',
     WebAuthnRPName: 'webauthn_rp_name',
     WebAuthnOrigins: 'webauthn_origins',
+    ImageBedEnabled: 'image_bed_enabled',
+    ImageBedEndpoint: 'image_bed_endpoint',
+    ImageBedToken: 'image_bed_token',
 } as const;
 
 /**
