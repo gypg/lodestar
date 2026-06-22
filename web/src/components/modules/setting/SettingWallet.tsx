@@ -16,15 +16,12 @@ import { Button } from '@/components/ui/button';
 import { toast } from '@/components/common/Toast';
 import { useWallet, useRedeemCode, useGenerateCodes, useTopup, useStripeTopup, useUsage, useGenerateInvites } from '@/api/endpoints/wallet';
 import { SettingKey, useSettingList } from '@/api/endpoints/setting';
-import { useCurrentUser, isStaffRole } from '@/api/endpoints/user';
 import { WalletUsageChart } from './WalletUsageChart';
 import { UsageHeatmap } from './UsageHeatmap';
-import { PortalHealthStrip } from './PortalHealthStrip';
 
 export function SettingWallet() {
     const { data: balance } = useWallet();
     const { data: usage } = useUsage();
-    const { data: me } = useCurrentUser();
     const redeem = useRedeemCode();
     const genCodes = useGenerateCodes();
     const genInvites = useGenerateInvites();
@@ -141,8 +138,6 @@ export function SettingWallet() {
                     <div className="text-[10px] uppercase tracking-wider text-muted-foreground">已用</div>
                 </div>
             </div>
-
-            {me && isStaffRole(me.role) ? <PortalHealthStrip /> : null}
 
             {/* 我的用量（聚合自己名下各 key） */}
             <div className="flex flex-col gap-2 rounded-lg border border-border/30 bg-card p-3">

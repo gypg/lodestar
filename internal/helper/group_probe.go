@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/gypg/lodestar/internal/conf"
 	appmodel "github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/op/grouptest"
 	"github.com/gypg/lodestar/internal/op/relaylog"
 	transmodel "github.com/gypg/lodestar/internal/transformer/model"
 	"github.com/gypg/lodestar/internal/transformer/outbound"
@@ -106,6 +107,7 @@ func StartGroupModelTest(group *appmodel.Group, channels map[int]appmodel.Channe
 			Message:   "dev mock success",
 		}
 		storeGroupModelProgress(progress)
+		persistGroupTestResult(progress, group.Name, time.Now())
 		log.Infof("dev mock group test success: group=%s total=%d", group.Name, len(group.Items))
 		return progress, nil
 	}
@@ -120,6 +122,7 @@ func StartGroupModelTest(group *appmodel.Group, channels map[int]appmodel.Channe
 	log.Infof("start group test: group=%s progress_id=%s items=%d channels=%d", group.Name, id, len(group.Items), len(channels))
 
 	go func() {
+		testStartTime := time.Now()
 		defer func() {
 			if r := recover(); r != nil {
 				log.Errorf("group model test panic: group=%s progress_id=%s err=%v", group.Name, id, r)
@@ -128,6 +131,7 @@ func StartGroupModelTest(group *appmodel.Group, channels map[int]appmodel.Channe
 				failed.Passed = false
 				failed.Message = fmt.Sprintf("internal error: %v", r)
 				storeGroupModelProgress(&failed)
+				persistGroupTestResult(&failed, group.Name, testStartTime)
 			}
 		}()
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
@@ -139,6 +143,7 @@ func StartGroupModelTest(group *appmodel.Group, channels map[int]appmodel.Channe
 			failed.Done = true
 			failed.Message = err.Error()
 			storeGroupModelProgress(&failed)
+			persistGroupTestResult(&failed, group.Name, testStartTime)
 			return
 		}
 		log.Infof("group model test completed: group=%s progress_id=%s", group.Name, id)
@@ -181,6 +186,7 @@ func StartDraftGroupModelTest(endpointType string, items []GroupModelDraftTestIt
 	}
 
 	go func() {
+		testStartTime := time.Now()
 		defer func() {
 			if r := recover(); r != nil {
 				log.Errorf("draft group model test panic: progress_id=%s err=%v", id, r)
@@ -189,6 +195,7 @@ func StartDraftGroupModelTest(endpointType string, items []GroupModelDraftTestIt
 				failed.Passed = false
 				failed.Message = fmt.Sprintf("internal error: %v", r)
 				storeGroupModelProgress(&failed)
+				persistGroupTestResult(&failed, group.Name, testStartTime)
 			}
 		}()
 
@@ -207,6 +214,7 @@ func StartDraftGroupModelTest(endpointType string, items []GroupModelDraftTestIt
 				}
 			}
 			storeGroupModelProgress(&failed)
+			persistGroupTestResult(&failed, group.Name, testStartTime)
 			return
 		}
 
@@ -222,6 +230,7 @@ func StartDraftGroupModelTest(endpointType string, items []GroupModelDraftTestIt
 			}
 		}
 		storeGroupModelProgress(&final)
+		persistGroupTestResult(&final, group.Name, testStartTime)
 	}()
 
 	cloned := cloneGroupModelProgress(progress)
@@ -304,6 +313,7 @@ func runGroupModelTest(ctx context.Context, group *appmodel.Group, channels map[
 		finalProgress.Done = true
 		finalProgress.Passed = summary.Passed
 		storeGroupModelProgress(&finalProgress)
+		persistGroupTestResult(&finalProgress, group.Name, time.Now())
 	}
 
 	return summary, nil
@@ -625,6 +635,64 @@ func normalizeGroupProbeEndpointType(endpointType string) string {
 
 func stringPtr(value string) *string {
 	return &value
+}
+
+// persistGroupTestResult saves the completed group test progress to the database
+// for analytics and history. It runs asynchronously to avoid blocking the caller.
+func persistGroupTestResult(progress *GroupModelTestProgress, groupName string, startTime time.Time) {
+	if progress == nil || !progress.Done {
+		return
+	}
+
+	now := time.Now()
+	status := appmodel.GroupTestResultPassed
+	if !progress.Passed {
+		status = appmodel.GroupTestResultFailed
+	}
+
+	failedModels := progress.Total - countPassedModels(progress.Results)
+
+	dbResults := make([]appmodel.GroupModelTestResult, 0, len(progress.Results))
+	for _, r := range progress.Results {
+		dbResults = append(dbResults, appmodel.GroupModelTestResult{
+			ClientID:     r.ClientID,
+			ItemID:       r.ItemID,
+			ChannelID:    r.ChannelID,
+			ChannelName:  r.ChannelName,
+			ModelName:    r.ModelName,
+			Passed:       r.Passed,
+			Attempts:     r.Attempts,
+			StatusCode:   r.StatusCode,
+			ResponseText: r.ResponseText,
+			Message:      r.Message,
+		})
+	}
+
+	result := &appmodel.GroupTestResult{
+		GroupName:    groupName,
+		TotalModels:  progress.Total,
+		PassedModels: countPassedModels(progress.Results),
+		FailedModels: failedModels,
+		Status:       status,
+		Results:      dbResults,
+		Error:        progress.Message,
+		StartedAt:    startTime,
+		FinishedAt:   now,
+	}
+
+	if err := grouptest.GroupTestResultSave(context.Background(), result); err != nil {
+		log.Warnf("failed to persist group test result: group=%s err=%v", groupName, err)
+	}
+}
+
+func countPassedModels(results []GroupModelTestResult) int {
+	count := 0
+	for _, r := range results {
+		if r.Passed {
+			count++
+		}
+	}
+	return count
 }
 
 func buildDevMockGroupTestSummary(group *appmodel.Group) (*GroupModelTestSummary, error) {

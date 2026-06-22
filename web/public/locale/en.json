@@ -449,6 +449,15 @@
       "disabled": "disabled",
       "scopeAll": "All groups"
     },
+    "aiRoute": {
+      "config": {
+        "baseURL": "Base URL",
+        "apiKey": "API Key",
+        "model": "Model Name",
+        "save": "Save",
+        "saved": "Saved successfully"
+      }
+    },
     "evaluation": {
       "title": "Evaluation",
       "description": "Aggregate existing group testing and AI route analysis entry points, while keeping this release to live runtime summaries only and avoiding benchmark archival.",
@@ -517,7 +526,7 @@
       },
       "summary": {
         "title": "Latest Evaluation Runtime",
-        "description": "Only the latest AI Route and group test tasks from the current session are shown here. No persistent history is stored yet.",
+        "description": "Shows recent AI route history and group test results. Configure AI route and run group tests directly from this page.",
         "aiRoute": "Latest AI Route Task",
         "groupTest": "Latest Group Test Task",
         "status": "Status",
@@ -557,7 +566,18 @@
           "failed": "Failed",
           "timeout": "Timed Out"
         }
+      },
+      "history": {
+        "title": "Recent History"
       }
+    },
+    "groupTestInline": {
+      "selectAll": "Select All",
+      "deselectAll": "Deselect All",
+      "testAll": "Test All",
+      "testSelected": "Test Selected",
+      "testing": "Testing...",
+      "noGroups": "No groups available"
     },
     "share": {
       "button": "Share",

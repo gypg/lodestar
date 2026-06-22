@@ -11,6 +11,7 @@ import (
 	"github.com/gypg/lodestar/internal/model"
 	ch "github.com/gypg/lodestar/internal/op/channel"
 	grp "github.com/gypg/lodestar/internal/op/group"
+	"github.com/gypg/lodestar/internal/op/grouptest"
 	"github.com/gypg/lodestar/internal/server/auth"
 	"github.com/gypg/lodestar/internal/server/middleware"
 	"github.com/gypg/lodestar/internal/server/resp"
@@ -55,6 +56,10 @@ func init() {
 		AddRoute(
 			router.NewRoute("/test/progress/:id", http.MethodGet).
 				Handle(getGroupTestProgress),
+		).
+		AddRoute(
+			router.NewRoute("/test/history", http.MethodGet).
+				Handle(getGroupTestHistory),
 		).
 		AddRoute(
 			router.NewRoute("/delete-all", http.MethodDelete).
@@ -261,6 +266,25 @@ func getGroupTestProgress(c *gin.Context) {
 	}
 
 	resp.Success(c, progress)
+}
+
+func getGroupTestHistory(c *gin.Context) {
+	limit := 20
+	if limitStr := c.Query("limit"); limitStr != "" {
+		if v, err := strconv.Atoi(limitStr); err == nil && v > 0 {
+			limit = v
+		}
+	}
+	if limit > 100 {
+		limit = 100
+	}
+
+	results, err := grouptest.GroupTestResultList(c.Request.Context(), limit)
+	if err != nil {
+		resp.InternalError(c)
+		return
+	}
+	resp.Success(c, results)
 }
 
 func autoGroupModels(c *gin.Context) {

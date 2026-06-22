@@ -1,15 +1,18 @@
 'use client';
 
-import { useMemo, type ReactNode } from 'react';
-import { Activity, AlertTriangle, ArrowRight, CheckCircle, Clock, Orbit, Radar, Route, Settings } from 'lucide-react';
+import { useMemo, useState, type ReactNode } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Activity, AlertTriangle, Clock, Orbit, Radar, Route, Settings } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { apiClient } from '@/api/client';
 import { useAnalyticsEvaluationRuntime } from '@/api/endpoints/analytics';
 import { useAIRouteHistory, useGroupList } from '@/api/endpoints/group';
 import { useSettingList, SettingKey } from '@/api/endpoints/setting';
 import { useNavStore } from '@/components/modules/navbar';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ObservatorySection, StatusBadge } from './shared';
+import { AIRouteConfig } from './AIRouteConfig';
+import { GroupTestInline } from './GroupTestInline';
 
 function getStatusTone(status?: string) {
     switch (status) {
@@ -104,6 +107,16 @@ export function Evaluation() {
     const { data: groups } = useGroupList();
     const { data: settings } = useSettingList();
     const { data: aiRouteHistory } = useAIRouteHistory();
+
+    // Check if /api/v1/group/test/history exists
+    const { data: groupTestHistory } = useQuery({
+        queryKey: ['groups', 'test-history'],
+        queryFn: async () => apiClient.get('/api/v1/group/test/history'),
+        staleTime: 30_000,
+        retry: false,
+    });
+
+    const [showAiConfig, setShowAiConfig] = useState(false);
     const aiRoute = runtime.aiRouteProgress;
     const groupTest = runtime.groupTestProgress;
     const passedCount = (groupTest?.results ?? []).filter((result) => result.passed).length;
@@ -125,8 +138,6 @@ export function Evaluation() {
             : groupTestHasFailures
                 ? t('evaluation.summary.partialFailed')
                 : t('evaluation.summary.allPassed');
-    const statusButtonClassName = 'rounded-lg border-border/25 bg-card text-foreground shadow-sm hover:bg-card hover:text-foreground';
-
     // Group statistics
     const groupStats = useMemo(() => {
         if (!groups) return null;
@@ -175,12 +186,7 @@ export function Evaluation() {
                     status={groupTest
                         ? { label: groupTestResultLabel, tone: getStatusTone(groupTest.done ? (groupTestHasFailures ? 'failed' : 'completed') : 'running') }
                         : undefined}
-                    action={
-                        <Button className={statusButtonClassName} onClick={() => setActiveItem('group')}>
-                            {t('evaluation.actions.openGroupTest')}
-                            <ArrowRight className="size-4" />
-                        </Button>
-                    }
+                    action={<GroupTestInline />}
                 />
 
                 {/* AI Route Card */}
@@ -207,24 +213,30 @@ export function Evaluation() {
                         { label: t('evaluation.summary.lastRun') || '上次运行', value: lastAiRouteTask.finished_at ? new Date(lastAiRouteTask.finished_at).toLocaleString() : '-' },
                         { label: t('evaluation.summary.status') || '状态', value: lastAiRouteTask.status ?? '-' },
                     ] : undefined}
-                    warning={!aiRouteConfigured ? {
-                        message: t('evaluation.aiRoute.configWarning') || '请先在设置页面配置 AI 路由的 Base URL、API Key 和分析模型，否则无法执行分析。',
-                        onNavigate: () => setActiveItem('setting'),
-                    } : undefined}
                     action={
-                        <div className="flex gap-2">
-                            {!aiRouteConfigured ? (
-                                <Button className={statusButtonClassName} onClick={() => setActiveItem('setting')}>
-                                    <Settings className="size-4" />
-                                    {t('evaluation.actions.configureAIRoute') || '配置 AI 路由'}
+                        !aiRouteConfigured ? (
+                            <AIRouteConfig compact />
+                        ) : (
+                            <div className="space-y-2">
+                                {lastAiRouteTask?.result ? (
+                                    <div className="rounded-lg border border-border/20 bg-card px-3 py-2 text-sm text-muted-foreground">
+                                        {t('evaluation.summary.groups') || '分组'}: {lastAiRouteTask.result.group_count ?? 0} | {t('evaluation.summary.routes') || '路由'}: {lastAiRouteTask.result.route_count ?? 0} / {lastAiRouteTask.result.item_count ?? 0}
+                                    </div>
+                                ) : null}
+                                {showAiConfig ? <AIRouteConfig compact /> : null}
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="rounded-lg"
+                                    onClick={() => setShowAiConfig((prev) => !prev)}
+                                >
+                                    <Settings className="size-3" />
+                                    {showAiConfig
+                                        ? (t('evaluation.actions.closeConfig') || '收起配置')
+                                        : (t('evaluation.actions.editConfig') || '编辑配置')}
                                 </Button>
-                            ) : (
-                                <Button className={statusButtonClassName} onClick={() => setActiveItem('group')}>
-                                    {t('evaluation.actions.openAIRoute')}
-                                    <ArrowRight className="size-4" />
-                                </Button>
-                            )}
-                        </div>
+                            </div>
+                        )
                     }
                 />
             </div>
@@ -332,18 +344,17 @@ export function Evaluation() {
                 </div>
             </div>
 
-            {aiRouteHistory && aiRouteHistory.length > 0 ? (
+            {(aiRouteHistory && aiRouteHistory.length > 0) || (groupTestHistory && Array.isArray(groupTestHistory) && groupTestHistory.length > 0) ? (
                 <div className="mt-4 space-y-3">
                     <div className="inline-flex items-center gap-2 rounded-full border border-primary/10 bg-card px-3 py-1 text-[0.68rem] font-semibold text-primary">
                         <Clock className="h-3.5 w-3.5" />
-                        {t('evaluation.history.title') || 'Recent AI Route History'}
+                        {t('evaluation.history.title') || 'Recent History'}
                     </div>
                     <div className="space-y-2">
-                        {aiRouteHistory.map((task) => {
-                            const step = task.current_step ?? 'idle';
+                        {aiRouteHistory?.map((task) => {
                             const date = task.finished_at ? new Date(task.finished_at).toLocaleString() : '';
                             return (
-                                <div key={task.id} className="flex items-center justify-between rounded-lg border border-border/30 bg-card p-3">
+                                <div key={`ai-${task.id}`} className="flex items-center justify-between rounded-lg border border-border/30 bg-card p-3">
                                     <div className="flex items-center gap-3">
                                         <StatusBadge
                                             label={t(`evaluation.runtime.status.${task.status}`)}
@@ -358,6 +369,28 @@ export function Evaluation() {
                                     </div>
                                     {task.error_reason ? (
                                         <span className="text-xs text-destructive">{task.error_reason}</span>
+                                    ) : null}
+                                </div>
+                            );
+                        })}
+                        {Array.isArray(groupTestHistory) && groupTestHistory.map((record: Record<string, unknown>) => {
+                            const date = record.finished_at ? new Date(record.finished_at as string).toLocaleString() : '';
+                            return (
+                                <div key={`gt-${String(record.id ?? Math.random())}`} className="flex items-center justify-between rounded-lg border border-border/30 bg-card p-3">
+                                    <div className="flex items-center gap-3">
+                                        <StatusBadge
+                                            label={String(record.status ?? 'unknown')}
+                                            tone={getStatusTone(record.status as string)}
+                                        />
+                                        <span className="text-sm text-muted-foreground">{date}</span>
+                                        {record.passed !== undefined ? (
+                                            <span className="text-xs text-muted-foreground">
+                                                {String(record.passed)} passed
+                                            </span>
+                                        ) : null}
+                                    </div>
+                                    {record.error_reason ? (
+                                        <span className="text-xs text-destructive">{String(record.error_reason)}</span>
                                     ) : null}
                                 </div>
                             );

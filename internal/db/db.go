@@ -271,6 +271,7 @@ func Migrate(conn *gorm.DB) error {
 		&model.TwoFA{},
 		&model.TwoFABackupCode{},
 		&model.OAuthBinding{},
+		&model.GroupTestResult{},
 			&migrate.MigrationRecord{},
 	); err != nil {
 		return err

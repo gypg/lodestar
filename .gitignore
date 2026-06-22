@@ -53,6 +53,8 @@ docs/HARVEST-REVIEW-*.md
 .env.*
 !.env.example
 
+# server access docs (contains credentials)
+
 # 2026-06-21 归档目录：旧整合文档留底，不入 git
 _archive-consolidation-20260621/
 

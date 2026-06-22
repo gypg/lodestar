@@ -449,6 +449,15 @@
       "disabled": "已停用",
       "scopeAll": "全部分組"
     },
+    "aiRoute": {
+      "config": {
+        "baseURL": "Base URL",
+        "apiKey": "API Key",
+        "model": "模型名稱",
+        "save": "儲存",
+        "saved": "儲存成功"
+      }
+    },
     "evaluation": {
       "title": "評估",
       "description": "聚合現有分組檢測與 AI 路由分析入口，當前版本只展示運行態摘要，不新增 benchmark 歷史歸檔。",
@@ -517,7 +526,7 @@
       },
       "summary": {
         "title": "最近評測狀態",
-        "description": "這裡只展示當前會話最近一次 AI Route 與分組檢測任務，不做持久化歷史。",
+        "description": "展示最近 AI 路由歷史與分組檢測結果。支援直接在本頁面設定 AI 路由和執行分組檢測。",
         "aiRoute": "最近 AI 路由任務",
         "groupTest": "最近分組檢測任務",
         "status": "當前狀態",
@@ -557,7 +566,18 @@
           "failed": "失敗",
           "timeout": "超時"
         }
+      },
+      "history": {
+        "title": "最近歷史"
       }
+    },
+    "groupTestInline": {
+      "selectAll": "全選",
+      "deselectAll": "取消全選",
+      "testAll": "全部檢測",
+      "testSelected": "檢測選中",
+      "testing": "檢測中...",
+      "noGroups": "暫無分組"
     },
     "share": {
       "button": "分享",
