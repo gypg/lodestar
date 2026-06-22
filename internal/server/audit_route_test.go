@@ -19,6 +19,7 @@ var exemptFromAudit = map[string]string{
 	"POST /api/v1/user/login":              "authentication — auditing every login would flood the log",
 	"POST /api/v1/group/test":              "group routing test — no state change",
 	"POST /api/v1/group/test-draft":        "group draft test — no state change",
+	"POST /api/v1/setting/image-bed/test":  "image bed connectivity probe — no state change",
 	"POST /api/v1/bootstrap/create-admin":  "one-time first-run bootstrap",
 	"POST /api/v1/webauthn/login/begin":    "authentication — passkey challenge issuance, no user yet",
 	"POST /api/v1/webauthn/login/finish":   "authentication — passkey assertion, the binding is audited at register/finish",
