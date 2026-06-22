@@ -74,6 +74,31 @@ func AIRouteTaskFindActive(ctx context.Context, scope model.AIRouteScope, groupI
 	return &progress, nil
 }
 
+// AIRouteTaskList returns the most recent completed AI route tasks.
+func AIRouteTaskList(ctx context.Context, limit int) ([]model.GenerateAIRouteProgress, error) {
+	if db.GetDB() == nil {
+		return nil, nil
+	}
+	if limit <= 0 {
+		limit = 10
+	}
+
+	var tasks []model.AIRouteTask
+	if err := db.GetDB().WithContext(ctx).
+		Where("done = ?", true).
+		Order("finished_at DESC").
+		Limit(limit).
+		Find(&tasks).Error; err != nil {
+		return nil, err
+	}
+
+	results := make([]model.GenerateAIRouteProgress, 0, len(tasks))
+	for _, task := range tasks {
+		results = append(results, task.ToProgress())
+	}
+	return results, nil
+}
+
 func AIRouteTaskMarkActiveInterrupted(ctx context.Context, message string) (int64, error) {
 	message = strings.TrimSpace(message)
 	if message == "" {

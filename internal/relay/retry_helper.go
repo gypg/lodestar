@@ -88,7 +88,7 @@ func PrepareCandidateForRetry(
 	ratelimitCooldown int,
 	modelName string,
 ) (dbmodel.ChannelKey, string) {
-	usedKey := channel.GetChannelKeyExcludingWithCooldown(failedKeyIDs, ratelimitCooldown)
+	usedKey := channel.GetChannelKeyExcludingWithCooldownForModel(failedKeyIDs, ratelimitCooldown, modelName)
 	if usedKey.ChannelKey == "" {
 		return dbmodel.ChannelKey{}, "no more keys to retry"
 	}

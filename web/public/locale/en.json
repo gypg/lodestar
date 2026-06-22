@@ -468,7 +468,8 @@
         "description": "Reuse the existing AI Route trigger and progress flow, and surface the latest task state here.",
         "hint": "Latest task step: {step}",
         "unavailable": "The latest AI route task is temporarily unavailable.",
-        "empty": "There is no recent AI route task."
+        "empty": "There is no recent AI route task.",
+        "history": "Recent AI Route History"
       },
       "semanticCache": {
         "title": "Semantic Cache Evaluation",

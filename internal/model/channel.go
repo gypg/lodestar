@@ -356,6 +356,14 @@ func (c *Channel) GetChannelKeyWithCooldown(ratelimitCooldownSec int) ChannelKey
 }
 
 func (c *Channel) GetChannelKeyExcludingWithCooldown(excludeKeyIDs []int, ratelimitCooldownSec int) ChannelKey {
+	return c.GetChannelKeyExcludingWithCooldownForModel(excludeKeyIDs, ratelimitCooldownSec, "")
+}
+
+// GetChannelKeyExcludingWithCooldownForModel selects the least-cost key,
+// excluding keys in excludeKeyIDs and keys in per-model cooldown.
+// When modelName is non-empty, per (key, model) cooldown is checked so that
+// a 429 on one model doesn't block the same key for other models.
+func (c *Channel) GetChannelKeyExcludingWithCooldownForModel(excludeKeyIDs []int, ratelimitCooldownSec int, modelName string) ChannelKey {
 	if c == nil || len(c.Keys) == 0 {
 		return ChannelKey{}
 	}
@@ -378,7 +386,12 @@ func (c *Channel) GetChannelKeyExcludingWithCooldown(excludeKeyIDs []int, rateli
 		if _, excluded := excludeSet[k.ID]; excluded {
 			continue
 		}
-		if ratelimitCooldownSec > 0 && k.LastUseTimeStamp > 0 && k.StatusCode >= 400 {
+		// Per-model cooldown: only skip if THIS model recently got a 429 on this key.
+		if modelName != "" && IsKeyModelOnCooldown(k.ID, modelName, ratelimitCooldownSec) {
+			continue
+		}
+		// Global cooldown fallback: skip if any recent 429 (backward compat).
+		if modelName == "" && ratelimitCooldownSec > 0 && k.LastUseTimeStamp > 0 && k.StatusCode >= 400 {
 			if nowSec-k.LastUseTimeStamp < int64(ratelimitCooldownSec) {
 				continue
 			}

@@ -150,7 +150,7 @@ func DefaultSettings() []Setting {
 		{Key: SettingKeyAutoStrategyLatencyWeight, Value: "30"},    // 默认延迟权重30%
 		{Key: SettingKeySemanticCacheEnabled, Value: "false"},      // 默认关闭语义缓存
 		{Key: SettingKeySemanticCacheTTL, Value: "3600"},           // 默认TTL 1小时
-		{Key: SettingKeySemanticCacheThreshold, Value: "98"},       // 默认相似度阈值 0.98（0-100）
+		{Key: SettingKeySemanticCacheThreshold, Value: "90"},       // 默认相似度阈值 0.90（0-100）
 		{Key: SettingKeySemanticCacheMaxEntries, Value: "1000"},    // 默认最大1000条
 		{Key: SettingKeySemanticCacheEmbeddingBaseURL, Value: ""},
 		{Key: SettingKeySemanticCacheEmbeddingAPIKey, Value: ""},

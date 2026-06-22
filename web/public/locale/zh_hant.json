@@ -468,7 +468,8 @@
         "description": "複用現有 AI Route 入口和進度能力，在這裡聚合最近任務狀態。",
         "hint": "最近任務當前階段：{step}",
         "unavailable": "最近一次 AI 路由任務狀態暫時不可用。",
-        "empty": "當前沒有 AI 路由任務"
+        "empty": "當前沒有 AI 路由任務",
+        "history": "最近 AI 路由歷史"
       },
       "semanticCache": {
         "title": "語意快取評估",

@@ -1,9 +1,10 @@
 'use client';
 
-import type { ReactNode } from 'react';
-import { Activity, ArrowRight, Orbit, Radar, Route } from 'lucide-react';
+import { useMemo, type ReactNode } from 'react';
+import { Activity, ArrowRight, Clock, Orbit, Radar, Route } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useAnalyticsEvaluationRuntime } from '@/api/endpoints/analytics';
+import { useAIRouteHistory } from '@/api/endpoints/group';
 import { useNavStore } from '@/components/modules/navbar';
 import { Button } from '@/components/ui/button';
 import { ObservatorySection, StatusBadge } from './shared';
@@ -79,6 +80,7 @@ export function Evaluation() {
     const { setActiveItem } = useNavStore();
     const sectionDescription = t('evaluation.description');
     const runtime = useAnalyticsEvaluationRuntime();
+    const { data: aiRouteHistory } = useAIRouteHistory();
     const aiRoute = runtime.aiRouteProgress;
     const groupTest = runtime.groupTestProgress;
     const passedCount = (groupTest?.results ?? []).filter((result) => result.passed).length;
@@ -240,6 +242,40 @@ export function Evaluation() {
                     </article>
                 </div>
             </div>
+
+            {aiRouteHistory && aiRouteHistory.length > 0 ? (
+                <div className="mt-4 space-y-3">
+                    <div className="inline-flex items-center gap-2 rounded-full border border-primary/10 bg-card px-3 py-1 text-[0.68rem] font-semibold text-primary">
+                        <Clock className="h-3.5 w-3.5" />
+                        {t('evaluation.history.title') || 'Recent AI Route History'}
+                    </div>
+                    <div className="space-y-2">
+                        {aiRouteHistory.map((task) => {
+                            const step = task.current_step ?? 'idle';
+                            const date = task.finished_at ? new Date(task.finished_at).toLocaleString() : '';
+                            return (
+                                <div key={task.id} className="flex items-center justify-between rounded-lg border border-border/30 bg-card p-3">
+                                    <div className="flex items-center gap-3">
+                                        <StatusBadge
+                                            label={t(`evaluation.runtime.status.${task.status}`)}
+                                            tone={getStatusTone(task.status)}
+                                        />
+                                        <span className="text-sm text-muted-foreground">{date}</span>
+                                        {task.result ? (
+                                            <span className="text-xs text-muted-foreground">
+                                                {task.result.group_count ?? 0} groups / {task.result.route_count ?? 0} routes
+                                            </span>
+                                        ) : null}
+                                    </div>
+                                    {task.error_reason ? (
+                                        <span className="text-xs text-destructive">{task.error_reason}</span>
+                                    ) : null}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            ) : null}
         </ObservatorySection>
     );
 }

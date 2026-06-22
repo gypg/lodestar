@@ -210,6 +210,11 @@ func GetGenerateAIRouteProgress(id string) (*model.GenerateAIRouteProgress, bool
 	return &cloned, true
 }
 
+// ListAIRouteHistory returns the most recent completed AI route tasks from the database.
+func ListAIRouteHistory(ctx context.Context, limit int) ([]model.GenerateAIRouteProgress, error) {
+	return airoute.AIRouteTaskList(ctx, limit)
+}
+
 func storeAIRouteProgress(progress *model.GenerateAIRouteProgress) {
 	if progress == nil || progress.ID == "" {
 		return

@@ -41,6 +41,10 @@ func init() {
 		AddRoute(
 			router.NewRoute("/ai-generate/stream/:id", http.MethodGet).
 				Handle(streamGenerateAIRouteProgress),
+		).
+		AddRoute(
+			router.NewRoute("/ai-generate/history", http.MethodGet).
+				Handle(listAIRouteHistory),
 		)
 }
 
@@ -219,4 +223,13 @@ func writeAIRouteProgressEvent(c *gin.Context, eventName string, progress model.
 	}
 	c.Writer.Flush()
 	return nil
+}
+
+func listAIRouteHistory(c *gin.Context) {
+	tasks, err := helper.ListAIRouteHistory(c.Request.Context(), 10)
+	if err != nil {
+		resp.InternalError(c)
+		return
+	}
+	resp.Success(c, tasks)
 }

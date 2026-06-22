@@ -752,6 +752,16 @@ export function useGroupTestProgress(progressId: string | null) {
  * const autoAdd = useAutoAddGroupItem();
  * autoAdd.mutate(1); // 为 groupId=1 自动添加匹配的 items
  */
+export function useAIRouteHistory() {
+    return useQuery({
+        queryKey: ['groups', 'ai-route-history'],
+        queryFn: async () => {
+            return apiClient.get<GenerateAIRouteProgress[]>('/api/v1/route/ai-generate/history');
+        },
+        staleTime: 30_000,
+    });
+}
+
 // export function useAutoAddGroupItem() {
 //     const queryClient = useQueryClient();
 

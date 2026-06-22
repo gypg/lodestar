@@ -221,9 +221,9 @@ func MediaHandler(endpointType MediaEndpointType, c *gin.Context) {
 
 				var usedKey dbmodel.ChannelKey
 				if keyRound == 1 {
-					usedKey = channel.GetChannelKeyWithCooldown(ratelimitCooldown)
+					usedKey = channel.GetChannelKeyExcludingWithCooldownForModel(nil, ratelimitCooldown, requestModel)
 				} else {
-					usedKey = channel.GetChannelKeyExcludingWithCooldown(failedKeyIDs, ratelimitCooldown)
+					usedKey = channel.GetChannelKeyExcludingWithCooldownForModel(failedKeyIDs, ratelimitCooldown, requestModel)
 				}
 				if usedKey.ChannelKey == "" {
 					// When the key loop exits via break without forwarding

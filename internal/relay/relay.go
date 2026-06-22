@@ -437,6 +437,14 @@ func (ra *relayAttempt) attempt() attemptResult {
 	ra.usedKey.StatusCode = statusCode
 	ra.usedKey.LastUseTimeStamp = time.Now().Unix()
 
+	// Per-model cooldown: record 429 for this specific (key, model) pair
+	if statusCode == 429 {
+		modelName := ra.internalRequest.Model
+		if modelName != "" {
+			dbmodel.RecordKeyModelCooldown(ra.usedKey.ID, modelName)
+		}
+	}
+
 	if decision.Scope == ScopeNone && !decision.IsError {
 		// ====== 成功 ======
 		ra.collectResponse()
@@ -1130,7 +1138,7 @@ func executeRelay(req *relayRequest, group dbmodel.Group, requestModel string, m
 
 				var usedKey dbmodel.ChannelKey
 				if keyRound == 1 {
-					usedKey = channel.GetChannelKeyWithCooldown(ratelimitCooldown)
+					usedKey = channel.GetChannelKeyExcludingWithCooldownForModel(nil, ratelimitCooldown, resolvedModelName)
 				} else {
 					usedKey, _ = PrepareCandidateForRetry(channel, failedKeyIDs, routeIter, ratelimitCooldown, resolvedModelName)
 				}
