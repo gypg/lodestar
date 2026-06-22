@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Cloud, Globe2, KeyRound, ToggleLeft } from 'lucide-react';
+import { Cloud, Globe2, KeyRound, ToggleLeft, Zap } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { SettingKey, useSetSetting, useSettingList } from '@/api/endpoints/setting';
+import { SettingKey, useSetSetting, useSettingList, useTestImageBedConnection } from '@/api/endpoints/setting';
 import { toast } from '@/components/common/Toast';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 
@@ -18,6 +19,7 @@ export function SettingImageBed() {
     const t = useTranslations('setting');
     const { data: settings } = useSettingList();
     const setSetting = useSetSetting();
+    const testConnection = useTestImageBedConnection();
 
     const [enabled, setEnabled] = useState(false);
     const [endpoint, setEndpoint] = useState('');
@@ -159,6 +161,28 @@ export function SettingImageBed() {
                     placeholder={t('imageBed.tokenPlaceholder')}
                     className="w-full rounded-xl md:w-80"
                 />
+            </div>
+
+            <div className="flex justify-end">
+                <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-xl"
+                    disabled={testConnection.isPending || !endpoint}
+                    onClick={() => {
+                        testConnection.mutate(undefined, {
+                            onSuccess: (data) => {
+                                toast.success(t('imageBed.testSuccess') || 'Connection successful');
+                            },
+                            onError: (error: Error) => {
+                                toast.error(error.message || 'Connection failed');
+                            },
+                        });
+                    }}
+                >
+                    <Zap className="size-4" />
+                    {testConnection.isPending ? (t('imageBed.testing') || 'Testing...') : (t('imageBed.testConnection') || 'Test Connection')}
+                </Button>
             </div>
         </div>
     );

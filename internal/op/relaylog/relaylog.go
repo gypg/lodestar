@@ -218,7 +218,7 @@ func relayLogFlushToDB(ctx context.Context) error {
 	return nil
 }
 
-func RelayLogAdd(ctx context.Context, relayLog model.RelayLog) error {
+func RelayLogAdd(ctx context.Context, relayLog *model.RelayLog) error {
 	enabled, err := setting.GetBool(model.SettingKeyRelayLogKeepEnabled)
 	if err != nil {
 		return err
@@ -231,12 +231,12 @@ func RelayLogAdd(ctx context.Context, relayLog model.RelayLog) error {
 	// 非阻塞地推入通知 channel，由常驻分发 goroutine 顺序广播给订阅者。
 	// 避免每条日志启动一个短命 goroutine；channel 满时丢弃。
 	select {
-	case notifyCh <- relayLog:
+	case notifyCh <- *relayLog:
 	default:
 	}
 
 	relayLogCacheLock.Lock()
-	relayLogCache = append(relayLogCache, relayLog)
+	relayLogCache = append(relayLogCache, *relayLog)
 	if len(relayLogCache) >= maxSize {
 		if enabled {
 			relayLogCacheLock.Unlock()

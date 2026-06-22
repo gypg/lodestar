@@ -388,7 +388,8 @@
       "p95": "P95",
       "p99": "P99",
       "histogram": "延遲分布",
-      "totalRequests": "共 {count} 次請求"
+      "totalRequests": "共 {count} 次請求",
+      "allModels": "全部模型"
     },
     "overview": {
       "description": "用現有日統計與請求回放結果聚合出一期總覽，優先提供可讀指標而不是額外設定項。"
@@ -1440,7 +1441,10 @@
       "endpoint": "API 位址",
       "endpointPlaceholder": "https://your-image-bed.example.com/api/upload",
       "token": "API Token",
-      "tokenPlaceholder": "輸入圖床 API Token"
+      "tokenPlaceholder": "輸入圖床 API Token",
+      "testConnection": "連線測試",
+      "testSuccess": "圖床連線成功",
+      "testing": "測試中..."
     },
     "routeGroups": {
       "title": "路由分組",

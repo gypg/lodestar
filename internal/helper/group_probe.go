@@ -444,7 +444,7 @@ func recordTestLog(ctx context.Context, endpointType string, item appmodel.Group
 		relayLog.Error = result.Message
 	}
 
-	if logErr := relaylog.RelayLogAdd(ctx, relayLog); logErr != nil {
+	if logErr := relaylog.RelayLogAdd(ctx, &relayLog); logErr != nil {
 		log.Warnf("failed to save test log: %v", logErr)
 	}
 

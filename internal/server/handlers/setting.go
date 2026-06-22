@@ -2,10 +2,12 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"strconv"
 	"strings"
@@ -66,6 +68,11 @@ func init() {
 				Use(middleware.RequirePermission(auth.PermSettingsWrite)).
 				Use(middleware.RequireJSON()).
 				Handle(migrateDatabase),
+		).
+		AddRoute(
+			router.NewRoute("/image-bed/test", http.MethodPost).
+				Use(middleware.RequirePermission(auth.PermSettingsWrite)).
+				Handle(testImageBedConnection),
 		)
 }
 
@@ -254,6 +261,72 @@ func migrateDatabase(c *gin.Context) {
 		return
 	}
 	resp.Success(c, result)
+}
+
+func testImageBedConnection(c *gin.Context) {
+	endpoint, _ := stg.GetString(model.SettingKeyImageBedEndpoint)
+	token, _ := stg.GetString(model.SettingKeyImageBedToken)
+
+	if endpoint == "" {
+		resp.Error(c, http.StatusBadRequest, "image bed endpoint is not configured")
+		return
+	}
+
+	// Send a tiny 1x1 PNG as a connectivity test.
+	tinyPNG := []byte{
+		0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d,
+		0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+		0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53, 0xde, 0x00, 0x00, 0x00,
+		0x0c, 0x49, 0x44, 0x41, 0x54, 0x08, 0xd7, 0x63, 0xf8, 0xcf, 0xc0, 0x00,
+		0x00, 0x00, 0x02, 0x00, 0x01, 0xe2, 0x21, 0xbc, 0x33, 0x00, 0x00, 0x00,
+		0x00, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82,
+	}
+
+	var buf bytes.Buffer
+	writer := multipart.NewWriter(&buf)
+	part, err := writer.CreateFormFile("file", "test.png")
+	if err != nil {
+		resp.Error(c, http.StatusInternalServerError, "failed to build test request")
+		return
+	}
+	if _, err := part.Write(tinyPNG); err != nil {
+		resp.Error(c, http.StatusInternalServerError, "failed to write test image")
+		return
+	}
+	writer.Close()
+
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, &buf)
+	if err != nil {
+		resp.Error(c, http.StatusBadRequest, "invalid endpoint URL: "+err.Error())
+		return
+	}
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+
+	httpResp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		resp.Error(c, http.StatusBadGateway, "connection failed: "+err.Error())
+		return
+	}
+	defer httpResp.Body.Close()
+
+	body, _ := io.ReadAll(io.LimitReader(httpResp.Body, 4*1024))
+
+	if httpResp.StatusCode < 200 || httpResp.StatusCode >= 300 {
+		resp.Error(c, http.StatusBadGateway, fmt.Sprintf("image bed returned %d: %s", httpResp.StatusCode, string(body)))
+		return
+	}
+
+	resp.Success(c, gin.H{
+		"status":  httpResp.StatusCode,
+		"body":    string(body),
+		"message": "image bed connection successful",
+	})
 }
 
 func decodeDBDump(body []byte, dump *model.DBDump) error {

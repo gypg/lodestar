@@ -255,10 +255,23 @@ export interface LatencyDistribution {
     buckets: HistogramBucket[];
 }
 
-export function useAnalyticsLatencyDistribution(range: AnalyticsRange) {
+export function useAnalyticsLatencyDistribution(range: AnalyticsRange, model?: string) {
     return useQuery({
-        queryKey: ['analytics', 'latency-distribution', range],
-        queryFn: async () => apiClient.get<LatencyDistribution>('/api/v1/analytics/latency-distribution', { range }),
+        queryKey: ['analytics', 'latency-distribution', range, model ?? null],
+        queryFn: async () =>
+            apiClient.get<LatencyDistribution>('/api/v1/analytics/latency-distribution', {
+                range,
+                ...(model ? { model } : {}),
+            }),
+        refetchInterval: REFETCH_INTERVAL_CONFIG,
+        refetchOnMount: 'always',
+    });
+}
+
+export function useAnalyticsLatencyModels(range: AnalyticsRange) {
+    return useQuery({
+        queryKey: ['analytics', 'latency-models', range],
+        queryFn: async () => apiClient.get<string[]>('/api/v1/analytics/latency-models', { range }),
         refetchInterval: REFETCH_INTERVAL_CONFIG,
         refetchOnMount: 'always',
     });

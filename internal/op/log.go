@@ -22,7 +22,7 @@ func RelayLogSubscribe() chan model.RelayLog { return relaylog.RelayLogSubscribe
 
 func RelayLogUnsubscribe(ch chan model.RelayLog) { relaylog.RelayLogUnsubscribe(ch) }
 
-func RelayLogAdd(ctx context.Context, relayLog model.RelayLog) error {
+func RelayLogAdd(ctx context.Context, relayLog *model.RelayLog) error {
 	return relaylog.RelayLogAdd(ctx, relayLog)
 }
 

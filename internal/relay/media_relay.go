@@ -374,8 +374,12 @@ func recordMediaRelayLog(apiKeyID int, requestModel string, endpointType string,
 		relayLog.Error = relayErr.Error()
 	}
 
-	if logErr := relaylog.RelayLogAdd(ctx, relayLog); logErr != nil {
+	if logErr := relaylog.RelayLogAdd(ctx, &relayLog); logErr != nil {
 		log.Warnf("failed to save media relay log: %v", logErr)
+	}
+	// relayLog.ID 已由 RelayLogAdd 分配。
+	if attemptsErr := relaylog.RelayLogAttemptsAdd(ctx, relayLog.ID, attempts, relayLog.Time); attemptsErr != nil {
+		log.Warnf("failed to save media relay attempts: %v", attemptsErr)
 	}
 
 	// Record global and API-key stats (media endpoints don't have token/cost data)

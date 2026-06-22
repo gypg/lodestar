@@ -341,6 +341,14 @@ export function useTestDatabaseConnection() {
     });
 }
 
+export function useTestImageBedConnection() {
+    return useMutation({
+        mutationFn: async () => {
+            return apiClient.post<{ status: number; body: string; message: string }>('/api/v1/setting/image-bed/test');
+        },
+    });
+}
+
 export function useMigrateDatabase() {
     return useMutation({
         mutationFn: async (data: DatabaseMigrationRequest) => {

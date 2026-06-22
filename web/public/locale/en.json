@@ -388,7 +388,8 @@
       "p95": "P95",
       "p99": "P99",
       "histogram": "Latency Distribution",
-      "totalRequests": "{count} total requests"
+      "totalRequests": "{count} total requests",
+      "allModels": "All models"
     },
     "overview": {
       "description": "Phase-one overview built from existing daily stats and replay data, focused on readable signals instead of new configuration."
@@ -1440,7 +1441,10 @@
       "endpoint": "API Endpoint",
       "endpointPlaceholder": "https://your-image-bed.example.com/api/upload",
       "token": "API Token",
-      "tokenPlaceholder": "Your image bed API token"
+      "tokenPlaceholder": "Your image bed API token",
+      "testConnection": "Test Connection",
+      "testSuccess": "Image bed connection successful",
+      "testing": "Testing..."
     },
     "routeGroups": {
       "title": "Route Groups",

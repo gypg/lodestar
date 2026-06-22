@@ -1393,11 +1393,60 @@ func analyticsStartTime(r model.AnalyticsRange, now time.Time) *time.Time {
 }
 
 // AnalyticsLatencyDistributionGet returns latency and FTUT distribution for the given range.
-func AnalyticsLatencyDistributionGet(ctx context.Context, r model.AnalyticsRange) (*model.LatencyDistribution, error) {
-	return loadLatencyDistribution(ctx, r)
+func AnalyticsLatencyDistributionGet(ctx context.Context, r model.AnalyticsRange, modelFilter string) (*model.LatencyDistribution, error) {
+	return loadLatencyDistribution(ctx, r, modelFilter)
 }
 
-func loadLatencyDistribution(ctx context.Context, r model.AnalyticsRange) (*model.LatencyDistribution, error) {
+// AnalyticsLatencyModelsGet returns the distinct request_model_name values present in
+// relay_logs (DB + in-memory cache) within the given range, for populating the model filter.
+func AnalyticsLatencyModelsGet(ctx context.Context, r model.AnalyticsRange) ([]string, error) {
+	startUnix := analyticsRangeStartUnix(r, stats.Now())
+	seen := make(map[string]struct{})
+
+	keepEnabled, err := setting.GetBool(model.SettingKeyRelayLogKeepEnabled)
+	if err != nil {
+		return nil, err
+	}
+
+	if keepEnabled {
+		query := db.GetDB().WithContext(ctx).
+			Model(&model.RelayLog{}).
+			Distinct("request_model_name")
+		if startUnix != nil {
+			query = query.Where("time >= ?", *startUnix)
+		}
+		var names []string
+		if err := query.Pluck("request_model_name", &names).Error; err != nil {
+			return nil, err
+		}
+		for _, n := range names {
+			if n != "" {
+				seen[n] = struct{}{}
+			}
+		}
+	}
+
+	cache, lock := relaylog.GetCacheAndLock()
+	lock.Lock()
+	for _, logItem := range cache {
+		if startUnix != nil && logItem.Time < *startUnix {
+			continue
+		}
+		if logItem.RequestModelName != "" {
+			seen[logItem.RequestModelName] = struct{}{}
+		}
+	}
+	lock.Unlock()
+
+	models := make([]string, 0, len(seen))
+	for name := range seen {
+		models = append(models, name)
+	}
+	sort.Strings(models)
+	return models, nil
+}
+
+func loadLatencyDistribution(ctx context.Context, r model.AnalyticsRange, modelFilter string) (*model.LatencyDistribution, error) {
 	startUnix := analyticsRangeStartUnix(r, stats.Now())
 	result := &model.LatencyDistribution{}
 
@@ -1427,6 +1476,9 @@ func loadLatencyDistribution(ctx context.Context, r model.AnalyticsRange) (*mode
 			Select("use_time, ftut")
 		if startUnix != nil {
 			query = query.Where("time >= ?", *startUnix)
+		}
+		if modelFilter != "" {
+			query = query.Where("request_model_name = ?", modelFilter)
 		}
 		if err := query.Find(&dbRows).Error; err != nil {
 			return nil, err
@@ -1461,6 +1513,9 @@ func loadLatencyDistribution(ctx context.Context, r model.AnalyticsRange) (*mode
 	lock.Lock()
 	for _, logItem := range cache {
 		if startUnix != nil && logItem.Time < *startUnix {
+			continue
+		}
+		if modelFilter != "" && logItem.RequestModelName != modelFilter {
 			continue
 		}
 		if logItem.UseTime > 0 {

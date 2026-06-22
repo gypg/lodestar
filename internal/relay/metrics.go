@@ -290,7 +290,7 @@ func (m *RelayMetrics) saveLog(ctx context.Context, err error, duration time.Dur
 		relayLog.Error = err.Error()
 	}
 
-	if logErr := relaylog.RelayLogAdd(ctx, relayLog); logErr != nil {
+	if logErr := relaylog.RelayLogAdd(ctx, &relayLog); logErr != nil {
 		log.Warnf("failed to save relay log: %v", logErr)
 	}
 
