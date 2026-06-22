@@ -455,7 +455,9 @@
       "actions": {
         "openGroupTest": "前往分组检测",
         "openAIRoute": "前往路由分析",
-        "openSemanticCache": "前往语义缓存设置"
+        "openSemanticCache": "前往语义缓存设置",
+        "configureAIRoute": "配置 AI 路由",
+        "goToSettings": "前往设置"
       },
       "availability": {
         "title": "分组可用性检测",
@@ -469,7 +471,16 @@
         "hint": "最近任务当前阶段：{step}",
         "unavailable": "最近一次 AI 路由任务状态暂时不可用。",
         "empty": "当前没有 AI 路由任务",
-        "history": "最近 AI 路由历史"
+        "history": "最近 AI 路由历史",
+        "notConfigured": "AI 路由分析需要先配置分析模型（设置 → AI 路由）。",
+        "needConfig": "需配置",
+        "configWarning": "请先在设置页面配置 AI 路由的 Base URL、API Key 和分析模型，否则无法执行分析。"
+      },
+      "groupStats": {
+        "total": "总分组",
+        "active": "有成员",
+        "empty": "空分组",
+        "endpointTypes": "端点类型"
       },
       "semanticCache": {
         "title": "语义缓存评估",
@@ -513,6 +524,7 @@
         "progress": "任务进度",
         "groups": "分组数量",
         "routes": "路由 / 路由项",
+        "lastRun": "上次运行",
         "result": "检测结果",
         "passed": "通过数量",
         "failed": "失败数量",

@@ -455,7 +455,9 @@
       "actions": {
         "openGroupTest": "Open Group Checks",
         "openAIRoute": "Open Route Analysis",
-        "openSemanticCache": "Open Semantic Cache Settings"
+        "openSemanticCache": "Open Semantic Cache Settings",
+        "configureAIRoute": "Configure AI Route",
+        "goToSettings": "Go to Settings"
       },
       "availability": {
         "title": "Group Availability Checks",
@@ -469,7 +471,16 @@
         "hint": "Latest task step: {step}",
         "unavailable": "The latest AI route task is temporarily unavailable.",
         "empty": "There is no recent AI route task.",
-        "history": "Recent AI Route History"
+        "history": "Recent AI Route History",
+        "notConfigured": "AI route analysis requires configuring the analysis model first (Settings → AI Route).",
+        "needConfig": "Config Required",
+        "configWarning": "Please configure AI Route's Base URL, API Key, and analysis model in the Settings page before running analysis."
+      },
+      "groupStats": {
+        "total": "Total Groups",
+        "active": "With Members",
+        "empty": "Empty Groups",
+        "endpointTypes": "Endpoint Types"
       },
       "semanticCache": {
         "title": "Semantic Cache Evaluation",
@@ -513,6 +524,7 @@
         "progress": "Progress",
         "groups": "Groups",
         "routes": "Routes / Items",
+        "lastRun": "Last Run",
         "result": "Result",
         "passed": "Passed",
         "failed": "Failed",

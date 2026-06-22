@@ -455,7 +455,9 @@
       "actions": {
         "openGroupTest": "前往分組檢測",
         "openAIRoute": "前往路由分析",
-        "openSemanticCache": "前往語意快取設定"
+        "openSemanticCache": "前往語意快取設定",
+        "configureAIRoute": "設定 AI 路由",
+        "goToSettings": "前往設定"
       },
       "availability": {
         "title": "分組可用性檢測",
@@ -469,7 +471,16 @@
         "hint": "最近任務當前階段：{step}",
         "unavailable": "最近一次 AI 路由任務狀態暫時不可用。",
         "empty": "當前沒有 AI 路由任務",
-        "history": "最近 AI 路由歷史"
+        "history": "最近 AI 路由歷史",
+        "notConfigured": "AI 路由分析需要先設定分析模型（設定 → AI 路由）。",
+        "needConfig": "需設定",
+        "configWarning": "請先在設定頁面設定 AI 路由的 Base URL、API Key 和分析模型，否則無法執行分析。"
+      },
+      "groupStats": {
+        "total": "總分組",
+        "active": "有成員",
+        "empty": "空分組",
+        "endpointTypes": "端點類型"
       },
       "semanticCache": {
         "title": "語意快取評估",
@@ -513,6 +524,7 @@
         "progress": "任務進度",
         "groups": "分組數量",
         "routes": "路由 / 路由項",
+        "lastRun": "上次運行",
         "result": "檢測結果",
         "passed": "通過數量",
         "failed": "失敗數量",

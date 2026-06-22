@@ -1,11 +1,13 @@
 'use client';
 
 import { useMemo, type ReactNode } from 'react';
-import { Activity, ArrowRight, Clock, Orbit, Radar, Route } from 'lucide-react';
+import { Activity, AlertTriangle, ArrowRight, CheckCircle, Clock, Orbit, Radar, Route, Settings } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useAnalyticsEvaluationRuntime } from '@/api/endpoints/analytics';
-import { useAIRouteHistory } from '@/api/endpoints/group';
+import { useAIRouteHistory, useGroupList } from '@/api/endpoints/group';
+import { useSettingList, SettingKey } from '@/api/endpoints/setting';
 import { useNavStore } from '@/components/modules/navbar';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ObservatorySection, StatusBadge } from './shared';
 
@@ -25,17 +27,24 @@ function getStatusTone(status?: string) {
     }
 }
 
-function SummaryStat({
-    label,
-    value,
-}: {
-    label: string;
-    value: string;
-}) {
+function SummaryStat({ label, value }: { label: string; value: string }) {
     return (
         <div className="rounded-lg border border-border/25 bg-card p-3 shadow-sm">
             <div className="text-xs text-muted-foreground">{label}</div>
             <div className="mt-2 text-sm font-semibold">{value}</div>
+        </div>
+    );
+}
+
+function ConfigWarning({ message, onNavigate }: { message: string; onNavigate: () => void }) {
+    return (
+        <div className="mt-3 flex items-center gap-2 rounded-lg border border-amber-500/25 bg-amber-500/5 px-3 py-2">
+            <AlertTriangle className="size-4 shrink-0 text-amber-500" />
+            <span className="min-w-0 flex-1 text-xs text-amber-700 dark:text-amber-300">{message}</span>
+            <Button variant="ghost" size="sm" className="shrink-0 text-xs" onClick={onNavigate}>
+                <Settings className="size-3" />
+                设置
+            </Button>
         </div>
     );
 }
@@ -46,6 +55,8 @@ function EntryCard({
     description,
     hint,
     status,
+    stats,
+    warning,
     action,
 }: {
     icon: typeof Activity;
@@ -53,6 +64,8 @@ function EntryCard({
     description: string;
     hint: string;
     status?: { label: string; tone: 'success' | 'warning' | 'danger' | 'neutral' };
+    stats?: Array<{ label: string; value: string }>;
+    warning?: { message: string; onNavigate: () => void };
     action: ReactNode;
 }) {
     return (
@@ -70,6 +83,14 @@ function EntryCard({
                     {hint}
                 </div>
             </div>
+            {stats && stats.length > 0 ? (
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                    {stats.map((s) => (
+                        <SummaryStat key={s.label} label={s.label} value={s.value} />
+                    ))}
+                </div>
+            ) : null}
+            {warning ? <ConfigWarning message={warning.message} onNavigate={warning.onNavigate} /> : null}
             <div className="mt-4">{action}</div>
         </article>
     );
@@ -80,6 +101,8 @@ export function Evaluation() {
     const { setActiveItem } = useNavStore();
     const sectionDescription = t('evaluation.description');
     const runtime = useAnalyticsEvaluationRuntime();
+    const { data: groups } = useGroupList();
+    const { data: settings } = useSettingList();
     const { data: aiRouteHistory } = useAIRouteHistory();
     const aiRoute = runtime.aiRouteProgress;
     const groupTest = runtime.groupTestProgress;
@@ -104,6 +127,27 @@ export function Evaluation() {
                 : t('evaluation.summary.allPassed');
     const statusButtonClassName = 'rounded-lg border-border/25 bg-card text-foreground shadow-sm hover:bg-card hover:text-foreground';
 
+    // Group statistics
+    const groupStats = useMemo(() => {
+        if (!groups) return null;
+        const total = groups.length;
+        const withItems = groups.filter((g) => (g.items?.length ?? 0) > 0).length;
+        const empty = total - withItems;
+        const endpointTypes = new Set(groups.map((g) => g.endpoint_type).filter(Boolean));
+        return { total, withItems, empty, endpointTypes: endpointTypes.size };
+    }, [groups]);
+
+    // AI route configuration check
+    const aiRouteConfigured = useMemo(() => {
+        if (!settings) return false;
+        const baseURL = settings.find((s) => s.key === SettingKey.AIRouteBaseURL)?.value?.trim();
+        const apiKey = settings.find((s) => s.key === SettingKey.AIRouteAPIKey)?.value?.trim();
+        const model = settings.find((s) => s.key === SettingKey.AIRouteModel)?.value?.trim();
+        return Boolean(baseURL && apiKey && model);
+    }, [settings]);
+
+    const lastAiRouteTask = aiRouteHistory?.[0];
+
     return (
         <ObservatorySection
             eyebrow={t('evaluation.title')}
@@ -112,6 +156,7 @@ export function Evaluation() {
             icon={Radar}
         >
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                {/* Group Detection Card */}
                 <EntryCard
                     icon={Activity}
                     title={t('evaluation.availability.title')}
@@ -121,6 +166,15 @@ export function Evaluation() {
                         : runtime.hasGroups
                             ? t('evaluation.availability.hint', { count: runtime.groupCount })
                             : t('evaluation.availability.empty')}
+                    stats={groupStats ? [
+                        { label: t('evaluation.groupStats.total') || '总分组', value: String(groupStats.total) },
+                        { label: t('evaluation.groupStats.active') || '有成员', value: String(groupStats.withItems) },
+                        { label: t('evaluation.groupStats.empty') || '空分组', value: String(groupStats.empty) },
+                        { label: t('evaluation.groupStats.endpointTypes') || '端点类型', value: String(groupStats.endpointTypes) },
+                    ] : undefined}
+                    status={groupTest
+                        ? { label: groupTestResultLabel, tone: getStatusTone(groupTest.done ? (groupTestHasFailures ? 'failed' : 'completed') : 'running') }
+                        : undefined}
                     action={
                         <Button className={statusButtonClassName} onClick={() => setActiveItem('group')}>
                             {t('evaluation.actions.openGroupTest')}
@@ -128,24 +182,49 @@ export function Evaluation() {
                         </Button>
                     }
                 />
+
+                {/* AI Route Card */}
                 <EntryCard
                     icon={Route}
                     title={t('evaluation.aiRoute.title')}
                     description={t('evaluation.aiRoute.description')}
                     hint={aiRoute
                         ? t('evaluation.aiRoute.hint', { step: t(`evaluation.runtime.step.${aiRouteStep}`) })
-                        : hasAiRouteUnavailable
-                            ? t('evaluation.aiRoute.unavailable')
-                            : t('evaluation.aiRoute.empty')}
+                        : !aiRouteConfigured
+                            ? t('evaluation.aiRoute.notConfigured') || 'AI 路由分析需要先配置分析模型（设置 → AI 路由）'
+                            : hasAiRouteUnavailable
+                                ? t('evaluation.aiRoute.unavailable')
+                                : t('evaluation.aiRoute.empty')}
                     status={{
-                        label: t(`evaluation.runtime.status.${aiRouteStatus}`),
-                        tone: getStatusTone(aiRouteStatus),
+                        label: !aiRouteConfigured
+                            ? (t('evaluation.aiRoute.needConfig') || '需配置')
+                            : t(`evaluation.runtime.status.${aiRouteStatus}`),
+                        tone: !aiRouteConfigured ? 'warning' : getStatusTone(aiRouteStatus),
                     }}
+                    stats={lastAiRouteTask?.result ? [
+                        { label: t('evaluation.summary.groups') || '分组', value: String(lastAiRouteTask.result.group_count ?? 0) },
+                        { label: t('evaluation.summary.routes') || '路由', value: `${lastAiRouteTask.result.route_count ?? 0} / ${lastAiRouteTask.result.item_count ?? 0}` },
+                        { label: t('evaluation.summary.lastRun') || '上次运行', value: lastAiRouteTask.finished_at ? new Date(lastAiRouteTask.finished_at).toLocaleString() : '-' },
+                        { label: t('evaluation.summary.status') || '状态', value: lastAiRouteTask.status ?? '-' },
+                    ] : undefined}
+                    warning={!aiRouteConfigured ? {
+                        message: t('evaluation.aiRoute.configWarning') || '请先在设置页面配置 AI 路由的 Base URL、API Key 和分析模型，否则无法执行分析。',
+                        onNavigate: () => setActiveItem('setting'),
+                    } : undefined}
                     action={
-                        <Button className={statusButtonClassName} onClick={() => setActiveItem('group')}>
-                            {t('evaluation.actions.openAIRoute')}
-                            <ArrowRight className="size-4" />
-                        </Button>
+                        <div className="flex gap-2">
+                            {!aiRouteConfigured ? (
+                                <Button className={statusButtonClassName} onClick={() => setActiveItem('setting')}>
+                                    <Settings className="size-4" />
+                                    {t('evaluation.actions.configureAIRoute') || '配置 AI 路由'}
+                                </Button>
+                            ) : (
+                                <Button className={statusButtonClassName} onClick={() => setActiveItem('group')}>
+                                    {t('evaluation.actions.openAIRoute')}
+                                    <ArrowRight className="size-4" />
+                                </Button>
+                            )}
+                        </div>
                     }
                 />
             </div>
@@ -167,8 +246,8 @@ export function Evaluation() {
                         <div className="mt-4 flex items-center justify-between gap-3">
                             <h4 className="text-sm font-semibold">{t('evaluation.summary.aiRoute')}</h4>
                             <StatusBadge
-                                label={t(`evaluation.runtime.status.${aiRouteStatus}`)}
-                                tone={getStatusTone(aiRouteStatus)}
+                                label={!aiRouteConfigured ? (t('evaluation.aiRoute.needConfig') || '需配置') : t(`evaluation.runtime.status.${aiRouteStatus}`)}
+                                tone={!aiRouteConfigured ? 'warning' : getStatusTone(aiRouteStatus)}
                             />
                         </div>
                         {aiRoute ? (
@@ -189,6 +268,16 @@ export function Evaluation() {
                                     label={t('evaluation.summary.routes')}
                                     value={`${aiRoute.result?.route_count ?? 0} / ${aiRoute.result?.item_count ?? 0}`}
                                 />
+                            </div>
+                        ) : !aiRouteConfigured ? (
+                            <div className="mt-4 space-y-3">
+                                <div className="rounded-lg border border-amber-500/25 bg-amber-500/5 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
+                                    {t('evaluation.aiRoute.configWarning') || '请先在设置页面配置 AI 路由的 Base URL、API Key 和分析模型，否则无法执行分析。'}
+                                </div>
+                                <Button variant="outline" size="sm" className="rounded-lg" onClick={() => setActiveItem('setting')}>
+                                    <Settings className="size-4" />
+                                    {t('evaluation.actions.goToSettings') || '前往设置'}
+                                </Button>
                             </div>
                         ) : (
                             <div className="mt-4 rounded-lg border border-border/20 bg-card px-4 py-3 text-sm leading-6 text-muted-foreground">
