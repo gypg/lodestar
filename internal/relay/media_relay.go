@@ -201,7 +201,7 @@ func MediaHandler(endpointType MediaEndpointType, c *gin.Context) {
 
 			// 渠道内 Key 级重试
 			var failedKeyIDs []int
-			for keyRound := 1; keyRound <= maxKeyRetriesPerRoute; keyRound++ {
+			for keyRound := 1; keyRound == 1 || keyRound <= maxKeyRetriesPerRoute; keyRound++ {
 				if maxTotalAttempts > 0 && len(allAttempts) >= maxTotalAttempts {
 					lastErr = fmt.Errorf("reached relay max total attempts: %d", maxTotalAttempts)
 					goto mediaExhausted

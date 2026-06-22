@@ -13,6 +13,7 @@ import (
 	"github.com/glebarez/sqlite"
 	"github.com/gypg/lodestar/internal/db/migrate"
 	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/utils/log"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -324,6 +325,23 @@ func initSQLite(path string, config *gorm.Config) (*gorm.DB, error) {
 	db, err := gorm.Open(sqlite.Open(dsn+sqliteDSNSeparator(dsn)+strings.Join(params, "&")), config)
 	if err != nil {
 		return nil, wrapSQLitePathError("failed to open sqlite database", dsn, err)
+	}
+	// Explicitly apply PRAGMAs after connection to ensure they take effect.
+	// DSN-level _params may not be applied by all SQLite drivers.
+	pragmas := []string{
+		"PRAGMA journal_mode=WAL",
+		"PRAGMA synchronous=NORMAL",
+		"PRAGMA cache_size=10000",
+		"PRAGMA busy_timeout=5000",
+		"PRAGMA foreign_keys=ON",
+		"PRAGMA auto_vacuum=INCREMENTAL",
+		"PRAGMA mmap_size=268435456",
+		"PRAGMA locking_mode=NORMAL",
+	}
+	for _, p := range pragmas {
+		if execErr := db.Exec(p).Error; execErr != nil {
+			log.Warnf("SQLite PRAGMA failed (%s): %v", p, execErr)
+		}
 	}
 	return db, nil
 }

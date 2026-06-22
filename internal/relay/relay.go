@@ -609,6 +609,17 @@ func (ra *relayAttempt) handleForwardResponse(response *http.Response) (int, err
 	if len(body) > maxErrorBodyBytes {
 		return response.StatusCode, fmt.Errorf("upstream error: %d: response body too large", response.StatusCode)
 	}
+	// Log the raw upstream error body verbatim for debugging.
+	channelName := ""
+	modelName := ""
+	if ra.channel != nil {
+		channelName = ra.channel.Name
+	}
+	if ra.relayRequest != nil {
+		modelName = ra.internalRequest.Model
+	}
+	log.Infof("upstream error body [%s] %s %d: %s",
+		channelName, modelName, response.StatusCode, string(body))
 	return response.StatusCode, fmt.Errorf("upstream error: %d: %s", response.StatusCode, string(body))
 }
 
@@ -1121,7 +1132,7 @@ func executeRelay(req *relayRequest, group dbmodel.Group, requestModel string, m
 
 			req.internalRequest.Model = resolvedModelName
 			var failedKeyIDs []int
-			for keyRound := 1; keyRound <= maxKeyRetriesPerRoute; keyRound++ {
+			for keyRound := 1; keyRound == 1 || keyRound <= maxKeyRetriesPerRoute; keyRound++ {
 				if maxTotalAttempts > 0 && len(allAttempts) >= maxTotalAttempts {
 					lastErr = fmt.Errorf("reached relay max total attempts: %d", maxTotalAttempts)
 					goto exhausted
