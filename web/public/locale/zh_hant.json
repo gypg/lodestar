@@ -456,7 +456,10 @@
         "model": "模型名稱",
         "modelPlaceholder": "選擇分析模型",
         "save": "儲存",
-        "saved": "儲存成功"
+        "saved": "儲存成功",
+        "modeLocal": "本站模型",
+        "modeExternal": "外部連線",
+        "autoChannelNote": "自動使用本站渠道 {name} 的配置"
       }
     },
     "evaluation": {
@@ -575,10 +578,12 @@
     "groupTestInline": {
       "selectAll": "全選",
       "deselectAll": "取消全選",
-      "testAll": "全部檢測",
+      "testAll": "檢測全部模型",
       "testSelected": "檢測選中",
       "testing": "檢測中...",
-      "noGroups": "暫無分組"
+      "noGroups": "暫無模型",
+      "searchModels": "搜尋模型...",
+      "noMatch": "沒有匹配的模型"
     },
     "share": {
       "button": "分享",

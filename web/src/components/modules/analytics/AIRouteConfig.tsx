@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
-import { KeyRound, Link2, Save, Check } from 'lucide-react';
+import { KeyRound, Link2, Save, Check, Server, Globe } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import {
     Select,
     SelectContent,
@@ -15,27 +16,23 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { SettingKey, useSetSetting, useSettingList } from '@/api/endpoints/setting';
-import { useModelList } from '@/api/endpoints/model';
+import { useModelList, useModelChannelList } from '@/api/endpoints/model';
+import { useChannelList } from '@/api/endpoints/channel';
 import { getModelIcon } from '@/lib/model-icons';
 import { toast } from '@/components/common/Toast';
 import { cn } from '@/lib/utils';
+
+type Mode = 'external' | 'local';
 
 export function AIRouteConfig({ compact }: { compact?: boolean }) {
     const t = useTranslations('analytics');
     const { data: settings } = useSettingList();
     const setSetting = useSetSetting();
     const { data: models } = useModelList();
+    const { data: channels } = useChannelList();
+    const { data: modelChannels } = useModelChannelList();
 
-    const modelsByProvider = useMemo(() => {
-        const buckets: Record<string, string[]> = {};
-        for (const m of models ?? []) {
-            const { label } = getModelIcon(m.name);
-            const key = label || 'Other';
-            (buckets[key] ??= []).push(m.name);
-        }
-        return buckets;
-    }, [models]);
-
+    const [mode, setMode] = useState<Mode>('external');
     const [baseURL, setBaseURL] = useState('');
     const [apiKey, setAPIKey] = useState('');
     const [model, setModel] = useState('');
@@ -46,7 +43,31 @@ export function AIRouteConfig({ compact }: { compact?: boolean }) {
 
     const [saving, setSaving] = useState(false);
     const [justSaved, setJustSaved] = useState(false);
+    const [autoChannelName, setAutoChannelName] = useState<string | null>(null);
 
+    // Group models by provider for the dropdown
+    const modelsByProvider = useMemo(() => {
+        const buckets: Record<string, string[]> = {};
+        for (const m of models ?? []) {
+            const { label } = getModelIcon(m.name);
+            const key = label || 'Other';
+            (buckets[key] ??= []).push(m.name);
+        }
+        return buckets;
+    }, [models]);
+
+    // Build a lookup: model name -> channel id
+    const modelToChannel = useMemo(() => {
+        const map = new Map<number, string>();
+        for (const mc of modelChannels ?? []) {
+            if (mc.enabled && mc.channel_id) {
+                map.set(mc.channel_id, mc.name);
+            }
+        }
+        return map;
+    }, [modelChannels]);
+
+    // Load saved settings on mount
     useEffect(() => {
         if (!settings) return;
 
@@ -130,74 +151,225 @@ export function AIRouteConfig({ compact }: { compact?: boolean }) {
         }
     };
 
+    /**
+     * Find which channel serves the given model, then auto-fill base_url and api_key
+     * and persist all three settings.
+     */
+    const handleLocalModelSelect = (modelName: string) => {
+        setModel(modelName);
+
+        // Find the channel that serves this model via modelChannels list
+        const mc = (modelChannels ?? []).find(
+            (item) => item.name === modelName && item.enabled,
+        );
+
+        if (!mc) {
+            // No channel mapping found; just save the model name
+            saveSingle(SettingKey.AIRouteModel, modelName, initialModel);
+            setAutoChannelName(null);
+            return;
+        }
+
+        // Find the full channel record from the channel list
+        const channelRecord = (channels ?? []).find(
+            (ch) => ch.raw.id === mc.channel_id,
+        );
+        const channel = channelRecord?.raw;
+
+        if (!channel) {
+            saveSingle(SettingKey.AIRouteModel, modelName, initialModel);
+            setAutoChannelName(null);
+            return;
+        }
+
+        const resolvedBaseURL = channel.base_urls?.[0]?.url ?? '';
+        const resolvedAPIKey = channel.keys?.[0]?.channel_key ?? '';
+        const channelName = channel.name;
+
+        setAutoChannelName(channelName);
+
+        // Update local state
+        setBaseURL(resolvedBaseURL);
+        setAPIKey(resolvedAPIKey);
+
+        // Persist all three settings at once
+        const batchUpdates: Array<{ key: string; value: string; ref: MutableRefObject<string> }> = [];
+        if (resolvedBaseURL !== initialBaseURL.current) {
+            batchUpdates.push({ key: SettingKey.AIRouteBaseURL, value: resolvedBaseURL, ref: initialBaseURL });
+        }
+        if (resolvedAPIKey !== initialAPIKey.current) {
+            batchUpdates.push({ key: SettingKey.AIRouteAPIKey, value: resolvedAPIKey, ref: initialAPIKey });
+        }
+        if (modelName !== initialModel.current) {
+            batchUpdates.push({ key: SettingKey.AIRouteModel, value: modelName, ref: initialModel });
+        }
+
+        if (batchUpdates.length === 0) return;
+
+        let completed = 0;
+        let failed = false;
+
+        for (const update of batchUpdates) {
+            setSetting.mutate(
+                { key: update.key, value: update.value },
+                {
+                    onSuccess: () => {
+                        update.ref.current = update.value;
+                        completed++;
+                        if (completed === batchUpdates.length && !failed) {
+                            toast.success(t('aiRoute.config.saved'));
+                        }
+                    },
+                    onError: () => {
+                        failed = true;
+                        toast.error(t('states.empty'));
+                    },
+                },
+            );
+        }
+    };
+
     const fieldClass = compact ? 'text-sm' : '';
     const labelClass = cn('text-xs font-medium text-muted-foreground', compact && 'text-[11px]');
 
     return (
         <div className={cn('space-y-3', compact ? 'space-y-2' : 'space-y-3')}>
-            <div className="space-y-1.5">
-                <label className={labelClass}>{t('aiRoute.config.baseURL')}</label>
-                <div className="relative">
-                    <Link2 className={cn('absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground', compact ? 'h-3.5 w-3.5' : 'h-4 w-4')} />
-                    <Input
-                        value={baseURL}
-                        onChange={(e) => setBaseURL(e.target.value)}
-                        onBlur={() => saveSingle(SettingKey.AIRouteBaseURL, baseURL, initialBaseURL)}
-                        placeholder="https://api.openai.com/v1"
-                        className={cn('rounded-lg pl-9', fieldClass, compact && 'h-8')}
-                    />
-                </div>
-            </div>
-
-            <div className="space-y-1.5">
-                <label className={labelClass}>{t('aiRoute.config.apiKey')}</label>
-                <div className="relative">
-                    <KeyRound className={cn('absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground', compact ? 'h-3.5 w-3.5' : 'h-4 w-4')} />
-                    <Input
-                        type="password"
-                        value={apiKey}
-                        onChange={(e) => setAPIKey(e.target.value)}
-                        onBlur={() => saveSingle(SettingKey.AIRouteAPIKey, apiKey, initialAPIKey)}
-                        placeholder="sk-..."
-                        className={cn('rounded-lg pl-9', fieldClass, compact && 'h-8')}
-                    />
-                </div>
-            </div>
-
-            <div className="space-y-1.5">
-                <label className={labelClass}>{t('aiRoute.config.model')}</label>
-                <Select value={model} onValueChange={(v) => { setModel(v); saveSingle(SettingKey.AIRouteModel, v, initialModel); }}>
-                    <SelectTrigger className={cn("rounded-lg", compact && "h-8")}>
-                        <SelectValue placeholder={t('aiRoute.config.modelPlaceholder') || "Select a model"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {Object.entries(modelsByProvider).map(([provider, providerModels]) => (
-                            <SelectGroup key={provider}>
-                                <SelectLabel>{provider}</SelectLabel>
-                                {providerModels.map((m) => (
-                                    <SelectItem key={m} value={m}>{m}</SelectItem>
-                                ))}
-                            </SelectGroup>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>
-
-            <div className={cn('flex items-center gap-2', compact ? 'pt-1' : 'pt-2')}>
-                <Button
-                    size={compact ? 'sm' : 'default'}
-                    onClick={saveAll}
-                    disabled={!hasChanges || saving}
-                    className={cn(compact && 'h-7 text-xs')}
-                >
-                    {justSaved ? (
-                        <Check className={cn('mr-1.5', compact ? 'h-3 w-3' : 'h-4 w-4')} />
+            {/* Mode toggle */}
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    {mode === 'external' ? (
+                        <Globe className={cn('text-muted-foreground', compact ? 'h-3.5 w-3.5' : 'h-4 w-4')} />
                     ) : (
-                        <Save className={cn('mr-1.5', compact ? 'h-3 w-3' : 'h-4 w-4')} />
+                        <Server className={cn('text-muted-foreground', compact ? 'h-3.5 w-3.5' : 'h-4 w-4')} />
                     )}
-                    {justSaved ? t('aiRoute.config.saved') : t('aiRoute.config.save')}
-                </Button>
+                    <span className={cn('font-medium', compact ? 'text-xs' : 'text-sm')}>
+                        {mode === 'external'
+                            ? t('aiRoute.config.modeExternal')
+                            : t('aiRoute.config.modeLocal')}
+                    </span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <span className={cn('text-muted-foreground', compact ? 'text-[10px]' : 'text-xs')}>
+                        {t('aiRoute.config.modeExternal')}
+                    </span>
+                    <Switch
+                        checked={mode === 'local'}
+                        onCheckedChange={(checked) => setMode(checked ? 'local' : 'external')}
+                        className={compact ? 'scale-75' : ''}
+                    />
+                    <span className={cn('text-muted-foreground', compact ? 'text-[10px]' : 'text-xs')}>
+                        {t('aiRoute.config.modeLocal')}
+                    </span>
+                </div>
             </div>
+
+            {/* Local mode: model dropdown only, auto-saves via channel lookup */}
+            {mode === 'local' && (
+                <>
+                    <div className="space-y-1.5">
+                        <label className={labelClass}>{t('aiRoute.config.model')}</label>
+                        <Select value={model} onValueChange={handleLocalModelSelect}>
+                            <SelectTrigger className={cn('rounded-lg', compact && 'h-8')}>
+                                <SelectValue placeholder={t('aiRoute.config.modelPlaceholder') || 'Select a model'} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {Object.entries(modelsByProvider).map(([provider, providerModels]) => (
+                                    <SelectGroup key={provider}>
+                                        <SelectLabel>{provider}</SelectLabel>
+                                        {providerModels.map((m) => (
+                                            <SelectItem key={m} value={m}>
+                                                {m}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectGroup>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    {autoChannelName && (
+                        <p className={cn('text-muted-foreground', compact ? 'text-[10px]' : 'text-xs')}>
+                            {t('aiRoute.config.autoChannelNote', { name: autoChannelName })}
+                        </p>
+                    )}
+                </>
+            )}
+
+            {/* External mode: Base URL, API Key, Model dropdown + Save button */}
+            {mode === 'external' && (
+                <>
+                    <div className="space-y-1.5">
+                        <label className={labelClass}>{t('aiRoute.config.baseURL')}</label>
+                        <div className="relative">
+                            <Link2 className={cn('absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground', compact ? 'h-3.5 w-3.5' : 'h-4 w-4')} />
+                            <Input
+                                value={baseURL}
+                                onChange={(e) => setBaseURL(e.target.value)}
+                                onBlur={() => saveSingle(SettingKey.AIRouteBaseURL, baseURL, initialBaseURL)}
+                                placeholder="https://api.openai.com/v1"
+                                className={cn('rounded-lg pl-9', fieldClass, compact && 'h-8')}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                        <label className={labelClass}>{t('aiRoute.config.apiKey')}</label>
+                        <div className="relative">
+                            <KeyRound className={cn('absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground', compact ? 'h-3.5 w-3.5' : 'h-4 w-4')} />
+                            <Input
+                                type="password"
+                                value={apiKey}
+                                onChange={(e) => setAPIKey(e.target.value)}
+                                onBlur={() => saveSingle(SettingKey.AIRouteAPIKey, apiKey, initialAPIKey)}
+                                placeholder="sk-..."
+                                className={cn('rounded-lg pl-9', fieldClass, compact && 'h-8')}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                        <label className={labelClass}>{t('aiRoute.config.model')}</label>
+                        <Select
+                            value={model}
+                            onValueChange={(v) => {
+                                setModel(v);
+                                saveSingle(SettingKey.AIRouteModel, v, initialModel);
+                            }}
+                        >
+                            <SelectTrigger className={cn('rounded-lg', compact && 'h-8')}>
+                                <SelectValue placeholder={t('aiRoute.config.modelPlaceholder') || 'Select a model'} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {Object.entries(modelsByProvider).map(([provider, providerModels]) => (
+                                    <SelectGroup key={provider}>
+                                        <SelectLabel>{provider}</SelectLabel>
+                                        {providerModels.map((m) => (
+                                            <SelectItem key={m} value={m}>
+                                                {m}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectGroup>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className={cn('flex items-center gap-2', compact ? 'pt-1' : 'pt-2')}>
+                        <Button
+                            size={compact ? 'sm' : 'default'}
+                            onClick={saveAll}
+                            disabled={!hasChanges || saving}
+                            className={cn(compact && 'h-7 text-xs')}
+                        >
+                            {justSaved ? (
+                                <Check className={cn('mr-1.5', compact ? 'h-3 w-3' : 'h-4 w-4')} />
+                            ) : (
+                                <Save className={cn('mr-1.5', compact ? 'h-3 w-3' : 'h-4 w-4')} />
+                            )}
+                            {justSaved ? t('aiRoute.config.saved') : t('aiRoute.config.save')}
+                        </Button>
+                    </div>
+                </>
+            )}
         </div>
     );
 }

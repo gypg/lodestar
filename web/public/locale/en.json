@@ -456,7 +456,10 @@
         "model": "Model Name",
         "modelPlaceholder": "Select analysis model",
         "save": "Save",
-        "saved": "Saved successfully"
+        "saved": "Saved successfully",
+        "modeLocal": "Local Model",
+        "modeExternal": "External Connection",
+        "autoChannelNote": "Auto-configured from channel: {name}"
       }
     },
     "evaluation": {
@@ -575,10 +578,12 @@
     "groupTestInline": {
       "selectAll": "Select All",
       "deselectAll": "Deselect All",
-      "testAll": "Test All",
+      "testAll": "Test All Models",
       "testSelected": "Test Selected",
       "testing": "Testing...",
-      "noGroups": "No groups available"
+      "noGroups": "No models available",
+      "searchModels": "Search models...",
+      "noMatch": "No models match your search"
     },
     "share": {
       "button": "Share",
