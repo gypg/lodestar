@@ -373,10 +373,10 @@ export function Evaluation() {
                                 </div>
                             );
                         })}
-                        {Array.isArray(groupTestHistory) && groupTestHistory.map((record: Record<string, unknown>) => {
+                        {Array.isArray(groupTestHistory) && groupTestHistory.map((record: Record<string, unknown>, idx: number) => {
                             const date = record.finished_at ? new Date(record.finished_at as string).toLocaleString() : '';
                             return (
-                                <div key={`gt-${String(record.id ?? Math.random())}`} className="flex items-center justify-between rounded-lg border border-border/30 bg-card p-3">
+                                <div key={`gt-${String(record.id ?? idx)}`} className="flex items-center justify-between rounded-lg border border-border/30 bg-card p-3">
                                     <div className="flex items-center gap-3">
                                         <StatusBadge
                                             label={String(record.status ?? 'unknown')}
