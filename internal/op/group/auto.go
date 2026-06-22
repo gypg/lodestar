@@ -102,7 +102,55 @@ var autoGroupFamilyRules = []autoGroupFamilyRule{
 	{canonical: "doubao-seed-1.6", ruleName: "doubao-seed-1.6", re: regexp.MustCompile(`(^|/)doubao-seed-1(?:[.-])6(?:-[0-9]{6})?$`)},
 }
 
-func AutoGroupModels(ctx context.Context) (*model.AutoGroupResult, error) {
+// autoGroupCanonicalNames returns the set of all canonical names that auto-group
+// would generate, based on the explicit aliases and family rules. This is used
+// to identify which existing groups were auto-created (by matching their name).
+func autoGroupCanonicalNames() map[string]struct{} {
+	names := make(map[string]struct{}, len(autoGroupExplicitAliases)+len(autoGroupFamilyRules)+10)
+	for _, canonical := range autoGroupExplicitAliases {
+		names[strings.ToLower(canonical)] = struct{}{}
+	}
+	for _, rule := range autoGroupFamilyRules {
+		names[strings.ToLower(rule.canonical)] = struct{}{}
+	}
+	return names
+}
+
+// deleteAutoCreatedGroups deletes all groups whose name matches a known auto-group
+// canonical name. Returns the list of deleted items and any error.
+func deleteAutoCreatedGroups(ctx context.Context) ([]model.AutoGroupDeletedItem, error) {
+	canonicalNames := autoGroupCanonicalNames()
+	existingGroups, err := GroupList(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("list groups failed: %w", err)
+	}
+
+	deleted := make([]model.AutoGroupDeletedItem, 0)
+	for _, g := range existingGroups {
+		lowerName := strings.ToLower(strings.TrimSpace(g.Name))
+		if _, ok := canonicalNames[lowerName]; !ok {
+			continue
+		}
+		itemsCount := len(g.Items)
+		if err := GroupDel(g.ID, ctx); err != nil {
+			log.Errorf("auto group force: failed to delete group %d (%s): %v", g.ID, g.Name, err)
+			continue
+		}
+		deleted = append(deleted, model.AutoGroupDeletedItem{
+			ID:           g.ID,
+			Name:         g.Name,
+			EndpointType: g.EndpointType,
+			ItemsCount:   itemsCount,
+		})
+	}
+
+	if len(deleted) > 0 {
+		log.Infof("auto group force: deleted %d auto-created groups", len(deleted))
+	}
+	return deleted, nil
+}
+
+func AutoGroupModels(ctx context.Context, force bool) (*model.AutoGroupResult, error) {
 	channelRefs, totalChannels, err := collectChannelModelRefs(ctx)
 	if err != nil {
 		return nil, err
@@ -111,6 +159,16 @@ func AutoGroupModels(ctx context.Context) (*model.AutoGroupResult, error) {
 	result := &model.AutoGroupResult{
 		TotalChannels:   totalChannels,
 		TotalModelsSeen: len(channelRefs),
+	}
+
+	// Force mode: delete all auto-created groups first, then rebuild from scratch.
+	if force {
+		deleted, err := deleteAutoCreatedGroups(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("force delete auto groups failed: %w", err)
+		}
+		result.DeletedGroups = len(deleted)
+		result.Deleted = deleted
 	}
 
 	rawSeen := make(map[string]struct{}, len(channelRefs))
@@ -203,12 +261,14 @@ func AutoGroupModels(ctx context.Context) (*model.AutoGroupResult, error) {
 		})
 	}
 
-	log.Infof("auto group finished: channels=%d seen_models=%d distinct_raw=%d candidates=%d created=%d skipped_existing=%d skipped_covered_models=%d failed=%d",
+	log.Infof("auto group finished: force=%v channels=%d seen_models=%d distinct_raw=%d candidates=%d created=%d deleted=%d skipped_existing=%d skipped_covered_models=%d failed=%d",
+		force,
 		result.TotalChannels,
 		result.TotalModelsSeen,
 		result.TotalDistinctRawModels,
 		result.TotalCandidates,
 		result.CreatedGroups,
+		result.DeletedGroups,
 		result.SkippedExistingGroups,
 		result.SkippedCoveredModels,
 		result.FailedGroups,

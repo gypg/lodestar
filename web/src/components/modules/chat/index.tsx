@@ -20,7 +20,7 @@ import {
     type ChatMessage,
 } from '@/api/endpoints/chat';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { ModelSelector } from '@/components/ui/model-selector';
 import { cn } from '@/lib/utils';
 import { Markdown } from './Markdown';
 
@@ -293,18 +293,13 @@ export function Chat() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                    <Input
+                    <ModelSelector
+                        models={modelNames}
                         value={model}
-                        onChange={(e) => setModel(e.target.value)}
-                        list="chat-model-options"
-                        placeholder="模型，如 gpt-4o-mini"
+                        onChange={setModel}
+                        placeholder="选择模型"
                         className="h-9 w-48 rounded-lg"
                     />
-                    <datalist id="chat-model-options">
-                        {modelNames.map((name) => (
-                            <option key={name} value={name} />
-                        ))}
-                    </datalist>
                     <select
                         value={keyId ?? ''}
                         onChange={(e) => setKeyId(Number(e.target.value))}

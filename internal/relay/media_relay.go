@@ -558,6 +558,14 @@ func forwardMediaRequestJSON(
 		return response.StatusCode, fmt.Errorf("upstream error: %d: %s", response.StatusCode, string(respBody))
 	}
 
+	// Image bed: for image generation endpoints, try to upload base64 images
+	// to an external image bed and replace with hosted URLs.
+	if cfg.UpstreamPath == "/v1/images/generations" {
+		if modified, ok := tryImageBedRewrite(c, response); ok {
+			return response.StatusCode, modified
+		}
+	}
+
 	// Stream response back to client
 	if cfg.BinaryResponse {
 		provider := strings.ToLower(strings.TrimSpace(group.EndpointProvider))
@@ -977,4 +985,96 @@ func handleMimoTTSResponse(c *gin.Context, response *http.Response, audioFormat 
 	}
 
 	return response.StatusCode, nil
+}
+
+// tryImageBedRewrite reads the image generation response, attempts to upload
+// each b64_json item to the image bed, and rewrites the response with hosted
+// URLs. Returns (error, true) on successful rewrite, (nil, false) if image
+// bed is disabled or the rewrite should be skipped.
+func tryImageBedRewrite(c *gin.Context, response *http.Response) (error, bool) {
+	cfg := readImageBedConfig()
+	if !cfg.Enabled {
+		return nil, false
+	}
+
+	respBody, err := io.ReadAll(response.Body)
+	if err != nil {
+		log.Warnf("image bed: failed to read response body: %v", err)
+		return nil, false
+	}
+
+	var parsed imageGenResponse
+	if err := json.Unmarshal(respBody, &parsed); err != nil {
+		log.Warnf("image bed: failed to parse image response JSON: %v", err)
+		return writeOriginalResponse(c, respBody, response)
+	}
+
+	modified := rewriteImageGenResponse(parsed, cfg)
+	if !modified {
+		return writeOriginalResponse(c, respBody, response)
+	}
+
+	newBody, err := json.Marshal(parsed)
+	if err != nil {
+		log.Warnf("image bed: failed to marshal modified response: %v", err)
+		return writeOriginalResponse(c, respBody, response)
+	}
+
+	if ct := response.Header.Get("Content-Type"); ct != "" {
+		c.Header("Content-Type", ct)
+	} else {
+		c.Header("Content-Type", "application/json")
+	}
+	if _, err := c.Writer.Write(newBody); err != nil {
+		return fmt.Errorf("failed to write modified image response: %w", err), true
+	}
+	return nil, true
+}
+
+// imageGenResponse represents the minimal structure of an image generation
+// response needed for image bed rewriting.
+type imageGenResponse struct {
+	Created int64           `json:"created"`
+	Data    []imageGenDatum `json:"data"`
+}
+
+// imageGenDatum represents a single image in the response.
+type imageGenDatum struct {
+	URL           string `json:"url,omitempty"`
+	B64JSON       string `json:"b64_json,omitempty"`
+	RevisedPrompt string `json:"revised_prompt,omitempty"`
+}
+
+// rewriteImageGenResponse replaces b64_json entries with image bed URLs.
+// Returns true if at least one image was rewritten.
+func rewriteImageGenResponse(resp imageGenResponse, cfg imageBedConfig) bool {
+	anyRewritten := false
+	for i, datum := range resp.Data {
+		if datum.B64JSON == "" {
+			continue
+		}
+		url, err := uploadToImageBed(datum.B64JSON, cfg)
+		if err != nil {
+			log.Warnf("image bed: upload failed for image %d: %v", i, err)
+			continue
+		}
+		// Create a new datum instead of mutating.
+		resp.Data[i] = imageGenDatum{
+			URL:           url,
+			RevisedPrompt: datum.RevisedPrompt,
+		}
+		anyRewritten = true
+	}
+	return anyRewritten
+}
+
+// writeOriginalResponse writes the original response body to the client.
+func writeOriginalResponse(c *gin.Context, body []byte, response *http.Response) (error, bool) {
+	if ct := response.Header.Get("Content-Type"); ct != "" {
+		c.Header("Content-Type", ct)
+	}
+	if _, err := c.Writer.Write(body); err != nil {
+		return fmt.Errorf("failed to write response: %w", err), true
+	}
+	return nil, true
 }

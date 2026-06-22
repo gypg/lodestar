@@ -61,7 +61,8 @@ func redactSettingsURLsForViewer(settings []model.Setting) {
 		case model.SettingKeyProxyURL,
 			model.SettingKeyPublicAPIBaseURL,
 			model.SettingKeySemanticCacheEmbeddingBaseURL,
-			model.SettingKeyAIRouteBaseURL:
+			model.SettingKeyAIRouteBaseURL,
+			model.SettingKeyImageBedEndpoint:
 			settings[settingIndex].Value = maskURLDomainForViewer(settings[settingIndex].Value)
 		}
 	}
@@ -75,6 +76,7 @@ var sensitiveSettingKeys = map[string]struct{}{
 	"semantic_cache_embedding_api_key":    {},
 	"ai_route_api_key":                    {},
 	"webdav_config":                       {},
+	"image_bed_token":                     {},
 }
 
 // maskSensitiveSettings replaces the values of known-secret setting keys with

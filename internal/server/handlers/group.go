@@ -264,7 +264,8 @@ func getGroupTestProgress(c *gin.Context) {
 }
 
 func autoGroupModels(c *gin.Context) {
-	result, err := grp.AutoGroupModels(c.Request.Context())
+	force := strings.EqualFold(c.Query("force"), "true") || c.Query("force") == "1"
+	result, err := grp.AutoGroupModels(c.Request.Context(), force)
 	if err != nil {
 		resp.InternalError(c)
 		return

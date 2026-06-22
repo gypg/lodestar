@@ -14,7 +14,7 @@ import { usePublicOverview } from '@/api/endpoints/public';
 import { useCreateImageRecord, useDeleteImageRecord, useImageRecords, type ImageRecordSummary } from '@/api/endpoints/image';
 import { filterImageModelNames } from '@/lib/image-models';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { ModelSelector } from '@/components/ui/model-selector';
 
 const SIZES = ['1024x1024', '1024x1792', '1792x1024', '512x512'];
 
@@ -88,18 +88,13 @@ export function ImageStudio() {
     return (
         <div className="flex h-full min-h-0 flex-col gap-3 overflow-y-auto rounded-xl border border-border bg-card p-3 md:p-4">
             <div className="flex flex-wrap items-center gap-2">
-                <Input
+                <ModelSelector
+                    models={imageModelNames}
                     value={model}
-                    onChange={(e) => setModel(e.target.value)}
-                    list="image-model-options"
-                    placeholder="模型，如 dall-e-3"
+                    onChange={setModel}
+                    placeholder="选择生图模型"
                     className="h-9 w-44 rounded-lg"
                 />
-                <datalist id="image-model-options">
-                    {imageModelNames.map((name) => (
-                        <option key={name} value={name} />
-                    ))}
-                </datalist>
                 <select value={size} onChange={(e) => setSize(e.target.value)} className="h-9 rounded-lg border border-border/40 bg-background px-2 text-sm">
                     {SIZES.map((s) => (<option key={s} value={s}>{s}</option>))}
                 </select>

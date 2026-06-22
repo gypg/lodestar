@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ArrowUpAZ, Clock3, LayoutGrid, List, Plus, Search, SlidersHorizontal, X } from 'lucide-react';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import {
@@ -23,6 +23,7 @@ import { CreateDialogContent as ModelCreateContent } from '@/components/modules/
 import { useTranslations } from 'next-intl';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useSearchStore } from './search-store';
+import { getModelIcon } from '@/lib/model-icons';
 import {
     useToolbarViewOptionsStore,
     TOOLBAR_PAGES,
@@ -33,6 +34,7 @@ import {
     type ModelFilter,
     type ModelSortMode,
     type ModelLatencyUnit,
+    type ModelProviderFilter,
     type ToolbarSortField,
     type ToolbarSortOrder,
 } from './view-options-store';
@@ -117,6 +119,8 @@ export function Toolbar() {
     const setModelFilter = useToolbarViewOptionsStore((s) => s.setModelFilter);
     const setModelSortMode = useToolbarViewOptionsStore((s) => s.setModelSortMode);
     const setModelLatencyUnit = useToolbarViewOptionsStore((s) => s.setModelLatencyUnit);
+    const modelProviderFilter = useToolbarViewOptionsStore((s) => s.modelProviderFilter);
+    const setModelProviderFilter = useToolbarViewOptionsStore((s) => s.setModelProviderFilter);
     const [expandedSearchItem, setExpandedSearchItem] = useState<ToolbarPage | null>(null);
     const searchExpanded = expandedSearchItem === toolbarItem;
     const { data: modelMarket } = useModelMarket();
@@ -128,6 +132,17 @@ export function Toolbar() {
         average_latency_ms: 0,
         last_update_time: '',
     };
+
+    // Compute unique providers from model market items for provider filter
+    const uniqueProviders = useMemo(() => {
+        const items = modelMarket?.items ?? [];
+        const providerSet = new Set<string>();
+        for (const item of items) {
+            const icon = getModelIcon(item.name);
+            providerSet.add(icon.label);
+        }
+        return Array.from(providerSet).sort();
+    }, [modelMarket?.items]);
 
     if (!toolbarItem) return null;
     const showLayoutOptions = toolbarItem !== 'group';
@@ -447,6 +462,38 @@ export function Toolbar() {
                                                     </div>
                                                 </div>
                                             </>
+                                        )}
+                                        {toolbarItem === 'model' && uniqueProviders.length > 1 && (
+                                            <div className="grid gap-2 rounded-lg border border-border bg-muted/14 p-2">
+                                                <p className="text-[11px] font-semibold text-muted-foreground">{t('popover.filter.model.provider') || 'Provider'}</p>
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setModelProviderFilter('all')}
+                                                        className={cn(
+                                                            OPTION_BUTTON_CLASS,
+                                                            'text-left',
+                                                            modelProviderFilter === 'all' ? ACTIVE_OPTION_CLASS : INACTIVE_OPTION_CLASS
+                                                        )}
+                                                    >
+                                                        {t('popover.filter.model.all') || 'All'}
+                                                    </button>
+                                                    {uniqueProviders.map((provider) => (
+                                                        <button
+                                                            key={provider}
+                                                            type="button"
+                                                            onClick={() => setModelProviderFilter(provider)}
+                                                            className={cn(
+                                                                OPTION_BUTTON_CLASS,
+                                                                'text-left',
+                                                                modelProviderFilter === provider ? ACTIVE_OPTION_CLASS : INACTIVE_OPTION_CLASS
+                                                            )}
+                                                        >
+                                                            {provider}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
                                         )}
                                         {filterOptions.map((option) => (
                                             <button

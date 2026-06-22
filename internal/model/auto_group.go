@@ -33,8 +33,17 @@ type AutoGroupResult struct {
 	SkippedExistingGroups  int                    `json:"skipped_existing_groups"`
 	SkippedCoveredModels   int                    `json:"skipped_covered_models"`
 	FailedGroups           int                    `json:"failed_groups"`
+	DeletedGroups          int                    `json:"deleted_groups"`
 	Created                []AutoGroupCreatedItem `json:"created"`
 	Skipped                []AutoGroupSkippedItem `json:"skipped"`
+	Deleted                []AutoGroupDeletedItem `json:"deleted"`
+}
+
+type AutoGroupDeletedItem struct {
+	ID           int    `json:"id"`
+	Name         string `json:"name"`
+	EndpointType string `json:"endpoint_type"`
+	ItemsCount   int    `json:"items_count"`
 }
 
 type AutoGroupCreatedItem struct {

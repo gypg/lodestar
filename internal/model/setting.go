@@ -115,6 +115,9 @@ const (
 	SettingKeyTurnstileSecretKey                   SettingKey = "turnstile_secret_key"                    // Cloudflare Turnstile Secret Key
 	SettingKeyGuardrailEnabled                      SettingKey = "guardrail_enabled"                        // Guardrail 输入/输出过滤开关
 	SettingKeyGuardrailRules                        SettingKey = "guardrail_rules"                          // Guardrail 规则配置(JSON: GuardrailConfig)
+	SettingKeyImageBedEnabled                       SettingKey = "image_bed_enabled"                        // 图床上传开关
+	SettingKeyImageBedEndpoint                      SettingKey = "image_bed_endpoint"                       // 图床上传 API 地址
+	SettingKeyImageBedToken                         SettingKey = "image_bed_token"                          // 图床 API Token
 )
 
 type Setting struct {
@@ -229,6 +232,9 @@ func DefaultSettings() []Setting {
 		{Key: SettingKeyTurnstileSecretKey, Value: ""},
 		{Key: SettingKeyGuardrailEnabled, Value: "false"},
 		{Key: SettingKeyGuardrailRules, Value: `{"enabled":false,"banned_words":[],"max_input_length":0,"max_output_length":0,"pii_detection":false}`},
+		{Key: SettingKeyImageBedEnabled, Value: "false"},
+		{Key: SettingKeyImageBedEndpoint, Value: ""},
+		{Key: SettingKeyImageBedToken, Value: ""},
 	}
 }
 
@@ -303,12 +309,12 @@ func (s *Setting) Validate() error {
 			}
 		}
 		return nil
-	case SettingKeyRelayLogKeepEnabled, SettingKeySemanticCacheEnabled, SettingKeyPIIRedactionEnabled, SettingKeyTurnstileEnabled, SettingKeyGuardrailEnabled:
+	case SettingKeyRelayLogKeepEnabled, SettingKeySemanticCacheEnabled, SettingKeyPIIRedactionEnabled, SettingKeyTurnstileEnabled, SettingKeyGuardrailEnabled, SettingKeyImageBedEnabled:
 		if s.Value != "true" && s.Value != "false" {
 			return fmt.Errorf("setting value must be true or false")
 		}
 		return nil
-	case SettingKeyProxyURL, SettingKeySemanticCacheEmbeddingBaseURL, SettingKeyAIRouteBaseURL:
+	case SettingKeyProxyURL, SettingKeySemanticCacheEmbeddingBaseURL, SettingKeyAIRouteBaseURL, SettingKeyImageBedEndpoint:
 		if s.Value == "" {
 			return nil
 		}
@@ -337,6 +343,15 @@ func (s *Setting) Validate() error {
 			}
 			if parsedURL.Host == "" {
 				return fmt.Errorf("ai route base URL must have a host")
+			}
+			return nil
+		}
+		if s.Key == SettingKeyImageBedEndpoint {
+			if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
+				return fmt.Errorf("image bed endpoint scheme must be http or https")
+			}
+			if parsedURL.Host == "" {
+				return fmt.Errorf("image bed endpoint must have a host")
 			}
 			return nil
 		}
@@ -459,6 +474,8 @@ func (s *Setting) Validate() error {
 	case SettingKeyTOTPIssuer:
 		return nil // free-text, allow empty
 	case SettingKeyTurnstileSiteKey, SettingKeyTurnstileSecretKey:
+		return nil // free-text, allow empty
+	case SettingKeyImageBedToken:
 		return nil // free-text, allow empty
 	case SettingKeyGuardrailRules:
 		var rules map[string]any

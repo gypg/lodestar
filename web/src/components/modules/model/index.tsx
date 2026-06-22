@@ -11,6 +11,7 @@ import { useSearchStore, useToolbarViewOptionsStore } from '@/components/modules
 import { VirtualizedGrid } from '@/components/common/VirtualizedGrid';
 import { sortModelMarketItems } from './sort';
 import { ModelMappingPanel } from './ModelMapping';
+import { getModelIcon } from '@/lib/model-icons';
 
 export function Model() {
     const t = useTranslations('model');
@@ -22,6 +23,7 @@ export function Model() {
     const filter = useToolbarViewOptionsStore((s) => s.modelFilter);
     const modelSortMode = useToolbarViewOptionsStore((s) => s.modelSortMode);
     const modelLatencyUnit = useToolbarViewOptionsStore((s) => s.modelLatencyUnit);
+    const modelProviderFilter = useToolbarViewOptionsStore((s) => s.modelProviderFilter);
 
     const sortedModels = useMemo(() => {
         const items = market?.items ?? [];
@@ -35,15 +37,19 @@ export function Model() {
         const hasPricing = (model: (typeof byName)[number]) =>
             model.input + model.output + model.cache_read + model.cache_write > 0;
 
+        let filtered = byName;
         if (filter === 'priced') {
-            return byName.filter(hasPricing);
-        }
-        if (filter === 'free') {
-            return byName.filter((m) => !hasPricing(m));
+            filtered = byName.filter(hasPricing);
+        } else if (filter === 'free') {
+            filtered = byName.filter((m) => !hasPricing(m));
         }
 
-        return byName;
-    }, [sortedModels, searchTerm, filter]);
+        if (modelProviderFilter !== 'all') {
+            filtered = filtered.filter((m) => getModelIcon(m.name).label === modelProviderFilter);
+        }
+
+        return filtered;
+    }, [sortedModels, searchTerm, filter, modelProviderFilter]);
 
     return (
         <section className="relative flex h-full min-h-0 flex-col gap-3 overflow-y-auto overscroll-contain rounded-t-xl pb-3 sm:gap-4 sm:pb-4 md:pb-4" aria-label={pageKey}>

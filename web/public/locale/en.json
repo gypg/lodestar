@@ -1006,7 +1006,8 @@
             "ms": "ms",
             "s": "s",
             "h": "h"
-          }
+          },
+          "provider": "Provider"
         }
       }
     }

@@ -15,6 +15,7 @@ export type GroupFilter = 'all' | 'with-members' | 'empty' | 'chat' | 'deepseek'
 export type ModelFilter = 'all' | 'priced' | 'free';
 export type ModelSortMode = 'success-rate' | 'request-count';
 export type ModelLatencyUnit = 'auto' | 'ms' | 's' | 'h';
+export type ModelProviderFilter = string; // 'all' or provider label like 'OpenAI', 'Anthropic', etc.
 
 export function normalizeGroupFilterValue(value?: string | null): GroupFilter {
     switch (value) {
@@ -67,6 +68,7 @@ interface ToolbarViewOptionsState {
     modelFilter: ModelFilter;
     modelSortMode: ModelSortMode;
     modelLatencyUnit: ModelLatencyUnit;
+    modelProviderFilter: ModelProviderFilter;
 
     getLayout: (item: ToolbarPage) => ToolbarLayout;
     setLayout: (item: ToolbarPage, value: ToolbarLayout) => void;
@@ -87,6 +89,7 @@ interface ToolbarViewOptionsState {
     setModelFilter: (value: ModelFilter) => void;
     setModelSortMode: (value: ModelSortMode) => void;
     setModelLatencyUnit: (value: ModelLatencyUnit) => void;
+    setModelProviderFilter: (value: ModelProviderFilter) => void;
 }
 
 export const useToolbarViewOptionsStore = create<ToolbarViewOptionsState>()(
@@ -101,6 +104,7 @@ export const useToolbarViewOptionsStore = create<ToolbarViewOptionsState>()(
             modelFilter: 'all',
             modelSortMode: 'success-rate',
             modelLatencyUnit: 'auto',
+            modelProviderFilter: 'all',
 
             getLayout: (item) => get().layouts[item] || 'grid',
             setLayout: (item, value) => {
@@ -126,6 +130,7 @@ export const useToolbarViewOptionsStore = create<ToolbarViewOptionsState>()(
             setModelFilter: (value) => set({ modelFilter: value }),
             setModelSortMode: (value) => set({ modelSortMode: value }),
             setModelLatencyUnit: (value) => set({ modelLatencyUnit: value }),
+            setModelProviderFilter: (value) => set({ modelProviderFilter: value }),
         }),
         {
             name: 'toolbar-view-options-storage',
@@ -139,6 +144,7 @@ export const useToolbarViewOptionsStore = create<ToolbarViewOptionsState>()(
                 modelFilter: state.modelFilter,
                 modelSortMode: state.modelSortMode,
                 modelLatencyUnit: state.modelLatencyUnit,
+                modelProviderFilter: state.modelProviderFilter,
             }),
             merge: (persistedState, currentState) => ({
                 ...currentState,

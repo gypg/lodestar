@@ -104,8 +104,17 @@ export interface AutoGroupResult {
     skipped_existing_groups: number;
     skipped_covered_models: number;
     failed_groups: number;
+    deleted_groups: number;
     created: AutoGroupCreatedItem[];
     skipped: AutoGroupSkippedItem[];
+    deleted: AutoGroupDeletedItem[];
+}
+
+export interface AutoGroupDeletedItem {
+    id: number;
+    name: string;
+    endpoint_type: string;
+    items_count: number;
 }
 
 export type AIRouteScope = 'group' | 'table';
@@ -438,8 +447,9 @@ export function useAutoGroupModels() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async () => {
-            return apiClient.post<AutoGroupResult>('/api/v1/group/auto-group', {});
+        mutationFn: async (force?: boolean) => {
+            const params = force ? '?force=true' : '';
+            return apiClient.post<AutoGroupResult>(`/api/v1/group/auto-group${params}`, {});
         },
         onSuccess: (data) => {
             logger.log('自动分组成功:', data);
