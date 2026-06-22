@@ -389,7 +389,12 @@
       "p99": "P99",
       "histogram": "延迟分布",
       "totalRequests": "共 {count} 次请求",
-      "allModels": "全部模型"
+      "allModels": "全部模型",
+      "modelBrowser": "模型浏览",
+      "sortByName": "按名称排序",
+      "searchModels": "搜索模型...",
+      "viewTable": "表格",
+      "viewList": "列表"
     },
     "overview": {
       "description": "用现有日统计与请求回放结果聚合出一期总览，优先提供可读指标而不是额外设定项。"

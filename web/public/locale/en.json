@@ -389,7 +389,12 @@
       "p99": "P99",
       "histogram": "Latency Distribution",
       "totalRequests": "{count} total requests",
-      "allModels": "All models"
+      "allModels": "All models",
+      "modelBrowser": "Model Browser",
+      "sortByName": "Sort by Name",
+      "searchModels": "Search models...",
+      "viewTable": "Table",
+      "viewList": "List"
     },
     "overview": {
       "description": "Phase-one overview built from existing daily stats and replay data, focused on readable signals instead of new configuration."
