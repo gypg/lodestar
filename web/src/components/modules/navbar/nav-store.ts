@@ -15,6 +15,7 @@ export type NavItem =
     | 'alert'
     | 'ops'
     | 'apikey'
+    | 'wallet'
     | 'subscription'
     | 'commercial'
     | 'setting'

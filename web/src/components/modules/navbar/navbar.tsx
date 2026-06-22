@@ -53,6 +53,8 @@ export function NavBar() {
             // 追加配置中尚无的新路由（如新增的 'chat'），保证新功能对管理员也可见
             const extras = allRouteIds.filter((id) => !orderedItems.includes(id))
             items = [...configured, ...extras]
+            // 管理员：订阅已嵌入商业模式页面，从侧边栏移除
+            items = items.filter((item) => item !== 'subscription')
         }
         return items
             .map((item) => routeById.get(item))

@@ -92,7 +92,7 @@ export function useCreatePlan() {
     const qc = useQueryClient();
     return useMutation({
         mutationFn: async (data: Omit<SubscriptionPlan, 'id' | 'created_at' | 'updated_at'>) =>
-            apiClient.post<SubscriptionPlan>('/api/v1/subscription/admin/plans', data),
+            apiClient.post<SubscriptionPlan>('/api/v1/subscription/admin/plans/create', data),
         onSuccess: () => qc.invalidateQueries({ queryKey: ['subscription', 'admin', 'plans'] }),
     });
 }
@@ -101,7 +101,7 @@ export function useUpdatePlan() {
     const qc = useQueryClient();
     return useMutation({
         mutationFn: async (data: Partial<SubscriptionPlan> & { id: number }) =>
-            apiClient.put<SubscriptionPlan>(`/api/v1/subscription/admin/plans/${data.id}`, data),
+            apiClient.post<SubscriptionPlan>('/api/v1/subscription/admin/plans/update', data),
         onSuccess: () => qc.invalidateQueries({ queryKey: ['subscription', 'admin', 'plans'] }),
     });
 }
@@ -110,7 +110,7 @@ export function useDeletePlan() {
     const qc = useQueryClient();
     return useMutation({
         mutationFn: async (planId: number) =>
-            apiClient.delete(`/api/v1/subscription/admin/plans/${planId}`),
+            apiClient.delete(`/api/v1/subscription/admin/plans/delete/${planId}`),
         onSuccess: () => qc.invalidateQueries({ queryKey: ['subscription', 'admin', 'plans'] }),
     });
 }

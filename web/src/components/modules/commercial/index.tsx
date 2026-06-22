@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { useTranslations } from 'next-intl';
 import {
     Store, CreditCard, ToggleLeft, ToggleRight,
-    ChevronDown, ChevronRight, Calculator, Package, Users, Mail, Wrench, Landmark,
+    ChevronDown, ChevronRight, Calculator, Package, Users, Mail, Wrench, Landmark, Loader,
 } from 'lucide-react';
 import { SettingKey, useSetSetting, useSettingList } from '@/api/endpoints/setting';
 import { toast } from '@/components/common/Toast';
@@ -17,6 +17,8 @@ import { useSettingStore } from '@/stores/setting';
 import { PaymentSettings } from '@/components/modules/setting/PaymentSettings';
 import { EmailSettings } from '@/components/modules/setting/EmailSettings';
 import { BillingExpr } from '@/components/modules/setting/BillingExpr';
+
+const Subscription = lazy(() => import('@/components/modules/subscription').then(m => ({ default: m.Subscription })));
 
 // ── Collapsible Section ─────────────────────────────────────────────────────
 
@@ -227,7 +229,9 @@ export function Commercial() {
                     <StripeSection />
 
                     <Section icon={<Package className="size-4" />} title="订阅管理">
-                        <p className="text-xs text-muted-foreground">管理订阅方案和用户订阅，请前往侧边栏「订阅」标签。</p>
+                        <Suspense fallback={<Loader className="size-6 animate-spin mx-auto" />}>
+                            <Subscription />
+                        </Suspense>
                     </Section>
 
                     <Section icon={<Calculator className="h-4 w-4" />} title={t('billingExpr.title')}>
