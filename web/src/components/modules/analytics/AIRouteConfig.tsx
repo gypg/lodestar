@@ -1,11 +1,22 @@
 'use client';
 
-import { useEffect, useRef, useState, type MutableRefObject } from 'react';
+import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
 import { KeyRound, Link2, Save, Check } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import {
+    Select,
+    SelectContent,
+    SelectGroup,
+    SelectItem,
+    SelectLabel,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { SettingKey, useSetSetting, useSettingList } from '@/api/endpoints/setting';
+import { useModelList } from '@/api/endpoints/model';
+import { getModelIcon } from '@/lib/model-icons';
 import { toast } from '@/components/common/Toast';
 import { cn } from '@/lib/utils';
 
@@ -13,6 +24,17 @@ export function AIRouteConfig({ compact }: { compact?: boolean }) {
     const t = useTranslations('analytics');
     const { data: settings } = useSettingList();
     const setSetting = useSetSetting();
+    const { data: models } = useModelList();
+
+    const modelsByProvider = useMemo(() => {
+        const buckets: Record<string, string[]> = {};
+        for (const m of models ?? []) {
+            const { label } = getModelIcon(m.name);
+            const key = label || 'Other';
+            (buckets[key] ??= []).push(m.name);
+        }
+        return buckets;
+    }, [models]);
 
     const [baseURL, setBaseURL] = useState('');
     const [apiKey, setAPIKey] = useState('');
@@ -144,13 +166,21 @@ export function AIRouteConfig({ compact }: { compact?: boolean }) {
 
             <div className="space-y-1.5">
                 <label className={labelClass}>{t('aiRoute.config.model')}</label>
-                <Input
-                    value={model}
-                    onChange={(e) => setModel(e.target.value)}
-                    onBlur={() => saveSingle(SettingKey.AIRouteModel, model, initialModel)}
-                    placeholder="gpt-4o"
-                    className={cn('rounded-lg', fieldClass, compact && 'h-8')}
-                />
+                <Select value={model} onValueChange={(v) => { setModel(v); saveSingle(SettingKey.AIRouteModel, v, initialModel); }}>
+                    <SelectTrigger className={cn("rounded-lg", compact && "h-8")}>
+                        <SelectValue placeholder={t('aiRoute.config.modelPlaceholder') || "Select a model"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {Object.entries(modelsByProvider).map(([provider, providerModels]) => (
+                            <SelectGroup key={provider}>
+                                <SelectLabel>{provider}</SelectLabel>
+                                {providerModels.map((m) => (
+                                    <SelectItem key={m} value={m}>{m}</SelectItem>
+                                ))}
+                            </SelectGroup>
+                        ))}
+                    </SelectContent>
+                </Select>
             </div>
 
             <div className={cn('flex items-center gap-2', compact ? 'pt-1' : 'pt-2')}>

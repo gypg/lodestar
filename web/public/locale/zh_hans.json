@@ -454,6 +454,7 @@
         "baseURL": "Base URL",
         "apiKey": "API Key",
         "model": "模型名称",
+        "modelPlaceholder": "选择分析模型",
         "save": "保存",
         "saved": "保存成功"
       }

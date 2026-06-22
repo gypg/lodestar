@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useMemo } from 'react';
-import { Loader2, CircleCheck, CircleX, SquareCheck, Square, TestTubeDiagonal } from 'lucide-react';
+import { Loader2, CircleCheck, CircleX, TestTubeDiagonal, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useGroupList, useTestGroup, useGroupTestProgress } from '@/api/endpoints/group';
 import { cn } from '@/lib/utils';
@@ -58,6 +58,46 @@ function GroupTestResultRow({ entry }: { entry: GroupTestEntry }) {
                 </span>
             )}
         </div>
+    );
+}
+
+function GroupChip({
+    group,
+    isSelected,
+    isTesting,
+    onToggle,
+}: {
+    group: { id: number; name: string; endpoint_type?: string };
+    isSelected: boolean;
+    isTesting: boolean;
+    onToggle: () => void;
+}) {
+    return (
+        <button
+            type="button"
+            onClick={onToggle}
+            disabled={isTesting}
+            className={cn(
+                'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
+                isTesting && 'cursor-not-allowed opacity-60',
+                isSelected
+                    ? 'border-primary/30 bg-primary/10 text-primary'
+                    : 'border-border/30 bg-card text-muted-foreground hover:bg-accent',
+            )}
+        >
+            <span className="truncate max-w-[10rem]">{group.name}</span>
+            {group.endpoint_type && (
+                <span className={cn(
+                    'rounded-full px-1.5 py-0.5 text-[10px] font-medium leading-none',
+                    isSelected
+                        ? 'bg-primary/15 text-primary'
+                        : 'bg-muted-foreground/10 text-muted-foreground/70',
+                )}>
+                    {group.endpoint_type}
+                </span>
+            )}
+            {isSelected && <X className="size-3 shrink-0 opacity-60" />}
+        </button>
     );
 }
 
@@ -165,6 +205,7 @@ export function GroupTestInline() {
 
     return (
         <div className="space-y-3">
+            {/* Action bar */}
             <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                     <button
@@ -172,7 +213,6 @@ export function GroupTestInline() {
                         onClick={allSelected ? deselectAll : selectAll}
                         className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border/25 bg-card px-2.5 text-xs font-medium transition-colors hover:bg-accent"
                     >
-                        {allSelected ? <SquareCheck className="size-3.5" /> : <Square className="size-3.5" />}
                         {allSelected ? t('groupTestInline.deselectAll') : t('groupTestInline.selectAll')}
                     </button>
                     <span className="text-[11px] text-muted-foreground">
@@ -211,38 +251,27 @@ export function GroupTestInline() {
                 </div>
             </div>
 
-            <div className="max-h-64 space-y-1.5 overflow-y-auto pr-1">
-                {testableGroups.map((group) => {
-                    const id = group.id!;
-                    const isSelected = selectedIds.has(id);
-                    const activeEntry = testEntries.find((e) => e.groupId === id);
-                    const hasActiveTest = activeEntry !== undefined;
-
-                    return (
-                        <div key={id} className="flex items-center gap-2">
-                            <button
-                                type="button"
-                                role="checkbox"
-                                aria-checked={isSelected}
-                                onClick={() => toggleGroup(id)}
-                                disabled={isTesting}
-                                className="flex size-5 shrink-0 items-center justify-center rounded border border-border/30 transition-colors hover:border-primary/40"
-                            >
-                                {isSelected && <div className="size-2.5 rounded-sm bg-primary" />}
-                            </button>
-                            {hasActiveTest ? (
-                                <div className="min-w-0 flex-1">
-                                    <GroupTestResultRow entry={activeEntry} />
-                                </div>
-                            ) : (
-                                <span className={cn('truncate text-sm', isSelected ? 'text-foreground' : 'text-muted-foreground')}>
-                                    {group.name}
-                                </span>
-                            )}
-                        </div>
-                    );
-                })}
+            {/* Tag/chip selection area */}
+            <div className="flex flex-wrap gap-2">
+                {testableGroups.map((group) => (
+                    <GroupChip
+                        key={group.id!}
+                        group={{ id: group.id!, name: group.name, endpoint_type: group.endpoint_type }}
+                        isSelected={selectedIds.has(group.id!)}
+                        isTesting={isTesting}
+                        onToggle={() => toggleGroup(group.id!)}
+                    />
+                ))}
             </div>
+
+            {/* Results area */}
+            {testEntries.length > 0 && (
+                <div className="max-h-64 space-y-1.5 overflow-y-auto pr-1">
+                    {testEntries.map((entry) => (
+                        <GroupTestResultRow key={entry.groupId} entry={entry} />
+                    ))}
+                </div>
+            )}
         </div>
     );
 }

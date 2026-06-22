@@ -454,6 +454,7 @@
         "baseURL": "Base URL",
         "apiKey": "API Key",
         "model": "Model Name",
+        "modelPlaceholder": "Select analysis model",
         "save": "Save",
         "saved": "Saved successfully"
       }
