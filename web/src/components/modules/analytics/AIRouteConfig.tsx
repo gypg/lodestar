@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
 import { KeyRound, Link2, Save, Check, Server, Globe } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { apiClient } from '@/api/client';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -17,7 +18,7 @@ import {
 } from '@/components/ui/select';
 import { SettingKey, useSetSetting, useSettingList } from '@/api/endpoints/setting';
 import { useModelList, useModelChannelList } from '@/api/endpoints/model';
-import { useChannelList } from '@/api/endpoints/channel';
+import { useChannelList, type Channel } from '@/api/endpoints/channel';
 import { getModelIcon } from '@/lib/model-icons';
 import { toast } from '@/components/common/Toast';
 import { cn } from '@/lib/utils';
@@ -44,6 +45,7 @@ export function AIRouteConfig({ compact }: { compact?: boolean }) {
     const [saving, setSaving] = useState(false);
     const [justSaved, setJustSaved] = useState(false);
     const [autoChannelName, setAutoChannelName] = useState<string | null>(null);
+    const [channelLookupFailed, setChannelLookupFailed] = useState(false);
 
     // Group models by provider for the dropdown
     const modelsByProvider = useMemo(() => {
@@ -152,11 +154,58 @@ export function AIRouteConfig({ compact }: { compact?: boolean }) {
     };
 
     /**
+     * Persist base_url, api_key, and model settings after resolving channel details.
+     */
+    const persistChannelSettings = useCallback(
+        (resolvedBaseURL: string, resolvedAPIKey: string, modelName: string) => {
+            setBaseURL(resolvedBaseURL);
+            setAPIKey(resolvedAPIKey);
+
+            const batchUpdates: Array<{ key: string; value: string; ref: MutableRefObject<string> }> = [];
+            if (resolvedBaseURL !== initialBaseURL.current) {
+                batchUpdates.push({ key: SettingKey.AIRouteBaseURL, value: resolvedBaseURL, ref: initialBaseURL });
+            }
+            if (resolvedAPIKey !== initialAPIKey.current) {
+                batchUpdates.push({ key: SettingKey.AIRouteAPIKey, value: resolvedAPIKey, ref: initialAPIKey });
+            }
+            if (modelName !== initialModel.current) {
+                batchUpdates.push({ key: SettingKey.AIRouteModel, value: modelName, ref: initialModel });
+            }
+
+            if (batchUpdates.length === 0) return;
+
+            let completed = 0;
+            let failed = false;
+
+            for (const update of batchUpdates) {
+                setSetting.mutate(
+                    { key: update.key, value: update.value },
+                    {
+                        onSuccess: () => {
+                            update.ref.current = update.value;
+                            completed++;
+                            if (completed === batchUpdates.length && !failed) {
+                                toast.success(t('aiRoute.config.saved'));
+                            }
+                        },
+                        onError: () => {
+                            failed = true;
+                            toast.error(t('states.empty'));
+                        },
+                    },
+                );
+            }
+        },
+        [setSetting, t],
+    );
+
+    /**
      * Find which channel serves the given model, then auto-fill base_url and api_key
      * and persist all three settings.
      */
-    const handleLocalModelSelect = (modelName: string) => {
+    const handleLocalModelSelect = async (modelName: string) => {
         setModel(modelName);
+        setChannelLookupFailed(false);
 
         // Find the channel that serves this model via modelChannels list
         const mc = (modelChannels ?? []).find(
@@ -167,66 +216,60 @@ export function AIRouteConfig({ compact }: { compact?: boolean }) {
             // No channel mapping found; just save the model name
             saveSingle(SettingKey.AIRouteModel, modelName, initialModel);
             setAutoChannelName(null);
+            setChannelLookupFailed(true);
+            toast.warning(t('aiRoute.config.noChannelFound') || '未找到该模型对应的渠道，base_url 和 api_key 需手动填写');
             return;
         }
 
-        // Find the full channel record from the channel list
+        // First try: find the full channel record from the cached channel list
         const channelRecord = (channels ?? []).find(
             (ch) => ch.raw.id === mc.channel_id,
         );
-        const channel = channelRecord?.raw;
+        let channel: Channel | undefined = channelRecord?.raw;
+
+        // Second try: if cached list lookup failed or returned empty base_urls/keys,
+        // fetch the channel directly from the API
+        if (!channel || (channel.base_urls.length === 0 && channel.keys.length === 0)) {
+            try {
+                const freshChannel = await apiClient.get<Channel>(`/api/v1/channel/${mc.channel_id}`);
+                if (freshChannel) {
+                    channel = {
+                        ...freshChannel,
+                        base_urls: freshChannel.base_urls ?? [],
+                        custom_header: freshChannel.custom_header ?? [],
+                        keys: freshChannel.keys ?? [],
+                    };
+                }
+            } catch {
+                // Direct API fetch failed; will fall through to warning below
+            }
+        }
 
         if (!channel) {
             saveSingle(SettingKey.AIRouteModel, modelName, initialModel);
             setAutoChannelName(null);
+            setChannelLookupFailed(true);
+            toast.warning(t('aiRoute.config.noChannelFound') || '未找到该模型对应的渠道，base_url 和 api_key 需手动填写');
             return;
         }
 
         const resolvedBaseURL = channel.base_urls?.[0]?.url ?? '';
         const resolvedAPIKey = channel.keys?.[0]?.channel_key ?? '';
-        const channelName = channel.name;
+        const channelName = channel.name || mc.channel_name;
 
         setAutoChannelName(channelName);
 
-        // Update local state
-        setBaseURL(resolvedBaseURL);
-        setAPIKey(resolvedAPIKey);
-
-        // Persist all three settings at once
-        const batchUpdates: Array<{ key: string; value: string; ref: MutableRefObject<string> }> = [];
-        if (resolvedBaseURL !== initialBaseURL.current) {
-            batchUpdates.push({ key: SettingKey.AIRouteBaseURL, value: resolvedBaseURL, ref: initialBaseURL });
-        }
-        if (resolvedAPIKey !== initialAPIKey.current) {
-            batchUpdates.push({ key: SettingKey.AIRouteAPIKey, value: resolvedAPIKey, ref: initialAPIKey });
-        }
-        if (modelName !== initialModel.current) {
-            batchUpdates.push({ key: SettingKey.AIRouteModel, value: modelName, ref: initialModel });
-        }
-
-        if (batchUpdates.length === 0) return;
-
-        let completed = 0;
-        let failed = false;
-
-        for (const update of batchUpdates) {
-            setSetting.mutate(
-                { key: update.key, value: update.value },
-                {
-                    onSuccess: () => {
-                        update.ref.current = update.value;
-                        completed++;
-                        if (completed === batchUpdates.length && !failed) {
-                            toast.success(t('aiRoute.config.saved'));
-                        }
-                    },
-                    onError: () => {
-                        failed = true;
-                        toast.error(t('states.empty'));
-                    },
-                },
+        if (!resolvedBaseURL || !resolvedAPIKey) {
+            // Channel found but base_url or api_key is empty -- still save what we have and warn
+            saveSingle(SettingKey.AIRouteModel, modelName, initialModel);
+            setChannelLookupFailed(true);
+            toast.warning(
+                t('aiRoute.config.channelIncomplete') || '渠道信息不完整，base_url 或 api_key 为空，请手动补充',
             );
+            return;
         }
+
+        persistChannelSettings(resolvedBaseURL, resolvedAPIKey, modelName);
     };
 
     const fieldClass = compact ? 'text-sm' : '';
@@ -289,6 +332,11 @@ export function AIRouteConfig({ compact }: { compact?: boolean }) {
                     {autoChannelName && (
                         <p className={cn('text-muted-foreground', compact ? 'text-[10px]' : 'text-xs')}>
                             {t('aiRoute.config.autoChannelNote', { name: autoChannelName })}
+                        </p>
+                    )}
+                    {channelLookupFailed && (
+                        <p className={cn('text-amber-600 dark:text-amber-400', compact ? 'text-[10px]' : 'text-xs')}>
+                            {t('aiRoute.config.switchToExternal') || '请切换到外部模式手动填写 base_url 和 api_key'}
                         </p>
                     )}
                 </>

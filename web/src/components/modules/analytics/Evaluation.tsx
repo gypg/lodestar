@@ -344,13 +344,33 @@ export function Evaluation() {
                 </div>
             </div>
 
-            {(aiRouteHistory && aiRouteHistory.length > 0) || (groupTestHistory && Array.isArray(groupTestHistory) && groupTestHistory.length > 0) ? (
+            {(aiRouteHistory && aiRouteHistory.length > 0) || (groupTestHistory && Array.isArray(groupTestHistory) && groupTestHistory.length > 0) || groupTest ? (
                 <div className="mt-4 space-y-3">
                     <div className="inline-flex items-center gap-2 rounded-full border border-primary/10 bg-card px-3 py-1 text-[0.68rem] font-semibold text-primary">
                         <Clock className="h-3.5 w-3.5" />
                         {t('evaluation.history.title') || 'Recent History'}
                     </div>
                     <div className="space-y-2">
+                        {/* Current runtime group test result */}
+                        {groupTest && (
+                            <div className="flex items-center justify-between rounded-lg border border-border/30 bg-card p-3">
+                                <div className="flex items-center gap-3">
+                                    <StatusBadge
+                                        label={groupTest.done ? (groupTestHasFailures ? 'failed' : 'completed') : 'running'}
+                                        tone={getStatusTone(groupTest.done ? (groupTestHasFailures ? 'failed' : 'completed') : 'running')}
+                                    />
+                                    <span className="text-sm text-muted-foreground">
+                                        {t('evaluation.summary.groupTest') || 'Group Test'}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground">
+                                        {passedCount} passed / {failedCount} failed ({groupTest.completed}/{groupTest.total})
+                                    </span>
+                                </div>
+                                {groupTest.message ? (
+                                    <span className="text-xs text-destructive">{groupTest.message}</span>
+                                ) : null}
+                            </div>
+                        )}
                         {aiRouteHistory?.map((task) => {
                             const date = task.finished_at ? new Date(task.finished_at).toLocaleString() : '';
                             return (
