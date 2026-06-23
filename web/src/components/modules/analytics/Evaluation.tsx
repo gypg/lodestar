@@ -6,8 +6,9 @@ import { Activity, AlertTriangle, Clock, Orbit, Radar, Route, Settings } from 'l
 import { useTranslations } from 'next-intl';
 import { apiClient } from '@/api/client';
 import { useAnalyticsEvaluationRuntime } from '@/api/endpoints/analytics';
-import { useAIRouteHistory, useGroupList } from '@/api/endpoints/group';
+import { useGenerateAIRoute, useAIRouteHistory, useGroupList } from '@/api/endpoints/group';
 import { useSettingList, SettingKey } from '@/api/endpoints/setting';
+import { toast } from '@/components/common/Toast';
 import { useNavStore } from '@/components/modules/navbar';
 import { Button } from '@/components/ui/button';
 import { ObservatorySection, StatusBadge } from './shared';
@@ -157,6 +158,7 @@ export function Evaluation() {
         return Boolean(baseURL && apiKey && model);
     }, [settings]);
 
+    const generateAIRoute = useGenerateAIRoute();
     const lastAiRouteTask = aiRouteHistory?.[0];
 
     return (
@@ -225,6 +227,32 @@ export function Evaluation() {
                                 ) : null}
                                 {showAiConfig ? <AIRouteConfig compact /> : null}
                                 <Button
+                                    variant="default"
+                                    size="sm"
+                                    className="rounded-lg"
+                                    disabled={generateAIRoute.isPending || aiRouteStatus === 'running'}
+                                    onClick={() => {
+                                        generateAIRoute.mutate(
+                                            { scope: 'table' },
+                                            {
+                                                onSuccess: (progress) => {
+                                                    sessionStorage.setItem('lodestar-ai-route-task', JSON.stringify({
+                                                        progressId: progress.id,
+                                                        timestamp: Date.now(),
+                                                    }));
+                                                    toast.success(t('evaluation.aiRoute.started') || 'AI Route analysis started');
+                                                },
+                                                onError: (error: Error) => {
+                                                    toast.error(error.message || 'Failed to start AI route');
+                                                },
+                                            }
+                                        );
+                                    }}
+                                >
+                                    <Route className="size-4" />
+                                    {generateAIRoute.isPending ? (t('evaluation.aiRoute.starting') || 'Starting...') : (t('evaluation.aiRoute.start') || 'Start AI Route Analysis')}
+                                </Button>
+                                <Button
                                     variant="outline"
                                     size="sm"
                                     className="rounded-lg"
@@ -232,8 +260,8 @@ export function Evaluation() {
                                 >
                                     <Settings className="size-3" />
                                     {showAiConfig
-                                        ? (t('evaluation.actions.closeConfig') || '收起配置')
-                                        : (t('evaluation.actions.editConfig') || '编辑配置')}
+                                        ? (t('evaluation.actions.closeConfig') || 'Close Config')
+                                        : (t('evaluation.actions.editConfig') || 'Edit Config')}
                                 </Button>
                             </div>
                         )
@@ -374,21 +402,33 @@ export function Evaluation() {
                         {aiRouteHistory?.map((task) => {
                             const date = task.finished_at ? new Date(task.finished_at).toLocaleString() : '';
                             return (
-                                <div key={`ai-${task.id}`} className="flex items-center justify-between rounded-lg border border-border/30 bg-card p-3">
-                                    <div className="flex items-center gap-3">
-                                        <StatusBadge
-                                            label={t(`evaluation.runtime.status.${task.status}`)}
-                                            tone={getStatusTone(task.status)}
-                                        />
-                                        <span className="text-sm text-muted-foreground">{date}</span>
-                                        {task.result ? (
-                                            <span className="text-xs text-muted-foreground">
-                                                {task.result.group_count ?? 0} groups / {task.result.route_count ?? 0} routes
-                                            </span>
-                                        ) : null}
+                                <div key={`ai-${task.id}`} className="rounded-lg border border-border/30 bg-card p-3">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <StatusBadge
+                                                label={t(`evaluation.runtime.status.${task.status}`)}
+                                                tone={getStatusTone(task.status)}
+                                            />
+                                            <span className="text-sm text-muted-foreground">{date}</span>
+                                            {task.result ? (
+                                                <span className="text-xs text-muted-foreground">
+                                                    {task.result.group_count ?? 0} groups / {task.result.route_count ?? 0} routes
+                                                </span>
+                                            ) : null}
+                                        </div>
                                     </div>
                                     {task.error_reason ? (
-                                        <span className="text-xs text-destructive">{task.error_reason}</span>
+                                        <div className="mt-2 rounded-md border border-red-500/30 bg-red-500/5 px-3 py-2">
+                                            <p className="text-xs font-medium text-red-600 dark:text-red-400">{task.error_reason}</p>
+                                            {task.message && task.message !== task.error_reason ? (
+                                                <p className="mt-1 text-xs text-red-500/80">{task.message}</p>
+                                            ) : null}
+                                            {task.current_step ? (
+                                                <p className="mt-1 text-[0.68rem] text-muted-foreground">
+                                                    {t('evaluation.summary.status') || 'Step'}: {task.current_step}
+                                                </p>
+                                            ) : null}
+                                        </div>
                                     ) : null}
                                 </div>
                             );
@@ -396,21 +436,33 @@ export function Evaluation() {
                         {Array.isArray(groupTestHistory) && groupTestHistory.map((record: Record<string, unknown>, idx: number) => {
                             const date = record.finished_at ? new Date(record.finished_at as string).toLocaleString() : '';
                             return (
-                                <div key={`gt-${String(record.id ?? idx)}`} className="flex items-center justify-between rounded-lg border border-border/30 bg-card p-3">
-                                    <div className="flex items-center gap-3">
-                                        <StatusBadge
-                                            label={String(record.status ?? 'unknown')}
-                                            tone={getStatusTone(record.status as string)}
-                                        />
-                                        <span className="text-sm text-muted-foreground">{date}</span>
-                                        {record.passed !== undefined ? (
-                                            <span className="text-xs text-muted-foreground">
-                                                {String(record.passed)} passed
-                                            </span>
-                                        ) : null}
+                                <div key={`gt-${String(record.id ?? idx)}`} className="rounded-lg border border-border/30 bg-card p-3">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <StatusBadge
+                                                label={String(record.status ?? 'unknown')}
+                                                tone={getStatusTone(record.status as string)}
+                                            />
+                                            <span className="text-sm text-muted-foreground">{date}</span>
+                                            {record.passed !== undefined ? (
+                                                <span className="text-xs text-muted-foreground">
+                                                    {String(record.passed)} passed
+                                                </span>
+                                            ) : null}
+                                        </div>
                                     </div>
                                     {record.error_reason ? (
-                                        <span className="text-xs text-destructive">{String(record.error_reason)}</span>
+                                        <div className="mt-2 rounded-md border border-red-500/30 bg-red-500/5 px-3 py-2">
+                                            <p className="text-xs font-medium text-red-600 dark:text-red-400">{String(record.error_reason)}</p>
+                                            {record.message && record.message !== record.error_reason ? (
+                                                <p className="mt-1 text-xs text-red-500/80">{String(record.message)}</p>
+                                            ) : null}
+                                            {record.current_step ? (
+                                                <p className="mt-1 text-[0.68rem] text-muted-foreground">
+                                                    {t('evaluation.summary.status') || 'Step'}: {String(record.current_step)}
+                                                </p>
+                                            ) : null}
+                                        </div>
                                     ) : null}
                                 </div>
                             );

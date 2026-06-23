@@ -481,7 +481,9 @@
         "openAIRoute": "Open Route Analysis",
         "openSemanticCache": "Open Semantic Cache Settings",
         "configureAIRoute": "Configure AI Route",
-        "goToSettings": "Go to Settings"
+        "goToSettings": "Go to Settings",
+        "closeConfig": "Close Config",
+        "editConfig": "Edit Config"
       },
       "availability": {
         "title": "Group Availability Checks",
@@ -498,7 +500,10 @@
         "history": "Recent AI Route History",
         "notConfigured": "AI route analysis requires configuring the analysis model first (Settings → AI Route).",
         "needConfig": "Config Required",
-        "configWarning": "Please configure AI Route's Base URL, API Key, and analysis model in the Settings page before running analysis."
+        "configWarning": "Please configure AI Route's Base URL, API Key, and analysis model in the Settings page before running analysis.",
+        "start": "Start AI Route Analysis",
+        "starting": "Starting...",
+        "started": "AI Route analysis started"
       },
       "groupStats": {
         "total": "Total Groups",
@@ -593,8 +598,18 @@
       "testSelected": "Test Selected",
       "testing": "Testing...",
       "noGroups": "No models available",
+      "noChannels": "No channels available",
       "searchModels": "Search models...",
-      "noMatch": "No models match your search"
+      "noMatch": "No models match your search",
+      "startTest": "Start Group Test",
+      "testChannel": "Test Channel",
+      "testProvider": "Test Provider",
+      "testModel": "Test Model",
+      "back": "Back",
+      "modelsInChannel": "{count} models in {channel}",
+      "modelsInProvider": "{count} models",
+      "breadcrumbChannels": "Channels",
+      "results": "Results"
     },
     "share": {
       "button": "Share",

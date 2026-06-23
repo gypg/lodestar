@@ -481,7 +481,9 @@
         "openAIRoute": "前往路由分析",
         "openSemanticCache": "前往語意快取設定",
         "configureAIRoute": "設定 AI 路由",
-        "goToSettings": "前往設定"
+        "goToSettings": "前往設定",
+        "closeConfig": "收起配置",
+        "editConfig": "編輯配置"
       },
       "availability": {
         "title": "分組可用性檢測",
@@ -498,7 +500,10 @@
         "history": "最近 AI 路由歷史",
         "notConfigured": "AI 路由分析需要先設定分析模型（設定 → AI 路由）。",
         "needConfig": "需設定",
-        "configWarning": "請先在設定頁面設定 AI 路由的 Base URL、API Key 和分析模型，否則無法執行分析。"
+        "configWarning": "請先在設定頁面設定 AI 路由的 Base URL、API Key 和分析模型，否則無法執行分析。",
+        "start": "開始 AI 路由分析",
+        "starting": "啟動中...",
+        "started": "AI 路由分析已啟動"
       },
       "groupStats": {
         "total": "總分組",
@@ -593,8 +598,18 @@
       "testSelected": "檢測選中",
       "testing": "檢測中...",
       "noGroups": "暫無模型",
+      "noChannels": "暫無渠道",
       "searchModels": "搜尋模型...",
-      "noMatch": "沒有匹配的模型"
+      "noMatch": "沒有匹配的模型",
+      "startTest": "開始分組檢測",
+      "testChannel": "檢測渠道",
+      "testProvider": "檢測供應商",
+      "testModel": "檢測模型",
+      "back": "返回",
+      "modelsInChannel": "{channel} 中 {count} 個模型",
+      "modelsInProvider": "{count} 個模型",
+      "breadcrumbChannels": "渠道",
+      "results": "檢測結果"
     },
     "share": {
       "button": "分享",
