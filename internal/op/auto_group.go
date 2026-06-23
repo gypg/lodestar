@@ -112,44 +112,12 @@ func AutoGroupModels(ctx context.Context, force bool) (*model.AutoGroupResult, e
 		TotalModelsSeen: len(channelRefs),
 	}
 
-	// Force mode: delete all auto-created groups first, then rebuild from scratch.
-	if force {
-		canonicalNames := make(map[string]struct{}, len(autoGroupExplicitAliases)+len(autoGroupFamilyRules))
-		for _, canonical := range autoGroupExplicitAliases {
-			canonicalNames[strings.ToLower(canonical)] = struct{}{}
-		}
-		for _, rule := range autoGroupFamilyRules {
-			canonicalNames[strings.ToLower(rule.canonical)] = struct{}{}
-		}
-
-		existingGroups, listErr := GroupList(ctx)
-		if listErr != nil {
-			return nil, fmt.Errorf("list groups failed: %w", listErr)
-		}
-
-		deleted := make([]model.AutoGroupDeletedItem, 0)
-		for _, g := range existingGroups {
-			lowerName := strings.ToLower(strings.TrimSpace(g.Name))
-			if _, ok := canonicalNames[lowerName]; !ok {
-				continue
-			}
-			itemsCount := len(g.Items)
-			if delErr := GroupDel(g.ID, ctx); delErr != nil {
-				log.Errorf("auto group force: failed to delete group %d (%s): %v", g.ID, g.Name, delErr)
-				continue
-			}
-			deleted = append(deleted, model.AutoGroupDeletedItem{
-				ID:           g.ID,
-				Name:         g.Name,
-				EndpointType: g.EndpointType,
-				ItemsCount:   itemsCount,
-			})
-		}
-		result.DeletedGroups = len(deleted)
-		result.Deleted = deleted
-		if len(deleted) > 0 {
-			log.Infof("auto group force: deleted %d auto-created groups", len(deleted))
-		}
+	// 每次自动分组都先删除所有非默认分组，确保从零开始
+	if err := deleteAllNonDefaultGroupsForAutoGroup(ctx); err != nil {
+		log.Warnf("auto group: failed to delete non-default groups: %v", err)
+		// 继续执行，不阻塞
+	} else {
+		log.Infof("auto group: cleared all non-default groups before rebuild")
 	}
 
 	rawSeen := make(map[string]struct{}, len(channelRefs))
@@ -276,6 +244,56 @@ func collectChannelModelRefs(ctx context.Context) ([]model.ChannelModelRef, int,
 	}
 	log.Infof("auto group scan: channels=%d model_refs=%d", len(channels), len(refs))
 	return refs, len(channels), nil
+}
+
+// deleteAllNonDefaultGroupsForAutoGroup 删除所有非默认分组及其关联的 group_items。
+// 用于自动分组前清空旧分组，确保每次分组都是全新的。
+func deleteAllNonDefaultGroupsForAutoGroup(ctx context.Context) error {
+	tx := db.GetDB().WithContext(ctx).Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+			log.Errorf("panic recovered in deleteAllNonDefaultGroupsForAutoGroup: %v", r)
+		}
+	}()
+
+	// 获取所有非默认分组 ID
+	var nonDefaultGroupIDs []int
+	if err := tx.Model(&model.ChannelGroup{}).
+		Where("is_default = ?", false).
+		Pluck("id", &nonDefaultGroupIDs).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to query non-default groups: %w", err)
+	}
+
+	if len(nonDefaultGroupIDs) == 0 {
+		tx.Rollback()
+		return nil
+	}
+
+	// 删除这些分组的 group_items
+	if err := tx.Where("group_id IN ?", nonDefaultGroupIDs).Delete(&model.GroupItem{}).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to delete group items: %w", err)
+	}
+
+	// 删除非默认分组
+	if err := tx.Where("is_default = ?", false).Delete(&model.ChannelGroup{}).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to delete non-default groups: %w", err)
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	// 刷新缓存
+	if err := groupRefreshCache(ctx); err != nil {
+		log.Warnf("failed to refresh group cache: %v", err)
+	}
+
+	log.Infof("deleted %d non-default groups for auto-group reset", len(nonDefaultGroupIDs))
+	return nil
 }
 
 func CleanModelName(raw string) string {

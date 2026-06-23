@@ -1998,7 +1998,7 @@
     },
     "autoGroup": {
       "confirmTitle": "Confirm Auto Grouping",
-      "confirmDescription": "This will scan all channel models and create groups for uncovered models based on normalization rules.\nExisting groups will not be modified or deleted.\nContinue?",
+      "confirmDescription": "This will delete all non-default groups, then scan all channel models and recreate groups from scratch.\nEach auto-grouping starts fresh without interference from old groups.\nContinue?",
       "submit": "Start Auto Grouping",
       "submitting": "Grouping..."
     },
