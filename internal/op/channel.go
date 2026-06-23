@@ -3,6 +3,7 @@ package op
 import (
 	"context"
 
+	"github.com/gypg/lodestar/internal/db"
 	"github.com/gypg/lodestar/internal/model"
 	"github.com/gypg/lodestar/internal/op/channel"
 	"github.com/gypg/lodestar/internal/op/stats"
@@ -60,6 +61,9 @@ func ChannelDel(id int, ctx context.Context) error {
 		return err
 	}
 
+	// 记录渠道所属分组，以便删除后检查是否需要清理空分组
+	affectedGroupID := ch.GroupID
+
 	if err := channel.Delete(id, ctx); err != nil {
 		return err
 	}
@@ -85,11 +89,50 @@ func ChannelDel(id int, ctx context.Context) error {
 		}
 	}
 
+	// 清理空分组：删除渠道后，若分组内无其他渠道且非默认分组，则自动删除
+	if affectedGroupID > 0 {
+		if err := cleanupEmptyGroup(affectedGroupID, ctx); err != nil {
+			log.Warnf("failed to cleanup empty group %d after channel %d deletion: %v", affectedGroupID, id, err)
+		}
+	}
+
 	return nil
 }
 
 func getAffectedGroupIDs(id int, ctx context.Context) []int {
 	// This is a minimal implementation; the original logic was in ChannelDel's transaction
+	return nil
+}
+
+// cleanupEmptyGroup 检查分组是否已空，若空且非默认分组则自动删除。
+// 解决"删除渠道后残留空分组"的问题。
+func cleanupEmptyGroup(groupID int, ctx context.Context) error {
+	// 检查是否为默认分组
+	group, err := ChannelGroupGet(groupID, ctx)
+	if err != nil {
+		return err
+	}
+	if group.IsDefault {
+		return nil // 默认分组不删
+	}
+
+	// 检查分组内是否还有渠道
+	var count int64
+	if err := db.GetDB().WithContext(ctx).
+		Model(&model.Channel{}).
+		Where("group_id = ?", groupID).
+		Count(&count).Error; err != nil {
+		return err
+	}
+
+	if count == 0 {
+		// 分组已空，自动删除
+		if err := ChannelGroupDelete(groupID, ctx); err != nil {
+			return err
+		}
+		log.Infof("auto-deleted empty channel group %d (%s)", groupID, group.Name)
+	}
+
 	return nil
 }
 
