@@ -120,14 +120,20 @@ export function WinterLanding({
       <Color4bgAmbient active={overview?.landing_ambient_mode === 'color4bg'} />
       {/* 1. 照片背景：classic=经典 newapi 大图，photo=冬日少女（默认）；color4bg 时不加载图 */}
       {overview?.landing_ambient_mode !== 'color4bg' ? (
-        <img
-          src={overview?.landing_ambient_mode === 'classic' ? '/bg-newapi.jpg' : '/winter-bg.jpg'}
-          alt=""
-          loading="lazy"
-          decoding="async"
-          fetchPriority="low"
-          className="pointer-events-none absolute inset-0 z-[1] h-full w-full object-cover object-right"
-        />
+        <picture>
+          <source
+            srcSet={overview?.landing_ambient_mode === 'classic' ? '/bg-newapi.webp' : '/winter-bg.webp'}
+            type="image/webp"
+          />
+          <img
+            src={overview?.landing_ambient_mode === 'classic' ? '/bg-newapi.jpg' : '/winter-bg.jpg'}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            fetchPriority="low"
+            className="pointer-events-none absolute inset-0 z-[1] h-full w-full object-cover object-right"
+          />
+        </picture>
       ) : null}
       {/* 2. 左侧雾化（纸感冷白），让左侧文字可读 */}
       <div

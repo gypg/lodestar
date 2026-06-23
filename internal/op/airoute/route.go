@@ -727,6 +727,10 @@ func generateAIRoutesForBucketWithService(
 	var completionResp aiRouteChatCompletionResponse
 	if err := json.Unmarshal(rawBody, &completionResp); err != nil {
 		log.Warnf("ai route completion response decode failed: status=%d body=%q", resp.StatusCode, summarizeAIRouteErrorBody(string(rawBody)))
+		// 检测常见配置错误：BaseURL 缺少 /v1 导致返回 HTML 首页
+		if isLikelyHTMLResponse(rawBody, resp.Header) {
+			return nil, fmt.Errorf("AI返回HTML而非JSON，疑似BaseURL配置错误（缺少/v1后缀）")
+		}
 		return nil, fmt.Errorf("AI返回结果不是合法JSON")
 	}
 	if len(completionResp.Choices) == 0 {
@@ -1808,6 +1812,17 @@ func newAIRouteHTTPClient(proxyURLStr string) (*http.Client, error) {
 	return &http.Client{Transport: cloned}, nil
 }
 
+// isLikelyHTMLResponse 检测响应是否为 HTML（常见于 BaseURL 缺少 /v1 导致命中 SPA fallback）。
+func isLikelyHTMLResponse(body []byte, header http.Header) bool {
+	ct := header.Get("Content-Type")
+	if strings.Contains(strings.ToLower(ct), "text/html") {
+		return true
+	}
+	// Content-Type 不可靠时，检查 body 开头是否像 HTML
+	trimmed := strings.TrimSpace(string(body))
+	return strings.HasPrefix(trimmed, "<!DOCTYPE") || strings.HasPrefix(trimmed, "<html")
+}
+
 func joinAIRouteChatCompletionsURL(baseURL string) (string, error) {
 	parsed, err := url.Parse(strings.TrimSpace(baseURL))
 	if err != nil {
@@ -1820,6 +1835,15 @@ func joinAIRouteChatCompletionsURL(baseURL string) (string, error) {
 	parsed.Path = strings.TrimRight(parsed.Path, "/")
 	if strings.HasSuffix(parsed.Path, "/chat/completions") {
 		return parsed.String(), nil
+	}
+	// 与 channel.go:appendBaseURLPathByChannel 保持一致：
+	// 若路径不含已知版本前缀（/v1, /v1beta, /api/v3），自动补 /v1。
+	lowerPath := strings.ToLower(parsed.Path)
+	hasVersionPrefix := strings.HasPrefix(lowerPath, "/v1") ||
+		strings.HasPrefix(lowerPath, "/v1beta") ||
+		strings.HasPrefix(lowerPath, "/api/v3")
+	if !hasVersionPrefix {
+		parsed.Path += "/v1"
 	}
 	parsed.Path += "/chat/completions"
 	return parsed.String(), nil
