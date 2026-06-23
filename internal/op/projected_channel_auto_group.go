@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/dlclark/regexp2"
+	"github.com/gypg/lodestar/internal/db"
 	"github.com/gypg/lodestar/internal/model"
 	"github.com/gypg/lodestar/internal/utils/log"
 )
@@ -127,6 +128,14 @@ func AutoGroupAllProjectedChannels(ctx context.Context) error {
 	if len(channels) == 0 {
 		return nil
 	}
+
+	// 新逻辑：先清空所有非默认分组，再重新分组
+	// 这样每次分组都是全新的，不会被旧分组干扰
+	if err := deleteAllNonDefaultGroups(ctx); err != nil {
+		log.Warnf("failed to delete non-default groups before auto-group: %v", err)
+		// 继续执行，不阻塞
+	}
+
 	channelIDs := make([]int, 0, len(channels))
 	for id := range channels {
 		channelIDs = append(channelIDs, id)
@@ -141,6 +150,56 @@ func AutoGroupAllProjectedChannels(ctx context.Context) error {
 		}
 		ChannelAutoGroupWithMode(&channel, mode, ctx)
 	}
+	return nil
+}
+
+// deleteAllNonDefaultGroups 删除所有非默认分组及其关联的 group_items。
+// 用于自动分组前清空旧分组，确保每次分组都是全新的。
+func deleteAllNonDefaultGroups(ctx context.Context) error {
+	tx := db.GetDB().WithContext(ctx).Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+			log.Errorf("panic recovered in deleteAllNonDefaultGroups: %v", r)
+		}
+	}()
+
+	// 获取所有非默认分组 ID
+	var nonDefaultGroupIDs []int
+	if err := tx.Model(&model.ChannelGroup{}).
+		Where("is_default = ?", false).
+		Pluck("id", &nonDefaultGroupIDs).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to query non-default groups: %w", err)
+	}
+
+	if len(nonDefaultGroupIDs) == 0 {
+		tx.Rollback()
+		return nil
+	}
+
+	// 删除这些分组的 group_items
+	if err := tx.Where("group_id IN ?", nonDefaultGroupIDs).Delete(&model.GroupItem{}).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to delete group items: %w", err)
+	}
+
+	// 删除非默认分组
+	if err := tx.Where("is_default = ?", false).Delete(&model.ChannelGroup{}).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to delete non-default groups: %w", err)
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	// 刷新缓存
+	if err := channelGroupRefreshCache(ctx); err != nil {
+		log.Warnf("failed to refresh channel group cache: %v", err)
+	}
+
+	log.Infof("deleted %d non-default groups for auto-group reset", len(nonDefaultGroupIDs))
 	return nil
 }
 
