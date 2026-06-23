@@ -12,7 +12,7 @@ import {
     useTestChannel,
     type TestChannelSummary,
 } from '@/api/endpoints/channel';
-import { channelTemplates } from './templates';
+import { channelTemplates, getTemplatesByCategory, CATEGORY_LABELS } from './templates';
 import { CHANNEL_TYPE_OPTIONS } from './type-options';
 import { isOpenAICompatBaseUrlSuffixMode } from './base-url-suffix';
 import {
@@ -435,21 +435,34 @@ export function TemplatePickerGrid({
     onApplyTemplate: (templateKey: string) => void;
 }) {
     const t = useTranslations('channel.form');
+    const categorized = getTemplatesByCategory();
 
     return (
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
-            {channelTemplates.map((template) => (
-                <Button
-                    key={template.key}
-                    type="button"
-                    variant="outline"
-                    onClick={() => onApplyTemplate(template.key)}
-                    className="h-auto min-h-20 flex-col items-start gap-1 rounded-lg border-border/30 bg-card px-3.5 py-3 text-left whitespace-normal hover:bg-card md:min-h-24 md:rounded-lg md:px-4"
-                >
-                    <span className="text-sm font-semibold">{template.name}</span>
-                    <span className="text-xs text-muted-foreground">{t(template.descriptionKey)}</span>
-                </Button>
-            ))}
+        <div className="space-y-4">
+            {Object.entries(categorized).map(([category, templates]) => {
+                if (templates.length === 0) return null;
+                return (
+                    <div key={category}>
+                        <h4 className="mb-2 text-xs font-medium text-muted-foreground">
+                            {CATEGORY_LABELS[category] || category}
+                        </h4>
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                            {templates.map((template) => (
+                                <Button
+                                    key={template.key}
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => onApplyTemplate(template.key)}
+                                    className="h-auto min-h-20 flex-col items-start gap-1 rounded-lg border-border/30 bg-card px-3.5 py-3 text-left whitespace-normal hover:bg-card md:min-h-24 md:rounded-lg md:px-4"
+                                >
+                                    <span className="text-sm font-semibold">{template.name}</span>
+                                    <span className="text-xs text-muted-foreground">{t(template.descriptionKey)}</span>
+                                </Button>
+                            ))}
+                        </div>
+                    </div>
+                );
+            })}
         </div>
     );
 }

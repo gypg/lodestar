@@ -5,6 +5,7 @@ export type ChannelTemplate = {
     key: string;
     name: string;
     descriptionKey: string;
+    category: 'official' | 'cn_provider' | 'aggregator' | 'international' | 'cloud';
     apply: (current: ChannelFormData) => ChannelFormData;
 };
 
@@ -26,14 +27,30 @@ function createTemplatePatch(current: ChannelFormData, patch: Partial<ChannelFor
     };
 }
 
+/**
+ * 渠道供应商模板
+ *
+ * 分类：
+ * - official: 官方 API
+ * - cn_provider: 国内供应商
+ * - aggregator: 聚合中转
+ * - international: 国际供应商
+ * - cloud: 云服务商
+ *
+ * 参考来源：cc-switch (https://github.com/DrayChou/cc-switch) provider presets
+ */
 export const channelTemplates: ChannelTemplate[] = [
+    // ═══════════════════════════════════════════════════════════════
+    // 官方 API
+    // ═══════════════════════════════════════════════════════════════
     {
         key: 'openai',
         name: 'OpenAI',
         descriptionKey: 'template.descriptions.openai',
+        category: 'official',
         apply: (current) => createTemplatePatch(current, {
             name: current.name || 'OpenAI',
-            type: ChannelType.OpenAIResponse,
+            type: ChannelType.OpenAIChat,
             base_urls: [{ url: 'https://api.openai.com', delay: 0, suffix_mode: 'auto' }],
             custom_header: [],
             channel_proxy: '',
@@ -48,6 +65,7 @@ export const channelTemplates: ChannelTemplate[] = [
         key: 'anthropic',
         name: 'Anthropic',
         descriptionKey: 'template.descriptions.anthropic',
+        category: 'official',
         apply: (current) => createTemplatePatch(current, {
             name: current.name || 'Anthropic',
             type: ChannelType.Anthropic,
@@ -65,6 +83,7 @@ export const channelTemplates: ChannelTemplate[] = [
         key: 'gemini',
         name: 'Gemini',
         descriptionKey: 'template.descriptions.gemini',
+        category: 'official',
         apply: (current) => createTemplatePatch(current, {
             name: current.name || 'Gemini',
             type: ChannelType.Gemini,
@@ -82,6 +101,7 @@ export const channelTemplates: ChannelTemplate[] = [
         key: 'deepseek',
         name: 'DeepSeek',
         descriptionKey: 'template.descriptions.deepseek',
+        category: 'official',
         apply: (current) => createTemplatePatch(current, {
             name: current.name || 'DeepSeek',
             type: ChannelType.OpenAIChat,
@@ -95,10 +115,271 @@ export const channelTemplates: ChannelTemplate[] = [
             match_regex: '',
         }),
     },
+
+    // ═══════════════════════════════════════════════════════════════
+    // 国内供应商
+    // ═══════════════════════════════════════════════════════════════
+    {
+        key: 'zhipu',
+        name: '智谱 GLM',
+        descriptionKey: 'template.descriptions.zhipu',
+        category: 'cn_provider',
+        apply: (current) => createTemplatePatch(current, {
+            name: current.name || '智谱 GLM',
+            type: ChannelType.OpenAIChat,
+            base_urls: [{ url: 'https://open.bigmodel.cn/api/paas/v4', delay: 0, suffix_mode: 'auto' }],
+            custom_header: [],
+            channel_proxy: '',
+            param_override: '',
+            model: '',
+            custom_model: '',
+            auto_group: AutoGroupType.None,
+            match_regex: '',
+        }),
+    },
+    {
+        key: 'moonshot',
+        name: 'Moonshot / Kimi',
+        descriptionKey: 'template.descriptions.moonshot',
+        category: 'cn_provider',
+        apply: (current) => createTemplatePatch(current, {
+            name: current.name || 'Moonshot',
+            type: ChannelType.OpenAIChat,
+            base_urls: [{ url: 'https://api.moonshot.cn', delay: 0, suffix_mode: 'auto' }],
+            custom_header: [],
+            channel_proxy: '',
+            param_override: '',
+            model: '',
+            custom_model: '',
+            auto_group: AutoGroupType.None,
+            match_regex: '',
+        }),
+    },
+    {
+        key: 'minimax',
+        name: 'MiniMax',
+        descriptionKey: 'template.descriptions.minimax',
+        category: 'cn_provider',
+        apply: (current) => createTemplatePatch(current, {
+            name: current.name || 'MiniMax',
+            type: ChannelType.OpenAIChat,
+            base_urls: [{ url: 'https://api.minimax.chat', delay: 0, suffix_mode: 'auto' }],
+            custom_header: [],
+            channel_proxy: '',
+            param_override: '',
+            model: '',
+            custom_model: '',
+            auto_group: AutoGroupType.None,
+            match_regex: '',
+        }),
+    },
+    {
+        key: 'stepfun',
+        name: '阶跃星辰 StepFun',
+        descriptionKey: 'template.descriptions.stepfun',
+        category: 'cn_provider',
+        apply: (current) => createTemplatePatch(current, {
+            name: current.name || 'StepFun',
+            type: ChannelType.OpenAIChat,
+            base_urls: [{ url: 'https://api.stepfun.com', delay: 0, suffix_mode: 'auto' }],
+            custom_header: [],
+            channel_proxy: '',
+            param_override: '',
+            model: '',
+            custom_model: '',
+            auto_group: AutoGroupType.None,
+            match_regex: '',
+        }),
+    },
+    {
+        key: 'baichuan',
+        name: '百川 Baichuan',
+        descriptionKey: 'template.descriptions.baichuan',
+        category: 'cn_provider',
+        apply: (current) => createTemplatePatch(current, {
+            name: current.name || 'Baichuan',
+            type: ChannelType.OpenAIChat,
+            base_urls: [{ url: 'https://api.baichuan-ai.com', delay: 0, suffix_mode: 'auto' }],
+            custom_header: [],
+            channel_proxy: '',
+            param_override: '',
+            model: '',
+            custom_model: '',
+            auto_group: AutoGroupType.None,
+            match_regex: '',
+        }),
+    },
+    {
+        key: 'qwen',
+        name: '通义千问 Qwen',
+        descriptionKey: 'template.descriptions.qwen',
+        category: 'cn_provider',
+        apply: (current) => createTemplatePatch(current, {
+            name: current.name || 'Qwen',
+            type: ChannelType.OpenAIChat,
+            base_urls: [{ url: 'https://dashscope.aliyuncs.com/compatible-mode/v1', delay: 0, suffix_mode: 'auto' }],
+            custom_header: [],
+            channel_proxy: '',
+            param_override: '',
+            model: '',
+            custom_model: '',
+            auto_group: AutoGroupType.None,
+            match_regex: '',
+        }),
+    },
+    {
+        key: 'spark',
+        name: '讯飞星火 Spark',
+        descriptionKey: 'template.descriptions.spark',
+        category: 'cn_provider',
+        apply: (current) => createTemplatePatch(current, {
+            name: current.name || 'Spark',
+            type: ChannelType.OpenAIChat,
+            base_urls: [{ url: 'https://spark-api-open.xf-yun.com/v1', delay: 0, suffix_mode: 'auto' }],
+            custom_header: [],
+            channel_proxy: '',
+            param_override: '',
+            model: '',
+            custom_model: '',
+            auto_group: AutoGroupType.None,
+            match_regex: '',
+        }),
+    },
+    {
+        key: 'doubao',
+        name: '豆包 Doubao',
+        descriptionKey: 'template.descriptions.doubao',
+        category: 'cn_provider',
+        apply: (current) => createTemplatePatch(current, {
+            name: current.name || 'Doubao',
+            type: ChannelType.OpenAIChat,
+            base_urls: [{ url: 'https://ark.cn-beijing.volces.com/api/v3', delay: 0, suffix_mode: 'auto' }],
+            custom_header: [],
+            channel_proxy: '',
+            param_override: '',
+            model: '',
+            custom_model: '',
+            auto_group: AutoGroupType.None,
+            match_regex: '',
+        }),
+    },
+    {
+        key: 'yi',
+        name: '零一万物 Yi',
+        descriptionKey: 'template.descriptions.yi',
+        category: 'cn_provider',
+        apply: (current) => createTemplatePatch(current, {
+            name: current.name || 'Yi',
+            type: ChannelType.OpenAIChat,
+            base_urls: [{ url: 'https://api.lingyiwanwu.com', delay: 0, suffix_mode: 'auto' }],
+            custom_header: [],
+            channel_proxy: '',
+            param_override: '',
+            model: '',
+            custom_model: '',
+            auto_group: AutoGroupType.None,
+            match_regex: '',
+        }),
+    },
+    {
+        key: 'glm',
+        name: 'ChatGLM',
+        descriptionKey: 'template.descriptions.glm',
+        category: 'cn_provider',
+        apply: (current) => createTemplatePatch(current, {
+            name: current.name || 'ChatGLM',
+            type: ChannelType.OpenAIChat,
+            base_urls: [{ url: 'https://open.bigmodel.cn/api/paas/v4', delay: 0, suffix_mode: 'auto' }],
+            custom_header: [],
+            channel_proxy: '',
+            param_override: '',
+            model: '',
+            custom_model: '',
+            auto_group: AutoGroupType.None,
+            match_regex: '',
+        }),
+    },
+    {
+        key: 'hunyuan',
+        name: '腾讯混元 Hunyuan',
+        descriptionKey: 'template.descriptions.hunyuan',
+        category: 'cn_provider',
+        apply: (current) => createTemplatePatch(current, {
+            name: current.name || 'Hunyuan',
+            type: ChannelType.OpenAIChat,
+            base_urls: [{ url: 'https://api.hunyuan.cloud.tencent.com/v1', delay: 0, suffix_mode: 'auto' }],
+            custom_header: [],
+            channel_proxy: '',
+            param_override: '',
+            model: '',
+            custom_model: '',
+            auto_group: AutoGroupType.None,
+            match_regex: '',
+        }),
+    },
+    {
+        key: 'abab',
+        name: 'ABAB (MiniMax)',
+        descriptionKey: 'template.descriptions.abab',
+        category: 'cn_provider',
+        apply: (current) => createTemplatePatch(current, {
+            name: current.name || 'ABAB',
+            type: ChannelType.OpenAIChat,
+            base_urls: [{ url: 'https://api.minimax.chat', delay: 0, suffix_mode: 'auto' }],
+            custom_header: [],
+            channel_proxy: '',
+            param_override: '',
+            model: '',
+            custom_model: '',
+            auto_group: AutoGroupType.None,
+            match_regex: '',
+        }),
+    },
+    {
+        key: 'mimo',
+        name: '小米 MiMo',
+        descriptionKey: 'template.descriptions.mimo',
+        category: 'cn_provider',
+        apply: (current) => createTemplatePatch(current, {
+            name: current.name || 'MiMo',
+            type: ChannelType.OpenAIChat,
+            base_urls: [{ url: 'https://api.xiaomimimo.com/v1', delay: 0, suffix_mode: 'auto' }],
+            custom_header: [],
+            channel_proxy: '',
+            param_override: '',
+            model: '',
+            custom_model: '',
+            auto_group: AutoGroupType.None,
+            match_regex: '',
+        }),
+    },
+    {
+        key: 'siliconflow',
+        name: 'SiliconFlow 硅基流动',
+        descriptionKey: 'template.descriptions.siliconflow',
+        category: 'cn_provider',
+        apply: (current) => createTemplatePatch(current, {
+            name: current.name || 'SiliconFlow',
+            type: ChannelType.OpenAIChat,
+            base_urls: [{ url: 'https://api.siliconflow.cn', delay: 0, suffix_mode: 'auto' }],
+            custom_header: [],
+            channel_proxy: '',
+            param_override: '',
+            model: '',
+            custom_model: '',
+            auto_group: AutoGroupType.None,
+            match_regex: '',
+        }),
+    },
+
+    // ═══════════════════════════════════════════════════════════════
+    // 聚合中转
+    // ═══════════════════════════════════════════════════════════════
     {
         key: 'openrouter',
         name: 'OpenRouter',
         descriptionKey: 'template.descriptions.openrouter',
+        category: 'aggregator',
         apply: (current) => createTemplatePatch(current, {
             name: current.name || 'OpenRouter',
             type: ChannelType.OpenAIChat,
@@ -113,13 +394,292 @@ export const channelTemplates: ChannelTemplate[] = [
         }),
     },
     {
-        key: 'siliconflow',
-        name: 'SiliconFlow',
-        descriptionKey: 'template.descriptions.siliconflow',
+        key: 'aihubmix',
+        name: 'AiHubMix',
+        descriptionKey: 'template.descriptions.aihubmix',
+        category: 'aggregator',
         apply: (current) => createTemplatePatch(current, {
-            name: current.name || 'SiliconFlow',
+            name: current.name || 'AiHubMix',
             type: ChannelType.OpenAIChat,
-            base_urls: [{ url: 'https://api.siliconflow.cn', delay: 0, suffix_mode: 'auto' }],
+            base_urls: [{ url: 'https://aihubmix.com', delay: 0, suffix_mode: 'auto' }],
+            custom_header: [],
+            channel_proxy: '',
+            param_override: '',
+            model: '',
+            custom_model: '',
+            auto_group: AutoGroupType.None,
+            match_regex: '',
+        }),
+    },
+    {
+        key: 'closeai',
+        name: 'CloseAI',
+        descriptionKey: 'template.descriptions.closeai',
+        category: 'aggregator',
+        apply: (current) => createTemplatePatch(current, {
+            name: current.name || 'CloseAI',
+            type: ChannelType.OpenAIChat,
+            base_urls: [{ url: 'https://api.closeai-proxy.com', delay: 0, suffix_mode: 'auto' }],
+            custom_header: [],
+            channel_proxy: '',
+            param_override: '',
+            model: '',
+            custom_model: '',
+            auto_group: AutoGroupType.None,
+            match_regex: '',
+        }),
+    },
+    {
+        key: 'ohmygpt',
+        name: 'OhMyGPT',
+        descriptionKey: 'template.descriptions.ohmygpt',
+        category: 'aggregator',
+        apply: (current) => createTemplatePatch(current, {
+            name: current.name || 'OhMyGPT',
+            type: ChannelType.OpenAIChat,
+            base_urls: [{ url: 'https://www.ohmygpt.com', delay: 0, suffix_mode: 'auto' }],
+            custom_header: [],
+            channel_proxy: '',
+            param_override: '',
+            model: '',
+            custom_model: '',
+            auto_group: AutoGroupType.None,
+            match_regex: '',
+        }),
+    },
+    {
+        key: 'openai-sb',
+        name: 'OpenAI-SB',
+        descriptionKey: 'template.descriptions.openaisb',
+        category: 'aggregator',
+        apply: (current) => createTemplatePatch(current, {
+            name: current.name || 'OpenAI-SB',
+            type: ChannelType.OpenAIChat,
+            base_urls: [{ url: 'https://api.openai-sb.com', delay: 0, suffix_mode: 'auto' }],
+            custom_header: [],
+            channel_proxy: '',
+            param_override: '',
+            model: '',
+            custom_model: '',
+            auto_group: AutoGroupType.None,
+            match_regex: '',
+        }),
+    },
+    {
+        key: 'ai-proxy',
+        name: 'AI Proxy',
+        descriptionKey: 'template.descriptions.aiproxy',
+        category: 'aggregator',
+        apply: (current) => createTemplatePatch(current, {
+            name: current.name || 'AI Proxy',
+            type: ChannelType.OpenAIChat,
+            base_urls: [{ url: 'https://api.aiproxy.io', delay: 0, suffix_mode: 'auto' }],
+            custom_header: [],
+            channel_proxy: '',
+            param_override: '',
+            model: '',
+            custom_model: '',
+            auto_group: AutoGroupType.None,
+            match_regex: '',
+        }),
+    },
+    {
+        key: 'oneapi',
+        name: 'One API',
+        descriptionKey: 'template.descriptions.oneapi',
+        category: 'aggregator',
+        apply: (current) => createTemplatePatch(current, {
+            name: current.name || 'One API',
+            type: ChannelType.OpenAIChat,
+            base_urls: [{ url: 'http://localhost:3000', delay: 0, suffix_mode: 'auto' }],
+            custom_header: [],
+            channel_proxy: '',
+            param_override: '',
+            model: '',
+            custom_model: '',
+            auto_group: AutoGroupType.None,
+            match_regex: '',
+        }),
+    },
+    {
+        key: 'new-api',
+        name: 'New API',
+        descriptionKey: 'template.descriptions.newapi',
+        category: 'aggregator',
+        apply: (current) => createTemplatePatch(current, {
+            name: current.name || 'New API',
+            type: ChannelType.OpenAIChat,
+            base_urls: [{ url: 'http://localhost:3000', delay: 0, suffix_mode: 'auto' }],
+            custom_header: [],
+            channel_proxy: '',
+            param_override: '',
+            model: '',
+            custom_model: '',
+            auto_group: AutoGroupType.None,
+            match_regex: '',
+        }),
+    },
+
+    // ═══════════════════════════════════════════════════════════════
+    // 国际供应商
+    // ═══════════════════════════════════════════════════════════════
+    {
+        key: 'groq',
+        name: 'Groq',
+        descriptionKey: 'template.descriptions.groq',
+        category: 'international',
+        apply: (current) => createTemplatePatch(current, {
+            name: current.name || 'Groq',
+            type: ChannelType.OpenAIChat,
+            base_urls: [{ url: 'https://api.groq.com/openai', delay: 0, suffix_mode: 'auto' }],
+            custom_header: [],
+            channel_proxy: '',
+            param_override: '',
+            model: '',
+            custom_model: '',
+            auto_group: AutoGroupType.None,
+            match_regex: '',
+        }),
+    },
+    {
+        key: 'mistral',
+        name: 'Mistral',
+        descriptionKey: 'template.descriptions.mistral',
+        category: 'international',
+        apply: (current) => createTemplatePatch(current, {
+            name: current.name || 'Mistral',
+            type: ChannelType.OpenAIChat,
+            base_urls: [{ url: 'https://api.mistral.ai', delay: 0, suffix_mode: 'auto' }],
+            custom_header: [],
+            channel_proxy: '',
+            param_override: '',
+            model: '',
+            custom_model: '',
+            auto_group: AutoGroupType.None,
+            match_regex: '',
+        }),
+    },
+    {
+        key: 'cohere',
+        name: 'Cohere',
+        descriptionKey: 'template.descriptions.cohere',
+        category: 'international',
+        apply: (current) => createTemplatePatch(current, {
+            name: current.name || 'Cohere',
+            type: ChannelType.OpenAIChat,
+            base_urls: [{ url: 'https://api.cohere.com/v2', delay: 0, suffix_mode: 'auto' }],
+            custom_header: [],
+            channel_proxy: '',
+            param_override: '',
+            model: '',
+            custom_model: '',
+            auto_group: AutoGroupType.None,
+            match_regex: '',
+        }),
+    },
+    {
+        key: 'perplexity',
+        name: 'Perplexity',
+        descriptionKey: 'template.descriptions.perplexity',
+        category: 'international',
+        apply: (current) => createTemplatePatch(current, {
+            name: current.name || 'Perplexity',
+            type: ChannelType.OpenAIChat,
+            base_urls: [{ url: 'https://api.perplexity.ai', delay: 0, suffix_mode: 'auto' }],
+            custom_header: [],
+            channel_proxy: '',
+            param_override: '',
+            model: '',
+            custom_model: '',
+            auto_group: AutoGroupType.None,
+            match_regex: '',
+        }),
+    },
+    {
+        key: 'together',
+        name: 'Together AI',
+        descriptionKey: 'template.descriptions.together',
+        category: 'international',
+        apply: (current) => createTemplatePatch(current, {
+            name: current.name || 'Together AI',
+            type: ChannelType.OpenAIChat,
+            base_urls: [{ url: 'https://api.together.xyz', delay: 0, suffix_mode: 'auto' }],
+            custom_header: [],
+            channel_proxy: '',
+            param_override: '',
+            model: '',
+            custom_model: '',
+            auto_group: AutoGroupType.None,
+            match_regex: '',
+        }),
+    },
+    {
+        key: 'replicate',
+        name: 'Replicate',
+        descriptionKey: 'template.descriptions.replicate',
+        category: 'international',
+        apply: (current) => createTemplatePatch(current, {
+            name: current.name || 'Replicate',
+            type: ChannelType.OpenAIChat,
+            base_urls: [{ url: 'https://api.replicate.com/v1', delay: 0, suffix_mode: 'auto' }],
+            custom_header: [],
+            channel_proxy: '',
+            param_override: '',
+            model: '',
+            custom_model: '',
+            auto_group: AutoGroupType.None,
+            match_regex: '',
+        }),
+    },
+    {
+        key: 'fireworks',
+        name: 'Fireworks AI',
+        descriptionKey: 'template.descriptions.fireworks',
+        category: 'international',
+        apply: (current) => createTemplatePatch(current, {
+            name: current.name || 'Fireworks AI',
+            type: ChannelType.OpenAIChat,
+            base_urls: [{ url: 'https://api.fireworks.ai/inference/v1', delay: 0, suffix_mode: 'auto' }],
+            custom_header: [],
+            channel_proxy: '',
+            param_override: '',
+            model: '',
+            custom_model: '',
+            auto_group: AutoGroupType.None,
+            match_regex: '',
+        }),
+    },
+    {
+        key: 'nvidia',
+        name: 'NVIDIA',
+        descriptionKey: 'template.descriptions.nvidia',
+        category: 'international',
+        apply: (current) => createTemplatePatch(current, {
+            name: current.name || 'NVIDIA',
+            type: ChannelType.OpenAIChat,
+            base_urls: [{ url: 'https://integrate.api.nvidia.com/v1', delay: 0, suffix_mode: 'auto' }],
+            custom_header: [],
+            channel_proxy: '',
+            param_override: '',
+            model: '',
+            custom_model: '',
+            auto_group: AutoGroupType.None,
+            match_regex: '',
+        }),
+    },
+
+    // ═══════════════════════════════════════════════════════════════
+    // 云服务商
+    // ═══════════════════════════════════════════════════════════════
+    {
+        key: 'azure',
+        name: 'Azure OpenAI',
+        descriptionKey: 'template.descriptions.azure',
+        category: 'cloud',
+        apply: (current) => createTemplatePatch(current, {
+            name: current.name || 'Azure OpenAI',
+            type: ChannelType.OpenAIChat,
+            base_urls: [{ url: 'https://{RESOURCE_NAME}.openai.azure.com/openai/deployments/{DEPLOYMENT_NAME}', delay: 0, suffix_mode: 'custom' }],
             custom_header: [],
             channel_proxy: '',
             param_override: '',
@@ -131,8 +691,9 @@ export const channelTemplates: ChannelTemplate[] = [
     },
     {
         key: 'volcengine',
-        name: 'Volcengine',
+        name: '火山引擎 Volcengine',
         descriptionKey: 'template.descriptions.volcengine',
+        category: 'cloud',
         apply: (current) => createTemplatePatch(current, {
             name: current.name || 'Volcengine',
             type: ChannelType.Volcengine,
@@ -147,13 +708,50 @@ export const channelTemplates: ChannelTemplate[] = [
         }),
     },
     {
-        key: 'mimo',
-        name: 'Mimo',
-        descriptionKey: 'template.descriptions.mimo',
+        key: 'baidu-qianfan',
+        name: '百度千帆 Qianfan',
+        descriptionKey: 'template.descriptions.qianfan',
+        category: 'cloud',
         apply: (current) => createTemplatePatch(current, {
-            name: current.name || 'MiMo Chat',
-            type: ChannelType.MiMoChat,
-            base_urls: [{ url: 'https://api.xiaomimimo.com/v1', delay: 0, suffix_mode: 'auto' }],
+            name: current.name || 'Qianfan',
+            type: ChannelType.OpenAIChat,
+            base_urls: [{ url: 'https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop', delay: 0, suffix_mode: 'auto' }],
+            custom_header: [],
+            channel_proxy: '',
+            param_override: '',
+            model: '',
+            custom_model: '',
+            auto_group: AutoGroupType.None,
+            match_regex: '',
+        }),
+    },
+    {
+        key: 'aliyun-bailian',
+        name: '阿里云百炼 Bailian',
+        descriptionKey: 'template.descriptions.bailian',
+        category: 'cloud',
+        apply: (current) => createTemplatePatch(current, {
+            name: current.name || 'Bailian',
+            type: ChannelType.OpenAIChat,
+            base_urls: [{ url: 'https://dashscope.aliyuncs.com/compatible-mode/v1', delay: 0, suffix_mode: 'auto' }],
+            custom_header: [],
+            channel_proxy: '',
+            param_override: '',
+            model: '',
+            custom_model: '',
+            auto_group: AutoGroupType.None,
+            match_regex: '',
+        }),
+    },
+    {
+        key: 'tencent-hunyuan',
+        name: '腾讯混元 Hunyuan',
+        descriptionKey: 'template.descriptions.hunyuan',
+        category: 'cloud',
+        apply: (current) => createTemplatePatch(current, {
+            name: current.name || 'Hunyuan',
+            type: ChannelType.OpenAIChat,
+            base_urls: [{ url: 'https://api.hunyuan.cloud.tencent.com/v1', delay: 0, suffix_mode: 'auto' }],
             custom_header: [],
             channel_proxy: '',
             param_override: '',
@@ -165,8 +763,9 @@ export const channelTemplates: ChannelTemplate[] = [
     },
     {
         key: 'cloudflare',
-        name: 'Cloudflare',
+        name: 'Cloudflare Workers AI',
         descriptionKey: 'template.descriptions.cloudflare',
+        category: 'cloud',
         apply: (current) => createTemplatePatch(current, {
             name: current.name || 'Cloudflare',
             type: ChannelType.Cloudflare,
@@ -181,3 +780,31 @@ export const channelTemplates: ChannelTemplate[] = [
         }),
     },
 ];
+
+/**
+ * 按分类分组获取模板
+ */
+export function getTemplatesByCategory(): Record<string, ChannelTemplate[]> {
+    const categories: Record<string, ChannelTemplate[]> = {
+        official: [],
+        cn_provider: [],
+        aggregator: [],
+        international: [],
+        cloud: [],
+    };
+    for (const template of channelTemplates) {
+        categories[template.category].push(template);
+    }
+    return categories;
+}
+
+/**
+ * 分类显示名称
+ */
+export const CATEGORY_LABELS: Record<string, string> = {
+    official: '官方 API',
+    cn_provider: '国内供应商',
+    aggregator: '聚合中转',
+    international: '国际供应商',
+    cloud: '云服务商',
+};
