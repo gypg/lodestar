@@ -2909,7 +2909,7 @@
     "plan": "方案",
     "price": "价格",
     "duration": "时长",
-    "days": "天",
+    "days": "{count} 天",
     "quota": "配额",
     "quotaUnit": "额度",
     "quotaUsed": "已用额度",

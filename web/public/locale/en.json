@@ -2909,7 +2909,7 @@
     "plan": "Plan",
     "price": "Price",
     "duration": "Duration",
-    "days": "days",
+    "days": "{count} days",
     "quota": "Quota",
     "quotaUnit": "Credits",
     "quotaUsed": "Credits Used",

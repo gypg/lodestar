@@ -104,7 +104,10 @@ export function useCreatePlan() {
     return useMutation({
         mutationFn: async (data: Omit<SubscriptionPlan, 'id' | 'created_at' | 'updated_at'>) =>
             apiClient.post<SubscriptionPlan>('/api/v1/subscription/admin/plans/create', data),
-        onSuccess: () => qc.invalidateQueries({ queryKey: ['subscription', 'admin', 'plans'] }),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['subscription', 'admin', 'plans'] });
+            qc.invalidateQueries({ queryKey: ['subscription', 'plans'] });
+        },
     });
 }
 
@@ -113,7 +116,10 @@ export function useUpdatePlan() {
     return useMutation({
         mutationFn: async (data: Partial<SubscriptionPlan> & { id: number }) =>
             apiClient.post<SubscriptionPlan>('/api/v1/subscription/admin/plans/update', data),
-        onSuccess: () => qc.invalidateQueries({ queryKey: ['subscription', 'admin', 'plans'] }),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['subscription', 'admin', 'plans'] });
+            qc.invalidateQueries({ queryKey: ['subscription', 'plans'] });
+        },
     });
 }
 
@@ -122,7 +128,10 @@ export function useDeletePlan() {
     return useMutation({
         mutationFn: async (planId: number) =>
             apiClient.delete(`/api/v1/subscription/admin/plans/delete/${planId}`),
-        onSuccess: () => qc.invalidateQueries({ queryKey: ['subscription', 'admin', 'plans'] }),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['subscription', 'admin', 'plans'] });
+            qc.invalidateQueries({ queryKey: ['subscription', 'plans'] });
+        },
     });
 }
 
