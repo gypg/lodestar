@@ -104,7 +104,7 @@ func buildImageBedMultipartBody(imageBytes []byte) (*bytes.Buffer, string, error
 	var buf bytes.Buffer
 	writer := multipart.NewWriter(&buf)
 
-	part, err := writer.CreateFormFile("file", "image.png")
+	part, err := writer.CreateFormFile("image", "image.png")
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to create form file: %w", err)
 	}

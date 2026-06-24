@@ -33,6 +33,7 @@ const (
 	aiRouteMaxModelsPerRequest = 120
 	aiRouteResponseMaxSize     = 2 << 20
 	defaultAIRouteRetryBackoff = 10 * time.Second
+	aiRouteMaxTokens           = 4096
 )
 
 type aiRoutePromptModelInput struct {
@@ -50,6 +51,7 @@ type aiRouteChatCompletionRequest struct {
 	Model       string                      `json:"model"`
 	Messages    []aiRouteChatCompletionItem `json:"messages"`
 	Temperature float64                     `json:"temperature"`
+	MaxTokens   int                         `json:"max_tokens,omitempty"`
 }
 
 type aiRouteChatCompletionItem struct {
@@ -662,6 +664,7 @@ func generateAIRoutesForBucketWithService(
 			{Role: "user", Content: buildAIRouteUserPrompt(bucket.PromptEndpointType, targetGroupName, payload)},
 		},
 		Temperature: 0.1,
+		MaxTokens:   aiRouteMaxTokens,
 	}
 
 	body, err := json.Marshal(requestBody)

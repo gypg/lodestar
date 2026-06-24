@@ -284,7 +284,7 @@ func testImageBedConnection(c *gin.Context) {
 
 	var buf bytes.Buffer
 	writer := multipart.NewWriter(&buf)
-	part, err := writer.CreateFormFile("file", "test.png")
+	part, err := writer.CreateFormFile("image", "test.png")
 	if err != nil {
 		resp.Error(c, http.StatusInternalServerError, "failed to build test request")
 		return
