@@ -78,7 +78,7 @@ function PlanCard({
                     </div>
                     <div className="col-span-2">
                         <span className="text-muted-foreground">{t('quota')}</span>
-                        <div className="text-lg font-semibold">{formatQuota(plan.quota)}</div>
+                        <div className="text-lg font-semibold">{formatQuota(plan.quota_amount)}</div>
                     </div>
                 </div>
                 <div className="mt-auto pt-2">
@@ -128,26 +128,26 @@ function MySubscriptionCard({ sub }: { sub: UserSubscription }) {
             <CardContent className="space-y-3">
                 <div className="flex items-center gap-3">
                     <span className="text-sm text-muted-foreground">{t('plan')}</span>
-                    <span className="text-sm font-medium">{sub.plan_name}</span>
+                    <span className="text-sm font-medium">#{sub.plan_id}</span>
                     <Badge variant={status.color}>{status.label}</Badge>
                 </div>
                 <div className="flex items-center gap-3">
                     <span className="text-sm text-muted-foreground">{t('expiresAt')}</span>
                     <span className="text-sm font-medium flex items-center gap-1.5">
                         <Clock className="h-3.5 w-3.5" />
-                        {new Date(sub.end_time * 1000).toLocaleString()}
+                        {new Date(sub.expires_at * 1000).toLocaleString()}
                     </span>
                 </div>
                 <div className="flex items-center gap-3">
                     <span className="text-sm text-muted-foreground">{t('quotaUsed')}</span>
                     <span className="text-sm font-medium">
-                        {formatQuota(sub.used_quota)} / {formatQuota(sub.quota)}
+                        {formatQuota(sub.amount_used)} / {formatQuota(sub.amount_total)}
                     </span>
                 </div>
                 <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
                     <div
                         className="h-full rounded-full bg-primary transition-all"
-                        style={{ width: `${Math.min((sub.used_quota / sub.quota) * 100, 100)}%` }}
+                        style={{ width: `${sub.amount_total > 0 ? Math.min((sub.amount_used / sub.amount_total) * 100, 100) : 0}%` }}
                     />
                 </div>
             </CardContent>
@@ -172,7 +172,7 @@ function PlanForm({
     const [name, setName] = useState(initial?.name ?? '');
     const [price, setPrice] = useState(initial?.price?.toString() ?? '');
     const [duration, setDuration] = useState(initial?.duration_days?.toString() ?? '');
-    const [quota, setQuota] = useState(initial?.quota?.toString() ?? '');
+    const [quota, setQuota] = useState(initial?.quota_amount?.toString() ?? '');
     const [description, setDescription] = useState(initial?.description ?? '');
     const [enabled, setEnabled] = useState(initial?.enabled ?? true);
 
@@ -182,10 +182,10 @@ function PlanForm({
             name: name.trim(),
             price: Number(price),
             duration_days: Number(duration),
-            quota: Number(quota),
+            quota_amount: Number(quota),
             description: description.trim() || undefined,
             enabled,
-            sort: initial?.sort ?? 0,
+            sort_order: initial?.sort_order ?? 0,
         });
     };
 
@@ -546,7 +546,7 @@ export function Subscription() {
                                                         </Badge>
                                                     </div>
                                                     <div className="text-xs text-muted-foreground truncate">
-                                                        ${plan.price} &middot; {t('days', { count: plan.duration_days })} &middot; {formatQuota(plan.quota)} {t('quotaUnit')}
+                                                        ${plan.price} &middot; {t('days', { count: plan.duration_days })} &middot; {formatQuota(plan.quota_amount)} {t('quotaUnit')}
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-2 shrink-0">
@@ -617,7 +617,7 @@ export function Subscription() {
                                                 </Badge>
                                             </div>
                                             <div className="text-xs text-muted-foreground truncate">
-                                                {formatQuota(sub.used_quota)}/{formatQuota(sub.quota)} &middot; {t('expiresAt')}: {new Date(sub.end_time * 1000).toLocaleDateString()}
+                                                {formatQuota(sub.amount_used)}/{formatQuota(sub.amount_total)} &middot; {t('expiresAt')}: {new Date(sub.expires_at * 1000).toLocaleDateString()}
                                             </div>
                                         </div>
                                     </div>

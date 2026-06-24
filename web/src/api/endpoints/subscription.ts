@@ -6,12 +6,15 @@ import { apiClient } from '../client';
 export interface SubscriptionPlan {
     id: number;
     name: string;
-    price: number;
-    duration_days: number;
-    quota: number;
     description?: string;
+    price: number;
+    currency?: string;
+    duration_type?: string;
+    duration_days: number;
+    custom_duration_s?: number;
+    quota_amount: number;
     enabled: boolean;
-    sort: number;
+    sort_order?: number;
     created_at: number;
     updated_at: number;
 }
@@ -20,24 +23,26 @@ export interface SubscriptionOrder {
     id: number;
     user_id: number;
     plan_id: number;
-    plan_name: string;
-    price: number;
-    duration_days: number;
-    quota: number;
-    status: number; // 0=pending 1=paid 2=cancelled
+    trade_no: string;
+    money: number;
+    payment_method: string;
+    status: number;
     created_at: number;
+    completed_at: number;
 }
 
 export interface UserSubscription {
     id: number;
     user_id: number;
     plan_id: number;
-    plan_name: string;
-    start_time: number;
-    end_time: number;
-    quota: number;
-    used_quota: number;
-    status: number; // 0=inactive 1=active 2=expired
+    order_id: number;
+    amount_total: number;
+    amount_used: number;
+    starts_at: number;
+    expires_at: number;
+    status: number;
+    source: string;
+    created_at: number;
 }
 
 // ── User hooks ────────────────────────────────────────────────────────────────
@@ -55,8 +60,7 @@ export function useMySubscription() {
         queryKey: ['subscription', 'self'],
         queryFn: async () => {
             const result = await apiClient.get<UserSubscription | null>('/api/v1/subscription/self');
-            // 后端无订阅时返回 {code, message} 无 data 字段，apiClient 会返回整个对象
-            if (!result || typeof result !== 'object' || !('end_time' in result)) {
+            if (!result || typeof result !== 'object' || !('expires_at' in result)) {
                 return null;
             }
             return result;
