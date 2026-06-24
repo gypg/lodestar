@@ -22,6 +22,7 @@ import (
 	"github.com/gypg/lodestar/internal/op/apikey"
 	"github.com/gypg/lodestar/internal/op/setting"
 	"github.com/gypg/lodestar/internal/op/user"
+	"github.com/gypg/lodestar/internal/utils/log"
 )
 
 // Enabled reports whether commercial billing is active.
@@ -41,10 +42,14 @@ func HasBalanceForKey(apiKeyID int, ctx context.Context) bool {
 	}
 	key, err := apikey.Get(apiKeyID, ctx)
 	if err != nil || key.UserID == 0 {
+		if err != nil {
+			log.Errorf("billing fail-open: apikey lookup failed, api_key_id=%d err=%v — allowing request", apiKeyID, err)
+		}
 		return true
 	}
 	remaining, _, err := user.GetQuota(key.UserID, ctx)
 	if err != nil {
+		log.Errorf("billing fail-open: quota lookup failed, user_id=%d api_key_id=%d err=%v — allowing request", key.UserID, apiKeyID, err)
 		return true
 	}
 	return remaining > 0
@@ -58,9 +63,14 @@ func ChargeKey(apiKeyID int, cost float64, ctx context.Context) {
 	}
 	key, err := apikey.Get(apiKeyID, ctx)
 	if err != nil || key.UserID == 0 {
+		if err != nil {
+			log.Errorf("billing charge: apikey lookup failed, api_key_id=%d err=%v", apiKeyID, err)
+		}
 		return
 	}
-	_ = user.DeductQuota(key.UserID, cost, ctx)
+	if err := user.DeductQuota(key.UserID, cost, ctx); err != nil {
+		log.Errorf("billing charge: deduct failed, user_id=%d api_key_id=%d cost=%.6f err=%v", key.UserID, apiKeyID, cost, err)
+	}
 }
 
 // ChargeKeyWithExpr is like ChargeKey but checks for expression-based billing first.

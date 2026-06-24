@@ -85,6 +85,11 @@ func StripeConfigured() bool {
 
 // CreateCheckoutSession creates a Stripe Checkout Session for wallet top-up
 // and records a pending PaymentOrder. Returns the hosted checkout URL.
+//
+// The order is written to the database BEFORE calling the Stripe API so that a
+// Stripe session can never be created without a matching PaymentOrder (which
+// would cause the user's payment to be permanently lost). If the Stripe API
+// call fails, the order is marked "failed" in-place.
 func CreateCheckoutSession(userID uint, amountUSD float64, successURL string, cancelURL string, ctx context.Context) (string, error) {
 	if amountUSD <= 0 {
 		return "", ErrInvalidAmount
@@ -100,6 +105,23 @@ func CreateCheckoutSession(userID uint, amountUSD float64, successURL string, ca
 	}
 
 	tradeNo := genStripeTradeNo(userID)
+	now := time.Now().Unix()
+
+	// Step 1: Persist the order BEFORE any external call so the money trail
+	// always exists, even if Stripe API or DB update later fails.
+	order := model.PaymentOrder{
+		UserID:     userID,
+		AmountUSD:  amountUSD,
+		Money:      amountUSD,
+		TradeNo:    tradeNo,
+		Method:     "stripe",
+		Provider:   "stripe",
+		Status:     "pending",
+		CreateTime: now,
+	}
+	if err := db.GetDB().WithContext(ctx).Create(&order).Error; err != nil {
+		return "", fmt.Errorf("create order: %w", err)
+	}
 
 	stripe.Key = apiKey
 
@@ -134,23 +156,14 @@ func CreateCheckoutSession(userID uint, amountUSD float64, successURL string, ca
 		Mode: stripe.String(string(stripe.CheckoutSessionModePayment)),
 	}
 
+	// Step 2: Call Stripe. If this fails, mark the order as failed so no
+	// dangling pending order is left behind.
 	result, err := session.New(params)
 	if err != nil {
+		_ = db.GetDB().WithContext(ctx).Model(&model.PaymentOrder{}).
+			Where("id = ? AND status = ?", order.ID, "pending").
+			Updates(map[string]any{"status": "failed", "complete_time": now})
 		return "", fmt.Errorf("create checkout session: %w", err)
-	}
-
-	order := model.PaymentOrder{
-		UserID:    userID,
-		AmountUSD: amountUSD,
-		Money:     amountUSD,
-		TradeNo:   tradeNo,
-		Method:    "stripe",
-		Provider:  "stripe",
-		Status:    "pending",
-		CreateTime: time.Now().Unix(),
-	}
-	if err := db.GetDB().WithContext(ctx).Create(&order).Error; err != nil {
-		return "", fmt.Errorf("create order: %w", err)
 	}
 
 	return result.URL, nil
