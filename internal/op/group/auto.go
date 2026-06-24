@@ -199,6 +199,49 @@ func deleteAllNonDefaultGroups(ctx context.Context) (int, error) {
 	return len(nonDefaultGroupIDs), nil
 }
 
+// deleteStaleGroups 删除所有没有渠道绑定的模型分组（groups 表中无 group_items 的分组）。
+// 用于自动分组后清理历史残留，确保只有有渠道来源的分组存在。
+func deleteStaleGroups(ctx context.Context) (int, error) {
+	tx := db.GetDB().WithContext(ctx).Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+			log.Errorf("panic recovered in deleteStaleGroups: %v", r)
+		}
+	}()
+
+	// 找出没有 group_items 的分组 ID
+	var staleIDs []int
+	if err := tx.Model(&model.Group{}).
+		Where("id NOT IN (?)", tx.Model(&model.GroupItem{}).Select("DISTINCT group_id")).
+		Pluck("id", &staleIDs).Error; err != nil {
+		tx.Rollback()
+		return 0, fmt.Errorf("failed to query stale groups: %w", err)
+	}
+
+	if len(staleIDs) == 0 {
+		tx.Rollback()
+		return 0, nil
+	}
+
+	// 删除这些分组
+	if err := tx.Where("id IN ?", staleIDs).Delete(&model.Group{}).Error; err != nil {
+		tx.Rollback()
+		return 0, fmt.Errorf("failed to delete stale groups: %w", err)
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return 0, fmt.Errorf("failed to commit stale group cleanup: %w", err)
+	}
+
+	if err := RefreshAllCache(ctx); err != nil {
+		log.Warnf("failed to refresh group cache after stale cleanup: %v", err)
+	}
+
+	log.Infof("auto group: deleted %d stale groups (no channel source)", len(staleIDs))
+	return len(staleIDs), nil
+}
+
 func AutoGroupModels(ctx context.Context, force bool) (*model.AutoGroupResult, error) {
 	channelRefs, totalChannels, err := collectChannelModelRefs(ctx)
 	if err != nil {
@@ -308,6 +351,15 @@ func AutoGroupModels(ctx context.Context, force bool) (*model.AutoGroupResult, e
 			EndpointType:  candidate.EndpointType,
 			MatchedModels: candidate.RawModels,
 		})
+	}
+
+	// 清理没有渠道绑定的旧分组
+	staleCount, staleErr := deleteStaleGroups(ctx)
+	if staleErr != nil {
+		log.Warnf("auto group: failed to delete stale groups: %v", staleErr)
+	} else if staleCount > 0 {
+		result.DeletedGroups += staleCount
+		log.Infof("auto group: cleaned %d stale groups (no channel source)", staleCount)
 	}
 
 	log.Infof("auto group finished: force=%v channels=%d seen_models=%d distinct_raw=%d candidates=%d created=%d deleted=%d skipped_existing=%d skipped_covered_models=%d failed=%d",
