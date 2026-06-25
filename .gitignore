@@ -84,3 +84,4 @@ web/build.log
 # go build atomic-write temp binary
 *.exe~
 截图/
+lodestar-linux
