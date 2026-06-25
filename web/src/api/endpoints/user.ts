@@ -242,7 +242,7 @@ export function useUserPreferences() {
             const res = await apiClient.get<{ preferences: string }>('/api/v1/user/preferences');
             try {
                 return (JSON.parse(res.preferences || '{}') ?? {}) as UserPreferences;
-            } catch {
+            } catch (e) { console.error(e);
                 return {} as UserPreferences;
             }
         },

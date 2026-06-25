@@ -416,7 +416,7 @@ export function AccountEditDialog({ open, onOpenChange, site, account }: Account
                 <header className="mb-4 flex items-start justify-between gap-4 shrink-0">
                     <div className="min-w-0 flex-1">
                         <DialogTitle className="text-2xl font-bold text-card-foreground truncate">
-                            {account ? '编辑站点账号' : '新增站点账号'}
+                            {account ? t('site.editAccount') : t('site.addAccount')}
                         </DialogTitle>
                     </div>
                     <button

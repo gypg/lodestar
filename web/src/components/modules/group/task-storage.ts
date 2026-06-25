@@ -45,7 +45,7 @@ function readStoredTask<T>(key: string, isValid: (value: unknown) => value is T)
             return null;
         }
         return parsed;
-    } catch {
+    } catch (e) { console.error(e);
         storage.removeItem(key);
         return null;
     }

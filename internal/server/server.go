@@ -39,6 +39,7 @@ func Start() error {
 	if conf.IsDebug() {
 		r.Use(middleware.Logger())
 	}
+	r.Use(middleware.Gzip())
 	r.Use(middleware.SecurityHeaders())
 	r.Use(middleware.Cors())
 	r.Use(middleware.MaintenanceGuard())

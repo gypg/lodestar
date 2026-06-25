@@ -240,7 +240,7 @@ export function AIRouteConfig({ compact }: { compact?: boolean }) {
                         keys: freshChannel.keys ?? [],
                     };
                 }
-            } catch {
+            } catch (e) { console.error(e);
                 // Direct API fetch failed; will fall through to warning below
             }
         }

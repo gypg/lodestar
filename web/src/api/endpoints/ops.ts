@@ -298,7 +298,7 @@ export function useAuditLogDetail() {
         try {
             const result = await apiClient.get<AuditLogEntry | null>(`/api/v1/audit/detail?id=${id}`);
             setDetail(result);
-        } catch {
+        } catch (e) { console.error(e);
             setDetail(null);
         } finally {
             setIsLoading(false);

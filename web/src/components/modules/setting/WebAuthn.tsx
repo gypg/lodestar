@@ -41,7 +41,7 @@ export function SettingWebAuthn() {
             await setSetting.mutateAsync({ key: SettingKey.WebAuthnRPName, value: rpName.trim() || 'Octopus' });
             await setSetting.mutateAsync({ key: SettingKey.WebAuthnOrigins, value: trimmedOrigins.join(', ') });
             toast.success(t('webauthn.saved'));
-        } catch {
+        } catch (e) { console.error(e);
             toast.error(t('webauthn.saveFailed'));
         }
     };

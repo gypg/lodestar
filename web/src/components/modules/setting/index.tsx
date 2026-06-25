@@ -92,7 +92,7 @@ function loadOrder(): string[] {
         );
         const missing = DEFAULT_SETTING_ORDER.filter((id) => !filtered.includes(id));
         return [...filtered, ...missing];
-    } catch {
+    } catch (e) { console.error(e);
         return [...DEFAULT_SETTING_ORDER];
     }
 }

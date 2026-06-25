@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 
 export interface HeatmapDay {
@@ -34,6 +35,7 @@ const LEVEL_CLASS = [
 
 /** Compact GitHub-style usage heatmap (last N days from API). */
 export function UsageHeatmap({ data, days = 30, className }: { data?: HeatmapDay[]; days?: number; className?: string }) {
+    const t = useTranslations('setting.usageHeatmap');
     const { cells, max } = useMemo(() => {
         const map = new Map<string, number>();
         for (const row of data ?? []) {
@@ -64,16 +66,16 @@ export function UsageHeatmap({ data, days = 30, className }: { data?: HeatmapDay
     }
 
     if (!data.length && max === 0) {
-        return <p className="text-xs text-muted-foreground">暂无按日数据（需开启历史日志并有请求记录）。</p>;
+        return <p className="text-xs text-muted-foreground">{t('noDailyData')}</p>;
     }
 
     return (
-        <div className={cn('flex flex-wrap gap-0.5', className)} role="img" aria-label="用量热力图">
+        <div className={cn('flex flex-wrap gap-0.5', className)} role="img" aria-label={t('ariaLabel')}>
             {cells.map((c) =>
                 c.inRange ? (
                     <div
                         key={c.key}
-                        title={`${c.key}: ${c.requests} 次`}
+                        title={t('tooltip', { date: c.key, count: c.requests })}
                         className={cn('size-2.5 rounded-sm sm:size-3', LEVEL_CLASS[level(c.requests, max)])}
                     />
                 ) : (

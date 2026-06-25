@@ -10,6 +10,7 @@ func init() {
 	RegisterAfterAutoMigration(Migration{
 		Version: 8,
 		Up:      migrateStatsHourlyCompositePrimaryKey,
+		Down:    stubDown(8),
 	})
 }
 

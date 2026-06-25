@@ -50,7 +50,7 @@ export function APIKeyDashboard() {
                 await writeClipboardText(text);
                 toast.success(`${label} copied`);
                 return true;
-            } catch {
+            } catch (e) { console.error(e);
                 toast.error(t('error'));
                 return false;
             } finally {

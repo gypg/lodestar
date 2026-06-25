@@ -11,6 +11,7 @@ func init() {
 	RegisterAfterAutoMigration(Migration{
 		Version: 17,
 		Up:      migrateLandingAmbientDefault,
+		Down:    stubDown(17),
 	})
 }
 

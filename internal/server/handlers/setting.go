@@ -175,6 +175,12 @@ func shouldRefreshSemanticCacheRuntime(key model.SettingKey) bool {
 // 供浏览器保存为文件，不使用管理端标准 {code, message, data} envelope——
 // 这是有意例外，不是遗漏。
 func exportDB(c *gin.Context) {
+	if !backupMutex.TryLock() {
+		resp.Error(c, http.StatusConflict, "backup or restore already in progress")
+		return
+	}
+	defer backupMutex.Unlock()
+
 	includeLogs, _ := strconv.ParseBool(c.DefaultQuery("include_logs", "false"))
 	includeStats, _ := strconv.ParseBool(c.DefaultQuery("include_stats", "false"))
 
@@ -200,6 +206,12 @@ func exportDB(c *gin.Context) {
 }
 
 func importDB(c *gin.Context) {
+	if !backupMutex.TryLock() {
+		resp.Error(c, http.StatusConflict, "backup or restore already in progress")
+		return
+	}
+	defer backupMutex.Unlock()
+
 	var dump model.DBDump
 	defer cleanupDBImportMultipartForm(c)
 

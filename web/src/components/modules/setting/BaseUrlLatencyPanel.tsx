@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Activity, Copy, Gauge, Server } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import {
     LATENCY_SAMPLE_COUNT,
@@ -12,6 +13,8 @@ import {
 } from '@/lib/base-url-latency';
 
 export function BaseUrlLatencyPanel() {
+    const t = useTranslations('setting.latency');
+    const tCommon = useTranslations('common');
     const [origin, setOrigin] = useState('');
     const [samples, setSamples] = useState<LatencySample[]>([]);
     const [testing, setTesting] = useState(false);
@@ -41,10 +44,10 @@ export function BaseUrlLatencyPanel() {
             const sample = await measureLatency(target);
             next.push(sample);
             setSamples([...next]);
-            if (!sample.ok) setLastError(sample.error || '请求失败');
+            if (!sample.ok) setLastError(sample.error || t('failed'));
         }
         setTesting(false);
-    }, [origin]);
+    }, [origin, t]);
 
     const copyPing = () => {
         void navigator.clipboard?.writeText(pingUrl);
@@ -55,37 +58,37 @@ export function BaseUrlLatencyPanel() {
             <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2 text-sm font-medium text-card-foreground">
                     <Gauge className="size-4 text-primary" />
-                    站点连通 / 时延
+                    {t('title')}
                 </div>
                 <Button type="button" size="sm" variant="outline" onClick={runTest} disabled={testing} className="h-8 gap-1.5">
                     <Activity className={`size-3.5 ${testing ? 'animate-pulse' : ''}`} />
-                    {testing ? '测速中…' : '测速'}
+                    {testing ? t('testing') : t('test')}
                 </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-                用当前浏览器访问本站公开探测接口，结果更接近你侧真实链路（非服务器内网）。
+                {t('description')}
             </p>
             <div className="flex items-center gap-2 rounded-md border border-border/40 bg-muted/30 px-2 py-1.5 font-mono text-xs">
                 <Server className="size-3.5 shrink-0 text-muted-foreground" />
                 <span className="min-w-0 flex-1 truncate" title={pingUrl}>
                     {pingUrl}
                 </span>
-                <button type="button" onClick={copyPing} className="text-muted-foreground hover:text-foreground" aria-label="复制测速地址">
+                <button type="button" onClick={copyPing} className="text-muted-foreground hover:text-foreground" aria-label={tCommon('copyLatencyUrl')}>
                     <Copy className="size-3.5" />
                 </button>
             </div>
             <div className="grid grid-cols-3 gap-2 text-center text-xs">
                 <div className="rounded-md border border-border/40 p-2">
-                    <div className="text-muted-foreground">最佳</div>
+                    <div className="text-muted-foreground">{t('best')}</div>
                     <div className="font-semibold tabular-nums">{best ? `${best} ms` : '—'}</div>
                 </div>
                 <div className="rounded-md border border-border/40 p-2">
-                    <div className="text-muted-foreground">平均</div>
+                    <div className="text-muted-foreground">{t('average')}</div>
                     <div className="font-semibold tabular-nums">{avg ? `${avg} ms` : '—'}</div>
                 </div>
                 <div className="rounded-md border border-border/40 p-2">
-                    <div className="text-muted-foreground">最近</div>
-                    <div className="font-semibold">{latest ? (latest.ok ? `HTTP ${latest.status}` : '失败') : '—'}</div>
+                    <div className="text-muted-foreground">{t('recent')}</div>
+                    <div className="font-semibold">{latest ? (latest.ok ? `HTTP ${latest.status}` : t('failed')) : '—'}</div>
                 </div>
             </div>
             {samples.length > 0 && (
@@ -95,7 +98,7 @@ export function BaseUrlLatencyPanel() {
                             key={`${sample.ms}-${index}`}
                             className={`rounded-full border px-2 py-0.5 text-xs font-medium tabular-nums ${latencyBadgeClass(sample.ms, sample.ok)}`}
                         >
-                            #{index + 1} {sample.ok ? `${sample.ms} ms` : '失败'}
+                            #{index + 1} {sample.ok ? `${sample.ms} ms` : t('failed')}
                         </span>
                     ))}
                 </div>

@@ -10,6 +10,7 @@ func init() {
 	RegisterAfterAutoMigration(Migration{
 		Version: 10,
 		Up:      migrateStatsLatencyColumns,
+		Down:    stubDown(10),
 	})
 }
 

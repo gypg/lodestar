@@ -66,7 +66,7 @@ export function SettingResponseFilter() {
             }
             if (shouldApplyServerValue(SettingKey.ResponseFilterKeywords, nextValues[SettingKey.ResponseFilterKeywords])) {
                 intendedValuesRef.current[SettingKey.ResponseFilterKeywords] = nextValues[SettingKey.ResponseFilterKeywords];
-                try { setKeywords(JSON.parse(nextValues[SettingKey.ResponseFilterKeywords])); } catch { setKeywords([]); }
+                try { setKeywords(JSON.parse(nextValues[SettingKey.ResponseFilterKeywords])); } catch (e) { console.error(e); setKeywords([]); }
             }
             if (shouldApplyServerValue(SettingKey.ResponseFilterAction, nextValues[SettingKey.ResponseFilterAction])) {
                 intendedValuesRef.current[SettingKey.ResponseFilterAction] = nextValues[SettingKey.ResponseFilterAction];

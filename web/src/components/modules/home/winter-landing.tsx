@@ -15,6 +15,7 @@ Lodestar — 冬日风落地页（Winter Landing）
 */
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useNavStore, type NavItem } from '@/components/modules/navbar';
 import { usePublicOverview } from '@/api/endpoints/public';
 import { useCurrentUser, isStaffRole } from '@/api/endpoints/user';
@@ -89,6 +90,7 @@ export function WinterLanding({
   onLogin?: () => void;
 }) {
   const setActiveItem = useNavStore((s) => s.setActiveItem);
+  const t = useTranslations();
   const [now, setNow] = useState(() => new Date());
   const isPublic = variant === 'public';
   const [panel, setPanel] = useState<PublicPanel | null>(null);
@@ -234,24 +236,28 @@ export function WinterLanding({
           <div
             className="absolute right-[5vw] top-[20vh] z-20 w-[min(440px,88vw)] max-h-[62vh] overflow-y-auto rounded-xl border border-[#cdc7ba] bg-[#fbfaf7]/95 p-5 shadow-lg backdrop-blur"
             style={{ fontFamily: SANS, color: '#1f1d1a' }}
+            role="dialog"
+            aria-label={panel === 'announcement' ? t('landing.announcement') : panel === 'models' ? t('landing.models') : panel === 'usage' ? t('landing.usage') : t('landing.about', { name: siteName })}
+            onKeyDown={(e) => { if (e.key === 'Escape') setPanel(null); }}
+            tabIndex={-1}
           >
             <div className="mb-3 flex items-center justify-between border-b border-[#cdc7ba] pb-2">
               <span className="text-sm font-semibold tracking-wide">
-                {panel === 'announcement' && '站点公告'}
-                {panel === 'models' && '模型广场'}
-                {panel === 'usage' && '用量概览'}
-                {panel === 'about' && `关于 ${siteName}`}
+                {panel === 'announcement' && t('landing.announcement')}
+                {panel === 'models' && t('landing.models')}
+                {panel === 'usage' && t('landing.usage')}
+                {panel === 'about' && t('landing.about', { name: siteName })}
               </span>
-              <button type="button" onClick={() => setPanel(null)} className="text-[#6b6862] transition-colors hover:text-[#1f1d1a]" aria-label="关闭">✕</button>
+              <button type="button" onClick={() => setPanel(null)} className="text-[#6b6862] transition-colors hover:text-[#1f1d1a]" aria-label={t('landing.close')}>✕</button>
             </div>
 
             {panel === 'announcement' && (
-              <p className="whitespace-pre-wrap text-sm leading-relaxed">{overview?.announcement?.trim() || '暂无公告。'}</p>
+              <p className="whitespace-pre-wrap text-sm leading-relaxed">{overview?.announcement?.trim() || t('landing.noAnnouncement')}</p>
             )}
 
             {panel === 'models' && (
               <div className="flex flex-col gap-1.5">
-                <p className="mb-1 text-xs text-[#6b6862]">共 {overview?.model_count ?? 0} 个模型</p>
+                <p className="mb-1 text-xs text-[#6b6862]">{t('landing.modelCount', { count: overview?.model_count ?? 0 })}</p>
                 {(overview?.models ?? []).length === 0 && <p className="text-sm text-[#6b6862]">暂无公开模型。</p>}
                 {(overview?.models ?? []).map((m) => (
                   <div key={m.name} className="flex items-baseline justify-between border-b border-dotted border-[#cdc7ba] py-1 text-sm">

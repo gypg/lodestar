@@ -10,6 +10,7 @@ func init() {
 	RegisterAfterAutoMigration(Migration{
 		Version: 2,
 		Up:      dropLegacyChannelColumns,
+		Down:    stubDown(2),
 	})
 }
 

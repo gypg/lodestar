@@ -2,15 +2,30 @@ package migrate
 
 import (
 	"fmt"
+	"log"
 	"sort"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
+// DownFunc is an optional rollback function for a migration.
+// Nil means "no automatic rollback"; callers that need to undo a migration
+// should take manual steps.
+type DownFunc func(db *gorm.DB) error
+
+// stubDown returns a DownFunc that logs a warning and returns nil.
+func stubDown(version int) DownFunc {
+	return func(db *gorm.DB) error {
+		log.Printf("[WARN] migration %d: manual rollback required", version)
+		return nil
+	}
+}
+
 type Migration struct {
 	Version int
 	Up      func(db *gorm.DB) error
+	Down    DownFunc
 }
 
 type MigrationRecordStatus int
@@ -124,6 +139,47 @@ func ensureMigrationRecordTable(db *gorm.DB) error {
 		return fmt.Errorf("failed to auto migrate MigrationRecord: %w", err)
 	}
 	return nil
+}
+
+// RollbackMigration executes the Down function for a specific migration version.
+// Returns an error if the migration has no Down function or if rollback fails.
+func RollbackMigration(db *gorm.DB, version int) error {
+	if db == nil {
+		return fmt.Errorf("db is nil")
+	}
+	if err := ensureMigrationRecordTable(db); err != nil {
+		return err
+	}
+
+	// Find the migration in either slice
+	var m *Migration
+	for i := range beforeAutoMigrations {
+		if beforeAutoMigrations[i].Version == version {
+			m = &beforeAutoMigrations[i]
+			break
+		}
+	}
+	if m == nil {
+		for i := range afterAutoMigrations {
+			if afterAutoMigrations[i].Version == version {
+				m = &afterAutoMigrations[i]
+				break
+			}
+		}
+	}
+	if m == nil {
+		return fmt.Errorf("migration %d not found", version)
+	}
+	if m.Down == nil {
+		return fmt.Errorf("migration %d has no Down function", version)
+	}
+
+	if err := m.Down(db); err != nil {
+		return fmt.Errorf("rollback migration %d failed: %w", version, err)
+	}
+
+	// Remove the success record so the migration can be re-applied
+	return db.Where("version = ?", version).Delete(&MigrationRecord{}).Error
 }
 
 func upsertMigrationRecord(db *gorm.DB, version int, status MigrationRecordStatus) error {

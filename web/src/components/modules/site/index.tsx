@@ -1415,8 +1415,8 @@ export function Site() {
                       size="icon-sm"
                       variant="outline"
                       className="rounded-xl"
-                      aria-label="更多站点操作"
-                      title="更多站点操作"
+                      aria-label={t('site.moreSiteActions')}
+                      title={t('site.moreSiteActions')}
                     >
                       <MoreHorizontal className="size-4" />
                     </Button>
@@ -1670,8 +1670,8 @@ export function Site() {
                                           size="icon-sm"
                                           variant="outline"
                                           className="rounded-xl"
-                                          aria-label="更多账号操作"
-                                          title="更多账号操作"
+                                          aria-label={t('site.moreAccountActions')}
+                                          title={t('site.moreAccountActions')}
                                         >
                                           <MoreHorizontal className="size-4" />
                                         </Button>

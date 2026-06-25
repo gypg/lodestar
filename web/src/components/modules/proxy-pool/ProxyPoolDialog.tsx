@@ -53,7 +53,7 @@ function maskProxyURL(value: string) {
         const parsed = new URL(value);
         if (parsed.password) parsed.password = '***';
         return parsed.toString();
-    } catch {
+    } catch (e) { console.error(e);
         return value;
     }
 }

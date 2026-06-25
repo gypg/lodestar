@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -11,10 +13,15 @@ import (
 	"github.com/gypg/lodestar/internal/model"
 	"github.com/gypg/lodestar/internal/op/setting"
 	"github.com/gypg/lodestar/internal/server/resp"
+	"github.com/gypg/lodestar/internal/utils/cache"
+	"github.com/gypg/lodestar/internal/utils/log"
 	"github.com/gypg/lodestar/internal/utils/ratelimit"
 )
 
 const loginRateLimitCleanupInterval = 10 * time.Minute
+
+// loginRateLimitRedisKeyPrefix is the Redis key prefix for login rate limit entries.
+const loginRateLimitRedisKeyPrefix = "login_ratelimit:"
 
 func getLoginRateLimitWindow() time.Duration {
 	if v, err := setting.GetInt(model.SettingKeyLoginRateLimitWindow); err == nil && v > 0 {
@@ -31,18 +38,142 @@ func getLoginRateLimitMaxFailed() int {
 }
 
 type loginAttempt struct {
-	FailedCount  int
-	BlockedUntil time.Time
-	LastFailedAt time.Time
+	FailedCount  int       `json:"failed_count"`
+	BlockedUntil time.Time `json:"blocked_until"`
+	LastFailedAt time.Time `json:"last_failed_at"`
 }
 
-var loginAttemptCache = struct {
-	sync.Mutex
+// loginAttemptStore abstracts the storage backend for login attempts.
+// When Redis is available it provides persistence across restarts;
+// otherwise the in-memory implementation is used.
+type loginAttemptStore interface {
+	get(key string, now time.Time) (*loginAttempt, bool)
+	set(key string, attempt *loginAttempt, ttl time.Duration)
+	delete(key string)
+}
+
+// ---------------------------------------------------------------------------
+// in-memory store (original behaviour, fallback when Redis is unavailable)
+// ---------------------------------------------------------------------------
+
+type memoryLoginStore struct {
+	mu    sync.Mutex
 	items map[string]*loginAttempt
-}{
-	items: make(map[string]*loginAttempt),
 }
 
+func newMemoryLoginStore() *memoryLoginStore {
+	return &memoryLoginStore{items: make(map[string]*loginAttempt)}
+}
+
+func (s *memoryLoginStore) get(key string, now time.Time) (*loginAttempt, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	attempt, ok := s.items[key]
+	if !ok {
+		return nil, false
+	}
+	if now.Sub(attempt.LastFailedAt) > getLoginRateLimitWindow() {
+		delete(s.items, key)
+		return nil, false
+	}
+	return attempt, true
+}
+
+func (s *memoryLoginStore) set(key string, attempt *loginAttempt, _ time.Duration) {
+	s.mu.Lock()
+	s.items[key] = attempt
+	s.mu.Unlock()
+}
+
+func (s *memoryLoginStore) delete(key string) {
+	s.mu.Lock()
+	delete(s.items, key)
+	s.mu.Unlock()
+}
+
+// purge removes all entries older than the rate-limit window.
+func (s *memoryLoginStore) purge(now time.Time) {
+	s.mu.Lock()
+	for key, attempt := range s.items {
+		if now.Sub(attempt.LastFailedAt) > getLoginRateLimitWindow() {
+			delete(s.items, key)
+		}
+	}
+	s.mu.Unlock()
+}
+
+// ---------------------------------------------------------------------------
+// Redis store
+// ---------------------------------------------------------------------------
+
+type redisLoginStore struct{}
+
+func (s *redisLoginStore) redisKey(key string) string {
+	return loginRateLimitRedisKeyPrefix + key
+}
+
+func (s *redisLoginStore) get(key string, now time.Time) (*loginAttempt, bool) {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	data, err := cache.RedisClient.Get(ctx, s.redisKey(key)).Bytes()
+	if err != nil {
+		return nil, false
+	}
+	var attempt loginAttempt
+	if err := json.Unmarshal(data, &attempt); err != nil {
+		return nil, false
+	}
+	if now.Sub(attempt.LastFailedAt) > getLoginRateLimitWindow() {
+		// Expired entry; delete asynchronously.
+		go func() {
+			_ = cache.RedisClient.Del(context.Background(), s.redisKey(key)).Err()
+		}()
+		return nil, false
+	}
+	return &attempt, true
+}
+
+func (s *redisLoginStore) set(key string, attempt *loginAttempt, ttl time.Duration) {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	data, err := json.Marshal(attempt)
+	if err != nil {
+		log.Warnf("login ratelimit: failed to marshal attempt for key %s: %v", key, err)
+		return
+	}
+	if err := cache.RedisClient.Set(ctx, s.redisKey(key), data, ttl).Err(); err != nil {
+		log.Warnf("login ratelimit: redis SET failed for key %s: %v", key, err)
+	}
+}
+
+func (s *redisLoginStore) delete(key string) {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	if err := cache.RedisClient.Del(ctx, s.redisKey(key)).Err(); err != nil {
+		log.Warnf("login ratelimit: redis DEL failed for key %s: %v", key, err)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// global store selection
+// ---------------------------------------------------------------------------
+
+var loginStore loginAttemptStore
+
+func initLoginStore() {
+	if cache.IsRedisAvailable() {
+		loginStore = &redisLoginStore{}
+		log.Infof("login rate limiter: using Redis-backed persistence")
+	} else {
+		loginStore = newMemoryLoginStore()
+		log.Infof("login rate limiter: using in-memory store (non-persistent)")
+	}
+}
+
+// LoginRateLimit returns a gin middleware that enforces per-IP login attempt limits.
 func LoginRateLimit() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		key := c.ClientIP()
@@ -59,18 +190,15 @@ func LoginRateLimit() gin.HandlerFunc {
 	}
 }
 
+// RecordLoginFailure increments the failed-login counter for the given key.
 func RecordLoginFailure(key string, now time.Time) {
 	if key == "" {
 		return
 	}
 
-	loginAttemptCache.Lock()
-	defer loginAttemptCache.Unlock()
-
-	attempt, ok := loginAttemptCache.items[key]
-	if !ok || now.Sub(attempt.LastFailedAt) > getLoginRateLimitWindow() {
+	attempt, ok := loginStore.get(key, now)
+	if !ok {
 		attempt = &loginAttempt{}
-		loginAttemptCache.items[key] = attempt
 	}
 
 	attempt.FailedCount++
@@ -78,15 +206,16 @@ func RecordLoginFailure(key string, now time.Time) {
 	if attempt.FailedCount >= getLoginRateLimitMaxFailed() {
 		attempt.BlockedUntil = now.Add(getLoginRateLimitWindow())
 	}
+
+	loginStore.set(key, attempt, getLoginRateLimitWindow())
 }
 
+// ClearLoginFailures removes all recorded failures for the given key.
 func ClearLoginFailures(key string) {
 	if key == "" {
 		return
 	}
-	loginAttemptCache.Lock()
-	delete(loginAttemptCache.items, key)
-	loginAttemptCache.Unlock()
+	loginStore.delete(key)
 }
 
 func isLoginBlocked(key string, now time.Time) bool {
@@ -94,24 +223,19 @@ func isLoginBlocked(key string, now time.Time) bool {
 		return false
 	}
 
-	loginAttemptCache.Lock()
-	defer loginAttemptCache.Unlock()
-
-	attempt, ok := loginAttemptCache.items[key]
+	attempt, ok := loginStore.get(key, now)
 	if !ok {
 		return false
 	}
 	if !attempt.BlockedUntil.IsZero() && now.Before(attempt.BlockedUntil) {
 		return true
 	}
-	if now.Sub(attempt.LastFailedAt) > getLoginRateLimitWindow() {
-		delete(loginAttemptCache.items, key)
-		return false
-	}
 	return false
 }
 
-// startLoginRateLimitCleanup periodically purges expired entries from the login attempt cache.
+// startLoginRateLimitCleanup periodically purges expired entries from the
+// in-memory login attempt cache. When Redis is used, Redis TTL handles
+// expiry, so this goroutine is a no-op (memory store is nil-guarded).
 func startLoginRateLimitCleanup() {
 	go func() {
 		defer func() {
@@ -122,19 +246,17 @@ func startLoginRateLimitCleanup() {
 		ticker := time.NewTicker(loginRateLimitCleanupInterval)
 		defer ticker.Stop()
 		for range ticker.C {
-			now := time.Now()
-			loginAttemptCache.Lock()
-			for key, attempt := range loginAttemptCache.items {
-				if now.Sub(attempt.LastFailedAt) > getLoginRateLimitWindow() {
-					delete(loginAttemptCache.items, key)
-				}
+			memStore, ok := loginStore.(*memoryLoginStore)
+			if ok {
+				memStore.purge(time.Now())
 			}
-			loginAttemptCache.Unlock()
+			// Redis store entries are auto-expired by TTL; no cleanup needed.
 		}
 	}()
 }
 
 func init() {
+	initLoginStore()
 	startLoginRateLimitCleanup()
 	startEmailCodeCleanup()
 }

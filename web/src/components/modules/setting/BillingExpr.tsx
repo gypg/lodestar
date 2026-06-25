@@ -34,7 +34,7 @@ function previewExpr(expr: string, vars: Record<string, number>): string {
             return result.toFixed(6);
         }
         return '—';
-    } catch {
+    } catch (e) { console.error(e);
         return '—';
     }
 }
@@ -77,7 +77,7 @@ export function BillingExpr() {
         try {
             const m = JSON.parse(val);
             setEntries(Object.entries(m).map(([k, v]) => ({ model: k, expr: v as string })));
-        } catch {
+        } catch (e) { console.error(e);
             setEntries([]);
         }
         setLoaded(true);

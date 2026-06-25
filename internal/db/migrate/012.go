@@ -11,6 +11,7 @@ func init() {
 	RegisterAfterAutoMigration(Migration{
 		Version: 12,
 		Up:      migrateOpenAIChatChannelsToResponses,
+		Down:    stubDown(12),
 	})
 }
 

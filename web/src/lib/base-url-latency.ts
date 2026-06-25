@@ -18,7 +18,7 @@ export function publicPingURL(origin?: string): string {
     try {
         const url = new URL('/api/v1/public/ping', base || 'http://localhost');
         return url.toString();
-    } catch {
+    } catch (e) { console.error(e);
         return `${base}/api/v1/public/ping`;
     }
 }

@@ -186,7 +186,7 @@ export function SiteEditDialog({ open, onOpenChange, site, onCreated }: SiteEdit
                     toast.success(
                         `自动检测到平台：${PLATFORM_LABELS[platform] ?? platform}`,
                     );
-                } catch {
+                } catch (e) { console.error(e);
                     toast.error('无法自动检测平台类型，请手动选择');
                     return;
                 }
@@ -270,13 +270,13 @@ export function SiteEditDialog({ open, onOpenChange, site, onCreated }: SiteEdit
                 <header className="mb-4 flex items-start justify-between gap-4 shrink-0">
                     <div className="min-w-0 flex-1">
                         <DialogTitle className="text-2xl font-bold text-card-foreground truncate">
-                            {site ? '编辑站点' : '新增站点'}
+                            {site ? t('site.editSite') : t('site.addSite')}
                         </DialogTitle>
                     </div>
                     <button
                         type="button"
                         onClick={() => onOpenChange(false)}
-                        aria-label="关闭"
+                        aria-label={t('site.closeDialog')}
                         className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
                     >
                         <XIcon className="size-5" />

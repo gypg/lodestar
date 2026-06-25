@@ -9,6 +9,7 @@ Lodestar — 生图工坊（消费级，思路源自 SAPI ImagePlayground，UI �
 
 import { useEffect, useMemo, useState } from 'react';
 import { ImageIcon, Download, Loader2, Trash2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useAPIKeyList } from '@/api/endpoints/apikey';
 import { usePublicOverview } from '@/api/endpoints/public';
 import { useCreateImageRecord, useDeleteImageRecord, useImageRecords, type ImageRecordSummary } from '@/api/endpoints/image';
@@ -19,6 +20,7 @@ import { ModelSelector } from '@/components/ui/model-selector';
 const SIZES = ['1024x1024', '1024x1792', '1792x1024', '512x512'];
 
 export function ImageStudio() {
+    const t = useTranslations('imageStudio');
     const { data: keys } = useAPIKeyList();
     const { data: overview } = usePublicOverview();
     const imageModelNames = useMemo(
@@ -66,7 +68,7 @@ export function ImageStudio() {
             });
             const text = await resp.text();
             if (!resp.ok) {
-                setError(`生成失败（${resp.status}）：${text.slice(0, 300)}`);
+                setError(t('generateFailed', { status: resp.status, detail: text.slice(0, 300) }));
                 return;
             }
             const j = JSON.parse(text);
@@ -74,12 +76,12 @@ export function ImageStudio() {
                 .map((d: { url?: string; b64_json?: string }) => (d.url ? d.url : d.b64_json ? `data:image/png;base64,${d.b64_json}` : ''))
                 .filter(Boolean);
             if (urls.length === 0) {
-                setError('未返回图片，请检查模型是否支持生图。');
+                setError(t('noImageReturned'));
                 return;
             }
             persist(urls, p);
         } catch (e) {
-            setError(e instanceof Error ? e.message : '请求出错');
+            setError(e instanceof Error ? e.message : t('requestError'));
         } finally {
             setLoading(false);
         }
@@ -92,14 +94,14 @@ export function ImageStudio() {
                     models={imageModelNames}
                     value={model}
                     onChange={setModel}
-                    placeholder="选择生图模型"
+                    placeholder={t('selectModel')}
                     className="h-9 w-44 rounded-lg"
                 />
                 <select value={size} onChange={(e) => setSize(e.target.value)} className="h-9 rounded-lg border border-border/40 bg-background px-2 text-sm">
                     {SIZES.map((s) => (<option key={s} value={s}>{s}</option>))}
                 </select>
                 <select value={keyId ?? ''} onChange={(e) => setKeyId(Number(e.target.value))} className="h-9 rounded-lg border border-border/40 bg-background px-2 text-sm">
-                    {enabledKeys.length === 0 && <option value="">无可用密钥（请先创建）</option>}
+                    {enabledKeys.length === 0 && <option value="">{t('noKeys')}</option>}
                     {enabledKeys.map((k) => (<option key={k.id} value={k.id}>{k.name}</option>))}
                 </select>
             </div>
@@ -109,11 +111,11 @@ export function ImageStudio() {
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
                     rows={2}
-                    placeholder="描述你想要的图像…"
+                    placeholder={t('promptPlaceholder')}
                     className="flex-1 resize-none rounded-lg border border-border/40 bg-background p-2.5 text-sm outline-none focus:border-primary/50"
                 />
                 <Button type="button" onClick={() => void generate()} disabled={loading || !prompt.trim() || !selectedKey} className="h-11">
-                    {loading ? <Loader2 className="size-4 animate-spin" /> : <ImageIcon className="size-4" />} 生成
+                    {loading ? <Loader2 className="size-4 animate-spin" /> : <ImageIcon className="size-4" />} {t('generate')}
                 </Button>
             </div>
 
@@ -121,10 +123,10 @@ export function ImageStudio() {
 
             <div className="grid flex-1 grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                 {recordsLoading && (
-                    <div className="col-span-full grid place-items-center py-10 text-sm text-muted-foreground">加载历史…</div>
+                    <div className="col-span-full grid place-items-center py-10 text-sm text-muted-foreground">{t('loadingHistory')}</div>
                 )}
                 {!recordsLoading && (records ?? []).length === 0 && !loading && (
-                    <div className="col-span-full grid place-items-center py-10 text-sm text-muted-foreground">输入描述并生成 · 使用你自己的密钥与余额</div>
+                    <div className="col-span-full grid place-items-center py-10 text-sm text-muted-foreground">{t('emptyHistory')}</div>
                 )}
                 {(records ?? []).map((r: ImageRecordSummary) => (
                     <ImageCard key={r.id} record={r} onDelete={(id) => deleteRecord.mutate(id)} deleting={deleteRecord.isPending} />
@@ -135,6 +137,7 @@ export function ImageStudio() {
 }
 
 function ImageCard({ record, onDelete, deleting }: { record: ImageRecordSummary; onDelete: (id: number) => void; deleting: boolean }) {
+    const t = useTranslations('imageStudio');
     const [src, setSrc] = useState<string>('');
     const [failed, setFailed] = useState(false);
 
@@ -165,14 +168,14 @@ function ImageCard({ record, onDelete, deleting }: { record: ImageRecordSummary;
                 <img src={src} alt={`generated-${record.id}`} className="aspect-square w-full object-cover" />
             ) : (
                 <div className="grid aspect-square w-full place-items-center text-xs text-muted-foreground">
-                    {failed ? '加载失败' : '加载…'}
+                    {failed ? t('loadFailed') : t('loading')}
                 </div>
             )}
             <a
                 href={src || undefined}
                 download={`Lodestar-${record.id}.png`}
                 className="absolute right-2 top-2 grid size-8 place-items-center rounded-lg bg-background/80 text-foreground opacity-0 transition-opacity group-hover:opacity-100"
-                aria-label="下载"
+                aria-label={t('downloadAriaLabel')}
                 aria-disabled={!src}
             >
                 <Download className="size-4" />
@@ -182,7 +185,7 @@ function ImageCard({ record, onDelete, deleting }: { record: ImageRecordSummary;
                 onClick={() => onDelete(record.id)}
                 disabled={deleting}
                 className="absolute left-2 top-2 grid size-8 place-items-center rounded-lg bg-background/80 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
-                aria-label="删除"
+                aria-label={t('deleteAriaLabel')}
             >
                 <Trash2 className="size-4" />
             </button>

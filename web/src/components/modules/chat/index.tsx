@@ -9,6 +9,7 @@ Lodestar — 站内对话（消费级核心，思路源自 SAPI ChatSection，UI
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { MessageSquarePlus, Send, Square, Trash2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useAPIKeyList } from '@/api/endpoints/apikey';
 import { usePublicOverview } from '@/api/endpoints/public';
 import {
@@ -27,6 +28,7 @@ import { Markdown } from './Markdown';
 const SAVE_DEBOUNCE_MS = 800;
 
 export function Chat() {
+    const t = useTranslations('chat');
     const { data: keys } = useAPIKeyList();
     const enabledKeys = useMemo(() => (keys ?? []).filter((k) => k.enabled && k.api_key), [keys]);
     const { data: overview } = usePublicOverview();
@@ -145,7 +147,7 @@ export function Chat() {
                 activeId = d.id;
                 hydratedIdRef.current = d.id;
                 setSessionId(d.id);
-            } catch {
+            } catch (e) { console.error(e);
                 return;
             }
         }
@@ -208,7 +210,7 @@ export function Chat() {
                                 return c;
                             });
                         }
-                    } catch {
+                    } catch (e) { console.error(e);
                         /* ignore partial */
                     }
                 }
@@ -255,12 +257,12 @@ export function Chat() {
                                 )}
                                 title={s.title}
                             >
-                                {s.title || '新对话'}
+                                {s.title || t('newSession')}
                             </button>
                             <button
                                 type="button"
                                 className="rounded p-1 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-destructive/10"
-                                aria-label="删除会话"
+                                aria-label={t('deleteSession')}
                                 onClick={() => onDeleteSession(s.id)}
                             >
                                 <Trash2 className="size-3.5 text-muted-foreground" />
@@ -273,7 +275,7 @@ export function Chat() {
             <div className="flex h-full min-h-0 flex-1 flex-col gap-3 rounded-xl border border-border bg-card p-3 md:p-4">
                 <div className="flex flex-wrap items-center gap-2 md:hidden">
                     <Button type="button" variant="outline" size="sm" onClick={onNewChat} disabled={createSession.isPending || enabledKeys.length === 0}>
-                        <MessageSquarePlus className="size-4" /> 新对话
+                        <MessageSquarePlus className="size-4" /> {t('newSession')}
                     </Button>
                     <select
                         value={sessionId ?? ''}
@@ -283,7 +285,7 @@ export function Chat() {
                         }}
                         className="h-9 min-w-0 flex-1 rounded-lg border border-border/40 bg-background px-2 text-sm"
                     >
-                        <option value="">当前会话（未保存）</option>
+                        <option value="">{t('currentSession')}</option>
                         {(sessions ?? []).map((s) => (
                             <option key={s.id} value={s.id}>
                                 {s.title}

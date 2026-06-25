@@ -27,5 +27,6 @@ func init() {
 		}
 		return nil
 		},
+		Down: stubDown(9),
 	})
 }

@@ -11,6 +11,7 @@ func init() {
 	RegisterAfterAutoMigration(Migration{
 		Version: 7,
 		Up:      ensureDefaultChannelGroup,
+		Down:    stubDown(7),
 	})
 }
 

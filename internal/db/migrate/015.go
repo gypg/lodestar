@@ -11,6 +11,7 @@ func init() {
 	RegisterAfterAutoMigration(Migration{
 		Version: 15,
 		Up:      migrateRelayLogIsTest,
+		Down:    stubDown(15),
 	})
 }
 

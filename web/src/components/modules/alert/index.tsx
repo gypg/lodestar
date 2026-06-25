@@ -259,7 +259,7 @@ function getChannelDescription(channel: AlertNotifChannel): string {
             try {
                 const cfg = JSON.parse(channel.config || '{}');
                 return cfg.server_url || channel.url || '';
-            } catch {
+            } catch (e) { console.error(e);
                 return channel.url || '';
             }
         }
@@ -267,7 +267,7 @@ function getChannelDescription(channel: AlertNotifChannel): string {
             try {
                 const cfg = JSON.parse(channel.config || '{}');
                 return cfg.to || cfg.from || '';
-            } catch {
+            } catch (e) { console.error(e);
                 return '';
             }
         }
@@ -275,7 +275,7 @@ function getChannelDescription(channel: AlertNotifChannel): string {
             try {
                 const cfg = JSON.parse(channel.config || '{}');
                 return cfg.chat_id ? `Chat: ${cfg.chat_id}` : '';
-            } catch {
+            } catch (e) { console.error(e);
                 return '';
             }
         }
@@ -285,7 +285,7 @@ function getChannelDescription(channel: AlertNotifChannel): string {
             try {
                 const cfg = JSON.parse(channel.config || '{}');
                 return cfg.webhook_key ? `Key: ${cfg.webhook_key.slice(0, 8)}...` : '';
-            } catch {
+            } catch (e) { console.error(e);
                 return '';
             }
         }
@@ -293,7 +293,7 @@ function getChannelDescription(channel: AlertNotifChannel): string {
             try {
                 const cfg = JSON.parse(channel.config || '{}');
                 return cfg.topic_url || '';
-            } catch {
+            } catch (e) { console.error(e);
                 return '';
             }
         }

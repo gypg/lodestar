@@ -7,6 +7,7 @@ Lodestar — SMTP 邮件管理配置。管理员填 SMTP 凭据后可启用邮�
 
 import { useEffect, useState } from 'react';
 import { Mail } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -15,6 +16,7 @@ import { useTestEmail } from '@/api/endpoints/wallet';
 import { toast } from '@/components/common/Toast';
 
 export function EmailSettings() {
+    const t = useTranslations('setting.email');
     const { data: settings } = useSettingList();
     const setSetting = useSetSetting();
     const testEmail = useTestEmail();
@@ -51,15 +53,15 @@ export function EmailSettings() {
             setSetting.mutateAsync({ key: SettingKey.SMTPFrom, value: from }),
             setSetting.mutateAsync({ key: SettingKey.RegisterEmailRequired, value: emailRequired ? 'true' : 'false' }),
         ])
-            .then(() => toast.success('邮件设置已保存'))
-            .catch(() => toast.error('保存失败'));
+            .then(() => toast.success(t('saved')))
+            .catch(() => toast.error(t('saveFailed')));
     };
 
     const onTest = () => {
         if (!testTo.trim()) return;
         testEmail.mutate(testTo.trim(), {
-            onSuccess: () => toast.success('测试邮件已发送'),
-            onError: (e) => toast.error(e instanceof Error ? e.message : '发送失败（先保存并启用 SMTP）'),
+            onSuccess: () => toast.success(t('testSent')),
+            onError: (e) => toast.error(e instanceof Error ? e.message : t('testFailed')),
         });
     };
 
@@ -71,45 +73,45 @@ export function EmailSettings() {
                         <Mail className="h-5 w-5 text-primary" />
                     </div>
                     <div className="space-y-0.5">
-                        <span className="text-sm font-semibold text-card-foreground">邮件 · SMTP</span>
-                        <p className="text-xs text-muted-foreground">配置后可启用注册邮箱验证、发送通知（587 STARTTLS）。</p>
+                        <span className="text-sm font-semibold text-card-foreground">{t('title')}</span>
+                        <p className="text-xs text-muted-foreground">{t('description')}</p>
                     </div>
                 </div>
-                <Switch checked={enabled} onCheckedChange={setEnabled} aria-label="启用 SMTP" />
+                <Switch checked={enabled} onCheckedChange={setEnabled} aria-label={t('enableSmtp')} />
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
                 <div className="flex flex-col gap-1.5">
-                    <label className="ml-1 text-xs font-medium text-muted-foreground">SMTP 服务器</label>
+                    <label className="ml-1 text-xs font-medium text-muted-foreground">{t('smtpServer')}</label>
                     <Input value={host} onChange={(e) => setHost(e.target.value)} placeholder="smtp.example.com" className="rounded-lg" />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                    <label className="ml-1 text-xs font-medium text-muted-foreground">端口</label>
+                    <label className="ml-1 text-xs font-medium text-muted-foreground">{t('port')}</label>
                     <Input value={port} onChange={(e) => setPort(e.target.value)} placeholder="587" className="rounded-lg" />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                    <label className="ml-1 text-xs font-medium text-muted-foreground">用户名</label>
+                    <label className="ml-1 text-xs font-medium text-muted-foreground">{t('username')}</label>
                     <Input value={user} onChange={(e) => setUser(e.target.value)} className="rounded-lg" />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                    <label className="ml-1 text-xs font-medium text-muted-foreground">密码 / 授权码</label>
+                    <label className="ml-1 text-xs font-medium text-muted-foreground">{t('password')}</label>
                     <Input value={pass} onChange={(e) => setPass(e.target.value)} type="password" className="rounded-lg" />
                 </div>
                 <div className="flex flex-col gap-1.5 sm:col-span-2">
-                    <label className="ml-1 text-xs font-medium text-muted-foreground">发件人地址</label>
+                    <label className="ml-1 text-xs font-medium text-muted-foreground">{t('senderAddress')}</label>
                     <Input value={from} onChange={(e) => setFrom(e.target.value)} placeholder="noreply@example.com" className="rounded-lg" />
                 </div>
             </div>
             <div className="flex items-center justify-between rounded-lg border border-border/30 bg-card p-3">
                 <div className="space-y-0.5">
-                    <span className="text-sm font-medium text-card-foreground">注册需邮箱验证</span>
-                    <p className="text-xs text-muted-foreground">仅商业模式生效：注册需邮箱收到的验证码。</p>
+                    <span className="text-sm font-medium text-card-foreground">{t('emailRequiredTitle')}</span>
+                    <p className="text-xs text-muted-foreground">{t('emailRequiredHint')}</p>
                 </div>
-                <Switch checked={emailRequired} onCheckedChange={setEmailRequired} aria-label="注册需邮箱验证" />
+                <Switch checked={emailRequired} onCheckedChange={setEmailRequired} aria-label={t('emailRequiredAriaLabel')} />
             </div>
             <div className="flex items-end gap-2">
-                <Button type="button" size="sm" onClick={save} disabled={setSetting.isPending}>保存邮件设置</Button>
-                <Input value={testTo} onChange={(e) => setTestTo(e.target.value)} placeholder="测试收件邮箱" className="h-9 w-48 rounded-lg" />
-                <Button type="button" variant="outline" size="sm" onClick={onTest} disabled={testEmail.isPending || !testTo.trim()}>发测试邮件</Button>
+                <Button type="button" size="sm" onClick={save} disabled={setSetting.isPending}>{t('saveButton')}</Button>
+                <Input value={testTo} onChange={(e) => setTestTo(e.target.value)} placeholder={t('testRecipient')} className="h-9 w-48 rounded-lg" />
+                <Button type="button" variant="outline" size="sm" onClick={onTest} disabled={testEmail.isPending || !testTo.trim()}>{t('sendTestEmail')}</Button>
             </div>
         </div>
     );

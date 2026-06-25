@@ -1899,7 +1899,7 @@ function SiteAccountPanel({
                 if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
                     return false;
                 }
-            } catch {
+            } catch (e) { console.error(e);
                 return false;
             }
         }
@@ -2679,8 +2679,8 @@ function SiteAccountPanel({
                                                     className="size-10 rounded-2xl shrink-0"
                                                     onClick={() => handleToggleProjectedKeyVisibility(item, index)}
                                                     disabled={sourceKeyMutation.isPending}
-                                                    aria-label={isVisible ? '隐藏完整 Key' : '显示完整 Key'}
-                                                    title={isVisible ? '隐藏完整 Key' : '显示完整 Key'}
+                                                    aria-label={isVisible ? t('site.hideFullKey') : t('site.showFullKey')}
+                                                    title={isVisible ? t('site.hideFullKey') : t('site.showFullKey')}
                                                 >
                                                     {isVisible ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                                                 </Button>
@@ -2958,8 +2958,8 @@ function SiteChannelDialog({
                         className="size-8 rounded-xl"
                         onClick={handleOpenSiteBaseUrl}
                         disabled={!card.base_url}
-                        aria-label="打开站点"
-                        title="打开站点"
+                        aria-label={t('site.openSite')}
+                        title={t('site.openSite')}
                     >
                         <ExternalLink className="size-4" />
                     </Button>
@@ -2969,8 +2969,8 @@ function SiteChannelDialog({
                         size="icon"
                         className="size-8 rounded-xl"
                         onClick={() => closeAndNavigate(onNavigateToSite)}
-                        aria-label="站点页"
-                        title="站点页"
+                        aria-label={t('site.sitePage')}
+                        title={t('site.sitePage')}
                     >
                         <Globe2 className="size-4" />
                     </Button>
@@ -2981,8 +2981,8 @@ function SiteChannelDialog({
                             size="icon"
                             className="size-8 rounded-xl"
                             onClick={() => closeAndNavigate(() => onNavigateToSiteAccount(resolvedAccount.account_id))}
-                            aria-label="站点页账号"
-                            title="站点页账号"
+                            aria-label={t('site.sitePageAccount')}
+                            title={t('site.sitePageAccount')}
                         >
                             <Waypoints className="size-4" />
                         </Button>

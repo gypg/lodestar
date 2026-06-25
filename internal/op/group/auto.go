@@ -62,7 +62,11 @@ var autoGroupExplicitAliases = map[string]string{
 	"minimax-m2.5":                  "minimax-m2.5",
 }
 
-var autoGroupFamilyRules = []autoGroupFamilyRule{
+// defaultFamilyRules holds the built-in regex rules. At startup, if a
+// data/auto_group_rules.json config file is present, autoGroupFamilyRules
+// is replaced with the config version; otherwise this slice is used as-is
+// (full backward compatibility).
+var defaultFamilyRules = []autoGroupFamilyRule{
 	{canonical: "glm-5.1", ruleName: "glm-5.1", re: regexp.MustCompile(`(^|/)(?:glm-5\.1(?:-(?:guan))?)$|(^|/)glm-5\.1(?:-[0-9a-z]+)?$`)},
 	{canonical: "glm-5-turbo", ruleName: "glm-5-turbo", re: regexp.MustCompile(`(^|/)glm-5-turbo(?:-[0-9a-z.]+)?$`)},
 	{canonical: "glm-5", ruleName: "glm-5", re: regexp.MustCompile(`(^|/)(?:glm-5(?:-(?:fp8(?:-[0-9]+)?))?|glm5)$`)},
@@ -102,10 +106,15 @@ var autoGroupFamilyRules = []autoGroupFamilyRule{
 	{canonical: "doubao-seed-1.6", ruleName: "doubao-seed-1.6", re: regexp.MustCompile(`(^|/)doubao-seed-1(?:[.-])6(?:-[0-9]{6})?$`)},
 }
 
+// autoGroupFamilyRules is the active rules slice. Initially a copy of
+// defaultFamilyRules; replaced at startup if a JSON config file is found.
+var autoGroupFamilyRules = defaultFamilyRules
+
 // autoGroupCanonicalNames returns the set of all canonical names that auto-group
 // would generate, based on the explicit aliases and family rules. This is used
 // to identify which existing groups were auto-created (by matching their name).
 func autoGroupCanonicalNames() map[string]struct{} {
+	initAutoGroupFamilyRules()
 	names := make(map[string]struct{}, len(autoGroupExplicitAliases)+len(autoGroupFamilyRules)+10)
 	for _, canonical := range autoGroupExplicitAliases {
 		names[strings.ToLower(canonical)] = struct{}{}
@@ -243,6 +252,9 @@ func deleteStaleGroups(ctx context.Context) (int, error) {
 }
 
 func AutoGroupModels(ctx context.Context, force bool) (*model.AutoGroupResult, error) {
+	// Ensure rules are loaded from config (or use built-in defaults).
+	initAutoGroupFamilyRules()
+
 	channelRefs, totalChannels, err := collectChannelModelRefs(ctx)
 	if err != nil {
 		return nil, err
@@ -459,6 +471,7 @@ func InferEndpointTypeFromModelName(raw string, cleaned string) string {
 }
 
 func NormalizeModelIdentity(raw string) model.ModelIdentity {
+	initAutoGroupFamilyRules()
 	cleaned := CleanModelName(raw)
 	endpointType := InferEndpointTypeFromModelName(raw, cleaned)
 	for _, key := range identityAliasKeys(raw, cleaned) {

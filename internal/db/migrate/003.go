@@ -11,6 +11,7 @@ func init() {
 	RegisterAfterAutoMigration(Migration{
 		Version: 3,
 		Up:      ensureGroupsEndpointTypeColumn,
+		Down:    stubDown(3),
 	})
 }
 

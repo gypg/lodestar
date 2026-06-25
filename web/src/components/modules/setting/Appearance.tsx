@@ -291,7 +291,7 @@ export function SettingAppearance() {
         let parsed: unknown;
         try {
             parsed = JSON.parse(themeUploadText);
-        } catch {
+        } catch (e) { console.error(e);
             toast.error('JSON 解析失败');
             return;
         }

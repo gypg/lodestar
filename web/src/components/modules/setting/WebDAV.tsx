@@ -94,7 +94,8 @@ export function SettingWebDAV() {
     };
 
     const onRestore = async (filename: string) => {
-        if (!window.confirm(t('webdav.restoreConfirm', { filename }))) return;
+        const confirmed = window.confirm(t('webdav.restoreConfirm', { filename }));
+        if (!confirmed) return;
         try {
             await restoreBackup.mutateAsync(filename);
             toast.success(t('webdav.restoreSuccess'));
@@ -104,7 +105,8 @@ export function SettingWebDAV() {
     };
 
     const onDelete = async (filename: string) => {
-        if (!window.confirm(t('webdav.deleteConfirm', { filename }))) return;
+        const confirmed = window.confirm(t('webdav.deleteConfirm', { filename }));
+        if (!confirmed) return;
         try {
             await deleteBackup.mutateAsync(filename);
             toast.success(t('webdav.deleteSuccess'));

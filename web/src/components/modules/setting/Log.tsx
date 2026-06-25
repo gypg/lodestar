@@ -102,7 +102,7 @@ export function SettingLog() {
         try {
             const v = JSON.parse(raw);
             if (Array.isArray(v)) parsed = v.filter((x): x is string => typeof x === 'string');
-        } catch {
+        } catch (e) { console.error(e);
             parsed = [];
         }
         queueMicrotask(() => setExcludedGroups(parsed));

@@ -107,7 +107,7 @@ export function SettingAIRoute() {
             if (!Array.isArray(parsed)) {
                 throw new Error('not-array');
             }
-        } catch {
+        } catch (e) { console.error(e);
             toast.error(t('aiRoute.services.invalid'));
             return;
         }

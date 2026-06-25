@@ -119,17 +119,47 @@ type failureHintEntry struct {
 	reason     string
 	expiresAt  time.Time
 	statusCode int
+	accessAt   time.Time // last access time, for LRU eviction
 }
 
-type failureHintCache struct {
+const (
+	failureHintShardCount = 16
+	failureHintMaxEntries = 10000
+	// max entries per shard = 10000 / 16 = 625
+	failureHintMaxPerShard = failureHintMaxEntries / failureHintShardCount
+)
+
+type failureHintShard struct {
 	mu      sync.Mutex
 	entries map[string]failureHintEntry
 }
 
-var globalFailureHintCache = &failureHintCache{entries: make(map[string]failureHintEntry)}
+type failureHintCache struct {
+	shards [failureHintShardCount]failureHintShard
+}
+
+func newFailureHintCache() *failureHintCache {
+	c := &failureHintCache{}
+	for i := range c.shards {
+		c.shards[i].entries = make(map[string]failureHintEntry)
+	}
+	return c
+}
+
+var globalFailureHintCache = newFailureHintCache()
 
 func failureHintKey(channelID, keyID int, modelName string) string {
 	return fmt.Sprintf("%d:%d:%s", channelID, keyID, strings.TrimSpace(modelName))
+}
+
+// shardIndex returns the shard index for a given key using FNV-1a hash.
+func shardIndex(key string) uint32 {
+	h := uint32(2166136261)
+	for i := 0; i < len(key); i++ {
+		h ^= uint32(key[i])
+		h *= 16777619
+	}
+	return h % failureHintShardCount
 }
 
 func shouldStoreFailureHint(statusCode int, err error) (time.Duration, bool) {
@@ -184,49 +214,88 @@ func recordFailureHint(channelID, keyID int, modelName string, decision RetryDec
 	})
 }
 
+// evictLRU removes the least-recently-accessed entry from the shard.
+// Caller must hold shard.mu.
+func (s *failureHintShard) evictLRU() {
+	var oldestKey string
+	var oldestTime time.Time
+	first := true
+	for k, e := range s.entries {
+		if first || e.accessAt.Before(oldestTime) {
+			oldestKey = k
+			oldestTime = e.accessAt
+			first = false
+		}
+	}
+	if oldestKey != "" {
+		delete(s.entries, oldestKey)
+	}
+}
+
 func (c *failureHintCache) set(channelID, keyID int, modelName string, entry failureHintEntry) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.entries[failureHintKey(channelID, keyID, modelName)] = entry
+	key := failureHintKey(channelID, keyID, modelName)
+	idx := shardIndex(key)
+	s := &c.shards[idx]
+	entry.accessAt = time.Now()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	// If at capacity and key is new, evict LRU
+	if len(s.entries) >= failureHintMaxPerShard {
+		if _, exists := s.entries[key]; !exists {
+			s.evictLRU()
+		}
+	}
+	s.entries[key] = entry
 }
 
 func (c *failureHintCache) get(channelID, keyID int, modelName string) (failureHintEntry, bool) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
 	key := failureHintKey(channelID, keyID, modelName)
-	entry, ok := c.entries[key]
+	idx := shardIndex(key)
+	s := &c.shards[idx]
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	entry, ok := s.entries[key]
 	if !ok {
 		return failureHintEntry{}, false
 	}
 	if time.Now().After(entry.expiresAt) {
-		delete(c.entries, key)
+		delete(s.entries, key)
 		return failureHintEntry{}, false
 	}
+	// Update access time for LRU
+	entry.accessAt = time.Now()
+	s.entries[key] = entry
 	return entry, true
 }
 
-// purgeExpired 主动清理所有已过期的条目，防止 map 无限增长。
-// 由定时任务周期性调用。
+// purgeExpired removes all expired entries from every shard.
+// Called periodically by the task scheduler.
 func (c *failureHintCache) purgeExpired() {
-	c.mu.Lock()
-	defer c.mu.Unlock()
 	now := time.Now()
-	for key, entry := range c.entries {
-		if now.After(entry.expiresAt) {
-			delete(c.entries, key)
+	for i := range c.shards {
+		s := &c.shards[i]
+		s.mu.Lock()
+		for key, entry := range s.entries {
+			if now.After(entry.expiresAt) {
+				delete(s.entries, key)
+			}
 		}
+		s.mu.Unlock()
 	}
 }
 
-// PurgeFailureHintCache 导出接口供定时任务调用，清理过期的失败提示缓存条目。
+// PurgeFailureHintCache exported for the periodic task scheduler.
 func PurgeFailureHintCache() {
 	globalFailureHintCache.purgeExpired()
 }
 
 func resetFailureHintCache() {
-	globalFailureHintCache.mu.Lock()
-	defer globalFailureHintCache.mu.Unlock()
-	globalFailureHintCache.entries = make(map[string]failureHintEntry)
+	for i := range globalFailureHintCache.shards {
+		s := &globalFailureHintCache.shards[i]
+		s.mu.Lock()
+		s.entries = make(map[string]failureHintEntry)
+		s.mu.Unlock()
+	}
 }
 
 func failureHintSkipReason(entry failureHintEntry) string {

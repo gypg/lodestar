@@ -17,16 +17,40 @@ import (
 	"github.com/gypg/lodestar/internal/server/resp"
 )
 
+const (
+	// JWTCookieName is the name of the HttpOnly cookie that stores the JWT token.
+	JWTCookieName = "token"
+)
+
+// extractToken reads the JWT from the cookie first (HttpOnly), then falls back
+// to the Authorization header for backward compatibility with API clients.
+func extractToken(c *gin.Context) string {
+	// 1. Try cookie (preferred, HttpOnly).
+	if token, err := c.Cookie(JWTCookieName); err == nil && token != "" {
+		return token
+	}
+	// 2. Fallback to Authorization header (backwards-compatible).
+	if auth := c.GetHeader("Authorization"); auth != "" {
+		return strings.TrimPrefix(auth, "Bearer ")
+	}
+	return ""
+}
+
 func Auth() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		token := c.GetHeader("Authorization")
+		token := extractToken(c)
 		if token == "" {
-			resp.Error(c, http.StatusBadRequest, resp.ErrBadRequest)
+			resp.Error(c, http.StatusUnauthorized, resp.ErrUnauthorized)
 			c.Abort()
 			return
 		}
-		valid, userID, role := auth.VerifyJWTToken(strings.TrimPrefix(token, "Bearer "))
+		valid, userID, role := auth.VerifyJWTToken(token)
 		if !valid {
+			// If the token came from a cookie, clear the stale cookie so the
+			// client falls back to the login flow cleanly.
+			if _, err := c.Cookie(JWTCookieName); err == nil {
+				SetJWTCookie(c, "", -1)
+			}
 			resp.Error(c, http.StatusUnauthorized, resp.ErrUnauthorized)
 			c.Abort()
 			return
@@ -53,6 +77,38 @@ func Auth() gin.HandlerFunc {
 		c.Set("user_role", role)
 		c.Next()
 	}
+}
+
+// SetJWTCookie writes (or clears) the JWT HttpOnly cookie on the response.
+// Pass maxAge <= 0 to delete the cookie.
+func SetJWTCookie(c *gin.Context, token string, maxAge int) {
+	if token == "" {
+		maxAge = -1
+	}
+	c.SetSameSite(http.SameSiteLaxMode)
+	c.SetCookie(
+		JWTCookieName,
+		token,
+		maxAge,
+		"/",   // path
+		"",    // domain (empty = current host)
+		false, // secure (set true when serving over HTTPS)
+		true,  // httpOnly
+	)
+}
+
+// JWTExpiryToSeconds converts an expiry string (RFC3339 or "30m" style) to
+// seconds for use as the cookie maxAge. Returns a default of 15 minutes on
+// parse failure.
+func JWTExpiryToSeconds(expiry string) int {
+	// Try RFC3339 (the format auth.GenerateJWTToken returns).
+	if t, err := time.Parse(time.RFC3339, expiry); err == nil {
+		secs := int(time.Until(t).Seconds())
+		if secs > 0 {
+			return secs
+		}
+	}
+	return 15 * 60 // default 15 minutes
 }
 
 func APIKeyAuth() gin.HandlerFunc {

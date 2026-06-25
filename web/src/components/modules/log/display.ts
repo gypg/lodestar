@@ -53,7 +53,7 @@ function isStreamRequest(requestContent?: string | null) {
     try {
         const parsed = JSON.parse(requestContent) as { stream?: unknown };
         return parsed.stream === true;
-    } catch {
+    } catch (e) { console.error(e);
         return false;
     }
 }
@@ -153,7 +153,7 @@ export function formatJsonForCopy(content: string | undefined | null): string {
     if (!content) return '';
     try {
         return JSON.stringify(JSON.parse(content), null, 2);
-    } catch {
+    } catch (e) { console.error(e);
         return content;
     }
 }

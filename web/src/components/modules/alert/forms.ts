@@ -70,7 +70,7 @@ function parseGotifyConfig(config?: string): GotifyConfig {
     if (!config) return { server_url: '', token: '' };
     try {
         return JSON.parse(config);
-    } catch {
+    } catch (e) { console.error(e);
         return { server_url: '', token: '' };
     }
 }
@@ -79,7 +79,7 @@ function parseEmailConfig(config?: string): EmailConfig {
     if (!config) return { smtp_host: '', smtp_port: 587, username: '', password: '', from: '', to: '', use_tls: true };
     try {
         return { smtp_host: '', smtp_port: 587, username: '', password: '', from: '', to: '', use_tls: true, ...JSON.parse(config) };
-    } catch {
+    } catch (e) { console.error(e);
         return { smtp_host: '', smtp_port: 587, username: '', password: '', from: '', to: '', use_tls: true };
     }
 }
@@ -88,7 +88,7 @@ function parseTelegramConfig(config?: string): TelegramConfig {
     if (!config) return { bot_token: '', chat_id: '' };
     try {
         return { bot_token: '', chat_id: '', ...JSON.parse(config) };
-    } catch {
+    } catch (e) { console.error(e);
         return { bot_token: '', chat_id: '' };
     }
 }
@@ -97,7 +97,7 @@ function parseFeishuConfig(config?: string): FeishuConfig {
     if (!config) return { webhook_key: '' };
     try {
         return { webhook_key: '', ...JSON.parse(config) };
-    } catch {
+    } catch (e) { console.error(e);
         return { webhook_key: '' };
     }
 }
@@ -106,7 +106,7 @@ function parseDingTalkConfig(config?: string): DingTalkConfig {
     if (!config) return { webhook_key: '' };
     try {
         return { webhook_key: '', ...JSON.parse(config) };
-    } catch {
+    } catch (e) { console.error(e);
         return { webhook_key: '' };
     }
 }
@@ -115,7 +115,7 @@ function parseWeComConfig(config?: string): WeComConfig {
     if (!config) return { webhook_key: '' };
     try {
         return { webhook_key: '', ...JSON.parse(config) };
-    } catch {
+    } catch (e) { console.error(e);
         return { webhook_key: '' };
     }
 }
@@ -124,7 +124,7 @@ function parseNtfyConfig(config?: string): NtfyConfig {
     if (!config) return { topic_url: '' };
     try {
         return { topic_url: '', ...JSON.parse(config) };
-    } catch {
+    } catch (e) { console.error(e);
         return { topic_url: '' };
     }
 }

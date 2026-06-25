@@ -12,6 +12,7 @@ func init() {
 	RegisterAfterAutoMigration(Migration{
 		Version: 11,
 		Up:      migrateNavOrderCleanup,
+		Down:    stubDown(11),
 	})
 }
 

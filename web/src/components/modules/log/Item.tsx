@@ -132,7 +132,7 @@ function DeferredJsonContent({ content, fallbackText, collapsed }: { content: st
         if (!content) return { isJson: false, data: null };
         try {
             return { isJson: true, data: JSON.parse(content) };
-        } catch {
+        } catch (e) { console.error(e);
             return { isJson: false, data: content };
         }
     }, [content]);
@@ -266,7 +266,7 @@ export const LogCard = memo(function LogCard({ log, channelNameById }: { log: Re
         try {
             const parsed = JSON.parse(responseContent) as { usage?: unknown };
             return parsed.usage !== undefined;
-        } catch {
+        } catch (e) { console.error(e);
             return false;
         }
     }, [log.cost, log.error, log.input_tokens, log.output_tokens, responseContent]);

@@ -11,6 +11,7 @@ func init() {
 	RegisterAfterAutoMigration(Migration{
 		Version: 14,
 		Up:      migrateAPIKeyExcludedChannels,
+		Down:    stubDown(14),
 	})
 }
 

@@ -11,6 +11,7 @@ func init() {
 	RegisterAfterAutoMigration(Migration{
 		Version: 6,
 		Up:      addUserRoleColumn,
+		Down:    stubDown(6),
 	})
 }
 

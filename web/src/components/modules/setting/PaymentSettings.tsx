@@ -9,6 +9,7 @@ Lodestar commercial layer — 在线支付（易支付/Epay）管理配置。
 
 import { useEffect, useState } from 'react';
 import { CreditCard } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -16,6 +17,7 @@ import { SettingKey, useSetSetting, useSettingList } from '@/api/endpoints/setti
 import { toast } from '@/components/common/Toast';
 
 export function PaymentSettings() {
+    const t = useTranslations('setting.payment');
     const { data: settings } = useSettingList();
     const setSetting = useSetSetting();
     const [enabled, setEnabled] = useState(false);
@@ -47,8 +49,8 @@ export function PaymentSettings() {
             setSetting.mutateAsync({ key: SettingKey.TopupRate, value: rate }),
             setSetting.mutateAsync({ key: SettingKey.PaymentCallbackBase, value: base }),
         ])
-            .then(() => toast.success('支付设置已保存'))
-            .catch(() => toast.error('保存失败'));
+            .then(() => toast.success(t('saved')))
+            .catch(() => toast.error(t('saveFailed')));
     };
 
     return (
@@ -59,36 +61,36 @@ export function PaymentSettings() {
                         <CreditCard className="h-5 w-5 text-primary" />
                     </div>
                     <div className="space-y-0.5">
-                        <span className="text-sm font-semibold text-card-foreground">在线支付 · 易支付</span>
-                        <p className="text-xs text-muted-foreground">填入商户凭据并启用后，用户可在钱包在线充值（支付宝/微信）。</p>
+                        <span className="text-sm font-semibold text-card-foreground">{t('title')}</span>
+                        <p className="text-xs text-muted-foreground">{t('description')}</p>
                     </div>
                 </div>
-                <Switch checked={enabled} onCheckedChange={setEnabled} aria-label="启用易支付" />
+                <Switch checked={enabled} onCheckedChange={setEnabled} aria-label={t('enableEpay')} />
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
                 <div className="flex flex-col gap-1.5">
-                    <label className="ml-1 text-xs font-medium text-muted-foreground">网关地址</label>
+                    <label className="ml-1 text-xs font-medium text-muted-foreground">{t('gatewayUrl')}</label>
                     <Input value={addr} onChange={(e) => setAddr(e.target.value)} placeholder="https://pay.example.com" className="rounded-lg" />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                    <label className="ml-1 text-xs font-medium text-muted-foreground">商户 PID</label>
+                    <label className="ml-1 text-xs font-medium text-muted-foreground">{t('merchantPid')}</label>
                     <Input value={pid} onChange={(e) => setPid(e.target.value)} className="rounded-lg" />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                    <label className="ml-1 text-xs font-medium text-muted-foreground">商户密钥</label>
+                    <label className="ml-1 text-xs font-medium text-muted-foreground">{t('merchantKey')}</label>
                     <Input value={key} onChange={(e) => setKey(e.target.value)} type="password" className="rounded-lg" />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                    <label className="ml-1 text-xs font-medium text-muted-foreground">汇率（每 1 USD 收多少）</label>
+                    <label className="ml-1 text-xs font-medium text-muted-foreground">{t('exchangeRate')}</label>
                     <Input value={rate} onChange={(e) => setRate(e.target.value)} type="number" step="0.01" min="0" className="rounded-lg" />
                 </div>
                 <div className="flex flex-col gap-1.5 sm:col-span-2">
-                    <label className="ml-1 text-xs font-medium text-muted-foreground">回调站点基址（公网，用于支付通知/跳回）</label>
+                    <label className="ml-1 text-xs font-medium text-muted-foreground">{t('callbackBase')}</label>
                     <Input value={base} onChange={(e) => setBase(e.target.value)} placeholder="https://your-site.com" className="rounded-lg" />
                 </div>
             </div>
             <div>
-                <Button type="button" size="sm" onClick={save} disabled={setSetting.isPending}>保存支付设置</Button>
+                <Button type="button" size="sm" onClick={save} disabled={setSetting.isPending}>{t('saveButton')}</Button>
             </div>
         </div>
     );

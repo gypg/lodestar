@@ -2969,5 +2969,141 @@
         "new": "新建綁定"
       }
     }
+  },
+  "common": {
+    "close": "關閉",
+    "confirm": "確認",
+    "cancel": "取消",
+    "save": "儲存",
+    "delete": "刪除",
+    "download": "下載",
+    "more": "更多",
+    "copyLatencyUrl": "複製測速地址",
+    "errorBoundary": {
+      "title": "出錯了",
+      "retry": "重試"
+    }
+  },
+  "imageStudio": {
+    "selectModel": "選擇生圖模型",
+    "noKeys": "無可用金鑰（請先建立）",
+    "promptPlaceholder": "描述你想要的圖像…",
+    "generate": "生成",
+    "generating": "生成中…",
+    "generateFailed": "生成失敗（{status}）：{detail}",
+    "noImageReturned": "未返回圖片，請檢查模型是否支援生圖。",
+    "requestError": "請求出錯",
+    "loadingHistory": "載入歷史…",
+    "emptyHistory": "輸入描述並生成 · 使用你自己的金鑰與餘額",
+    "loadFailed": "載入失敗",
+    "loading": "載入…",
+    "downloadAriaLabel": "下載",
+    "deleteAriaLabel": "刪除"
+  },
+  "chat": {
+    "newSession": "新對話",
+    "deleteSession": "刪除會話",
+    "currentSession": "當前會話（未儲存）"
+  },
+  "landing": {
+    "announcement": "站點公告",
+    "models": "模型廣場",
+    "usage": "用量概覽",
+    "about": "關於 {name}",
+    "close": "關閉",
+    "noAnnouncement": "暫無公告。",
+    "modelCount": "共 {count} 個模型"
+  },
+  "site": {
+    "editSite": "編輯站點",
+    "addSite": "新增站點",
+    "editAccount": "編輯站點帳號",
+    "addAccount": "新增站點帳號",
+    "moreSiteActions": "更多站點操作",
+    "moreAccountActions": "更多帳號操作",
+    "viewSiteChannels": "查看站點渠道",
+    "openSite": "開啟站點",
+    "sitePage": "站點頁",
+    "sitePageAccount": "站點頁帳號",
+    "hideFullKey": "隱藏完整 Key",
+    "showFullKey": "顯示完整 Key",
+    "closeDialog": "關閉"
+  },
+  "setting": {
+    "email": {
+      "title": "郵件 · SMTP",
+      "description": "設定後可啟用註冊信箱驗證、發送通知（587 STARTTLS）。",
+      "smtpServer": "SMTP 伺服器",
+      "port": "連接埠",
+      "username": "使用者名稱",
+      "password": "密碼 / 授權碼",
+      "senderAddress": "寄件者地址",
+      "enableSmtp": "啟用 SMTP",
+      "emailRequiredTitle": "註冊需信箱驗證",
+      "emailRequiredHint": "僅商業模式生效：註冊需信箱收到的驗證碼。",
+      "emailRequiredAriaLabel": "註冊需信箱驗證",
+      "saveButton": "儲存郵件設定",
+      "testRecipient": "測試收件信箱",
+      "sendTestEmail": "發送測試郵件",
+      "saved": "郵件設定已儲存",
+      "saveFailed": "儲存失敗",
+      "testSent": "測試郵件已發送",
+      "testFailed": "發送失敗（先儲存並啟用 SMTP）"
+    },
+    "payment": {
+      "title": "線上支付 · 易支付",
+      "description": "填入商戶憑證並啟用後，使用者可在錢包線上儲值（支付寶/微信）。",
+      "gatewayUrl": "閘道地址",
+      "merchantPid": "商戶 PID",
+      "merchantKey": "商戶密鑰",
+      "exchangeRate": "匯率（每 1 USD 收多少）",
+      "callbackBase": "回撥站點基址（公網，用於支付通知/跳回）",
+      "enableEpay": "啟用易支付",
+      "saveButton": "儲存支付設定",
+      "saved": "支付設定已儲存",
+      "saveFailed": "儲存失敗"
+    },
+    "latency": {
+      "title": "站點連通 / 時延",
+      "testing": "測速中…",
+      "test": "測速",
+      "description": "用當前瀏覽器訪問本站公開探測介面，結果更接近你側真實鏈路（非伺服器內網）。",
+      "best": "最佳",
+      "average": "平均",
+      "recent": "最近",
+      "failed": "失敗"
+    },
+    "usageHeatmap": {
+      "noDailyData": "暫無按日資料（需開啟歷史日誌並有請求記錄）。",
+      "ariaLabel": "用量熱力圖",
+      "tooltip": "{date}: {count} 次"
+    }
+  },
+  "form": {
+    "totpLabel": "兩步驗證碼",
+    "totpPlaceholder": "請輸入 6 位驗證碼或備份碼",
+    "emailLabel": "信箱",
+    "sendCode": "發送驗證碼",
+    "sending": "發送中",
+    "emailCodeLabel": "驗證碼",
+    "emailCodePlaceholder": "信箱收到的 6 位驗證碼",
+    "inviteCodeLabel": "邀請碼",
+    "inviteCodePlaceholder": "請輸入邀請碼",
+    "registerAndEnter": "註冊並進入",
+    "hasAccount": "已有帳號？去登入",
+    "noAccount": "沒有帳號？註冊新帳號 →",
+    "sendCodeFirst": "請先填寫信箱",
+    "sendFailed": "發送失敗",
+    "validation": {
+      "emailRequired": "請輸入信箱地址",
+      "emailInvalid": "信箱格式不正確",
+      "usernameRequired": "請輸入使用者名稱",
+      "usernameFormat": "使用者名稱只能包含字母、數字和底線，3-20 位",
+      "passwordRequired": "請輸入密碼",
+      "passwordMinLength": "密碼長度至少 6 位"
+    }
+  },
+  "banner": {
+    "closeAnnouncement": "關閉公告"
   }
 }

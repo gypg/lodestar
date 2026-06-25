@@ -1056,135 +1056,68 @@ func handleClientDisconnect(req *relayRequest, allAttempts []dbmodel.ChannelAtte
 }
 
 func executeRelay(req *relayRequest, group dbmodel.Group, requestModel string, maxKeyRetriesPerRoute int, maxRouteRetries int, ratelimitCooldown int, maxTotalAttempts int) (*inflightRelayResult, error) {
-	var allAttempts []dbmodel.ChannelAttempt
-	var lastErr error
-
 	// 应用全局模型映射表（Phase 7）
 	requestModel = modelmapping.Resolve(req.operationCtx, requestModel, group.ID)
 
-	for routeRound := 1; routeRound <= maxRouteRetries; routeRound++ {
-		if isClientDisconnected(req.clientCtx) {
-			return nil, handleClientDisconnect(req, allAttempts)
-		}
-		if err := req.operationCtx.Err(); err != nil {
-			lastErr = err
-			logRelayErrorfByContext(err, "relay operation ended before request completed: %v", err)
-			req.metrics.Save(false, err, allAttempts)
-			return nil, err
-		}
+	// N-08: save the original Model so we can restore it after each channel
+	// attempt. Without this, setting req.internalRequest.Model = resolvedModelName
+	// mutates the shared request object, causing subsequent channels to see a
+	// stale model.
+	originalModel := req.internalRequest.Model
 
-		routeIter := balancer.NewIterator(group, req.apiKeyID, requestModel, parseExcludedChannels(req.c.GetString("excluded_channels")))
-		req.iter = routeIter
+	var relayResult *inflightRelayResult
+	var relayErr error
+	var resultSaved bool
 
-		// N-08: save the original Model before iterating channels so we can
-		// restore it after each channel attempt. Without this, line 1133
-		// (req.internalRequest.Model = resolvedModelName) mutates the shared
-		// request object, causing subsequent channels to see a stale model.
-		originalModel := req.internalRequest.Model
-
-		for routeIter.Next() {
-			if maxTotalAttempts > 0 && len(allAttempts) >= maxTotalAttempts {
-				lastErr = fmt.Errorf("reached relay max total attempts: %d", maxTotalAttempts)
-				goto exhausted
-			}
-			if isClientDisconnected(req.clientCtx) {
-				return nil, handleClientDisconnect(req, allAttempts)
-			}
-			if err := req.operationCtx.Err(); err != nil {
-				lastErr = err
-				logRelayErrorfByContext(err, "relay operation ended before request completed: %v", err)
-				req.metrics.Save(false, err, allAttempts)
-				return nil, err
-			}
-
-			item := routeIter.Item()
-			channel, err := ch.Get(item.ChannelID, req.operationCtx)
-			if err != nil {
-				log.Warnf("failed to get channel %d: %v", item.ChannelID, err)
-				routeIter.Skip(item.ChannelID, 0, fmt.Sprintf("channel_%d", item.ChannelID), fmt.Sprintf("channel not found: %v", err))
-				continue
-			}
-			if !channel.Enabled {
-				routeIter.Skip(channel.ID, 0, channel.Name, "channel disabled")
-				continue
-			}
-
-			// Apply global model mapping before resolving to upstream model
-			mappedModel := modelmapping.Resolve(req.operationCtx, requestModel, group.ID)
-
-			resolvedModelName := resolveCandidateModelName(mappedModel, item)
-			if strings.TrimSpace(resolvedModelName) == "" {
-				routeIter.Skip(channel.ID, 0, channel.Name, "resolved upstream model is empty")
-				continue
-			}
-
-			attemptTypes := outboundAttemptTypes(channel.Type, req.internalRequest, group.OutboundFormat)
-			if len(attemptTypes) == 0 || outbound.Get(attemptTypes[0]) == nil {
-				routeIter.Skip(channel.ID, 0, channel.Name, fmt.Sprintf("unsupported channel type: %d", channel.Type))
-				continue
-			}
-			if req.internalRequest.IsEmbeddingRequest() && !outbound.IsEmbeddingChannelType(channel.Type) {
-				routeIter.Skip(channel.ID, 0, channel.Name, "channel type not compatible with embedding request")
-				continue
-			}
-			if req.internalRequest.IsChatRequest() && !outbound.IsChatChannelType(channel.Type) {
-				routeIter.Skip(channel.ID, 0, channel.Name, "channel type not compatible with chat request")
-				continue
-			}
-			if !isZenCandidateChannelAllowed(requestModel, channel.Type, req.internalRequest.IsEmbeddingRequest()) {
-				routeIter.Skip(channel.ID, 0, channel.Name, "channel type not preferred for zen model prefix")
-				continue
-			}
-
-			req.internalRequest.Model = resolvedModelName
-			var failedKeyIDs []int
-			for keyRound := 1; keyRound == 1 || keyRound <= maxKeyRetriesPerRoute; keyRound++ {
-				if maxTotalAttempts > 0 && len(allAttempts) >= maxTotalAttempts {
-					lastErr = fmt.Errorf("reached relay max total attempts: %d", maxTotalAttempts)
-					goto exhausted
-				}
+	retryWithChannels(group, requestModel, req.apiKeyID, req.c.GetString("excluded_channels"),
+		maxKeyRetriesPerRoute, maxRouteRetries, ratelimitCooldown, maxTotalAttempts,
+		retryCallbacks{
+			Ctx: req.operationCtx,
+			CheckContext: func() error {
 				if isClientDisconnected(req.clientCtx) {
-					return nil, handleClientDisconnect(req, allAttempts)
+					return handleClientDisconnect(req, nil)
 				}
 				if err := req.operationCtx.Err(); err != nil {
-					lastErr = err
 					logRelayErrorfByContext(err, "relay operation ended: %v", err)
-					req.metrics.Save(false, err, allAttempts)
-					return nil, err
+					return err
 				}
-
-				var usedKey dbmodel.ChannelKey
-				if keyRound == 1 {
-					usedKey = channel.GetChannelKeyExcludingWithCooldownForModel(nil, ratelimitCooldown, resolvedModelName)
-				} else {
-					usedKey, _ = PrepareCandidateForRetry(channel, failedKeyIDs, routeIter, ratelimitCooldown, resolvedModelName)
+				return nil
+			},
+			FilterChannel: func(item dbmodel.GroupItem, channel *dbmodel.Channel, iter *balancer.Iterator) bool {
+				attemptTypes := outboundAttemptTypes(channel.Type, req.internalRequest, group.OutboundFormat)
+				if len(attemptTypes) == 0 || outbound.Get(attemptTypes[0]) == nil {
+					iter.Skip(channel.ID, 0, channel.Name, fmt.Sprintf("unsupported channel type: %d", channel.Type))
+					return true
 				}
-				if usedKey.ChannelKey == "" {
-					// When the key loop exits via break without forwarding
-					// (e.g. all keys in rate-limit cooldown), record a skip so the
-					// relay log captures the channel info and reason. Without this,
-					// single-channel groups return 502 with empty channel name.
-					if keyRound == 1 {
-						routeIter.Skip(channel.ID, usedKey.ID, channel.Name, "no available key (all keys in cooldown or disabled)")
-						lastErr = fmt.Errorf("channel %s: no available key (all keys in cooldown or disabled)", channel.Name)
-					}
-					break
+				if req.internalRequest.IsEmbeddingRequest() && !outbound.IsEmbeddingChannelType(channel.Type) {
+					iter.Skip(channel.ID, 0, channel.Name, "channel type not compatible with embedding request")
+					return true
 				}
-				if hint, ok := globalFailureHintCache.get(channel.ID, usedKey.ID, resolvedModelName); ok {
-					failedKeyIDs = append(failedKeyIDs, usedKey.ID)
-					routeIter.Skip(channel.ID, usedKey.ID, channel.Name, failureHintSkipReason(hint))
-					keyRound--
-					continue
+				if req.internalRequest.IsChatRequest() && !outbound.IsChatChannelType(channel.Type) {
+					iter.Skip(channel.ID, 0, channel.Name, "channel type not compatible with chat request")
+					return true
 				}
-				if routeIter.SkipCircuitBreak(channel.ID, usedKey.ID, channel.Name, resolvedModelName) {
-					failedKeyIDs = append(failedKeyIDs, usedKey.ID)
-					keyRound--
-					continue
+				if !isZenCandidateChannelAllowed(requestModel, channel.Type, req.internalRequest.IsEmbeddingRequest()) {
+					iter.Skip(channel.ID, 0, channel.Name, "channel type not preferred for zen model prefix")
+					return true
 				}
-
+				return false
+			},
+			ResolveModel: func(item dbmodel.GroupItem) string {
+				mappedModel := modelmapping.Resolve(req.operationCtx, requestModel, group.ID)
+				return resolveCandidateModelName(mappedModel, item)
+			},
+			LogAttempt: func(channel *dbmodel.Channel, resolvedModel string, round retryRoundInfo) {
 				log.Infof("request model %s, mode: %d, channel: %s (%s) model: %s key_id: %d (route R%d, key %d/%d, sticky=%t)",
-					requestModel, group.Mode, channel.Name, channel.Type, resolvedModelName, usedKey.ID,
-					routeRound, keyRound, maxKeyRetriesPerRoute, routeIter.IsSticky())
+					requestModel, group.Mode, channel.Name, channel.Type, resolvedModel, round.UsedKey.ID,
+					round.RouteRound, round.KeyRound, round.MaxKeyRetries, round.Iter.IsSticky())
+			},
+			ForwardRequest: func(channel *dbmodel.Channel, usedKey dbmodel.ChannelKey, resolvedModelName string, round retryRoundInfo) retryForwardResult {
+				req.internalRequest.Model = resolvedModelName
+				defer func() { req.internalRequest.Model = originalModel }()
+
+				req.iter = round.Iter
+				attemptTypes := outboundAttemptTypes(channel.Type, req.internalRequest, group.OutboundFormat)
 
 				var result attemptResult
 				for adapterIndex, attemptType := range attemptTypes {
@@ -1199,14 +1132,14 @@ func executeRelay(req *relayRequest, group dbmodel.Group, requestModel string, m
 						channel:              channel,
 						usedKey:              usedKey,
 						firstTokenTimeOutSec: group.FirstTokenTimeOut,
-						tryIndex:             keyRound,
-						tryTotal:             maxKeyRetriesPerRoute,
+						tryIndex:             round.KeyRound,
+						tryTotal:             round.MaxKeyRetries,
 					}
 
 					result = ra.attempt()
 					if result.Success {
 						if adapterIndex > 0 {
-							log.Infof("[%s] adapter fallback succeeded on channel %s: %s → %s",
+							log.Infof("[%s] adapter fallback succeeded on channel %s: %s -> %s",
 								req.internalRequest.RawAPIFormat, channel.Name, attemptTypes[0], attemptType)
 						}
 						break
@@ -1217,67 +1150,64 @@ func executeRelay(req *relayRequest, group dbmodel.Group, requestModel string, m
 					log.Infof("[%s] %s adapter failed on channel %s, falling back to %s: %v",
 						req.internalRequest.RawAPIFormat, attemptType, channel.Name, attemptTypes[adapterIndex+1], result.Err)
 				}
-				currentAttempts := append(allAttempts, req.iter.Attempts()...)
-				if result.Success {
-					namespace, requestText, _ := semanticCacheStoreMetadata(req.internalRequest)
-					req.metrics.Save(true, nil, currentAttempts)
-					return newInflightRelayResult(cloneInternalResponse(req.metrics.InternalResponse), req.internalRequest.Model, currentAttempts, namespace, requestText), nil
-				}
 
-				// 熔断器和 Auto 策略：在所有 adapter 类型（如 Responses→Chat）均失败后才记录，
-				// 避免 Response adapter 降级到 Chat 的过程中误触发熔断。
-				if result.Decision.Scope == ScopeNextChannel || result.Decision.Scope == ScopeAbortAll {
-					balancer.RecordFailure(channel.ID, usedKey.ID, resolvedModelName)
-					balancer.RecordAutoFailure(channel.ID, resolvedModelName)
+				return retryForwardResult{Decision: result.Decision, Err: result.Err}
+			},
+			OnSuccess: func(channel *dbmodel.Channel, usedKey dbmodel.ChannelKey, resolvedModelName string, round retryRoundInfo) {
+				currentAttempts := append([]dbmodel.ChannelAttempt(nil), round.Iter.Attempts()...)
+				namespace, requestText, _ := semanticCacheStoreMetadata(req.internalRequest)
+				req.metrics.Save(true, nil, currentAttempts)
+				relayResult = newInflightRelayResult(cloneInternalResponse(req.metrics.InternalResponse), req.internalRequest.Model, currentAttempts, namespace, requestText)
+				resultSaved = true
+			},
+			OnFailure: func(channel *dbmodel.Channel, usedKey dbmodel.ChannelKey, resolvedModel string) {
+				balancer.RecordFailure(channel.ID, usedKey.ID, resolvedModel)
+				balancer.RecordAutoFailure(channel.ID, resolvedModel)
+			},
+			OnFinalFailure: func(channel *dbmodel.Channel, usedKey dbmodel.ChannelKey, resolvedModel string, round retryRoundInfo, fwdResult retryForwardResult) bool {
+				// Client disconnected — stop all retries immediately.
+				if errors.Is(fwdResult.Err, errClientDisconnected) {
+					currentAttempts := append([]dbmodel.ChannelAttempt(nil), round.Iter.Attempts()...)
+					req.metrics.Save(false, fwdResult.Err, currentAttempts)
+					relayErr = fwdResult.Err
+					resultSaved = true
+					return true
 				}
-
-				// Client disconnected — stop all retries immediately without
-				// recording failure hints or attempting further channels.
-				if errors.Is(result.Err, errClientDisconnected) {
-					req.metrics.Save(false, result.Err, currentAttempts)
-					return nil, result.Err
-				}
-
-				recordFailureHint(channel.ID, usedKey.ID, resolvedModelName, result.Decision, result.Err, ratelimitCooldown)
-				switch result.Decision.Scope {
-				case ScopeNone:
-					lastErr = result.Err
-					req.metrics.Save(false, lastErr, currentAttempts)
+				// ScopeNone: direct failure, send 502
+				if fwdResult.Decision.Scope == ScopeNone {
+					currentAttempts := append([]dbmodel.ChannelAttempt(nil), round.Iter.Attempts()...)
+					req.metrics.Save(false, fwdResult.Err, currentAttempts)
 					resp.BadGateway(req.c)
-					return nil, result.Err
-				case ScopeAbortAll:
-					lastErr = result.Err
-					req.metrics.Save(false, result.Err, currentAttempts)
-					return nil, result.Err
-				case ScopeSameChannel:
-					lastErr = result.Err
-					failedKeyIDs = append(failedKeyIDs, usedKey.ID)
-				case ScopeNextChannel:
-					lastErr = result.Err
-					failedKeyIDs = append(failedKeyIDs, usedKey.ID)
-					break
-				default:
-					lastErr = result.Err
-					req.metrics.Save(false, lastErr, currentAttempts)
-					resp.BadGateway(req.c)
-					return nil, result.Err
+					relayErr = fwdResult.Err
+					resultSaved = true
+					return true
 				}
-			}
-			// N-08: restore original model after each channel iteration so
-			// the next channel sees the clean request object.
-			req.internalRequest.Model = originalModel
-		}
-		allAttempts = append(allAttempts, routeIter.Attempts()...)
-	}
+				return false
+			},
+			OnExhausted: func(allAttempts []dbmodel.ChannelAttempt, lastErr error) {
+				if resultSaved {
+					return
+				}
+				req.metrics.Save(false, lastErr, allAttempts)
+				log.Warnf("[%s] all channels exhausted: model=%s, attempts=%d, last_error=%v",
+					req.internalRequest.RawAPIFormat, requestModel, len(allAttempts), lastErr)
+				if lastErr != nil {
+					resp.Error(req.c, http.StatusBadGateway, fmt.Sprintf("all channels failed: %v", lastErr))
+				} else {
+					resp.Error(req.c, http.StatusBadGateway, "all channels failed")
+				}
+				relayErr = lastErr
+				if relayErr == nil {
+					relayErr = errors.New("all channels failed")
+				}
+			},
+			UseFailureHints:          true,
+			UsePrepareCandidateForRetry: true,
+		},
+	)
 
-exhausted:
-	req.metrics.Save(false, lastErr, allAttempts)
-	log.Warnf("[%s] all channels exhausted: model=%s, attempts=%d, last_error=%v",
-		req.internalRequest.RawAPIFormat, requestModel, len(allAttempts), lastErr)
-	if lastErr != nil {
-		resp.Error(req.c, http.StatusBadGateway, fmt.Sprintf("all channels failed: %v", lastErr))
-		return nil, lastErr
+	if resultSaved && relayResult != nil {
+		return relayResult, nil
 	}
-	resp.Error(req.c, http.StatusBadGateway, "all channels failed")
-	return nil, errors.New("all channels failed")
+	return nil, relayErr
 }

@@ -66,7 +66,7 @@ export function parseNavOrder(
 
         const items = parsed.filter((item): item is string => typeof item === 'string');
         return normalizeNavOrder(items, defaults);
-    } catch {
+    } catch (e) { console.error(e);
         return [...defaults];
     }
 }
@@ -105,7 +105,7 @@ export function parseNavVisible(
         }
 
         return normalized.length > 0 ? normalized : [...defaults];
-    } catch {
+    } catch (e) { console.error(e);
         return [...defaults];
     }
 }

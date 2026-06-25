@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"context"
+	crypto_rand "crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"time"
 
@@ -42,8 +44,15 @@ func runStart() error {
 
 	if key := conf.AppConfig.Security.EncryptionKey; key != "" {
 		crypto.Init(key)
-	} else if secret := conf.AppConfig.Auth.JWTSecret; secret != "" {
-		crypto.Init(secret)
+	} else {
+		// ENCRYPTION_KEY not set — generate a random ephemeral key instead of
+		// falling back to JWT_SECRET (which is weaker and leaks surface area).
+		randomKey, err := generateEphemeralEncryptionKey()
+		if err != nil {
+			return fmt.Errorf("failed to generate ephemeral encryption key: %w", err)
+		}
+		crypto.Init(randomKey)
+		log.Warnf("security.encryption_key is empty; generated an ephemeral key for this process. Set LODESTAR_SECURITY_ENCRYPTION_KEY for persistent encryption across restarts")
 	}
 
 	if err := db.InitDB(conf.AppConfig.Database.Type, conf.AppConfig.Database.Path, conf.IsDebug()); err != nil {
@@ -143,6 +152,17 @@ func runStart() error {
 	go task.RUN()
 	shutdown.Listen()
 	return nil
+}
+
+// generateEphemeralEncryptionKey produces a 32-byte random hex string suitable
+// for use as an AES-256 encryption key. This is used when ENCRYPTION_KEY is not
+// configured, instead of falling back to JWT_SECRET.
+func generateEphemeralEncryptionKey() (string, error) {
+	buf := make([]byte, 32)
+	if _, err := crypto_rand.Read(buf); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(buf), nil
 }
 
 func init() {

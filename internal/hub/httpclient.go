@@ -1,6 +1,7 @@
 package hub
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -26,12 +27,14 @@ var AdapterHTTPClient = &http.Client{
 }
 
 // apiResponse is the generic envelope returned by One API / New API compatible backends.
-// Fields are intentionally interface{} to handle divergent server implementations.
+// Data is kept as json.RawMessage to avoid the double serialization cost:
+// previously Data was interface{}, causing an Unmarshal->Marshal->Unmarshal round-trip
+// for every FetchJSON call.
 type apiResponse struct {
-	Success *bool       `json:"success,omitempty"`
-	Code    *int        `json:"code,omitempty"`
-	Message string      `json:"message"`
-	Data    interface{} `json:"data"`
+	Success *bool            `json:"success,omitempty"`
+	Code    *int             `json:"code,omitempty"`
+	Message string           `json:"message"`
+	Data    json.RawMessage  `json:"data"`
 }
 
 // doRequest performs an HTTP request against a remote site and returns the raw
@@ -98,7 +101,7 @@ func FetchJSON[T any](ctx context.Context, site *model.RemoteSite, method, endpo
 		if err != nil {
 			return zero, fmt.Errorf("marshal request body: %w", err)
 		}
-		body = strings.NewReader(string(b))
+		body = bytes.NewReader(b)
 	}
 
 	url := baseURL(site) + endpoint
@@ -129,17 +132,12 @@ func FetchJSON[T any](ctx context.Context, site *model.RemoteSite, method, endpo
 		return zero, fmt.Errorf("API error from %s (code %d): %s", endpoint, *envelope.Code, envelope.Message)
 	}
 
-	if envelope.Data == nil {
+	if len(envelope.Data) == 0 || string(envelope.Data) == "null" {
 		return zero, nil
 	}
 
-	dataBytes, err := json.Marshal(envelope.Data)
-	if err != nil {
-		return zero, fmt.Errorf("re-marshal data: %w", err)
-	}
-
 	var result T
-	if err := json.Unmarshal(dataBytes, &result); err != nil {
+	if err := json.Unmarshal(envelope.Data, &result); err != nil {
 		return zero, fmt.Errorf("unmarshal data into %T: %w", result, err)
 	}
 	return result, nil
@@ -159,7 +157,7 @@ func fetchRawJSON(ctx context.Context, site *model.RemoteSite, method, endpoint 
 		if err != nil {
 			return nil, fmt.Errorf("marshal request body: %w", err)
 		}
-		body = strings.NewReader(string(b))
+		body = bytes.NewReader(b)
 	}
 
 	url := baseURL(site) + endpoint
@@ -190,11 +188,11 @@ func fetchRawJSON(ctx context.Context, site *model.RemoteSite, method, endpoint 
 		return nil, fmt.Errorf("API error from %s (code %d): %s", endpoint, *envelope.Code, envelope.Message)
 	}
 
-	if envelope.Data == nil {
+	if len(envelope.Data) == 0 || string(envelope.Data) == "null" {
 		return nil, nil
 	}
 
-	return json.Marshal(envelope.Data)
+	return envelope.Data, nil
 }
 
 func truncate(s string, n int) string {

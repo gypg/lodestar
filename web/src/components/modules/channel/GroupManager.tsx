@@ -101,10 +101,9 @@ export function ChannelGroupManagerPanel({
         );
     };
 
-    const handleDelete = (group: ChannelGroup) => {
-        if (!window.confirm(t('deleteConfirm', { name: group.name }))) {
-            return;
-        }
+    const handleDelete = async (group: ChannelGroup) => {
+        const confirmed = window.confirm(t('deleteConfirm', { name: group.name }));
+        if (!confirmed) return;
         deleteChannelGroup.mutate(group.id, {
             onSuccess: () => {
                 toast.success(t('deleteSuccess'));

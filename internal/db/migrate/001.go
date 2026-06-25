@@ -12,6 +12,7 @@ func init() {
 	RegisterAfterAutoMigration(Migration{
 		Version: 1,
 		Up:      migrateChannelKeyToChannelKeys,
+		Down:    stubDown(1),
 	})
 }
 

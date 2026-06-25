@@ -2969,5 +2969,141 @@
         "new": "New Binding"
       }
     }
+  },
+  "common": {
+    "close": "Close",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "download": "Download",
+    "more": "More",
+    "copyLatencyUrl": "Copy latency URL",
+    "errorBoundary": {
+      "title": "Something went wrong",
+      "retry": "Retry"
+    }
+  },
+  "imageStudio": {
+    "selectModel": "Select image model",
+    "noKeys": "No keys available (please create one first)",
+    "promptPlaceholder": "Describe the image you want...",
+    "generate": "Generate",
+    "generating": "Generating...",
+    "generateFailed": "Generation failed ({status}): {detail}",
+    "noImageReturned": "No image returned. Please check if the model supports image generation.",
+    "requestError": "Request error",
+    "loadingHistory": "Loading history...",
+    "emptyHistory": "Enter a description and generate - uses your own key and balance",
+    "loadFailed": "Load failed",
+    "loading": "Loading...",
+    "downloadAriaLabel": "Download",
+    "deleteAriaLabel": "Delete"
+  },
+  "chat": {
+    "newSession": "New Chat",
+    "deleteSession": "Delete session",
+    "currentSession": "Current session (unsaved)"
+  },
+  "landing": {
+    "announcement": "Announcements",
+    "models": "Model Market",
+    "usage": "Usage Overview",
+    "about": "About {name}",
+    "close": "Close",
+    "noAnnouncement": "No announcements.",
+    "modelCount": "{count} models"
+  },
+  "site": {
+    "editSite": "Edit Site",
+    "addSite": "Add Site",
+    "editAccount": "Edit Site Account",
+    "addAccount": "Add Site Account",
+    "moreSiteActions": "More site actions",
+    "moreAccountActions": "More account actions",
+    "viewSiteChannels": "View site channels",
+    "openSite": "Open site",
+    "sitePage": "Site page",
+    "sitePageAccount": "Site page account",
+    "hideFullKey": "Hide full key",
+    "showFullKey": "Show full key",
+    "closeDialog": "Close"
+  },
+  "setting": {
+    "email": {
+      "title": "Email - SMTP",
+      "description": "Enable email verification for registration and send notifications (587 STARTTLS).",
+      "smtpServer": "SMTP Server",
+      "port": "Port",
+      "username": "Username",
+      "password": "Password / Authorization Code",
+      "senderAddress": "Sender Address",
+      "enableSmtp": "Enable SMTP",
+      "emailRequiredTitle": "Email Required for Registration",
+      "emailRequiredHint": "Only active in commercial mode: registration requires email verification code.",
+      "emailRequiredAriaLabel": "Email required for registration",
+      "saveButton": "Save Email Settings",
+      "testRecipient": "Test recipient",
+      "sendTestEmail": "Send Test Email",
+      "saved": "Email settings saved",
+      "saveFailed": "Save failed",
+      "testSent": "Test email sent",
+      "testFailed": "Send failed (save and enable SMTP first)"
+    },
+    "payment": {
+      "title": "Online Payment - Epay",
+      "description": "After entering merchant credentials and enabling, users can top up online (Alipay/WeChat).",
+      "gatewayUrl": "Gateway URL",
+      "merchantPid": "Merchant PID",
+      "merchantKey": "Merchant Key",
+      "exchangeRate": "Exchange Rate (per 1 USD)",
+      "callbackBase": "Callback Base URL (public, for payment notification/redirect)",
+      "enableEpay": "Enable Epay",
+      "saveButton": "Save Payment Settings",
+      "saved": "Payment settings saved",
+      "saveFailed": "Save failed"
+    },
+    "latency": {
+      "title": "Site Connectivity / Latency",
+      "testing": "Testing...",
+      "test": "Test",
+      "description": "Tests from your browser against the public probe endpoint, closer to your real link than server-side checks.",
+      "best": "Best",
+      "average": "Average",
+      "recent": "Recent",
+      "failed": "Failed"
+    },
+    "usageHeatmap": {
+      "noDailyData": "No daily data available (enable history logs and have request records).",
+      "ariaLabel": "Usage heatmap",
+      "tooltip": "{date}: {count} requests"
+    }
+  },
+  "form": {
+    "totpLabel": "Two-Factor Code",
+    "totpPlaceholder": "Enter 6-digit code or backup code",
+    "emailLabel": "Email",
+    "sendCode": "Send Code",
+    "sending": "Sending",
+    "emailCodeLabel": "Verification Code",
+    "emailCodePlaceholder": "6-digit code from your email",
+    "inviteCodeLabel": "Invite Code",
+    "inviteCodePlaceholder": "Enter invite code",
+    "registerAndEnter": "Register & Sign In",
+    "hasAccount": "Already have an account? Sign in",
+    "noAccount": "No account? Register now",
+    "sendCodeFirst": "Please enter your email first",
+    "sendFailed": "Failed to send",
+    "validation": {
+      "emailRequired": "Please enter your email",
+      "emailInvalid": "Invalid email format",
+      "usernameRequired": "Please enter a username",
+      "usernameFormat": "Username can only contain letters, numbers, and underscores, 3-20 characters",
+      "passwordRequired": "Please enter a password",
+      "passwordMinLength": "Password must be at least 6 characters"
+    }
+  },
+  "banner": {
+    "closeAnnouncement": "Close announcement"
   }
 }

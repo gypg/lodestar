@@ -137,120 +137,39 @@ func MediaHandler(endpointType MediaEndpointType, c *gin.Context) {
 	ratelimitCooldown := getRatelimitCooldown()
 	maxTotalAttempts := getMaxTotalAttempts()
 
-	var allAttempts []dbmodel.ChannelAttempt
-	var lastErr error
-	var routeIter *balancer.Iterator
-
-	// 追踪最后一次实际转发的通道信息，用于全部失败时的日志记录
+	// Track the last channel used for exhausted logging
 	var lastChannelID int
 	var lastChannelName string
 	var lastResolvedModel string
+	var mediaDone bool
 
-	for routeRound := 1; routeRound <= maxRouteRetries; routeRound++ {
-		if err := operationCtx.Err(); err != nil {
-			lastErr = err
-			log.Infof("relay operation ended before media request completed: %v", err)
-			goto mediaExhausted
-		}
-		select {
-		case <-c.Request.Context().Done():
-			lastErr = c.Request.Context().Err()
-			log.Infof("request context canceled, stopping media retry")
-			goto mediaExhausted
-		default:
-		}
-
-		routeIter = balancer.NewIterator(group, apiKeyID, requestModel, parseExcludedChannels(c.GetString("excluded_channels")))
-
-		for routeIter.Next() {
-			if maxTotalAttempts > 0 && len(allAttempts) >= maxTotalAttempts {
-				lastErr = fmt.Errorf("reached relay max total attempts: %d", maxTotalAttempts)
-				goto mediaExhausted
-			}
-			if err := operationCtx.Err(); err != nil {
-				lastErr = err
-				log.Infof("relay operation ended before media retry completed: %v", err)
-				goto mediaExhausted
-			}
-			select {
-			case <-c.Request.Context().Done():
-				lastErr = c.Request.Context().Err()
-				log.Infof("request context canceled, stopping media retry")
-				goto mediaExhausted
-			default:
-			}
-
-			item := routeIter.Item()
-
-			channel, err := ch.Get(item.ChannelID, c.Request.Context())
-			if err != nil {
-				log.Warnf("failed to get channel %d: %v", item.ChannelID, err)
-				routeIter.Skip(item.ChannelID, 0, fmt.Sprintf("channel_%d", item.ChannelID), fmt.Sprintf("channel not found: %v", err))
-				continue
-			}
-			if !channel.Enabled {
-				routeIter.Skip(channel.ID, 0, channel.Name, "channel disabled")
-				continue
-			}
-
-			resolvedModel := resolveCandidateModelName(requestModel, item)
-			if resolvedModel == "" {
-				routeIter.Skip(channel.ID, 0, channel.Name, "model not found in channel")
-				continue
-			}
-
-			// 渠道内 Key 级重试
-			var failedKeyIDs []int
-			for keyRound := 1; keyRound == 1 || keyRound <= maxKeyRetriesPerRoute; keyRound++ {
-				if maxTotalAttempts > 0 && len(allAttempts) >= maxTotalAttempts {
-					lastErr = fmt.Errorf("reached relay max total attempts: %d", maxTotalAttempts)
-					goto mediaExhausted
-				}
+	retryWithChannels(group, requestModel, apiKeyID, c.GetString("excluded_channels"),
+		maxKeyRetriesPerRoute, maxRouteRetries, ratelimitCooldown, maxTotalAttempts,
+		retryCallbacks{
+			Ctx: c.Request.Context(),
+			CheckContext: func() error {
 				if err := operationCtx.Err(); err != nil {
-					lastErr = err
-					log.Infof("relay operation ended: %v", err)
-					goto mediaExhausted
+					log.Infof("relay operation ended before media request completed: %v", err)
+					return err
 				}
 				select {
 				case <-c.Request.Context().Done():
-					lastErr = c.Request.Context().Err()
-					log.Infof("request context canceled, stopping media key retry")
-					goto mediaExhausted
+					err := c.Request.Context().Err()
+					log.Infof("request context canceled, stopping media retry")
+					return err
 				default:
 				}
-
-				var usedKey dbmodel.ChannelKey
-				if keyRound == 1 {
-					usedKey = channel.GetChannelKeyExcludingWithCooldownForModel(nil, ratelimitCooldown, requestModel)
-				} else {
-					usedKey = channel.GetChannelKeyExcludingWithCooldownForModel(failedKeyIDs, ratelimitCooldown, requestModel)
-				}
-				if usedKey.ChannelKey == "" {
-					// When the key loop exits via break without forwarding
-					// (e.g. all keys in rate-limit cooldown), record a skip so the
-					// relay log captures the channel info and reason.
-					if keyRound == 1 {
-						routeIter.Skip(channel.ID, usedKey.ID, channel.Name, "no available key (all keys in cooldown or disabled)")
-						lastErr = fmt.Errorf("channel %s: no available key (all keys in cooldown or disabled)", channel.Name)
-					}
-					break
-				}
-
-				// 熔断跳过不消耗 Key 重试配额
-				if routeIter.SkipCircuitBreak(channel.ID, usedKey.ID, channel.Name, resolvedModel) {
-					failedKeyIDs = append(failedKeyIDs, usedKey.ID)
-					keyRound--
-					continue
-				}
-
+				return nil
+			},
+			LogAttempt: func(channel *dbmodel.Channel, resolvedModel string, round retryRoundInfo) {
 				log.Infof("media relay: endpoint=%d, model=%s, channel: %s model: %s key_id: %d (route R%d, key %d/%d)",
-					endpointType, requestModel, channel.Name, resolvedModel, usedKey.ID,
-					routeRound, keyRound, maxKeyRetriesPerRoute)
-
-				span := routeIter.StartAttempt(channel.ID, usedKey.ID, channel.Name, resolvedModel)
+					endpointType, requestModel, channel.Name, resolvedModel, round.UsedKey.ID,
+					round.RouteRound, round.KeyRound, round.MaxKeyRetries)
+			},
+			ForwardRequest: func(channel *dbmodel.Channel, usedKey dbmodel.ChannelKey, resolvedModel string, round retryRoundInfo) retryForwardResult {
+				span := round.Iter.StartAttempt(channel.ID, usedKey.ID, channel.Name, resolvedModel)
 				statusCode, fwdErr := forwardMediaRequest(c, cfg, group, channel, usedKey.ChannelKey, bodyBytes, requestModel, resolvedModel, streamRequested, operationCtx)
 
-				// 记录最后一次实际转发的通道信息
 				lastChannelID = channel.ID
 				lastChannelName = channel.Name
 				lastResolvedModel = resolvedModel
@@ -272,10 +191,7 @@ func MediaHandler(endpointType MediaEndpointType, c *gin.Context) {
 					balancer.RecordAutoSuccess(channel.ID, resolvedModel)
 					balancer.RecordAutoLatency(channel.ID, resolvedModel, span.Duration().Milliseconds())
 					balancer.SetSticky(apiKeyID, requestModel, channel.ID, usedKey.ID)
-
-					allAttempts = append(allAttempts, routeIter.Attempts()...)
-					recordMediaRelayLog(apiKeyID, requestModel, logEndpointType, bodyBytes, channel.ID, channel.Name, resolvedModel, time.Since(startTime), allAttempts, nil, clientIP)
-					return
+					return retryForwardResult{Decision: decision, Err: fwdErr}
 				}
 
 				ch.KeyUpdate(usedKey)
@@ -285,62 +201,44 @@ func MediaHandler(endpointType MediaEndpointType, c *gin.Context) {
 					RequestFailed: 1,
 				})
 
-				if decision.Scope == ScopeNextChannel || decision.Scope == ScopeAbortAll {
-					balancer.RecordFailure(channel.ID, usedKey.ID, resolvedModel)
-					balancer.RecordAutoFailure(channel.ID, resolvedModel)
-				}
-
 				if decision.IsError {
 					log.Warnf("media relay: channel %s failed on key %d: %v (decision: %s)",
-						channel.Name, keyRound, fwdErr, decision.Scope.String())
+						channel.Name, round.KeyRound, fwdErr, decision.Scope.String())
 				}
 
-				switch decision.Scope {
-				case ScopeNone:
-					lastErr = fwdErr
-					allAttempts = append(allAttempts, routeIter.Attempts()...)
-					recordMediaRelayLog(apiKeyID, requestModel, logEndpointType, bodyBytes, channel.ID, channel.Name, resolvedModel, time.Since(startTime), allAttempts, fwdErr, clientIP)
-					resp.Error(c, http.StatusBadGateway, lastErr.Error())
-					return
-				case ScopeAbortAll:
-					lastErr = fwdErr
-					allAttempts = append(allAttempts, routeIter.Attempts()...)
-					recordMediaRelayLog(apiKeyID, requestModel, logEndpointType, bodyBytes, channel.ID, channel.Name, resolvedModel, time.Since(startTime), allAttempts, fwdErr, clientIP)
-					return
-				case ScopeSameChannel:
-					lastErr = fwdErr
-					failedKeyIDs = append(failedKeyIDs, usedKey.ID)
-				case ScopeNextChannel:
-					lastErr = fwdErr
-					failedKeyIDs = append(failedKeyIDs, usedKey.ID)
-					break
-				default:
-					lastErr = fwdErr
-					allAttempts = append(allAttempts, routeIter.Attempts()...)
-					recordMediaRelayLog(apiKeyID, requestModel, logEndpointType, bodyBytes, channel.ID, channel.Name, resolvedModel, time.Since(startTime), allAttempts, fwdErr, clientIP)
-					resp.Error(c, http.StatusBadGateway, lastErr.Error())
+				return retryForwardResult{Decision: decision, Err: fwdErr}
+			},
+			OnSuccess: func(channel *dbmodel.Channel, usedKey dbmodel.ChannelKey, resolvedModel string, round retryRoundInfo) {
+				recordMediaRelayLog(apiKeyID, requestModel, logEndpointType, bodyBytes, channel.ID, channel.Name, resolvedModel, time.Since(startTime), nil, nil, clientIP)
+				mediaDone = true
+			},
+			OnFailure: func(channel *dbmodel.Channel, usedKey dbmodel.ChannelKey, resolvedModel string) {
+				balancer.RecordFailure(channel.ID, usedKey.ID, resolvedModel)
+				balancer.RecordAutoFailure(channel.ID, resolvedModel)
+			},
+			OnFinalFailure: func(channel *dbmodel.Channel, usedKey dbmodel.ChannelKey, resolvedModel string, round retryRoundInfo, fwdResult retryForwardResult) bool {
+				recordMediaRelayLog(apiKeyID, requestModel, logEndpointType, bodyBytes, channel.ID, channel.Name, resolvedModel, time.Since(startTime), nil, fwdResult.Err, clientIP)
+				if fwdResult.Decision.Scope == ScopeNone {
+					resp.Error(c, http.StatusBadGateway, fwdResult.Err.Error())
+				}
+				mediaDone = true
+				return true
+			},
+			OnExhausted: func(allAttempts []dbmodel.ChannelAttempt, lastErr error) {
+				if mediaDone {
 					return
 				}
-			}
-		}
-		allAttempts = append(allAttempts, routeIter.Attempts()...)
-	}
-	// All route rounds exhausted
-	recordMediaRelayLog(apiKeyID, requestModel, logEndpointType, bodyBytes, lastChannelID, lastChannelName, lastResolvedModel, time.Since(startTime), allAttempts, lastErr, clientIP)
-	resp.Error(c, http.StatusBadGateway, fmt.Sprintf("all channels failed: %v", lastErr))
-	return
-
-mediaExhausted:
-	// Only reached via goto from within the relay loop (context canceled / max attempts)
-	if routeIter != nil {
-		allAttempts = append(allAttempts, routeIter.Attempts()...)
-	}
-	recordMediaRelayLog(apiKeyID, requestModel, logEndpointType, bodyBytes, lastChannelID, lastChannelName, lastResolvedModel, time.Since(startTime), allAttempts, lastErr, clientIP)
-	if lastErr != nil {
-		resp.Error(c, http.StatusBadGateway, fmt.Sprintf("all channels failed: %v", lastErr))
-	} else {
-		resp.Error(c, http.StatusBadGateway, "all channels failed")
-	}
+				recordMediaRelayLog(apiKeyID, requestModel, logEndpointType, bodyBytes, lastChannelID, lastChannelName, lastResolvedModel, time.Since(startTime), allAttempts, lastErr, clientIP)
+				if lastErr != nil {
+					resp.Error(c, http.StatusBadGateway, fmt.Sprintf("all channels failed: %v", lastErr))
+				} else {
+					resp.Error(c, http.StatusBadGateway, "all channels failed")
+				}
+			},
+			UseFailureHints:          false,
+			UsePrepareCandidateForRetry: false,
+		},
+	)
 }
 
 // recordMediaRelayLog creates a RelayLog entry and updates global stats for media endpoints.

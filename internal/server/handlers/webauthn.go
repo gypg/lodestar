@@ -123,6 +123,7 @@ func webauthnLoginFinish(c *gin.Context) {
 		resp.Error(c, http.StatusInternalServerError, resp.ErrInternalServer)
 		return
 	}
+	middleware.SetJWTCookie(c, token, middleware.JWTExpiryToSeconds(expire))
 	resp.Success(c, model.UserLoginResponse{Token: token, ExpireAt: expire})
 }
 

@@ -24,7 +24,7 @@ export function Color4bgAmbient({ active }: { active: boolean }) {
             if (cancelled || !window.AmbientLightBg) return;
             try {
                 inst.current = new window.AmbientLightBg(el, { resize: true });
-            } catch {
+            } catch (e) { console.error(e);
                 /* keep photo background */
             }
         };

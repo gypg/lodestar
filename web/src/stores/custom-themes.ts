@@ -51,7 +51,7 @@ export function parseCustomThemes(raw: string | undefined | null): ThemePreset[]
   let data: unknown
   try {
     data = JSON.parse(raw)
-  } catch {
+  } catch (e) { console.error(e);
     return []
   }
   if (!Array.isArray(data)) return []

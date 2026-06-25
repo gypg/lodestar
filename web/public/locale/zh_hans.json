@@ -2969,5 +2969,141 @@
         "new": "新建绑定"
       }
     }
+  },
+  "common": {
+    "close": "关闭",
+    "confirm": "确认",
+    "cancel": "取消",
+    "save": "保存",
+    "delete": "删除",
+    "download": "下载",
+    "more": "更多",
+    "copyLatencyUrl": "复制测速地址",
+    "errorBoundary": {
+      "title": "出错了",
+      "retry": "重试"
+    }
+  },
+  "imageStudio": {
+    "selectModel": "选择生图模型",
+    "noKeys": "无可用密钥（请先创建）",
+    "promptPlaceholder": "描述你想要的图像…",
+    "generate": "生成",
+    "generating": "生成中…",
+    "generateFailed": "生成失败（{status}）：{detail}",
+    "noImageReturned": "未返回图片，请检查模型是否支持生图。",
+    "requestError": "请求出错",
+    "loadingHistory": "加载历史…",
+    "emptyHistory": "输入描述并生成 · 使用你自己的密钥与余额",
+    "loadFailed": "加载失败",
+    "loading": "加载…",
+    "downloadAriaLabel": "下载",
+    "deleteAriaLabel": "删除"
+  },
+  "chat": {
+    "newSession": "新对话",
+    "deleteSession": "删除会话",
+    "currentSession": "当前会话（未保存）"
+  },
+  "landing": {
+    "announcement": "站点公告",
+    "models": "模型广场",
+    "usage": "用量概览",
+    "about": "关于 {name}",
+    "close": "关闭",
+    "noAnnouncement": "暂无公告。",
+    "modelCount": "共 {count} 个模型"
+  },
+  "site": {
+    "editSite": "编辑站点",
+    "addSite": "新增站点",
+    "editAccount": "编辑站点账号",
+    "addAccount": "新增站点账号",
+    "moreSiteActions": "更多站点操作",
+    "moreAccountActions": "更多账号操作",
+    "viewSiteChannels": "查看站点渠道",
+    "openSite": "打开站点",
+    "sitePage": "站点页",
+    "sitePageAccount": "站点页账号",
+    "hideFullKey": "隐藏完整 Key",
+    "showFullKey": "显示完整 Key",
+    "closeDialog": "关闭"
+  },
+  "setting": {
+    "email": {
+      "title": "邮件 · SMTP",
+      "description": "配置后可启用注册邮箱验证、发送通知（587 STARTTLS）。",
+      "smtpServer": "SMTP 服务器",
+      "port": "端口",
+      "username": "用户名",
+      "password": "密码 / 授权码",
+      "senderAddress": "发件人地址",
+      "enableSmtp": "启用 SMTP",
+      "emailRequiredTitle": "注册需邮箱验证",
+      "emailRequiredHint": "仅商业模式生效：注册需邮箱收到的验证码。",
+      "emailRequiredAriaLabel": "注册需邮箱验证",
+      "saveButton": "保存邮件设置",
+      "testRecipient": "测试收件邮箱",
+      "sendTestEmail": "发测试邮件",
+      "saved": "邮件设置已保存",
+      "saveFailed": "保存失败",
+      "testSent": "测试邮件已发送",
+      "testFailed": "发送失败（先保存并启用 SMTP）"
+    },
+    "payment": {
+      "title": "在线支付 · 易支付",
+      "description": "填入商户凭据并启用后，用户可在钱包在线充值（支付宝/微信）。",
+      "gatewayUrl": "网关地址",
+      "merchantPid": "商户 PID",
+      "merchantKey": "商户密钥",
+      "exchangeRate": "汇率（每 1 USD 收多少）",
+      "callbackBase": "回调站点基址（公网，用于支付通知/跳回）",
+      "enableEpay": "启用易支付",
+      "saveButton": "保存支付设置",
+      "saved": "支付设置已保存",
+      "saveFailed": "保存失败"
+    },
+    "latency": {
+      "title": "站点连通 / 时延",
+      "testing": "测速中…",
+      "test": "测速",
+      "description": "用当前浏览器访问本站公开探测接口，结果更接近你侧真实链路（非服务器内网）。",
+      "best": "最佳",
+      "average": "平均",
+      "recent": "最近",
+      "failed": "失败"
+    },
+    "usageHeatmap": {
+      "noDailyData": "暂无按日数据（需开启历史日志并有请求记录）。",
+      "ariaLabel": "用量热力图",
+      "tooltip": "{date}: {count} 次"
+    }
+  },
+  "form": {
+    "totpLabel": "两步验证码",
+    "totpPlaceholder": "请输入 6 位验证码或备份码",
+    "emailLabel": "邮箱",
+    "sendCode": "发送验证码",
+    "sending": "发送中",
+    "emailCodeLabel": "验证码",
+    "emailCodePlaceholder": "邮箱收到的 6 位验证码",
+    "inviteCodeLabel": "邀请码",
+    "inviteCodePlaceholder": "请输入邀请码",
+    "registerAndEnter": "注册并进入",
+    "hasAccount": "已有账号？去登录",
+    "noAccount": "没有账号？注册新账号 →",
+    "sendCodeFirst": "请先填写邮箱",
+    "sendFailed": "发送失败",
+    "validation": {
+      "emailRequired": "请输入邮箱地址",
+      "emailInvalid": "邮箱格式不正确",
+      "usernameRequired": "请输入用户名",
+      "usernameFormat": "用户名只能包含字母、数字和下划线，3-20 位",
+      "passwordRequired": "请输入密码",
+      "passwordMinLength": "密码长度至少 6 位"
+    }
+  },
+  "banner": {
+    "closeAnnouncement": "关闭公告"
   }
 }

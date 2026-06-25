@@ -11,6 +11,7 @@ func init() {
 	RegisterAfterAutoMigration(Migration{
 		Version: 5,
 		Up:      addGroupConditionColumn,
+		Down:    stubDown(5),
 	})
 }
 

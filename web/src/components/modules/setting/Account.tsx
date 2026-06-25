@@ -368,7 +368,7 @@ export function SettingAccount() {
                                             const data = await getGitHubAuthURL();
                                             toast.success(t('account.githubBind.bindRedirect'));
                                             window.location.href = data.authorize_url;
-                                        } catch {
+                                        } catch (e) { console.error(e);
                                             toast.error(t('account.githubBind.unbindFailed'));
                                         }
                                     }}

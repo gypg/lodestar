@@ -62,7 +62,7 @@ function HeaderActions({ activeItem }: { activeItem: NavItem }) {
         try {
             await refresh();
             toast.success(t('actions.refreshSuccess'));
-        } catch {
+        } catch (e) { console.error(e);
             toast.error(t('actions.refreshFailed'));
         }
     }, [refresh, t]);
@@ -119,14 +119,14 @@ function useSiteBannerDismiss() {
     useEffect(() => {
         try {
             setDismissed(sessionStorage.getItem(BANNER_DISMISS_KEY) === '1');
-        } catch {
+        } catch (e) { console.error(e);
             setDismissed(false);
         }
     }, []);
     const dismiss = useCallback(() => {
         try {
             sessionStorage.setItem(BANNER_DISMISS_KEY, '1');
-        } catch {
+        } catch (e) { console.error(e);
             /* ignore */
         }
         setDismissed(true);

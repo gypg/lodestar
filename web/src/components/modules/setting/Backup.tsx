@@ -98,9 +98,8 @@ export function SettingBackup() {
             toast.error('Please enter target database path / DSN');
             return;
         }
-        if (!window.confirm(t('backup.migration.confirm'))) {
-            return;
-        }
+        const confirmed = window.confirm(t('backup.migration.confirm'));
+        if (!confirmed) return;
         try {
             await migrateDatabase.mutateAsync(migrationPayload);
             toast.success(t('backup.migration.success')); 

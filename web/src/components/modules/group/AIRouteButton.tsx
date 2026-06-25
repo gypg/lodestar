@@ -59,7 +59,7 @@ function readStoredAIRouteTask(): StoredAIRouteTask | null {
             return null;
         }
         return parsed;
-    } catch {
+    } catch (e) { console.error(e);
         return null;
     }
 }

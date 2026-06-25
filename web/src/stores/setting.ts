@@ -40,7 +40,7 @@ export function normalizeTimeZone(timeZone: string | null | undefined): string {
     try {
         Intl.DateTimeFormat(undefined, { timeZone });
         return timeZone;
-    } catch {
+    } catch (e) { console.error(e);
         return DEFAULT_TIME_ZONE;
     }
 }

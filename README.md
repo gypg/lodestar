@@ -143,7 +143,7 @@ cd web && pnpm dev
 | 变量 | 说明 | 默认值 |
 |---|---|---|
 | `LODESTAR_AUTH_JWT_SECRET` | JWT 签名密钥（**必填**） | 空（重启掉登录） |
-| `LODESTAR_SECURITY_ENCRYPTION_KEY` | 敏感凭据加密密钥（**一次定终身**，有数据后不可改） | 回落到 JWT Secret |
+| `LODESTAR_SECURITY_ENCRYPTION_KEY` | 敏感凭据加密密钥（**一次定终身**，有数据后不可改） | 生成临时随机密钥（重启失效） |
 | `LODESTAR_DATABASE_TYPE` | 数据库类型：`sqlite` / `postgres` / `mysql` | `sqlite` |
 | `LODESTAR_DATABASE_PATH` | 数据库连接串 | `./data/lodestar.db` |
 | `LODESTAR_REDIS_HOST` | Redis 地址（留空跳过，回落内存缓存） | 空 |

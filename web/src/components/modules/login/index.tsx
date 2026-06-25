@@ -29,6 +29,7 @@ type LoginMode = 'user' | 'apikey';
 
 export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
   const t = useTranslations('login')
+  const tf = useTranslations('form')
   const [mode, setMode] = useState<LoginMode>('user')
   const [isRegister, setIsRegister] = useState(false)
   const [inviteCode, setInviteCode] = useState("")
@@ -40,6 +41,7 @@ export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
   const [needsTwoFactor, setNeedsTwoFactor] = useState(false)
   const [apiKey, setApiKey] = useState("")
   const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const isMobile = useIsMobile()
 
   const loginMutation = useLogin()
@@ -60,9 +62,9 @@ export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
   const registerEmailRequired = bootstrapStatus?.register_email_required === true
   const sendCodeMutation = useSendEmailCode()
   const onSendCode = () => {
-    if (!email.trim()) { setError('请先填写邮箱'); return }
+    if (!email.trim()) { setError(tf('sendCodeFirst')); return }
     sendCodeMutation.mutate(email.trim(), {
-      onError: (e) => setError(e instanceof Error ? e.message : '发送失败'),
+      onError: (e) => setError(e instanceof Error ? e.message : tf('sendFailed')),
     })
   }
 
@@ -119,6 +121,31 @@ export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t('error.generic'))
     }
+  }
+
+  // N-37: Real-time field validation
+  const validateField = (field: string, value: string) => {
+    setFieldErrors((prev) => {
+      const next = { ...prev }
+      switch (field) {
+        case 'email':
+          if (!value.trim()) next.email = tf('validation.emailRequired')
+          else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) next.email = tf('validation.emailInvalid')
+          else delete next.email
+          break
+        case 'username':
+          if (!value.trim()) next.username = tf('validation.usernameRequired')
+          else if (!/^[a-zA-Z0-9_]{3,20}$/.test(value)) next.username = tf('validation.usernameFormat')
+          else delete next.username
+          break
+        case 'password':
+          if (!value) next.password = tf('validation.passwordRequired')
+          else if (value.length < 6) next.password = tf('validation.passwordMinLength')
+          else delete next.password
+          break
+      }
+      return next
+    })
   }
 
   const isPending = loginMutation.isPending || registerMutation.isPending || apiKeyLoginMutation.isPending || passkeyLoginMutation.isPending
@@ -193,6 +220,7 @@ export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
                       placeholder={t('usernamePlaceholder')}
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
+                      onBlur={() => isRegister && validateField('username', username)}
                       className="h-12 rounded-xl bg-card border-border/30"
                       autoComplete="username"
                       autoCapitalize="none"
@@ -201,6 +229,7 @@ export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
                       required={mode === 'user'}
                       disabled={isPending}
                     />
+                    {fieldErrors.username && <span className="text-[11px] text-destructive ml-1">{fieldErrors.username}</span>}
                   </Field>
                   <Field>
                     <FieldLabel className="text-xs font-semibold text-muted-foreground/70 ml-1" htmlFor="password">{t('password')}</FieldLabel>
@@ -210,19 +239,21 @@ export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
                       placeholder={t('passwordPlaceholder')}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
+                      onBlur={() => isRegister && validateField('password', password)}
                       className="h-12 rounded-xl bg-card border-border/30"
                       autoComplete="current-password"
                       required={mode === 'user'}
                       disabled={isPending}
                     />
+                    {fieldErrors.password && <span className="text-[11px] text-destructive ml-1">{fieldErrors.password}</span>}
                   </Field>
                   {needsTwoFactor && !isRegister && (
                     <Field>
-                      <FieldLabel className="text-xs font-semibold text-muted-foreground/70 ml-1" htmlFor="totp">两步验证码</FieldLabel>
+                      <FieldLabel className="text-xs font-semibold text-muted-foreground/70 ml-1" htmlFor="totp">{tf('totpLabel')}</FieldLabel>
                       <Input
                         id="totp"
                         type="text"
-                        placeholder="请输入 6 位验证码或备份码"
+                        placeholder={tf('totpPlaceholder')}
                         value={totpCode}
                         onChange={(e) => setTotpCode(e.target.value)}
                         className="h-12 rounded-xl bg-card border-border/30"
@@ -238,7 +269,7 @@ export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
                   {isRegister && registerEmailRequired && (
                     <>
                     <Field>
-                      <FieldLabel className="text-xs font-semibold text-muted-foreground/70 ml-1" htmlFor="email">邮箱</FieldLabel>
+                      <FieldLabel className="text-xs font-semibold text-muted-foreground/70 ml-1" htmlFor="email">{tf('emailLabel')}</FieldLabel>
                       <div className="flex gap-2">
                         <Input
                           id="email"
@@ -246,6 +277,7 @@ export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
                           placeholder="your@email.com"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
+                          onBlur={() => validateField('email', email)}
                           className="h-12 rounded-xl bg-card border-border/30"
                           autoCapitalize="none"
                           autoCorrect="off"
@@ -259,16 +291,17 @@ export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
                           disabled={sendCodeMutation.isPending || !email.trim()}
                           className="h-12 shrink-0 rounded-xl"
                         >
-                          {sendCodeMutation.isPending ? '发送中' : '发送验证码'}
+                          {sendCodeMutation.isPending ? tf('sending') : tf('sendCode')}
                         </Button>
                       </div>
+                      {fieldErrors.email && <span className="text-[11px] text-destructive ml-1">{fieldErrors.email}</span>}
                     </Field>
                     <Field>
-                      <FieldLabel className="text-xs font-semibold text-muted-foreground/70 ml-1" htmlFor="emailcode">验证码</FieldLabel>
+                      <FieldLabel className="text-xs font-semibold text-muted-foreground/70 ml-1" htmlFor="emailcode">{tf('emailCodeLabel')}</FieldLabel>
                       <Input
                         id="emailcode"
                         type="text"
-                        placeholder="邮箱收到的 6 位验证码"
+                        placeholder={tf('emailCodePlaceholder')}
                         value={emailCode}
                         onChange={(e) => setEmailCode(e.target.value)}
                         className="h-12 rounded-xl bg-card border-border/30"
@@ -282,11 +315,11 @@ export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
                   )}
                   {isRegister && registerInviteRequired && (
                     <Field>
-                      <FieldLabel className="text-xs font-semibold text-muted-foreground/70 ml-1" htmlFor="invite">邀请码</FieldLabel>
+                      <FieldLabel className="text-xs font-semibold text-muted-foreground/70 ml-1" htmlFor="invite">{tf('inviteCodeLabel')}</FieldLabel>
                       <Input
                         id="invite"
                         type="text"
-                        placeholder="请输入邀请码"
+                        placeholder={tf('inviteCodePlaceholder')}
                         value={inviteCode}
                         onChange={(e) => setInviteCode(e.target.value)}
                         className="h-12 rounded-xl bg-card border-border/30"
@@ -303,7 +336,7 @@ export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
                       onClick={() => { setIsRegister((v) => !v); setError(null) }}
                       className="ml-1 self-start text-xs text-muted-foreground transition-colors hover:text-foreground"
                     >
-                      {isRegister ? '已有账号？去登录' : '没有账号？注册新账号 →'}
+                      {isRegister ? tf('hasAccount') : tf('noAccount')}
                     </button>
                   )}
                 </TabsContent>
@@ -345,7 +378,7 @@ export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
                 disabled={isPending}
                 className="w-full h-12 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-all active:scale-[0.98]"
               >
-                {isPending ? t('button.loading') : (mode === 'user' && isRegister ? '注册并进入' : t('button.submit'))}
+                {isPending ? t('button.loading') : (mode === 'user' && isRegister ? tf('registerAndEnter') : t('button.submit'))}
               </Button>
 
               {passkeyAvailable && (

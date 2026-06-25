@@ -128,7 +128,7 @@ export function parseNavOrder(value: string | null | undefined): NavItem[] {
     try {
         const parsed = JSON.parse(value);
         return normalizeNavOrder(parsed);
-    } catch {
+    } catch (e) { console.error(e);
         return [...DEFAULT_NAV_ORDER];
     }
 }
@@ -139,7 +139,7 @@ export function parseNavVisible(value: string | null | undefined, orderedItems?:
     try {
         const parsed = JSON.parse(value);
         return normalizeVisibleNavItems(parsed, ordered);
-    } catch {
+    } catch (e) { console.error(e);
         return normalizeVisibleNavItems(DEFAULT_NAV_ORDER, ordered);
     }
 }

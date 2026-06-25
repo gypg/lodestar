@@ -11,6 +11,7 @@ func init() {
 	RegisterAfterAutoMigration(Migration{
 		Version: 16,
 		Up:      migrateSiteNameRebrand,
+		Down:    stubDown(16),
 	})
 }
 
