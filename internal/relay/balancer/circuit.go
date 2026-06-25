@@ -168,10 +168,9 @@ func RecordFailure(channelID, keyID int, modelName string) {
 	entry.mu.Lock()
 	defer entry.mu.Unlock()
 
-	entry.LastFailureTime = time.Now()
-
 	switch entry.State {
 	case StateClosed:
+		entry.LastFailureTime = time.Now()
 		entry.ConsecutiveFailures++
 		threshold := getThreshold()
 		if entry.ConsecutiveFailures >= threshold {
@@ -183,6 +182,7 @@ func RecordFailure(channelID, keyID int, modelName string) {
 
 	case StateHalfOpen:
 		// 试探失败，重新进入 Open 状态，TripCount 递增（冷却时间翻倍）
+		entry.LastFailureTime = time.Now()
 		entry.State = StateOpen
 		entry.TripCount++
 		entry.ConsecutiveFailures = 0 // 重新开始计数
@@ -190,8 +190,8 @@ func RecordFailure(channelID, keyID int, modelName string) {
 			key, entry.TripCount, GetCooldown(entry.TripCount))
 
 	case StateOpen:
-		// 理论上不应该在 Open 状态下接收到失败记录（请求应被拒绝），
-		// 但为安全起见仍更新失败时间
+		// Open 状态下不更新 LastFailureTime，避免冷却计时器被反复重置
+		// 导致熔断器无法转为 HalfOpen。
 	}
 }
 
