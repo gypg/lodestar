@@ -157,6 +157,15 @@ func APIKeyAuth() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
+		// Token 用量上限：累计 Token = 输入 + 输出，超限则拒绝
+		if apiKeyObj.MaxTokens > 0 {
+			usedTokens := statsAPIKey.StatsMetrics.InputToken + statsAPIKey.StatsMetrics.OutputToken
+			if usedTokens >= apiKeyObj.MaxTokens {
+				resp.Error(c, http.StatusUnauthorized, "API key has reached the max token limit")
+				c.Abort()
+				return
+			}
+		}
 		// Lodestar commercial: when commercial_mode is on, the key owner must have
 		// positive balance (no-op for unowned/admin keys or in self-use mode).
 		if !billing.HasBalanceForKey(apiKeyObj.ID, c.Request.Context()) {

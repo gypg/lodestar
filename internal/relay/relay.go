@@ -35,6 +35,7 @@ import (
 
 var errClientDisconnected = errors.New("client disconnected")
 var errResponseFilterBlocked = errors.New("response filter blocked by keyword")
+var errEmptyOutput = errors.New("upstream returned empty output (completion_tokens=0, no content)")
 
 func resolveRequestedUpstreamModel(requestModel string) (string, bool) {
 	trimmed := strings.TrimSpace(requestModel)
@@ -381,6 +382,12 @@ func Handler(endpointType string, inboundType inbound.InboundType, c *gin.Contex
 					}
 					if resp := cloneInternalResponse(outcome.internalResp); resp != nil {
 						metrics.SetInternalResponse(resp, outcome.actualModel)
+						// singleflight follower: write response body so client gets data instead of empty 200
+						if inResponse, terr := req.inAdapter.TransformResponse(req.clientCtx, resp); terr == nil && len(inResponse) > 0 {
+							req.c.Data(http.StatusOK, "application/json", inResponse)
+						} else if terr != nil {
+							logRelayErrorfByContext(terr, "shared caller transform response: %v", terr)
+						}
 					}
 					metrics.Save(true, nil, outcome.attempts)
 					return
@@ -424,6 +431,17 @@ func (ra *relayAttempt) attempt() attemptResult {
 			Written:  ra.c.Writer.Written(),
 			Err:      fwdErr,
 			Decision: RetryDecision{Scope: ScopeAbortAll, Reason: "response filter blocked by keyword", Code: statusCode},
+		}
+	}
+
+	// 空输出重试：上游返回 200 但输出为空，换 Key 重试，不记录渠道失败统计
+	if errors.Is(fwdErr, errEmptyOutput) {
+		span.End(dbmodel.AttemptFailed, statusCode, "empty output, retrying")
+		return attemptResult{
+			Success:  false,
+			Written:  false,
+			Err:      fwdErr,
+			Decision: RetryDecision{Scope: ScopeSameChannel, Reason: "empty output, try another key", Code: statusCode, IsError: true},
 		}
 	}
 
@@ -587,12 +605,12 @@ func (ra *relayAttempt) forward() (int, error) {
 	// 处理响应
 	if ra.internalRequest.Stream != nil && *ra.internalRequest.Stream {
 		if err := ra.handleStreamResponse(ctx, response); err != nil {
-			return 0, err
+			return response.StatusCode, err
 		}
 		return response.StatusCode, nil
 	}
 	if err := ra.handleResponse(ctx, response); err != nil {
-		return 0, err
+		return response.StatusCode, err
 	}
 	return response.StatusCode, nil
 }
@@ -866,6 +884,18 @@ func (ra *relayAttempt) handleStreamResponse(ctx context.Context, response *http
 			ra.c.Writer.Flush()
 		}
 	}
+
+	// 空流检测：整个流式响应没有产生任何有效数据（firstToken 仍为 true），
+	// 说明上游返回了空 SSE 流。客户端尚未收到任何数据，可以安全重试。
+	if isRetryEmptyOutputEnabled() && firstToken {
+		log.Infof("channel %s returned empty stream (no data chunks), will retry", ra.channel.Name)
+		if ra.streamSession != nil {
+			ra.streamSession.Finish(nil)
+		}
+		return errEmptyOutput
+	}
+
+	return nil
 }
 
 // transformStreamData 转换流式数据
@@ -921,6 +951,12 @@ func (ra *relayAttempt) handleResponse(ctx context.Context, response *http.Respo
 	}
 
 	applyReasoningExhaustedHeader(ra.c, internalResponse)
+
+	// 空输出检测：上游返回 200 但 CompletionTokens=0 且内容为空，换 Key 重试。
+	if isRetryEmptyOutputEnabled() && isEmptyOutputResponse(internalResponse) {
+		log.Infof("channel %s returned empty output (completion_tokens=0, no content), will retry", ra.channel.Name)
+		return errEmptyOutput
+	}
 
 	inResponse, err := ra.inAdapter.TransformResponse(ctx, internalResponse)
 	if err != nil {

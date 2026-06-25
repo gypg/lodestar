@@ -93,27 +93,28 @@ func findMatchedKeyword(text string, keywords []string) string {
 }
 
 // replaceKeywordsInText replaces all occurrences of keywords in the text with asterisks.
+// Uses strings.EqualFold for case-insensitive matching to correctly handle
+// Unicode characters whose lowercase form has a different byte length (e.g. ß→ss).
 func replaceKeywordsInText(text string, keywords []string) string {
 	result := text
 	for _, kw := range keywords {
 		if kw == "" {
 			continue
 		}
-		// Case-insensitive replacement
 		mask := strings.Repeat("*", utf8.RuneCountInString(kw))
-		lower := strings.ToLower(result)
-		lowerKw := strings.ToLower(kw)
+		kwRunes := []rune(kw)
+		kwLen := len(kwRunes)
 		var buf strings.Builder
-		start := 0
-		for {
-			idx := strings.Index(lower[start:], lowerKw)
-			if idx < 0 {
-				buf.WriteString(result[start:])
-				break
+		textRunes := []rune(result)
+		i := 0
+		for i < len(textRunes) {
+			if i+kwLen <= len(textRunes) && strings.EqualFold(string(textRunes[i:i+kwLen]), kw) {
+				buf.WriteString(mask)
+				i += kwLen
+			} else {
+				buf.WriteRune(textRunes[i])
+				i++
 			}
-			buf.WriteString(result[start : start+idx])
-			buf.WriteString(mask)
-			start += idx + len(kw)
 		}
 		result = buf.String()
 	}

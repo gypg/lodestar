@@ -226,6 +226,7 @@ type apiKeyRequestPayload struct {
 	Enabled           bool    `json:"enabled"`
 	ExpireAt          int64   `json:"expire_at,omitempty"`
 	MaxCost           float64 `json:"max_cost,omitempty"`
+	MaxTokens         int64   `json:"max_tokens,omitempty"`
 	SupportedModels   string  `json:"supported_models,omitempty"`
 	RateLimitRPM      int     `json:"rate_limit_rpm,omitempty"`
 	RateLimitTPM      int     `json:"rate_limit_tpm,omitempty"`
@@ -243,6 +244,7 @@ func (p apiKeyRequestPayload) toModel() model.APIKey {
 		Enabled:           p.Enabled,
 		ExpireAt:          p.ExpireAt,
 		MaxCost:           p.MaxCost,
+		MaxTokens:         p.MaxTokens,
 		SupportedModels:   p.SupportedModels,
 		RateLimitRPM:      p.RateLimitRPM,
 		RateLimitTPM:      p.RateLimitTPM,

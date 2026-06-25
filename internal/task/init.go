@@ -7,6 +7,7 @@ import (
 	"github.com/gypg/lodestar/internal/db"
 	"github.com/gypg/lodestar/internal/model"
 	"github.com/gypg/lodestar/internal/op/backup"
+	"github.com/gypg/lodestar/internal/op/ratelimitstore"
 	"github.com/gypg/lodestar/internal/op/relaylog"
 	"github.com/gypg/lodestar/internal/op/remotesite"
 	"github.com/gypg/lodestar/internal/op/setting"
@@ -97,6 +98,11 @@ func Init() {
 		balancer.PurgeIdleEntries(balancerIdleThreshold)
 		balancer.PurgeIdleStats(balancerIdleThreshold)
 		balancer.PurgeIdleSessions(balancerIdleThreshold)
+
+		// 清理限流 bucket 全局 map，防止刷量/随机 model 名导致无界增长
+		if n := ratelimitstore.PurgeStaleBuckets(balancerIdleThreshold); n > 0 {
+			log.Infof("purged %d stale ratelimit buckets", n)
+		}
 
 		if db.IsSQLite() {
 			db.EnqueueWrite(db.WriteJob{Name: "relay_log_save", Fn: func(_ context.Context) error {

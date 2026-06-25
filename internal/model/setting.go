@@ -118,6 +118,7 @@ const (
 	SettingKeyImageBedEnabled                       SettingKey = "image_bed_enabled"                        // 图床上传开关
 	SettingKeyImageBedEndpoint                      SettingKey = "image_bed_endpoint"                       // 图床上传 API 地址
 	SettingKeyImageBedToken                         SettingKey = "image_bed_token"                          // 图床 API Token
+	SettingKeyRetryEmptyOutput                      SettingKey = "retry_empty_output"                       // 空输出自动重试: 上游返回 200 但内容为空时自动换 Key 重试
 )
 
 type Setting struct {
