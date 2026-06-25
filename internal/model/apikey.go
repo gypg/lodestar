@@ -8,6 +8,7 @@ type APIKey struct {
 	Enabled           bool    `json:"enabled" gorm:"default:true"`
 	ExpireAt          int64   `json:"expire_at,omitempty"`
 	MaxCost           float64 `json:"max_cost,omitempty"`
+	MaxTokens         int64   `json:"max_tokens,omitempty" gorm:"default:0"` // Token 用量上限（0=不限制）
 	SupportedModels   string  `json:"supported_models,omitempty"`
 	RateLimitRPM      int     `json:"rate_limit_rpm,omitempty" gorm:"default:0"`
 	RateLimitTPM      int     `json:"rate_limit_tpm,omitempty" gorm:"default:0"`

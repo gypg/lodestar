@@ -76,6 +76,45 @@ func getMaxTotalAttempts() int {
 	return v
 }
 
+// isRetryEmptyOutputEnabled 返回是否启用空输出重试。
+// 当上游返回 200 但 CompletionTokens=0 且内容为空时，自动触发重试。
+func isRetryEmptyOutputEnabled() bool {
+	v, err := setting.GetBool(dbmodel.SettingKeyRetryEmptyOutput)
+	if err != nil {
+		return true // 默认启用
+	}
+	return v
+}
+
+// isEmptyOutputResponse 判断非流式响应是否为"空输出"：
+// CompletionTokens=0 且所有 Choices 的内容均为空（无文本、无工具调用、无多模态内容）。
+func isEmptyOutputResponse(resp *model.InternalLLMResponse) bool {
+	if resp == nil {
+		return false
+	}
+	if len(resp.Choices) == 0 {
+		return false
+	}
+	if resp.Usage != nil && resp.Usage.CompletionTokens > 0 {
+		return false
+	}
+	for _, choice := range resp.Choices {
+		if choice.Message == nil {
+			continue
+		}
+		if choice.Message.Content.Content != nil && strings.TrimSpace(*choice.Message.Content.Content) != "" {
+			return false
+		}
+		if len(choice.Message.Content.MultipleContent) > 0 {
+			return false
+		}
+		if len(choice.Message.ToolCalls) > 0 {
+			return false
+		}
+	}
+	return true
+}
+
 // hopByHopHeaders 定义不应转发的 HTTP 头
 var hopByHopHeaders = map[string]bool{
 	"authorization":       true,

@@ -81,3 +81,11 @@ func (tb *TokenBucket) ResetAt() time.Time {
 	}
 	return tb.lastUpdate.Add(time.Duration(tb.burst/tb.rate) * time.Second)
 }
+
+// LastUpdate returns the time of the last token consumption or creation.
+// Used by PurgeStaleBuckets to identify idle buckets for cleanup.
+func (tb *TokenBucket) LastUpdate() time.Time {
+	tb.mu.Lock()
+	defer tb.mu.Unlock()
+	return tb.lastUpdate
+}
