@@ -39,10 +39,6 @@ func Start() error {
 	if conf.IsDebug() {
 		r.Use(middleware.Logger())
 	}
-	// Gzip middleware disabled: Cloudflare tunnel handles edge compression.
-	// Server-side gzip caused Service Worker to cache corrupted (empty) JS bundles,
-	// resulting in an infinite loading spinner. Re-enable only if deploying without CF.
-	// r.Use(middleware.Gzip())
 	r.Use(middleware.SecurityHeaders())
 	r.Use(middleware.Cors())
 	r.Use(middleware.MaintenanceGuard())
