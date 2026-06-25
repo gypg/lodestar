@@ -11,6 +11,7 @@ import (
 	"github.com/gypg/lodestar/internal/server/middleware"
 	"github.com/gypg/lodestar/internal/server/resp"
 	"github.com/gypg/lodestar/internal/server/router"
+	"github.com/gypg/lodestar/internal/utils/log"
 )
 
 func init() {
@@ -134,7 +135,8 @@ func syncUsageHistory(c *gin.Context) {
 
 	n, err := remotesite.SyncUsageHistory(c.Request.Context(), siteID)
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		log.Errorf("syncUsageHistory failed (site=%d): %v", siteID, err)
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, gin.H{"inserted": n})

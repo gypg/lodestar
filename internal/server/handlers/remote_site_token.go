@@ -14,6 +14,7 @@ import (
 	"github.com/gypg/lodestar/internal/server/middleware"
 	"github.com/gypg/lodestar/internal/server/resp"
 	"github.com/gypg/lodestar/internal/server/router"
+	"github.com/gypg/lodestar/internal/utils/log"
 )
 
 func init() {
@@ -64,7 +65,8 @@ func syncTokens(c *gin.Context) {
 	}
 	count, err := remotesite.SyncTokens(c.Request.Context(), siteID)
 	if err != nil {
-		resp.Error(c, http.StatusBadGateway, err.Error())
+		log.Errorf("syncTokens failed (site=%d): %v", siteID, err)
+		resp.Error(c, http.StatusBadGateway, "Failed to sync tokens from remote site")
 		return
 	}
 	resp.Success(c, gin.H{"synced": count})
@@ -78,7 +80,8 @@ func syncToChannel(c *gin.Context) {
 	}
 	ch, err := remotesite.SyncToChannel(c.Request.Context(), &req)
 	if err != nil {
-		resp.Error(c, http.StatusBadRequest, err.Error())
+		log.Errorf("syncToChannel failed: %v", err)
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, ch)

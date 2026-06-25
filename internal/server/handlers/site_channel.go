@@ -16,6 +16,7 @@ import (
 	"github.com/gypg/lodestar/internal/server/resp"
 	"github.com/gypg/lodestar/internal/server/router"
 	sitesvc "github.com/gypg/lodestar/internal/site"
+	"github.com/gypg/lodestar/internal/utils/log"
 )
 
 func init() {
@@ -48,7 +49,8 @@ func listSiteChannel(c *gin.Context) {
 	}
 	data, err := op.SiteChannelListWithOptions(c.Request.Context(), op.SiteChannelListOptions{IncludeHistory: includeHistory})
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		log.Errorf("listSiteChannel failed: %v", err)
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, data)
@@ -62,7 +64,8 @@ func getSiteChannel(c *gin.Context) {
 	}
 	data, err := op.SiteChannelGet(siteID, c.Request.Context())
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		log.Errorf("getSiteChannel failed (siteId=%d): %v", siteID, err)
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, data)
@@ -75,7 +78,8 @@ func getSiteChannelAccount(c *gin.Context) {
 	}
 	data, err := op.SiteChannelAccountGet(siteID, accountID, c.Request.Context())
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		log.Errorf("getSiteChannelAccount failed (site=%d account=%d): %v", siteID, accountID, err)
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, data)
@@ -88,7 +92,8 @@ func getSiteChannelModelHistory(c *gin.Context) {
 	}
 	data, err := op.SiteChannelModelHistory(siteID, accountID, c.Request.Context())
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		log.Errorf("getSiteChannelModelHistory failed (site=%d account=%d): %v", siteID, accountID, err)
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, data)
@@ -110,7 +115,8 @@ func createSiteChannelKey(c *gin.Context) {
 	}
 	data, err := op.SiteChannelAccountGet(siteID, accountID, c.Request.Context())
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		log.Errorf("siteChannel: re-fetch account failed (site=%d account=%d): %v", siteID, accountID, err)
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, data)
@@ -136,7 +142,8 @@ func updateSiteSourceKeys(c *gin.Context) {
 	}
 	data, err := op.SiteChannelAccountGet(siteID, accountID, c.Request.Context())
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		log.Errorf("updateSiteSourceKeys: re-fetch account failed (site=%d account=%d): %v", siteID, accountID, err)
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, data)
@@ -163,7 +170,8 @@ func updateSiteGroupProjection(c *gin.Context) {
 	}
 	data, err := op.SiteChannelAccountGet(siteID, accountID, c.Request.Context())
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		log.Errorf("updateSiteGroupProjection: re-fetch account failed (site=%d account=%d): %v", siteID, accountID, err)
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, data)
@@ -191,7 +199,8 @@ func updateSiteChannelModelRoutes(c *gin.Context) {
 	}
 	data, err := op.SiteChannelAccountGet(siteID, accountID, c.Request.Context())
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		log.Errorf("updateSiteChannelModelRoutes: re-fetch account failed (site=%d account=%d): %v", siteID, accountID, err)
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, data)
@@ -219,7 +228,8 @@ func updateSiteChannelModelDisabled(c *gin.Context) {
 	}
 	data, err := op.SiteChannelAccountGet(siteID, accountID, c.Request.Context())
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		log.Errorf("updateSiteChannelModelDisabled: re-fetch account failed (site=%d account=%d): %v", siteID, accountID, err)
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, data)
@@ -242,7 +252,8 @@ func updateSiteProjectedChannelSettings(c *gin.Context) {
 	}
 	data, err := op.SiteChannelAccountGet(siteID, accountID, c.Request.Context())
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		log.Errorf("updateSiteProjectedChannelSettings: re-fetch account failed (site=%d account=%d): %v", siteID, accountID, err)
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, data)
@@ -269,7 +280,8 @@ func addSiteManualModels(c *gin.Context) {
 	}
 	data, err := op.SiteChannelAccountGet(siteID, accountID, c.Request.Context())
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		log.Errorf("addSiteManualModels: re-fetch account failed (site=%d account=%d): %v", siteID, accountID, err)
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, data)
@@ -296,7 +308,8 @@ func deleteSiteManualModel(c *gin.Context) {
 	}
 	data, err := op.SiteChannelAccountGet(siteID, accountID, c.Request.Context())
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		log.Errorf("deleteSiteManualModel: re-fetch account failed (site=%d account=%d): %v", siteID, accountID, err)
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, data)
@@ -317,7 +330,8 @@ func resetSiteChannelModelRoutes(c *gin.Context) {
 	}
 	data, err := op.SiteChannelAccountGet(siteID, accountID, c.Request.Context())
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		log.Errorf("resetSiteChannelModelRoutes: re-fetch account failed (site=%d account=%d): %v", siteID, accountID, err)
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, data)

@@ -80,7 +80,8 @@ func init() {
 func listSite(c *gin.Context) {
 	sites, err := op.SiteList(c.Request.Context())
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		log.Errorf("listSite failed: %v", err)
+		resp.InternalError(c)
 		return
 	}
 	// Mask account credentials for ALL roles — the edit dialog fetches the
@@ -163,7 +164,8 @@ func createSite(c *gin.Context) {
 		return
 	}
 	if err := op.SiteCreate(&site, c.Request.Context()); err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		log.Errorf("createSite failed: %v", err)
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, site)
@@ -177,7 +179,8 @@ func updateSite(c *gin.Context) {
 	}
 	site, err := op.SiteUpdate(&req, c.Request.Context())
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		log.Errorf("updateSite failed: %v", err)
+		resp.InternalError(c)
 		return
 	}
 	siteID := site.ID
@@ -201,7 +204,8 @@ func enableSite(c *gin.Context) {
 		return
 	}
 	if err := op.SiteEnabled(request.ID, request.Enabled, c.Request.Context()); err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		log.Errorf("enableSite failed (id=%d): %v", request.ID, err)
+		resp.InternalError(c)
 		return
 	}
 	siteID := request.ID
@@ -222,7 +226,8 @@ func deleteSite(c *gin.Context) {
 		return
 	}
 	if err := sitesvc.DeleteSite(c.Request.Context(), idNum); err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		log.Errorf("deleteSite failed (id=%d): %v", idNum, err)
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, nil)
@@ -235,7 +240,8 @@ func archiveSite(c *gin.Context) {
 		return
 	}
 	if err := sitesvc.ArchiveSite(c.Request.Context(), idNum); err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		log.Errorf("archiveSite failed (id=%d): %v", idNum, err)
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, nil)
@@ -248,7 +254,8 @@ func restoreSite(c *gin.Context) {
 		return
 	}
 	if err := sitesvc.RestoreSite(c.Request.Context(), idNum); err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		log.Errorf("restoreSite failed (id=%d): %v", idNum, err)
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, nil)
@@ -257,7 +264,8 @@ func restoreSite(c *gin.Context) {
 func listArchivedSites(c *gin.Context) {
 	sites, err := sitesvc.ListArchivedSites(c.Request.Context())
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		log.Errorf("listArchivedSites failed: %v", err)
+		resp.InternalError(c)
 		return
 	}
 	if isViewerRole(c.GetString("user_role")) {
@@ -277,13 +285,15 @@ func createSiteAccount(c *gin.Context) {
 		return
 	}
 	if err := op.SiteAccountCreate(&account, c.Request.Context()); err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		log.Errorf("createSiteAccount failed: %v", err)
+		resp.InternalError(c)
 		return
 	}
 	refreshAccountRandomCheckinScheduleBestEffort(c.Request.Context(), account.ID)
 	createdAccount, err := op.SiteAccountGet(account.ID, c.Request.Context())
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		log.Errorf("createSiteAccount: re-fetch failed (id=%d): %v", account.ID, err)
+		resp.InternalError(c)
 		return
 	}
 	if account.Enabled && account.AutoSync {
@@ -307,13 +317,15 @@ func updateSiteAccount(c *gin.Context) {
 	}
 	account, err := op.SiteAccountUpdate(&req, c.Request.Context())
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		log.Errorf("updateSiteAccount failed: %v", err)
+		resp.InternalError(c)
 		return
 	}
 	refreshAccountRandomCheckinScheduleBestEffort(c.Request.Context(), account.ID)
 	account, err = op.SiteAccountGet(account.ID, c.Request.Context())
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		log.Errorf("updateSiteAccount: re-fetch failed (id=%d): %v", account.ID, err)
+		resp.InternalError(c)
 		return
 	}
 	accountID := account.ID
@@ -343,7 +355,8 @@ func enableSiteAccount(c *gin.Context) {
 		return
 	}
 	if err := op.SiteAccountEnabled(request.ID, request.Enabled, c.Request.Context()); err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		log.Errorf("enableSiteAccount failed (id=%d): %v", request.ID, err)
+		resp.InternalError(c)
 		return
 	}
 	refreshAccountRandomCheckinScheduleBestEffort(c.Request.Context(), request.ID)
@@ -365,7 +378,8 @@ func deleteSiteAccount(c *gin.Context) {
 		return
 	}
 	if err := sitesvc.DeleteSiteAccount(c.Request.Context(), idNum); err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		log.Errorf("deleteSiteAccount failed (id=%d): %v", idNum, err)
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, nil)
@@ -430,7 +444,8 @@ func detectSitePlatform(c *gin.Context) {
 	defer cancel()
 	platform, err := sitesvc.DetectPlatform(ctx, request.URL)
 	if err != nil {
-		resp.Error(c, http.StatusBadRequest, err.Error())
+		log.Errorf("detectSitePlatform failed (url=%s): %v", request.URL, err)
+		resp.Error(c, http.StatusBadRequest, "Failed to detect site platform")
 		return
 	}
 	resp.Success(c, gin.H{"platform": platform})
@@ -502,7 +517,8 @@ func getSiteAvailableModels(c *gin.Context) {
 	}
 	models, err := op.SiteAvailableModels(idNum, c.Request.Context())
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		log.Errorf("getSiteAvailableModels failed (id=%d): %v", idNum, err)
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, gin.H{"site_id": idNum, "models": models})

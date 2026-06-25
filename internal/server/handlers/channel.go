@@ -243,7 +243,8 @@ func testChannel(c *gin.Context) {
 	request := payload.toChannel()
 	summary, err := helper.TestChannel(c.Request.Context(), request)
 	if err != nil {
-		resp.Error(c, http.StatusBadRequest, err.Error())
+		log.Errorf("testChannel failed: %v", err)
+		resp.Error(c, http.StatusBadRequest, "Channel test failed")
 		return
 	}
 	resp.Success(c, summary)
@@ -266,12 +267,14 @@ func checkChannelKeys(c *gin.Context) {
 	}
 	channel, err := ch.Get(idNum, c.Request.Context())
 	if err != nil {
-		resp.Error(c, http.StatusNotFound, err.Error())
+		log.Errorf("checkChannelKeys: channel get failed (id=%d): %v", idNum, err)
+		resp.Error(c, http.StatusNotFound, resp.ErrResourceNotFound)
 		return
 	}
 	summary, err := helper.TestChannel(c.Request.Context(), *channel)
 	if err != nil {
-		resp.Error(c, http.StatusBadRequest, err.Error())
+		log.Errorf("checkChannelKeys: test failed (id=%d): %v", idNum, err)
+		resp.Error(c, http.StatusBadRequest, "Channel test failed")
 		return
 	}
 	resp.Success(c, summary)

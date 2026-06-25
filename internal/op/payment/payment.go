@@ -29,6 +29,7 @@ import (
 	"github.com/gypg/lodestar/internal/db"
 	"github.com/gypg/lodestar/internal/model"
 	"github.com/gypg/lodestar/internal/op/setting"
+	"github.com/gypg/lodestar/internal/utils/log"
 
 	"gorm.io/gorm"
 )
@@ -135,7 +136,7 @@ func HandleEpayNotify(params map[string]string, ctx context.Context) bool {
 	if vi.TradeStatus != epay.StatusTradeSuccess {
 		return true // verified signature but not a success event — ack and ignore
 	}
-	_ = db.GetDB().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	if err := db.GetDB().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var order model.PaymentOrder
 		if err := tx.Where("trade_no = ? AND provider = ?", vi.ServiceTradeNo, "epay").First(&order).Error; err != nil {
 			return nil // unknown order — ack to stop retries
@@ -152,7 +153,10 @@ func HandleEpayNotify(params map[string]string, ctx context.Context) bool {
 		return tx.Model(&model.User{}).
 			Where("id = ?", order.UserID).
 			Update("quota", gorm.Expr("quota + ?", order.AmountUSD)).Error
-	})
+	}); err != nil {
+		log.Errorf("epay callback transaction failed for trade %s: %v", vi.ServiceTradeNo, err)
+		return false // tell gateway to retry
+	}
 	return true
 }
 

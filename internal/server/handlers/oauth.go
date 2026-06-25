@@ -13,6 +13,7 @@ import (
 	"github.com/gypg/lodestar/internal/server/middleware"
 	"github.com/gypg/lodestar/internal/server/resp"
 	"github.com/gypg/lodestar/internal/server/router"
+	"github.com/gypg/lodestar/internal/utils/log"
 )
 
 func init() {
@@ -60,7 +61,8 @@ func init() {
 func handleOAuthGitHubState(c *gin.Context) {
 	state, err := oauth.GenerateState(c.Request.Context())
 	if err != nil {
-		resp.Error(c, http.StatusBadRequest, err.Error())
+		log.Errorf("OAuth state generation failed: %v", err)
+		resp.InternalError(c)
 		return
 	}
 
@@ -152,7 +154,8 @@ func handleOAuthGitHubBind(c *gin.Context) {
 
 	ghUser, err := oauth.ExchangeCodeAndUser(c.Request.Context(), req.Code)
 	if err != nil {
-		resp.Error(c, http.StatusBadRequest, err.Error())
+		log.Errorf("OAuth exchange failed: %v", err)
+		resp.Error(c, http.StatusBadRequest, "GitHub authentication failed")
 		return
 	}
 

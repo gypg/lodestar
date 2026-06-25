@@ -220,16 +220,19 @@ func importDB(c *gin.Context) {
 
 	result, err := backup.ImportWithMode(c.Request.Context(), &dump, mode)
 	if err != nil {
-		resp.Error(c, http.StatusBadRequest, err.Error())
+		log.Errorf("importDB failed: %v", err)
+		resp.Error(c, http.StatusBadRequest, "Import failed: invalid or corrupted data")
 		return
 	}
 
 	if err := op.InitCache(); err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		log.Errorf("importDB: cache init failed: %v", err)
+		resp.InternalError(c)
 		return
 	}
 	if err := ops.RefreshSemanticCacheRuntime(); err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		log.Errorf("importDB: semantic cache refresh failed: %v", err)
+		resp.InternalError(c)
 		return
 	}
 
@@ -243,7 +246,8 @@ func testDatabaseConnection(c *gin.Context) {
 		return
 	}
 	if err := dbmigration.TestConnection(c.Request.Context(), req); err != nil {
-		resp.Error(c, http.StatusBadRequest, err.Error())
+		log.Errorf("testDatabaseConnection failed: %v", err)
+		resp.Error(c, http.StatusBadRequest, "Database connection test failed")
 		return
 	}
 	resp.Success(c, true)
@@ -257,7 +261,8 @@ func migrateDatabase(c *gin.Context) {
 	}
 	result, err := dbmigration.Migrate(c.Request.Context(), req)
 	if err != nil {
-		resp.Error(c, http.StatusBadRequest, err.Error())
+		log.Errorf("migrateDatabase failed: %v", err)
+		resp.Error(c, http.StatusBadRequest, "Database migration failed")
 		return
 	}
 	resp.Success(c, result)
@@ -300,7 +305,8 @@ func testImageBedConnection(c *gin.Context) {
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, &buf)
 	if err != nil {
-		resp.Error(c, http.StatusBadRequest, "invalid endpoint URL: "+err.Error())
+		log.Errorf("testImageBedConnection: build request failed: %v", err)
+		resp.Error(c, http.StatusBadRequest, "Invalid endpoint URL")
 		return
 	}
 	req.Header.Set("Content-Type", writer.FormDataContentType())
@@ -310,7 +316,8 @@ func testImageBedConnection(c *gin.Context) {
 
 	httpResp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		resp.Error(c, http.StatusBadGateway, "connection failed: "+err.Error())
+		log.Errorf("testImageBedConnection: request failed: %v", err)
+		resp.Error(c, http.StatusBadGateway, "Connection to image bed failed")
 		return
 	}
 	defer httpResp.Body.Close()

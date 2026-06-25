@@ -176,7 +176,8 @@ func testWebDAVConnection(c *gin.Context) {
 
 	client := backup.NewWebDAVClient(baseURL, username, password)
 	if err := client.Test(); err != nil {
-		resp.Error(c, http.StatusBadRequest, err.Error())
+		log.Errorf("testWebDAVConnection failed: %v", err)
+		resp.Error(c, http.StatusBadRequest, "WebDAV connection test failed")
 		return
 	}
 
@@ -207,13 +208,14 @@ func restoreFromWebDAV(c *gin.Context) {
 
 	cleanFilename, err := sanitizeBackupFilename(req.Filename)
 	if err != nil {
-		resp.Error(c, http.StatusBadRequest, err.Error())
+		resp.Error(c, http.StatusBadRequest, "Invalid backup filename")
 		return
 	}
 
 	result, err := backup.RestoreFromWebDAV(c.Request.Context(), cleanFilename)
 	if err != nil {
-		resp.Error(c, http.StatusBadRequest, err.Error())
+		log.Errorf("restoreFromWebDAV failed: %v", err)
+		resp.Error(c, http.StatusBadRequest, "Restore operation failed")
 		return
 	}
 
@@ -229,7 +231,8 @@ func restoreFromWebDAV(c *gin.Context) {
 func listWebDAVBackups(c *gin.Context) {
 	files, err := backup.ListWebDAVBackups()
 	if err != nil {
-		resp.Error(c, http.StatusBadRequest, err.Error())
+		log.Errorf("listWebDAVBackups failed: %v", err)
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, files)
@@ -244,12 +247,13 @@ func deleteWebDAVBackup(c *gin.Context) {
 
 	cleanFilename, err := sanitizeBackupFilename(filename)
 	if err != nil {
-		resp.Error(c, http.StatusBadRequest, err.Error())
+		resp.Error(c, http.StatusBadRequest, "Invalid backup filename")
 		return
 	}
 
 	if err := backup.DeleteWebDAVBackup(cleanFilename); err != nil {
-		resp.Error(c, http.StatusBadRequest, err.Error())
+		log.Errorf("deleteWebDAVBackup failed: %v", err)
+		resp.InternalError(c)
 		return
 	}
 

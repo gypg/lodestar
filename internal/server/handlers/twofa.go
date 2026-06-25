@@ -10,6 +10,7 @@ import (
 	"github.com/gypg/lodestar/internal/server/middleware"
 	"github.com/gypg/lodestar/internal/server/resp"
 	"github.com/gypg/lodestar/internal/server/router"
+	"github.com/gypg/lodestar/internal/utils/log"
 )
 
 func init() {
@@ -55,7 +56,8 @@ func handle2FASetup(c *gin.Context) {
 	userID := uint(c.GetInt("user_id"))
 	result, err := twofa.Setup(userID)
 	if err != nil {
-		resp.Error(c, http.StatusBadRequest, err.Error())
+		log.Errorf("2FA setup failed (user=%d): %v", userID, err)
+		resp.Error(c, http.StatusBadRequest, "Failed to set up 2FA")
 		return
 	}
 	resp.Success(c, result)
@@ -70,7 +72,8 @@ func handle2FAEnable(c *gin.Context) {
 
 	userID := uint(c.GetInt("user_id"))
 	if err := twofa.Enable(userID, req.Code); err != nil {
-		resp.Error(c, http.StatusBadRequest, err.Error())
+		log.Errorf("2FA enable failed (user=%d): %v", userID, err)
+		resp.Error(c, http.StatusBadRequest, "Invalid verification code")
 		return
 	}
 	resp.Success(c, nil)
@@ -85,11 +88,12 @@ func handle2FADisable(c *gin.Context) {
 
 	userID := uint(c.GetInt("user_id"))
 	if err := twofa.Disable(userID, req.Code); err != nil {
-		status := http.StatusBadRequest
+		log.Errorf("2FA disable failed (user=%d): %v", userID, err)
 		if err == model.ErrTwoFANotEnabled {
-			status = http.StatusNotFound
+			resp.Error(c, http.StatusNotFound, "2FA is not enabled")
+			return
 		}
-		resp.Error(c, status, err.Error())
+		resp.Error(c, http.StatusBadRequest, "Invalid verification code")
 		return
 	}
 	resp.Success(c, nil)
@@ -115,7 +119,8 @@ func handle2FARegenerateBackupCodes(c *gin.Context) {
 	userID := uint(c.GetInt("user_id"))
 	codes, err := twofa.RegenerateBackupCodes(userID, req.Code)
 	if err != nil {
-		resp.Error(c, http.StatusBadRequest, err.Error())
+		log.Errorf("2FA regenerate backup codes failed (user=%d): %v", userID, err)
+		resp.Error(c, http.StatusBadRequest, "Invalid verification code")
 		return
 	}
 	resp.Success(c, gin.H{"backup_codes": codes})
@@ -134,7 +139,8 @@ func handleAdminDisable2FA(c *gin.Context) {
 			resp.Error(c, http.StatusNotFound, "user does not have 2FA enabled")
 			return
 		}
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		log.Errorf("admin disable 2FA failed (target=%d): %v", targetID, err)
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, nil)

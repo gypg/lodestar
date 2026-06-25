@@ -11,6 +11,7 @@ import (
 	"github.com/gypg/lodestar/internal/server/middleware"
 	"github.com/gypg/lodestar/internal/server/resp"
 	"github.com/gypg/lodestar/internal/server/router"
+	"github.com/gypg/lodestar/internal/utils/log"
 )
 
 func init() {
@@ -47,7 +48,8 @@ func redeemCodes(c *gin.Context) {
 
 	result, err := remotesite.RedeemCodes(c.Request.Context(), &req)
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		log.Errorf("redeemCodes failed: %v", err)
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, result)

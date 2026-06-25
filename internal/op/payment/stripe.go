@@ -86,11 +86,14 @@ func StripeConfigured() bool {
 // CreateCheckoutSession creates a Stripe Checkout Session for wallet top-up
 // and records a pending PaymentOrder. Returns the hosted checkout URL.
 //
+// success_url and cancel_url are always generated server-side using the
+// admin-configured payment_callback_base to prevent URL injection attacks.
+//
 // The order is written to the database BEFORE calling the Stripe API so that a
 // Stripe session can never be created without a matching PaymentOrder (which
 // would cause the user's payment to be permanently lost). If the Stripe API
 // call fails, the order is marked "failed" in-place.
-func CreateCheckoutSession(userID uint, amountUSD float64, successURL string, cancelURL string, ctx context.Context) (string, error) {
+func CreateCheckoutSession(userID uint, amountUSD float64, ctx context.Context) (string, error) {
 	if amountUSD <= 0 {
 		return "", ErrInvalidAmount
 	}
@@ -126,12 +129,11 @@ func CreateCheckoutSession(userID uint, amountUSD float64, successURL string, ca
 	stripe.Key = apiKey
 
 	base := strings.TrimRight(strings.TrimSpace(mustSettingStr(model.SettingKeyPaymentCallbackBase)), "/")
-	if successURL == "" {
-		successURL = base + "/wallet"
+	if base == "" {
+		return "", fmt.Errorf("payment callback base URL not configured")
 	}
-	if cancelURL == "" {
-		cancelURL = base + "/wallet"
-	}
+	successURL := base + "/wallet?stripe=success"
+	cancelURL := base + "/wallet?stripe=cancel"
 
 	// Stripe expects amount in smallest currency unit (cents for USD).
 	// Use math.Round to avoid floating-point imprecision (e.g. 19.99*100 = 1998.999...).

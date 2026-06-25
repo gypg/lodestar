@@ -10,6 +10,7 @@ import (
 	"github.com/gypg/lodestar/internal/server/resp"
 	"github.com/gypg/lodestar/internal/server/router"
 	"github.com/gypg/lodestar/internal/update"
+	"github.com/gypg/lodestar/internal/utils/log"
 )
 
 func init() {
@@ -34,7 +35,8 @@ func init() {
 func latest(c *gin.Context) {
 	latestInfo, err := update.GetLatestInfo()
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		log.Errorf("latest update check failed: %v", err)
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, *latestInfo)
@@ -47,7 +49,8 @@ func getNowVersion(c *gin.Context) {
 func updateFunc(c *gin.Context) {
 	err := update.UpdateCore()
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		log.Errorf("updateCore failed: %v", err)
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, "update success")

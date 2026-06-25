@@ -71,12 +71,16 @@ func redactSettingsURLsForViewer(settings []model.Setting) {
 // sensitiveSettingKeys are setting keys whose values must never be returned in
 // full via the list endpoint. Only the set/write endpoint exposes raw values.
 var sensitiveSettingKeys = map[string]struct{}{
-	"epay_key":                            {},
-	"smtp_pass":                           {},
-	"semantic_cache_embedding_api_key":    {},
-	"ai_route_api_key":                    {},
-	"webdav_config":                       {},
-	"image_bed_token":                     {},
+	"epay_key":                    {},
+	"smtp_pass":                   {},
+	"semantic_cache_embedding_api_key": {},
+	"ai_route_api_key":            {},
+	"webdav_config":               {},
+	"image_bed_token":             {},
+	"stripe_api_key":              {},
+	"stripe_webhook_secret":       {},
+	"turnstile_secret_key":        {},
+	"github_oauth_client_secret":  {},
 }
 
 // maskSensitiveSettings replaces the values of known-secret setting keys with

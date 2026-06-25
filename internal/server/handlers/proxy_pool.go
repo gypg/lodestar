@@ -10,6 +10,7 @@ import (
 	"github.com/gypg/lodestar/internal/server/middleware"
 	"github.com/gypg/lodestar/internal/server/resp"
 	"github.com/gypg/lodestar/internal/server/router"
+	"github.com/gypg/lodestar/internal/utils/log"
 )
 
 func init() {
@@ -30,7 +31,8 @@ func init() {
 func listProxyConfigurations(c *gin.Context) {
 	items, err := op.ProxyConfigurationList(c.Request.Context())
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		log.Errorf("listProxyConfigurations failed: %v", err)
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, items)
@@ -44,7 +46,8 @@ func listProxyConfigurationReferences(c *gin.Context) {
 	}
 	items, err := op.ProxyConfigurationReferences(idNum, c.Request.Context())
 	if err != nil {
-		resp.Error(c, http.StatusBadRequest, err.Error())
+		log.Errorf("listProxyConfigurationReferences failed (id=%d): %v", idNum, err)
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, items)
@@ -74,7 +77,8 @@ func createProxyConfiguration(c *gin.Context) {
 		Remark:  req.Remark,
 	}
 	if err := op.ProxyConfigurationCreate(&item, c.Request.Context()); err != nil {
-		resp.Error(c, http.StatusBadRequest, err.Error())
+		log.Errorf("createProxyConfiguration failed: %v", err)
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, item)
@@ -88,7 +92,8 @@ func updateProxyConfiguration(c *gin.Context) {
 	}
 	item, err := op.ProxyConfigurationUpdate(&req, c.Request.Context())
 	if err != nil {
-		resp.Error(c, http.StatusBadRequest, err.Error())
+		log.Errorf("updateProxyConfiguration failed: %v", err)
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, item)
@@ -101,7 +106,8 @@ func deleteProxyConfiguration(c *gin.Context) {
 		return
 	}
 	if err := op.ProxyConfigurationDelete(idNum, c.Request.Context()); err != nil {
-		resp.Error(c, http.StatusBadRequest, err.Error())
+		log.Errorf("deleteProxyConfiguration failed (id=%d): %v", idNum, err)
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, nil)
@@ -115,7 +121,8 @@ func testProxyConfiguration(c *gin.Context) {
 	}
 	result, err := op.ProxyConfigurationTest(req, c.Request.Context())
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		log.Errorf("testProxyConfiguration failed: %v", err)
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, result)

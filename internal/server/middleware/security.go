@@ -25,7 +25,7 @@ func buildContentSecurityPolicy(requestOrigin string) string {
 	if origin := normalizeCSPOrigin(requestOrigin); origin != "" {
 		connectSrc = append(connectSrc, origin)
 	}
-	return "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src " + strings.Join(connectSrc, " ") + "; font-src 'self'; object-src 'none'"
+	return "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src " + strings.Join(connectSrc, " ") + "; font-src 'self'; object-src 'none'; report-uri /api/v1/csp-report"
 }
 
 func normalizeCSPOrigin(raw string) string {

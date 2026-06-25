@@ -42,7 +42,7 @@ func init() {
 	// Lodestar: send an email verification code (used when register_email_required).
 	publicUserRoutes.AddRoute(
 		router.NewRoute("/send-email-code", http.MethodPost).
-			Use(middleware.LoginRateLimit()).
+			Use(middleware.EmailCodeRateLimit()).
 			Handle(sendEmailCode),
 	)
 

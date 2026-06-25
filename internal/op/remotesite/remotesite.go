@@ -21,6 +21,7 @@ import (
 	"github.com/gypg/lodestar/internal/model"
 	"github.com/gypg/lodestar/internal/utils/crypto"
 	"github.com/gypg/lodestar/internal/utils/log"
+	"github.com/gypg/lodestar/internal/utils/xurl"
 )
 
 // List returns all remote sites ordered by sort_order, pinned first.
@@ -295,6 +296,9 @@ func RefreshAll(ctx context.Context) (map[int]*hub.RefreshResult, error) {
 // DetectSiteType attempts to determine the site type from the base URL by
 // probing known API endpoints.
 func DetectSiteType(ctx context.Context, baseURL, accessToken string) (string, error) {
+	if err := xurl.AssertSafeURL(baseURL); err != nil {
+		return "", fmt.Errorf("base_url is not allowed: %w", err)
+	}
 	tmpSite := &model.RemoteSite{
 		BaseURL:     baseURL,
 		AuthType:    model.AuthTypeAccessToken,
@@ -339,8 +343,11 @@ func DetectSiteType(ctx context.Context, baseURL, accessToken string) (string, e
 // remote server. A non-404 response indicates the endpoint is present.
 // Used for sapi detection: /api/auth/login exists on sapi but not on New API.
 func sapiEndpointExists(ctx context.Context, baseURL, endpoint string) bool {
-	url := strings.TrimRight(baseURL, "/") + endpoint
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, nil)
+	fullURL := strings.TrimRight(baseURL, "/") + endpoint
+	if err := xurl.AssertSafeURL(fullURL); err != nil {
+		return false
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fullURL, nil)
 	if err != nil {
 		return false
 	}

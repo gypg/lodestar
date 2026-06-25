@@ -43,9 +43,7 @@ func init() {
 
 func stripeTopup(c *gin.Context) {
 	var req struct {
-		Amount    float64 `json:"amount"`
-		SuccessURL string `json:"success_url,omitempty"`
-		CancelURL  string `json:"cancel_url,omitempty"`
+		Amount float64 `json:"amount"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		resp.Error(c, http.StatusBadRequest, resp.ErrInvalidJSON)
@@ -57,7 +55,7 @@ func stripeTopup(c *gin.Context) {
 	}
 
 	uid := uint(c.GetInt("user_id"))
-	payLink, err := payment.CreateCheckoutSession(uid, req.Amount, req.SuccessURL, req.CancelURL, c.Request.Context())
+	payLink, err := payment.CreateCheckoutSession(uid, req.Amount, c.Request.Context())
 	if err != nil {
 		if errors.Is(err, payment.ErrStripeNotConfigured) {
 			resp.Error(c, http.StatusBadRequest, "admin has not configured Stripe")

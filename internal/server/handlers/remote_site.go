@@ -15,6 +15,8 @@ import (
 	"github.com/gypg/lodestar/internal/server/middleware"
 	"github.com/gypg/lodestar/internal/server/resp"
 	"github.com/gypg/lodestar/internal/server/router"
+	"github.com/gypg/lodestar/internal/utils/log"
+	"github.com/gypg/lodestar/internal/utils/xurl"
 )
 
 func init() {
@@ -100,9 +102,14 @@ func createRemoteSite(c *gin.Context) {
 		resp.Error(c, http.StatusBadRequest, resp.ErrInvalidJSON)
 		return
 	}
+	if err := xurl.AssertSafeURL(req.BaseURL); err != nil {
+		resp.Error(c, http.StatusBadRequest, "base_url is not allowed: "+err.Error())
+		return
+	}
 	site, err := remotesite.Create(c.Request.Context(), &req)
 	if err != nil {
-		resp.Error(c, http.StatusBadRequest, err.Error())
+		log.Errorf("createRemoteSite failed: %v", err)
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, site)
@@ -114,9 +121,16 @@ func updateRemoteSite(c *gin.Context) {
 		resp.Error(c, http.StatusBadRequest, resp.ErrInvalidJSON)
 		return
 	}
+	if req.BaseURL != nil {
+		if err := xurl.AssertSafeURL(*req.BaseURL); err != nil {
+			resp.Error(c, http.StatusBadRequest, "base_url is not allowed: "+err.Error())
+			return
+		}
+	}
 	site, err := remotesite.Update(c.Request.Context(), &req)
 	if err != nil {
-		resp.Error(c, http.StatusBadRequest, err.Error())
+		log.Errorf("updateRemoteSite failed: %v", err)
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, site)
@@ -129,7 +143,8 @@ func deleteRemoteSite(c *gin.Context) {
 		return
 	}
 	if err := remotesite.Delete(c.Request.Context(), id); err != nil {
-		resp.Error(c, http.StatusBadRequest, err.Error())
+		log.Errorf("deleteRemoteSite failed (id=%d): %v", id, err)
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, nil)
@@ -143,7 +158,8 @@ func refreshRemoteSite(c *gin.Context) {
 	}
 	result, err := remotesite.Refresh(c.Request.Context(), id)
 	if err != nil {
-		resp.Error(c, http.StatusBadRequest, err.Error())
+		log.Errorf("refreshRemoteSite failed (id=%d): %v", id, err)
+		resp.Error(c, http.StatusBadGateway, "Failed to refresh remote site")
 		return
 	}
 	resp.Success(c, result)
@@ -164,9 +180,14 @@ func detectSiteType(c *gin.Context) {
 		resp.Error(c, http.StatusBadRequest, resp.ErrInvalidJSON)
 		return
 	}
+	if err := xurl.AssertSafeURL(req.BaseURL); err != nil {
+		resp.Error(c, http.StatusBadRequest, "base_url is not allowed: "+err.Error())
+		return
+	}
 	siteType, err := remotesite.DetectSiteType(c.Request.Context(), req.BaseURL, req.AccessToken)
 	if err != nil {
-		resp.Error(c, http.StatusBadRequest, err.Error())
+		log.Errorf("detectSiteType failed (url=%s): %v", req.BaseURL, err)
+		resp.Error(c, http.StatusBadRequest, "Failed to detect site type")
 		return
 	}
 	resp.Success(c, gin.H{"site_type": siteType})
@@ -180,17 +201,20 @@ func fetchRemoteSiteModels(c *gin.Context) {
 	}
 	site, err := remotesite.Get(c.Request.Context(), id)
 	if err != nil {
-		resp.Error(c, http.StatusBadRequest, err.Error())
+		log.Errorf("fetchRemoteSiteModels: get site failed (id=%d): %v", id, err)
+		resp.Error(c, http.StatusNotFound, resp.ErrResourceNotFound)
 		return
 	}
 	adapter, err := hub.Get(site.SiteType)
 	if err != nil {
-		resp.Error(c, http.StatusBadRequest, err.Error())
+		log.Errorf("fetchRemoteSiteModels: unsupported site type %q: %v", site.SiteType, err)
+		resp.Error(c, http.StatusBadRequest, "Unsupported site type")
 		return
 	}
 	models, err := adapter.FetchModels(c.Request.Context(), site)
 	if err != nil {
-		resp.Error(c, http.StatusBadGateway, err.Error())
+		log.Errorf("fetchRemoteSiteModels: fetch failed (id=%d): %v", id, err)
+		resp.Error(c, http.StatusBadGateway, "Failed to fetch models from remote site")
 		return
 	}
 	resp.Success(c, models)
@@ -204,17 +228,20 @@ func fetchRemoteSitePricing(c *gin.Context) {
 	}
 	site, err := remotesite.Get(c.Request.Context(), id)
 	if err != nil {
-		resp.Error(c, http.StatusBadRequest, err.Error())
+		log.Errorf("fetchRemoteSitePricing: get site failed (id=%d): %v", id, err)
+		resp.Error(c, http.StatusNotFound, resp.ErrResourceNotFound)
 		return
 	}
 	adapter, err := hub.Get(site.SiteType)
 	if err != nil {
-		resp.Error(c, http.StatusBadRequest, err.Error())
+		log.Errorf("fetchRemoteSitePricing: unsupported site type %q: %v", site.SiteType, err)
+		resp.Error(c, http.StatusBadRequest, "Unsupported site type")
 		return
 	}
 	pricing, err := adapter.FetchModelPricing(c.Request.Context(), site)
 	if err != nil {
-		resp.Error(c, http.StatusBadGateway, err.Error())
+		log.Errorf("fetchRemoteSitePricing: fetch failed (id=%d): %v", id, err)
+		resp.Error(c, http.StatusBadGateway, "Failed to fetch pricing from remote site")
 		return
 	}
 	resp.Success(c, pricing)
@@ -227,7 +254,8 @@ func listSiteTypes(c *gin.Context) {
 func discoverSites(c *gin.Context) {
 	sites, err := ldoh.DiscoverSites(c.Request.Context())
 	if err != nil {
-		resp.Error(c, http.StatusBadGateway, err.Error())
+		log.Errorf("discoverSites failed: %v", err)
+		resp.Error(c, http.StatusBadGateway, "Failed to discover sites")
 		return
 	}
 	resp.Success(c, sites)

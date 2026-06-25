@@ -52,7 +52,7 @@ type StatsModel struct {
 }
 
 type StatsChannel struct {
-	ChannelID int `json:"channel_id" gorm:"primaryKey"`
+	ChannelID int `json:"channel_id" gorm:"primaryKey;constraint:OnDelete:CASCADE"`
 	StatsMetrics
 }
 

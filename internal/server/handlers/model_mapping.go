@@ -11,6 +11,7 @@ import (
 	"github.com/gypg/lodestar/internal/server/middleware"
 	"github.com/gypg/lodestar/internal/server/resp"
 	"github.com/gypg/lodestar/internal/server/router"
+	"github.com/gypg/lodestar/internal/utils/log"
 )
 
 func init() {
@@ -33,7 +34,8 @@ func init() {
 func listModelMappings(c *gin.Context) {
 	mappings, err := modelmapping.List(c.Request.Context())
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		log.Errorf("listModelMappings failed: %v", err)
+		resp.InternalError(c)
 		return
 	}
 	resp.Success(c, mappings)
@@ -71,7 +73,8 @@ func createModelMapping(c *gin.Context) {
 
 	mapping, err := modelmapping.Create(c.Request.Context(), &req)
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		log.Errorf("createModelMapping failed: %v", err)
+		resp.InternalError(c)
 		return
 	}
 
@@ -102,7 +105,8 @@ func updateModelMapping(c *gin.Context) {
 
 	mapping, err := modelmapping.Update(c.Request.Context(), id, &req)
 	if err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		log.Errorf("updateModelMapping failed (id=%d): %v", id, err)
+		resp.InternalError(c)
 		return
 	}
 
@@ -118,7 +122,8 @@ func deleteModelMapping(c *gin.Context) {
 	}
 
 	if err := modelmapping.Delete(c.Request.Context(), id); err != nil {
-		resp.Error(c, http.StatusInternalServerError, err.Error())
+		log.Errorf("deleteModelMapping failed (id=%d): %v", id, err)
+		resp.InternalError(c)
 		return
 	}
 

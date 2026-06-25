@@ -9,6 +9,7 @@ import (
 	"github.com/gypg/lodestar/internal/db"
 	"github.com/gypg/lodestar/internal/model"
 	"github.com/gypg/lodestar/internal/utils/cache"
+	"github.com/gypg/lodestar/internal/utils/crypto"
 )
 
 var settingCache = cache.New[model.SettingKey, string](16)
@@ -41,7 +42,11 @@ func GetString(key model.SettingKey) (string, error) {
 	if !ok {
 		return "", fmt.Errorf("setting not found")
 	}
-	return setting, nil
+	decrypted, err := crypto.DecryptSettingValue(string(key), setting)
+	if err != nil {
+		return "", fmt.Errorf("failed to decrypt setting %s: %w", key, err)
+	}
+	return decrypted, nil
 }
 
 func SetString(key model.SettingKey, value string) error {
@@ -49,17 +54,28 @@ func SetString(key model.SettingKey, value string) error {
 	if !ok {
 		return fmt.Errorf("setting not found")
 	}
-	if valueCache == value {
+	// Decrypt cached value before comparison so that "same value" checks work
+	// even when the cache holds the encrypted form.
+	decryptedCache, decErr := crypto.DecryptSettingValue(string(key), valueCache)
+	if decErr != nil {
+		return fmt.Errorf("failed to decrypt cached setting %s: %w", key, decErr)
+	}
+	if decryptedCache == value {
 		return nil
 	}
-	result := db.GetDB().Model(&model.Setting{Key: key}).Update("Value", value)
+	// Encrypt sensitive values before persisting.
+	persistValue, encErr := crypto.EncryptSettingValue(string(key), value)
+	if encErr != nil {
+		return fmt.Errorf("failed to encrypt setting %s: %w", key, encErr)
+	}
+	result := db.GetDB().Model(&model.Setting{Key: key}).Update("Value", persistValue)
 	if result.Error != nil {
 		return fmt.Errorf("failed to set setting: %w", result.Error)
 	}
 	if result.RowsAffected == 0 {
 		return fmt.Errorf("failed to set setting, key not found")
 	}
-	settingCache.Set(key, value)
+	settingCache.Set(key, persistValue)
 	generation.Add(1)
 	return nil
 }

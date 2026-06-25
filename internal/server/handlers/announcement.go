@@ -10,6 +10,7 @@ import (
 	"github.com/gypg/lodestar/internal/server/middleware"
 	"github.com/gypg/lodestar/internal/server/resp"
 	"github.com/gypg/lodestar/internal/server/router"
+	"github.com/gypg/lodestar/internal/utils/log"
 )
 
 func init() {
@@ -67,7 +68,8 @@ func refreshAnnouncement(c *gin.Context) {
 		return
 	}
 	if err := remotesite.FetchAndStoreAnnouncement(c.Request.Context(), siteID); err != nil {
-		resp.Error(c, http.StatusBadGateway, err.Error())
+		log.Errorf("refreshAnnouncement failed (site=%d): %v", siteID, err)
+		resp.Error(c, http.StatusBadGateway, "Failed to fetch announcements")
 		return
 	}
 	resp.Success(c, nil)
