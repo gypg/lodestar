@@ -8,7 +8,7 @@ export type SwMessageType = (typeof SW_MESSAGE_TYPE)[keyof typeof SW_MESSAGE_TYP
 
 // Keep in sync with `web/public/sw.js`
 export const LODESTAR_CACHE_PREFIX = 'lodestar-';
-export const LODESTAR_CACHE_VERSION = 'v3';
+export const LODESTAR_CACHE_VERSION = 'v4';
 // Font cache is version-independent and should persist across updates
 export const LODESTAR_FONT_CACHE_NAME = 'lodestar-font';
 
