@@ -11,8 +11,7 @@ import (
 func SecurityHeaders() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Header("X-Content-Type-Options", "nosniff")
-		c.Header("X-Frame-Options", "DENY")
-		c.Header("X-XSS-Protection", "1; mode=block")
+		// X-Frame-Options replaced by CSP frame-ancestors (more capable, W3C standard)
 		c.Header("Referrer-Policy", "strict-origin-when-cross-origin")
 		c.Header("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
 		c.Header("Content-Security-Policy", buildContentSecurityPolicy(c.GetHeader("Origin")))
@@ -25,7 +24,15 @@ func buildContentSecurityPolicy(requestOrigin string) string {
 	if origin := normalizeCSPOrigin(requestOrigin); origin != "" {
 		connectSrc = append(connectSrc, origin)
 	}
-	return "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src " + strings.Join(connectSrc, " ") + "; font-src 'self'; object-src 'none'; report-uri /api/v1/csp-report"
+	return "default-src 'self'; " +
+		"script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com; " +
+		"style-src 'self' 'unsafe-inline'; " +
+		"img-src 'self' data: https:; " +
+		"connect-src " + strings.Join(connectSrc, " ") + "; " +
+		"font-src 'self'; " +
+		"object-src 'none'; " +
+		"frame-ancestors 'self'; " +
+		"report-uri /api/v1/csp-report"
 }
 
 func normalizeCSPOrigin(raw string) string {
