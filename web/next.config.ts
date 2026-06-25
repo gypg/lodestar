@@ -24,7 +24,7 @@ function resolveAppVersion() {
 }
 
 const createNextConfig = (phase: string): NextConfig => ({
-  reactCompiler: true,
+  reactCompiler: false,
   output: "export",
   // Lodestar: type-check & lint run as a separate `pnpm lint` step (per root
   // package.json), so don't fail the production build on them. Keeps `next
