@@ -16,7 +16,7 @@ services:
   lodestar:
     # CI 构建的多阶段镜像（非 root + healthcheck + 前端嵌入二进制）。
     # 弱服务器无需 build，pull 即用。版本钉 sha-<commit> 可回滚，:latest 跟最新 main。
-    image: ghcr.io/gypg/lodestar:sha-5813420
+    image: ghcr.io/gypg/lodestar:sha-31e7fdc
     container_name: lodestar
     restart: unless-stopped
     pull_policy: missing
