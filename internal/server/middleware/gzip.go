@@ -15,10 +15,12 @@ var gzipContentTypes = map[string]struct{}{
 	"application/json":       {},
 	"text/css":               {},
 	"application/javascript": {},
+	"text/javascript":        {},
 	"text/plain":             {},
 	"text/xml":               {},
 	"application/xml":        {},
 	"image/svg+xml":          {},
+	"application/wasm":       {},
 }
 
 // minSize is the minimum response body size (bytes) before compression kicks in.
@@ -87,22 +89,10 @@ func Gzip() gin.HandlerFunc {
 
 		c.Next()
 
-		// After handlers have finished, check whether the Content-Type is
-		// eligible. If not, we need to discard the compressed output and
-		// replay the original. In practice this is rare because the static
-		// middleware and JSON handlers set Content-Type early, but we guard
-		// against edge cases by only finalising the gzip stream when the
-		// Content-Type matches.
-		ct := c.Writer.Header().Get("Content-Type")
-		if !shouldCompress(ct) {
-			// Best-effort: nothing to undo since we streamed already.
-			// For strict correctness we would need a buffer, but the
-			// content-type check here is a safety net — handlers that
-			// produce unexpected types (e.g. binary) are rare and
-			// typically small.
-			return
-		}
-
+		// Always close the gzip writer to flush any remaining data and write the
+		// gzip footer. This ensures the response is always a valid gzip stream,
+		// even if the Content-Type turns out to be ineligible (which is rare
+		// because we already set Content-Encoding: gzip before c.Next()).
 		gz.Close()
 	}
 }
