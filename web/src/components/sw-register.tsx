@@ -12,7 +12,14 @@ export function ServiceWorkerRegister() {
         let hasRefreshed = false;
         const reloadToRoot = () => {
             if (hasRefreshed) return;
+            // Also guard with sessionStorage to survive page reloads
+            // (in-memory hasRefreshed resets on reload).
+            if (sessionStorage.getItem('sw-reloaded')) {
+                sessionStorage.removeItem('sw-reloaded');
+                return;
+            }
             hasRefreshed = true;
+            sessionStorage.setItem('sw-reloaded', '1');
             window.location.assign('/');
         };
 

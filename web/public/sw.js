@@ -7,7 +7,7 @@
  * - Bump CACHE_VERSION when you change caching behavior in this file
  * - FONT cache is version-independent (fonts persist across updates)
  */
-const CACHE_PREFIX = 'octopus';
+const CACHE_PREFIX = 'lodestar';
 const CACHE_VERSION = 'v4';
 const CACHE_NAMES = {
     static: `${CACHE_PREFIX}-static-${CACHE_VERSION}`,
@@ -36,7 +36,8 @@ self.addEventListener('install', (event) => {
             } catch {
                 // ignore
             }
-            await self.skipWaiting();
+            // DO NOT call skipWaiting here. Let the client control activation
+            // via SKIP_WAITING message to prevent infinite reload loops.
         })()
     );
 });
@@ -188,7 +189,7 @@ self.addEventListener('message', (event) => {
 
 // ========= Helpers =========
 function isOctopusCacheName(name) {
-    return name.startsWith(`${CACHE_PREFIX}-`);
+    return name.startsWith(`${CACHE_PREFIX}-`) || name.startsWith('octopus-');
 }
 
 async function deleteOctopusCaches({ keep } = {}) {
