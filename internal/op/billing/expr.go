@@ -21,6 +21,7 @@ import (
 	"github.com/gypg/lodestar/internal/model"
 	"github.com/gypg/lodestar/internal/op/setting"
 	"github.com/gypg/lodestar/internal/pkg/billingexpr"
+	"github.com/gypg/lodestar/internal/utils/log"
 )
 
 var (
@@ -74,6 +75,7 @@ func ComputeExprCost(modelName string, inputTokens, outputTokens int) (float64, 
 	}
 	cost, trace, err := billingexpr.RunExpr(expr, params)
 	if err != nil {
+		log.Warnf("billing expr parse failed, model=%q expr=%q err=%v — falling back to upstream pricing", modelName, expr, err)
 		return 0, "", false
 	}
 	return cost, trace.MatchedTier, true
@@ -87,6 +89,7 @@ func ComputeExprCostFull(modelName string, params billingexpr.TokenParams) (floa
 	}
 	cost, trace, err := billingexpr.RunExpr(expr, params)
 	if err != nil {
+		log.Warnf("billing expr parse failed, model=%q expr=%q err=%v — falling back to upstream pricing", modelName, expr, err)
 		return 0, "", false
 	}
 	return cost, trace.MatchedTier, true

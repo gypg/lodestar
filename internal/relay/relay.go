@@ -1076,6 +1076,12 @@ func executeRelay(req *relayRequest, group dbmodel.Group, requestModel string, m
 		routeIter := balancer.NewIterator(group, req.apiKeyID, requestModel, parseExcludedChannels(req.c.GetString("excluded_channels")))
 		req.iter = routeIter
 
+		// N-08: save the original Model before iterating channels so we can
+		// restore it after each channel attempt. Without this, line 1133
+		// (req.internalRequest.Model = resolvedModelName) mutates the shared
+		// request object, causing subsequent channels to see a stale model.
+		originalModel := req.internalRequest.Model
+
 		for routeIter.Next() {
 			if maxTotalAttempts > 0 && len(allAttempts) >= maxTotalAttempts {
 				lastErr = fmt.Errorf("reached relay max total attempts: %d", maxTotalAttempts)
@@ -1257,6 +1263,9 @@ func executeRelay(req *relayRequest, group dbmodel.Group, requestModel string, m
 					return nil, result.Err
 				}
 			}
+			// N-08: restore original model after each channel iteration so
+			// the next channel sees the clean request object.
+			req.internalRequest.Model = originalModel
 		}
 		allAttempts = append(allAttempts, routeIter.Attempts()...)
 	}

@@ -15,6 +15,18 @@ import (
 	transmodel "github.com/gypg/lodestar/internal/transformer/model"
 )
 
+// resetTestStreamSessionStore 重置全局 relayStreamSessions 和 relayStreamActiveConvs，
+// 以隔离测试间状态。
+func resetTestStreamSessionStore() {
+	relayStreamSessions = relayStreamSessionStore{}
+	for i := range relayStreamSessions.shards {
+		relayStreamSessions.shards[i].byKey = make(map[string]*relayStreamSession)
+	}
+	relayStreamActiveConvs = activeConvsStore{
+		entries: make(map[string]string),
+	}
+}
+
 func TestSplitRelaySSEPayload_SplitsMultipleEvents(t *testing.T) {
 	payload := []byte("data: first\n\n\nevent: update\ndata: second\n\n")
 
@@ -58,10 +70,7 @@ func TestPopulateRelayRequestSessionFields(t *testing.T) {
 }
 
 func TestAcquireRelayStreamSession_AllowsReconnectAndBlocksConcurrentDifferentRequest(t *testing.T) {
-	relayStreamSessions = relayStreamSessionStore{
-		byKey:                make(map[string]*relayStreamSession),
-		activeByConversation: make(map[string]string),
-	}
+	resetTestStreamSessionStore()
 
 	session, created, err := acquireRelayStreamSession("conv-1", 1, 1)
 	if err != nil {
@@ -95,10 +104,7 @@ func TestAcquireRelayStreamSession_AllowsReconnectAndBlocksConcurrentDifferentRe
 }
 
 func TestAcquireRelayStreamSession_AllowsSameConversationAcrossAPIKeys(t *testing.T) {
-	relayStreamSessions = relayStreamSessionStore{
-		byKey:                make(map[string]*relayStreamSession),
-		activeByConversation: make(map[string]string),
-	}
+	resetTestStreamSessionStore()
 
 	first, created, err := acquireRelayStreamSession("conv-1", 1, 1)
 	if err != nil || !created || first == nil {
@@ -195,10 +201,7 @@ func TestRelayStreamSessionSnapshotReportsReplayWindowExpiredWhenTrimmed(t *test
 		overrideStreamSessionMaxBytes = nil
 	}()
 
-	relayStreamSessions = relayStreamSessionStore{
-		byKey:                make(map[string]*relayStreamSession),
-		activeByConversation: make(map[string]string),
-	}
+	resetTestStreamSessionStore()
 
 	session, created, err := acquireRelayStreamSession("conv-1", 1, 1)
 	if err != nil || !created || session == nil {
@@ -229,10 +232,7 @@ func TestRelayStreamSessionFinishRemovesExpiredSession(t *testing.T) {
 		overrideStreamSessionTTL = nil
 	}()
 
-	relayStreamSessions = relayStreamSessionStore{
-		byKey:                make(map[string]*relayStreamSession),
-		activeByConversation: make(map[string]string),
-	}
+	resetTestStreamSessionStore()
 
 	session, created, err := acquireRelayStreamSession("conv-1", 1, 1)
 	if err != nil || !created || session == nil {
@@ -242,10 +242,11 @@ func TestRelayStreamSessionFinishRemovesExpiredSession(t *testing.T) {
 	session.Finish(nil)
 
 	deadline := time.Now().Add(500 * time.Millisecond)
+	sh := relayStreamSessions.shard(session.key)
 	for time.Now().Before(deadline) {
-		relayStreamSessions.mu.RLock()
-		_, ok := relayStreamSessions.byKey[session.key]
-		relayStreamSessions.mu.RUnlock()
+		sh.mu.RLock()
+		_, ok := sh.byKey[session.key]
+		sh.mu.RUnlock()
 		if !ok {
 			return
 		}
@@ -300,10 +301,7 @@ func TestHandleStreamResponseStopsImmediatelyWhenClientDisconnectsWithoutSession
 func TestServeRelayStreamSessionReplayExpiredBeforeHeadersReturns409(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	relayStreamSessions = relayStreamSessionStore{
-		byKey:                make(map[string]*relayStreamSession),
-		activeByConversation: make(map[string]string),
-	}
+	resetTestStreamSessionStore()
 
 	session, created, err := acquireRelayStreamSession("conv-1", 1, 1)
 	if err != nil || !created || session == nil {
@@ -336,10 +334,7 @@ func TestServeRelayStreamSessionReplayExpiredBeforeHeadersReturns409(t *testing.
 func TestServeRelayStreamSessionDoneWithErrorBeforeHeadersReturnsBadGateway(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	relayStreamSessions = relayStreamSessionStore{
-		byKey:                make(map[string]*relayStreamSession),
-		activeByConversation: make(map[string]string),
-	}
+	resetTestStreamSessionStore()
 
 	session, created, err := acquireRelayStreamSession("conv-1", 1, 1)
 	if err != nil || !created || session == nil {
@@ -369,10 +364,7 @@ func TestServeRelayStreamSessionDoneWithErrorBeforeHeadersReturnsBadGateway(t *t
 func TestServeRelayStreamSessionDoneWithErrorAfterHeadersWritesSSEError(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	relayStreamSessions = relayStreamSessionStore{
-		byKey:                make(map[string]*relayStreamSession),
-		activeByConversation: make(map[string]string),
-	}
+	resetTestStreamSessionStore()
 
 	session, created, err := acquireRelayStreamSession("conv-1", 1, 1)
 	if err != nil || !created || session == nil {
@@ -410,10 +402,7 @@ func TestServeRelayStreamSessionDoneWithErrorAfterHeadersWritesSSEError(t *testi
 
 func TestRelayStreamSessionFinishKeepsBufferForReconnect(t *testing.T) {
 	// Finish 不应立即清空 replay 缓冲：断线重连需要重放已生成内容。
-	relayStreamSessions = relayStreamSessionStore{
-		byKey:                make(map[string]*relayStreamSession),
-		activeByConversation: make(map[string]string),
-	}
+	resetTestStreamSessionStore()
 
 	session, created, err := acquireRelayStreamSession("conv-keep", 1, 1)
 	if err != nil || !created || session == nil {
@@ -432,19 +421,19 @@ func TestRelayStreamSessionFinishKeepsBufferForReconnect(t *testing.T) {
 }
 
 func TestEnforceSessionLimitEvictsOldestDoneSessions(t *testing.T) {
-	relayStreamSessions = relayStreamSessionStore{
-		byKey:                make(map[string]*relayStreamSession),
-		activeByConversation: make(map[string]string),
-	}
+	resetTestStreamSessionStore()
 	store := &relayStreamSessions
+	sh := store.shard("k-0")
 
 	// 填充超过上限的已完成会话，最旧的应被驱逐。
-	total := relayStreamMaxSessions + 10
+	// 将所有会话放入同一个分片以测试分片级限驱逐逻辑。
+	perShardLimit := (relayStreamMaxSessions + streamStoreShardCount - 1) / streamStoreShardCount
+	total := perShardLimit + 10
 	base := time.Now().Add(-time.Hour)
-	store.mu.Lock()
+	sh.mu.Lock()
 	for i := 0; i < total; i++ {
 		key := "k-" + strconv.Itoa(i)
-		store.byKey[key] = &relayStreamSession{
+		sh.byKey[key] = &relayStreamSession{
 			store:             store,
 			key:               key,
 			conversationScope: key,
@@ -452,11 +441,11 @@ func TestEnforceSessionLimitEvictsOldestDoneSessions(t *testing.T) {
 			updatedAt:         base.Add(time.Duration(i) * time.Millisecond),
 		}
 	}
-	store.enforceSessionLimitLocked()
-	remaining := len(store.byKey)
-	store.mu.Unlock()
+	store.enforceSessionLimitShard(sh)
+	remaining := len(sh.byKey)
+	sh.mu.Unlock()
 
-	if remaining > relayStreamMaxSessions {
-		t.Fatalf("session count = %d, want <= %d", remaining, relayStreamMaxSessions)
+	if remaining > perShardLimit {
+		t.Fatalf("session count = %d, want <= %d", remaining, perShardLimit)
 	}
 }

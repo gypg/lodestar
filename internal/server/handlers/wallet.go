@@ -52,14 +52,12 @@ func init() {
 				Handle(getUsage),
 		)
 
-	// Public, no-auth Epay callback (gateway posts form / query params, not JSON).
+	// Public, no-auth Epay callback (gateway posts form params, not JSON).
+	// Only POST accepted — GET is disabled to prevent CSRF via query-string
+	// forgery. The Epay gateway always uses POST for server-to-server notify.
 	router.NewGroupRouter("/api/v1/wallet").
 		AddRoute(
 			router.NewRoute("/epay/notify", http.MethodPost).
-				Handle(epayNotify),
-		).
-		AddRoute(
-			router.NewRoute("/epay/notify", http.MethodGet).
 				Handle(epayNotify),
 		)
 
@@ -192,17 +190,12 @@ func requestTopup(c *gin.Context) {
 }
 
 // epayNotify is the public Epay callback: verify signature + credit the user once.
+// Only POST is accepted (GET was removed to prevent CSRF via query-string forgery).
 func epayNotify(c *gin.Context) {
 	params := map[string]string{}
-	if c.Request.Method == http.MethodPost {
-		_ = c.Request.ParseForm()
-		for k := range c.Request.PostForm {
-			params[k] = c.Request.PostForm.Get(k)
-		}
-	} else {
-		for k := range c.Request.URL.Query() {
-			params[k] = c.Request.URL.Query().Get(k)
-		}
+	_ = c.Request.ParseForm()
+	for k := range c.Request.PostForm {
+		params[k] = c.Request.PostForm.Get(k)
 	}
 	if payment.HandleEpayNotify(params, c.Request.Context()) {
 		_, _ = c.Writer.Write([]byte("success"))

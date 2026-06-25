@@ -409,6 +409,12 @@ func setPreferences(c *gin.Context) {
 		resp.Error(c, http.StatusBadRequest, resp.ErrInvalidJSON)
 		return
 	}
+	// N-02: cap preferences payload to 64 KB to prevent abuse.
+	const maxPreferencesSize = 64 * 1024
+	if len(req.Preferences) > maxPreferencesSize {
+		resp.Error(c, http.StatusBadRequest, "preferences payload too large (max 64KB)")
+		return
+	}
 	currentUserID := uint(c.GetInt("user_id"))
 	if err := usr.UpdatePreferences(currentUserID, req.Preferences, c.Request.Context()); err != nil {
 		resp.InternalError(c)

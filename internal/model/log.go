@@ -81,11 +81,11 @@ type RelayLogListItem struct {
 // 用于窗口聚合。仅对修复部署后的新请求生效，不回填历史日志。
 type RelayLogAttempt struct {
 	ID          int64  `json:"id" gorm:"primaryKey;autoIncrement"`
-	RelayLogID  int64  `json:"relay_log_id" gorm:"column:relay_log_id;index:idx_rla_log"`
-	ChannelID   int    `json:"channel_id" gorm:"column:channel_id;index:idx_rla_channel;index:idx_rla_chan_model_time,priority:1"`
+	RelayLogID  int64  `json:"relay_log_id" gorm:"column:relay_log_id;index:idx_rla_log;index:idx_rla_log_status,priority:1;index:idx_rla_chan_log,priority:2"`
+	ChannelID   int    `json:"channel_id" gorm:"column:channel_id;index:idx_rla_channel;index:idx_rla_chan_model_time,priority:1;index:idx_rla_chan_log,priority:1"`
 	ChannelName string `json:"channel_name" gorm:"column:channel_name"`
 	ModelName   string `json:"model_name" gorm:"column:model_name;index:idx_rla_chan_model_time,priority:2"`
-	Status      string `json:"status" gorm:"column:status"` // success | failed | circuit_break | skipped
+	Status      string `json:"status" gorm:"column:status;index:idx_rla_log_status,priority:2"` // success | failed | circuit_break | skipped
 	Duration    int    `json:"duration" gorm:"column:duration"`
 	Time        int64  `json:"time" gorm:"column:time;index:idx_rla_time;index:idx_rla_chan_model_time,priority:3"`
 }

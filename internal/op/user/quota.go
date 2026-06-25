@@ -13,12 +13,17 @@ Only enforced when commercial_mode is on (see internal/op/billing).
 
 import (
 	"context"
+	"errors"
 
 	"github.com/gypg/lodestar/internal/db"
 	"github.com/gypg/lodestar/internal/model"
 
 	"gorm.io/gorm"
 )
+
+// ErrInsufficientBalance is returned by DeductQuota when the user's available
+// balance is lower than the requested deduction amount.
+var ErrInsufficientBalance = errors.New("insufficient balance")
 
 // GetQuota returns (remaining, used) balance for a user.
 func GetQuota(userID uint, ctx context.Context) (remaining float64, used float64, err error) {
@@ -40,20 +45,27 @@ func AddQuota(userID uint, amount float64, ctx context.Context) error {
 }
 
 // DeductQuota subtracts spent cost from balance and accumulates used_quota.
-// Never drives quota below zero: at most MIN(remaining, amount) is taken (atomic
-// single UPDATE). Concurrent requests may each pass HasBalanceForKey while
-// balance is small; this caps total deduction without negative balances.
+// Uses an atomic single UPDATE with a WHERE guard (quota >= amount) so that
+// concurrent requests race safely: only one can succeed per sufficient balance
+// window. If the user does not have enough balance, ErrInsufficientBalance is
+// returned and no rows are modified.
 func DeductQuota(userID uint, amount float64, ctx context.Context) error {
 	if amount <= 0 {
 		return nil
 	}
 	res := db.GetDB().WithContext(ctx).Model(&model.User{}).
-		Where("id = ?", userID).
+		Where("id = ? AND quota >= ?", userID, amount).
 		Updates(map[string]any{
-			"quota":      gorm.Expr("quota - MIN(quota, ?)", amount),
-			"used_quota": gorm.Expr("used_quota + MIN(quota, ?)", amount),
+			"quota":      gorm.Expr("quota - ?", amount),
+			"used_quota": gorm.Expr("used_quota + ?", amount),
 		})
-	return res.Error
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return ErrInsufficientBalance
+	}
+	return nil
 }
 
 // SetQuota overwrites a user's balance (admin adjust).

@@ -1,12 +1,15 @@
 package update
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"syscall"
 
 	"github.com/gypg/lodestar/internal/utils/log"
@@ -27,6 +30,14 @@ func UpdateCore() error {
 	data, err := doRequestWithFallback(downloadUrl)
 	if err != nil {
 		log.Warnf("download failed: %v", err)
+		return err
+	}
+
+	// Verify SHA256 checksum before applying the update.
+	// Returns error only on mismatch (blocks update); missing checksum file
+	// merely logs a warning and returns nil (non-blocking).
+	if err := verifyDownloadChecksum(data, filename); err != nil {
+		log.Warnf("update aborted: %v", err)
 		return err
 	}
 
@@ -183,4 +194,73 @@ func restartExecutable(execPath string) {
 	if err := syscall.Exec(execPath, os.Args, os.Environ()); err != nil {
 		log.Errorf("restarting failed: %v", err)
 	}
+}
+
+// verifyDownloadChecksum attempts to download a .sha256 checksum file for the
+// given archive and verifies the SHA256 hash of the downloaded data.
+//
+// It follows the convention: <filename>.sha256 contains the hex-encoded hash.
+// Common formats supported:
+//   - bare hex hash:                "a1b2c3..."
+//   - sha256sum-style output:      "a1b2c3...  filename.zip"
+//
+// If the checksum file is not available (404 or download error), the function
+// logs a warning and returns without blocking the update.
+// If the checksum file is available but the hash does not match, the function
+// returns an error to abort the update.
+func verifyDownloadChecksum(data []byte, filename string) error {
+	checksumURL := getUpdateURL() + "/" + filename + ".sha256"
+	log.Infof("attempting checksum download: %s", checksumURL)
+
+	checksumData, err := doRequestWithFallback(checksumURL)
+	if err != nil {
+		// Checksum file not available — log and continue (non-blocking).
+		log.Warnf("WARNING: no checksum verification available for %s: %v", filename, err)
+		log.Warnf("WARNING: no checksum verification — update proceeding without integrity check")
+		return nil
+	}
+
+	expectedHash := parseChecksumFile(checksumData)
+	if expectedHash == "" {
+		log.Warnf("WARNING: checksum file for %s is empty or unparseable, skipping verification", filename)
+		return nil
+	}
+
+	actualHash := sha256Hex(data)
+	if !strings.EqualFold(actualHash, expectedHash) {
+		return fmt.Errorf(
+			"checksum verification FAILED for %s: expected %s, got %s — update aborted to prevent applying a corrupted or tampered binary",
+			filename, expectedHash, actualHash,
+		)
+	}
+
+	log.Infof("checksum verification PASSED for %s (sha256: %s)", filename, actualHash)
+	return nil
+}
+
+// sha256Hex returns the lowercase hex-encoded SHA256 digest of data.
+func sha256Hex(data []byte) string {
+	h := sha256.Sum256(data)
+	return hex.EncodeToString(h[:])
+}
+
+// parseChecksumFile extracts the hex-encoded SHA256 hash from a checksum file.
+// It handles both bare-hex and sha256sum-style ("hex  filename") formats.
+func parseChecksumFile(data []byte) string {
+	s := strings.TrimSpace(string(data))
+	if s == "" {
+		return ""
+	}
+	// sha256sum output: "hash  filename" — take first field.
+	if idx := strings.IndexAny(s, " \t"); idx > 0 {
+		s = s[:idx]
+	}
+	// Validate: must be a valid hex string of 64 characters.
+	if len(s) != 64 {
+		return ""
+	}
+	if _, err := hex.DecodeString(s); err != nil {
+		return ""
+	}
+	return s
 }

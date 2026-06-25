@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -30,11 +31,14 @@ func TestDeductQuota_neverNegative(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// First deduction succeeds (1.0 >= 0.6).
 	if err := DeductQuota(u.ID, 0.6, ctx); err != nil {
 		t.Fatal(err)
 	}
-	if err := DeductQuota(u.ID, 0.6, ctx); err != nil {
-		t.Fatal(err)
+	// Second deduction fails: remaining 0.4 < 0.6.
+	err := DeductQuota(u.ID, 0.6, ctx)
+	if !errors.Is(err, ErrInsufficientBalance) {
+		t.Fatalf("want ErrInsufficientBalance, got %v", err)
 	}
 
 	rem, used, err := GetQuota(u.ID, ctx)
@@ -44,15 +48,16 @@ func TestDeductQuota_neverNegative(t *testing.T) {
 	if rem < 0 {
 		t.Fatalf("quota went negative: %v", rem)
 	}
-	if rem != 0 {
-		t.Fatalf("want quota 0 after capped deductions, got %v", rem)
+	// Only the first deduction went through (0.6 charged).
+	if rem != 0.4 {
+		t.Fatalf("want quota 0.4 after one successful deduction, got %v", rem)
 	}
-	if used != 1.0 {
-		t.Fatalf("want used_quota 1.0 (only remaining balance charged), got %v", used)
+	if used != 0.6 {
+		t.Fatalf("want used_quota 0.6, got %v", used)
 	}
 }
 
-func TestDeductQuota_partialWhenInsufficient(t *testing.T) {
+func TestDeductQuota_insufficientBalance(t *testing.T) {
 	initQuotaTestDB(t)
 	ctx := context.Background()
 	u := model.User{Username: "u2", Password: "x", Quota: 0.25, UsedQuota: 10}
@@ -60,17 +65,21 @@ func TestDeductQuota_partialWhenInsufficient(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := DeductQuota(u.ID, 1.0, ctx); err != nil {
-		t.Fatal(err)
+	// Attempting to deduct more than available returns ErrInsufficientBalance.
+	err := DeductQuota(u.ID, 1.0, ctx)
+	if !errors.Is(err, ErrInsufficientBalance) {
+		t.Fatalf("want ErrInsufficientBalance, got %v", err)
 	}
+
 	rem, used, err := GetQuota(u.ID, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if rem != 0 {
-		t.Fatalf("want 0 remaining, got %v", rem)
+	// Balance unchanged — the deduction was rejected.
+	if rem != 0.25 {
+		t.Fatalf("want 0.25 remaining (unchanged), got %v", rem)
 	}
-	if used != 10.25 {
-		t.Fatalf("want used 10.25, got %v", used)
+	if used != 10 {
+		t.Fatalf("want used 10 (unchanged), got %v", used)
 	}
 }

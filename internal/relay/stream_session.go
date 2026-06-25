@@ -41,6 +41,10 @@ const (
 	// relayStreamMaxSessions 是全局会话 map 的硬上限。超过时主动驱逐最旧的已完成
 	// 会话，防止 map 在会话获取频率低、清理迟滞时无界增长。
 	relayStreamMaxSessions = 4096
+
+	// streamStoreShardCount 是分片锁的分片数量。每个 session key 经 FNV-1a 哈希
+	// 映射到一个分片，不同分片的读写互不阻塞，降低高并发下的锁竞争。
+	streamStoreShardCount = 32
 )
 
 func getStreamSessionTTL() time.Duration {
@@ -97,15 +101,55 @@ type relayStreamSession struct {
 	subscribers      map[chan struct{}]struct{}
 }
 
-type relayStreamSessionStore struct {
-	mu                   sync.RWMutex
-	byKey                map[string]*relayStreamSession
-	activeByConversation map[string]string
+// streamStoreShard 是分片锁中的一个分片，持有自己独立的 RWMutex。
+// 不同 session key 哈希到不同分片时读写操作互不阻塞。
+// byKey 按 session key 分片；activeByConversation 使用独立的全局锁
+// （见 relayStreamActiveConvs），因为同一 conversation 的不同 requestHash
+// 会映射到不同 byKey 分片，无法在单分片内完成互斥检查。
+type streamStoreShard struct {
+	mu    sync.RWMutex
+	byKey map[string]*relayStreamSession
 }
 
-var relayStreamSessions = relayStreamSessionStore{
-	byKey:                make(map[string]*relayStreamSession),
-	activeByConversation: make(map[string]string),
+type relayStreamSessionStore struct {
+	shards [streamStoreShardCount]streamStoreShard
+}
+
+// activeConvsStore 管理 conversation → active session key 的全局映射。
+// 锁粒度独立于 byKey 分片锁：acquireRelayStreamSession 先锁 activeConvs
+// 再锁 byKey 分片（固定顺序），确保同一 conversation 的并发不同 requestHash
+// 总能看到 busy 状态。
+type activeConvsStore struct {
+	mu      sync.RWMutex
+	entries map[string]string // conversationScope → session key
+}
+
+var (
+	relayStreamSessions relayStreamSessionStore
+
+	relayStreamActiveConvs = activeConvsStore{
+		entries: make(map[string]string),
+	}
+)
+
+func init() {
+	for i := range relayStreamSessions.shards {
+		relayStreamSessions.shards[i].byKey = make(map[string]*relayStreamSession)
+	}
+}
+
+// shardIndex 根据 session key 计算分片索引。使用 FNV-1a 哈希以保证均匀分布。
+func fnv1aShardIndex(key string) uint32 {
+	h := uint32(2166136261)
+	for i := 0; i < len(key); i++ {
+		h ^= uint32(key[i])
+		h *= 16777619
+	}
+	return h % streamStoreShardCount
+}
+
+func (s *relayStreamSessionStore) shard(key string) *streamStoreShard {
+	return &s.shards[fnv1aShardIndex(key)]
 }
 
 func buildRelayStreamSessionKey(conversationID string, requestHash uint64) string {
@@ -127,20 +171,36 @@ func acquireRelayStreamSession(conversationID string, apiKeyID int, requestHash 
 	conversationScope := buildRelayConversationScope(conversationID, apiKeyID)
 	key := buildRelayStreamSessionKey(conversationScope, requestHash)
 
-	store.mu.Lock()
-	defer store.mu.Unlock()
+	// 锁顺序：先 activeConvs.mu（全局），再 byKey 分片锁。
+	// Finish / removeIfExpired 也遵循此顺序（只锁分片锁或先分片再 activeConvs 的
+	// 单向路径不会产生环）。
+	relayStreamActiveConvs.mu.Lock()
+	sh := store.shard(key)
+	sh.mu.Lock()
+	defer sh.mu.Unlock()
+	defer relayStreamActiveConvs.mu.Unlock()
 
-	store.cleanupLocked(now)
+	store.cleanupShard(sh, now)
 
-	if session, ok := store.byKey[key]; ok {
+	if session, ok := sh.byKey[key]; ok {
 		return session, false, nil
 	}
 
-	if activeKey, ok := store.activeByConversation[conversationScope]; ok && activeKey != key {
-		if activeSession, exists := store.byKey[activeKey]; exists && !activeSession.isDoneLocked() {
+	if activeKey, ok := relayStreamActiveConvs.entries[conversationScope]; ok && activeKey != key {
+		// activeKey 所在的分片可能与当前 sh 不同，需要查找。
+		activeSh := store.shard(activeKey)
+		var activeSession *relayStreamSession
+		if activeSh == sh {
+			activeSession = sh.byKey[activeKey]
+		} else {
+			activeSh.mu.RLock()
+			activeSession = activeSh.byKey[activeKey]
+			activeSh.mu.RUnlock()
+		}
+		if activeSession != nil && !activeSession.isDoneLocked() {
 			return nil, false, errRelayConversationBusy
 		}
-		delete(store.activeByConversation, conversationScope)
+		delete(relayStreamActiveConvs.entries, conversationScope)
 	}
 
 	session := &relayStreamSession{
@@ -153,18 +213,19 @@ func acquireRelayStreamSession(conversationID string, apiKeyID int, requestHash 
 		updatedAt:         now,
 		subscribers:       make(map[chan struct{}]struct{}),
 	}
-	store.byKey[key] = session
-	store.activeByConversation[conversationScope] = key
-	store.enforceSessionLimitLocked()
+	sh.byKey[key] = session
+	relayStreamActiveConvs.entries[conversationScope] = key
+	store.enforceSessionLimitShard(sh)
 	return session, true, nil
 }
 
-// enforceSessionLimitLocked 在会话总数超过 relayStreamMaxSessions 时，驱逐最旧的
-// 已完成会话，防止全局 map 在清理迟滞时无界增长。调用方必须持有 store.mu 写锁。
-// 只驱逐 done 会话，避免中断正在进行的生成；若全是活跃会话则不驱逐（活跃会话的
-// buffer 受单会话上限约束，且会在 Finish 后释放）。
-func (s *relayStreamSessionStore) enforceSessionLimitLocked() {
-	if relayStreamMaxSessions <= 0 || len(s.byKey) <= relayStreamMaxSessions {
+// enforceSessionLimitShard 在分片内会话总数超过按分片均摊的上限时，驱逐最旧的
+// 已完成会话，防止分片 map 在清理迟滞时无界增长。调用方必须持有 sh.mu 写锁。
+// 只驱逐 done 会话，避免中断正在进行的生成；若全是活跃会话则不驱逐。
+func (s *relayStreamSessionStore) enforceSessionLimitShard(sh *streamStoreShard) {
+	// 每个分片的上限 = 全局上限 / 分片数（向上取整，保证总量约束）
+	perShardLimit := (relayStreamMaxSessions + streamStoreShardCount - 1) / streamStoreShardCount
+	if perShardLimit <= 0 || len(sh.byKey) <= perShardLimit {
 		return
 	}
 
@@ -173,8 +234,8 @@ func (s *relayStreamSessionStore) enforceSessionLimitLocked() {
 		scope     string
 		updatedAt time.Time
 	}
-	doneList := make([]doneSession, 0, len(s.byKey))
-	for key, session := range s.byKey {
+	doneList := make([]doneSession, 0, len(sh.byKey))
+	for key, session := range sh.byKey {
 		session.mu.RLock()
 		done := session.done
 		updatedAt := session.updatedAt
@@ -188,17 +249,16 @@ func (s *relayStreamSessionStore) enforceSessionLimitLocked() {
 		return doneList[i].updatedAt.Before(doneList[j].updatedAt)
 	})
 
-	excess := len(s.byKey) - relayStreamMaxSessions
+	excess := len(sh.byKey) - perShardLimit
+	// 注意：调用方可能已持有 activeConvs.mu（acquireRelayStreamSession），
+	// 因此这里不主动加锁 activeConvs；stale 条目由 acquire 的检查逻辑懒清理。
 	for i := 0; i < len(doneList) && excess > 0; i++ {
 		d := doneList[i]
-		session, ok := s.byKey[d.key]
+		_, ok := sh.byKey[d.key]
 		if !ok {
 			continue
 		}
-		delete(s.byKey, d.key)
-		if activeKey, ok := s.activeByConversation[d.scope]; ok && activeKey == session.key {
-			delete(s.activeByConversation, d.scope)
-		}
+		delete(sh.byKey, d.key)
 		excess--
 	}
 }
@@ -214,17 +274,15 @@ func doneSessionRetention() time.Duration {
 	return retention
 }
 
-func (s *relayStreamSessionStore) cleanupLocked(now time.Time) {
-	// 保留时长在循环外读取一次，避免在持有 store 写锁期间对每个 session 重复
+func (s *relayStreamSessionStore) cleanupShard(sh *streamStoreShard, now time.Time) {
+	// 保留时长在循环外读取一次，避免在持有分片写锁期间对每个 session 重复
 	// 读取 setting（map 查找 + Atoi）。清理可能遍历大量 session，每次循环都
-	// 读 setting 会线性放大写锁的持有时间，阻塞所有新流式会话获取。
+	// 读 setting 会线性放大写锁的持有时间，阻塞该分片内的新流式会话获取。
 	retention := doneSessionRetention()
-	for key, session := range s.byKey {
+	for key, session := range sh.byKey {
 		session.mu.RLock()
 		done := session.done
 		updatedAt := session.updatedAt
-		conversationScope := session.conversationScope
-		sessionKey := session.key
 		session.mu.RUnlock()
 
 		if !done {
@@ -234,18 +292,16 @@ func (s *relayStreamSessionStore) cleanupLocked(now time.Time) {
 			continue
 		}
 
-		delete(s.byKey, key)
-		if activeKey, ok := s.activeByConversation[conversationScope]; ok && activeKey == sessionKey {
-			delete(s.activeByConversation, conversationScope)
-		}
+		delete(sh.byKey, key)
 	}
 }
 
 func (s *relayStreamSessionStore) removeIfExpired(key string, conversationScope string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	sh := s.shard(key)
+	sh.mu.Lock()
+	defer sh.mu.Unlock()
 
-	session, ok := s.byKey[key]
+	session, ok := sh.byKey[key]
 	if !ok {
 		return
 	}
@@ -253,7 +309,6 @@ func (s *relayStreamSessionStore) removeIfExpired(key string, conversationScope 
 	session.mu.RLock()
 	done := session.done
 	updatedAt := session.updatedAt
-	sessionKey := session.key
 	sessionScope := session.conversationScope
 	session.mu.RUnlock()
 
@@ -261,10 +316,14 @@ func (s *relayStreamSessionStore) removeIfExpired(key string, conversationScope 
 		return
 	}
 
-	delete(s.byKey, key)
-	if activeKey, ok := s.activeByConversation[sessionScope]; ok && activeKey == sessionKey {
-		delete(s.activeByConversation, sessionScope)
+	delete(sh.byKey, key)
+
+	// 清理 activeConvs 中可能残留的 stale 条目。
+	relayStreamActiveConvs.mu.Lock()
+	if activeKey, ok := relayStreamActiveConvs.entries[sessionScope]; ok && activeKey == key {
+		delete(relayStreamActiveConvs.entries, sessionScope)
 	}
+	relayStreamActiveConvs.mu.Unlock()
 }
 
 func (s *relayStreamSession) isDoneLocked() bool {
@@ -432,11 +491,11 @@ func (s *relayStreamSession) Finish(err error) {
 	s.subscribers = make(map[chan struct{}]struct{})
 	s.mu.Unlock()
 
-	s.store.mu.Lock()
-	if activeKey, ok := s.store.activeByConversation[s.conversationScope]; ok && activeKey == s.key {
-		delete(s.store.activeByConversation, s.conversationScope)
+	relayStreamActiveConvs.mu.Lock()
+	if activeKey, ok := relayStreamActiveConvs.entries[s.conversationScope]; ok && activeKey == s.key {
+		delete(relayStreamActiveConvs.entries, s.conversationScope)
 	}
-	s.store.mu.Unlock()
+	relayStreamActiveConvs.mu.Unlock()
 
 	// 用较短的完成保留窗口调度清理（取 doneRetention 与 TTL 的较小值），
 	// 而非完整 TTL，缩短已完成会话条目在 map 中的驻留时间。
@@ -577,13 +636,17 @@ func serveRelayStreamSession(c *gin.Context, req *relayRequest) {
 
 // ActiveSessionCount returns the count of active (not yet done) stream sessions.
 func ActiveSessionCount() int {
-	relayStreamSessions.mu.RLock()
-	defer relayStreamSessions.mu.RUnlock()
+	store := &relayStreamSessions
 	count := 0
-	for _, s := range relayStreamSessions.byKey {
-		if !s.IsDone() {
-			count++
+	for i := range store.shards {
+		sh := &store.shards[i]
+		sh.mu.RLock()
+		for _, s := range sh.byKey {
+			if !s.IsDone() {
+				count++
+			}
 		}
+		sh.mu.RUnlock()
 	}
 	return count
 }
@@ -591,11 +654,15 @@ func ActiveSessionCount() int {
 // PurgeExpiredStreamSessions proactively removes finished stream sessions whose
 // retention window has elapsed. It is invoked by a periodic background task so
 // cleanup does not depend solely on a new session being acquired (lazy
-// cleanupLocked) or on per-session AfterFunc timers. This bounds the global
+// cleanupShard) or on per-session AfterFunc timers. This bounds the global
 // session map under sustained streaming load (see issue #46).
 func PurgeExpiredStreamSessions() {
 	store := &relayStreamSessions
-	store.mu.Lock()
-	defer store.mu.Unlock()
-	store.cleanupLocked(time.Now())
+	now := time.Now()
+	for i := range store.shards {
+		sh := &store.shards[i]
+		sh.mu.Lock()
+		store.cleanupShard(sh, now)
+		sh.mu.Unlock()
+	}
 }

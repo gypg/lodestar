@@ -17,6 +17,13 @@ type jwtClaims struct {
 	Role   string `json:"role,omitempty"`
 }
 
+const (
+	// MaxJWTExpiryMinutes caps the normal JWT expiry to 12 hours.
+	MaxJWTExpiryMinutes = 720
+	// MaxRememberMeDays caps the remember-me JWT expiry to 90 days.
+	MaxRememberMeDays = 90
+)
+
 func GenerateJWTToken(expiresMin int, userID uint, role string) (string, string, error) {
 	now := time.Now()
 	claims := &jwtClaims{
@@ -33,13 +40,22 @@ func GenerateJWTToken(expiresMin int, userID uint, role string) (string, string,
 		if v, err := setting.GetInt(model.SettingKeyJWTDefaultExpiryMinutes); err == nil && v > 0 {
 			defaultExpiry = v
 		}
+		if defaultExpiry > MaxJWTExpiryMinutes {
+			defaultExpiry = MaxJWTExpiryMinutes
+		}
 		claims.ExpiresAt = jwt.NewNumericDate(now.Add(time.Duration(defaultExpiry) * time.Minute))
 	} else if expiresMin > 0 {
+		if expiresMin > MaxJWTExpiryMinutes {
+			expiresMin = MaxJWTExpiryMinutes
+		}
 		claims.ExpiresAt = jwt.NewNumericDate(now.Add(time.Duration(expiresMin) * time.Minute))
 	} else if expiresMin == -1 {
 		rememberDays := 30
 		if v, err := setting.GetInt(model.SettingKeyJWTRememberMeExpiryDays); err == nil && v > 0 {
 			rememberDays = v
+		}
+		if rememberDays > MaxRememberMeDays {
+			rememberDays = MaxRememberMeDays
 		}
 		claims.ExpiresAt = jwt.NewNumericDate(now.Add(time.Duration(rememberDays) * 24 * time.Hour))
 	}
@@ -55,7 +71,7 @@ func VerifyJWTToken(token string) (bool, uint, string) {
 	claims := &jwtClaims{}
 	jwtToken, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
 		return []byte(conf.AppConfig.Auth.JWTSecret), nil
-	})
+	}, jwt.WithValidMethods([]string{"HS256"}))
 	if err != nil || !jwtToken.Valid {
 		return false, 0, ""
 	}

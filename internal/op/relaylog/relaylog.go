@@ -667,7 +667,7 @@ func RelayLogList(ctx context.Context, filter LogFilter, page, pageSize int) ([]
 				if filter.IncludeAttempts {
 					// 顶层渠道 或 该请求在目标渠道上有过任意尝试（成败由 HasError 单独判定）
 					query = query.Where(
-						"channel_id = ? OR id IN (SELECT relay_log_id FROM relay_log_attempts WHERE channel_id = ?)",
+						"channel_id = ? OR EXISTS (SELECT 1 FROM relay_log_attempts WHERE relay_log_id = relay_logs.id AND channel_id = ?)",
 						*filter.ChannelID, *filter.ChannelID,
 					)
 				} else {
@@ -687,14 +687,14 @@ func RelayLogList(ctx context.Context, filter LogFilter, page, pageSize int) ([]
 				if *filter.HasError {
 					if filter.IncludeAttempts {
 						// 整体失败 或 含任意失败尝试
-						query = query.Where("error != '' OR id IN (SELECT relay_log_id FROM relay_log_attempts WHERE status = ?)", string(model.AttemptFailed))
+						query = query.Where("error != '' OR EXISTS (SELECT 1 FROM relay_log_attempts WHERE relay_log_id = relay_logs.id AND status = ?)", string(model.AttemptFailed))
 					} else {
 						query = query.Where("error != ''")
 					}
 				} else {
 					if filter.IncludeAttempts {
 						// 整体成功 且 不含任何失败尝试
-						query = query.Where("(error = '' OR error IS NULL) AND id NOT IN (SELECT relay_log_id FROM relay_log_attempts WHERE status = ?)", string(model.AttemptFailed))
+						query = query.Where("(error = '' OR error IS NULL) AND NOT EXISTS (SELECT 1 FROM relay_log_attempts WHERE relay_log_id = relay_logs.id AND status = ?)", string(model.AttemptFailed))
 					} else {
 						query = query.Where("error = '' OR error IS NULL")
 					}

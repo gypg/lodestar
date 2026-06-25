@@ -17,6 +17,7 @@ match Lodestar's StatsMetrics cost (see internal/op/user/quota.go).
 
 import (
 	"context"
+	"errors"
 
 	"github.com/gypg/lodestar/internal/model"
 	"github.com/gypg/lodestar/internal/op/apikey"
@@ -34,8 +35,8 @@ func Enabled() bool {
 // HasBalanceForKey reports whether a request on this key may proceed.
 // Fail-open: billing off, unowned key, or any lookup error => allow (never break
 // the relay hot path on a transient infra error). When billing is on, requires
-// strictly positive balance; post-request ChargeKey uses capped DeductQuota so
-// concurrent overspend cannot drive quota negative.
+// strictly positive balance; post-request ChargeKey uses atomic DeductQuota with
+// a WHERE guard so concurrent overspend is rejected (not silently under-charged).
 func HasBalanceForKey(apiKeyID int, ctx context.Context) bool {
 	if !Enabled() {
 		return true
@@ -69,7 +70,11 @@ func ChargeKey(apiKeyID int, cost float64, ctx context.Context) {
 		return
 	}
 	if err := user.DeductQuota(key.UserID, cost, ctx); err != nil {
-		log.Errorf("billing charge: deduct failed, user_id=%d api_key_id=%d cost=%.6f err=%v", key.UserID, apiKeyID, cost, err)
+		if errors.Is(err, user.ErrInsufficientBalance) {
+			log.Warnf("billing charge: insufficient balance, user_id=%d api_key_id=%d cost=%.6f", key.UserID, apiKeyID, cost)
+		} else {
+			log.Errorf("billing charge: deduct failed, user_id=%d api_key_id=%d cost=%.6f err=%v", key.UserID, apiKeyID, cost, err)
+		}
 	}
 }
 

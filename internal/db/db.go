@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"net/url"
@@ -298,6 +299,7 @@ func configureConnectionPool(sqlDB *sql.DB, dbType string) {
 		sqlDB.SetMaxOpenConns(1)
 		sqlDB.SetConnMaxLifetime(0)
 		sqlDB.SetConnMaxIdleTime(0)
+		go logPoolStats(context.Background(), sqlDB, dbType)
 		return
 	}
 
@@ -305,6 +307,32 @@ func configureConnectionPool(sqlDB *sql.DB, dbType string) {
 	sqlDB.SetMaxOpenConns(100)
 	sqlDB.SetConnMaxLifetime(time.Hour)
 	sqlDB.SetConnMaxIdleTime(10 * time.Minute)
+}
+
+// logPoolStats periodically logs connection pool statistics at Debug level.
+// It runs until the provided context is cancelled (typically the process lifetime).
+func logPoolStats(ctx context.Context, sqlDB *sql.DB, dbType string) {
+	const interval = 5 * time.Minute
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			stats := sqlDB.Stats()
+			log.Debugf("[%s pool] open=%d in_use=%d idle=%d wait_count=%d wait_duration=%s max_idle_closed=%d max_lifetime_closed=%d",
+				dbType,
+				stats.OpenConnections,
+				stats.InUse,
+				stats.Idle,
+				stats.WaitCount,
+				stats.WaitDuration,
+				stats.MaxIdleClosed,
+				stats.MaxLifetimeClosed,
+			)
+		}
+	}
 }
 
 func initSQLite(path string, config *gorm.Config) (*gorm.DB, error) {
