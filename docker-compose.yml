@@ -1,0 +1,72 @@
+# =============================================================================
+# Lodestar 生产部署（PostgreSQL + Redis 全栈）
+#
+# 复用服务器现有基础设施（与旧 newapi 同款）：
+#   - PostgreSQL @ YOUR_DB_HOST:5432 → 为 Lodestar 新建独立库 `lodestar` + 独立角色（新鲜密码）
+#   - Redis      @ YOUR_DB_HOST:6379 → 用独立 db 索引（旧 newapi 用 /1，Lodestar 用 /2）
+#
+# 镜像由 CI 构建并推到 GHCR（.github/workflows/docker.yml，quality 全绿后才推），
+# 服务器侧不 build——直接 pull。所有密钥走 .env（不入 git）。
+# 用法：cp .env.example .env && 填值 → docker compose pull && docker compose up -d
+# To update: change image tag to sha-<commit>, then docker compose up -d
+# To rollback: change image tag to previous sha-<commit>, then docker compose up -d
+# 详见 docs/DEPLOY.md「生产全栈」。
+# =============================================================================
+services:
+  lodestar:
+    # CI 构建的多阶段镜像（非 root + healthcheck + 前端嵌入二进制）。
+    # 弱服务器无需 build，pull 即用。版本钉 sha-<commit> 可回滚，:latest 跟最新 main。
+    image: ghcr.io/gypg/lodestar:sha-31e7fdc
+    container_name: lodestar
+    restart: unless-stopped
+    pull_policy: missing
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data
+    env_file:
+      - .env
+    environment:
+      # 容器时区；海外部署可改为显式 IANA 时区名，例如 America/Los_Angeles
+      TZ: "Asia/Shanghai"
+    # PG/Redis 为外部服务（YOUR_DB_HOST），无 depends_on。
+    # 容器需能路由到 YOUR_DB_HOST——旧 newapi 容器在同主机已验证可达，Lodestar 同法部署即可。
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/api/v1/bootstrap/status"]
+      interval: 30s
+      timeout: 3s
+      start_period: 10s
+      retries: 3
+    # ---- B-12 容器安全加固 ----
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 512m
+    read_only: true
+    tmpfs:
+      - /tmp
+
+# -----------------------------------------------------------------------------
+# 仅当目标服务器「没有」现成 PG/Redis 时，取消注释随栈自带独立实例。
+# 本服务器（2C2G 小规格）已有 PG+Redis，保持注释、走上面的外部连接即可。
+# 若启用本块，.env 里 LODESTAR_DATABASE_PATH 的 host 要改成 lodestar-pg、
+# LODESTAR_REDIS_HOST 改成 lodestar-redis。
+# -----------------------------------------------------------------------------
+#  postgres:
+#    image: postgres:16-alpine
+#    container_name: lodestar-pg
+#    restart: unless-stopped
+#    environment:
+#      POSTGRES_USER: lodestar
+#      POSTGRES_PASSWORD: ${LODESTAR_PG_PASSWORD}
+#      POSTGRES_DB: lodestar
+#    volumes:
+#      - ./pgdata:/var/lib/postgresql/data
+#  redis:
+#    image: redis:7-alpine
+#    container_name: lodestar-redis
+#    restart: unless-stopped
+#    command: ["redis-server", "--requirepass", "${LODESTAR_REDIS_PASSWORD}", "--save", "60", "1"]
+#    volumes:
+#      - ./redisdata:/data

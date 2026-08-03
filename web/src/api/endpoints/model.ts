@@ -1,0 +1,306 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { apiClient } from '../client';
+import { REFETCH_INTERVAL_CONFIG } from '../constants';
+import { logger } from '@/lib/logger';
+
+/**
+ * LLM 价格信息
+ */
+export interface LLMPrice {
+    input: number;
+    output: number;
+    cache_read: number;
+    cache_write: number;
+}
+
+/**
+ * LLM 模型信息
+ */
+export interface LLMInfo extends LLMPrice {
+    name: string;
+}
+
+/**
+ * LLM 渠道关联信息
+ */
+export interface LLMChannel {
+    name: string;
+    enabled: boolean;
+    channel_id: number;
+    channel_name: string;
+}
+
+export interface ModelMarketChannel {
+    channel_id: number;
+    channel_name: string;
+    enabled: boolean;
+    enabled_key_count: number;
+}
+
+export interface ModelMarketItem extends LLMInfo {
+    channel_count: number;
+    enabled_key_count: number;
+    average_latency_ms: number;
+    success_rate: number;
+    request_success: number;
+    request_failed: number;
+    channels: ModelMarketChannel[];
+}
+
+export interface ModelMarketSummary {
+    model_count: number;
+    coverage_count: number;
+    unique_channel_count: number;
+    average_latency_ms: number;
+    last_update_time?: string;
+}
+
+export interface ModelMarketResponse {
+    summary: ModelMarketSummary;
+    items: ModelMarketItem[];
+}
+
+const EMPTY_MODEL_MARKET_SUMMARY: ModelMarketSummary = {
+    model_count: 0,
+    coverage_count: 0,
+    unique_channel_count: 0,
+    average_latency_ms: 0,
+    last_update_time: '',
+};
+
+function normalizeModelMarketResponse(response: Partial<ModelMarketResponse> | null | undefined): ModelMarketResponse {
+    const items = Array.isArray(response?.items) ? response.items : [];
+
+    return {
+        summary: response?.summary ?? EMPTY_MODEL_MARKET_SUMMARY,
+        items: items.map((item) => ({
+            ...item,
+            channels: Array.isArray(item.channels) ? item.channels : [],
+        })),
+    };
+}
+
+/**
+ * 获取 LLM 模型列表 Hook
+ * 
+ * @example
+ * const { data: models, isLoading, error } = useModelList();
+ * 
+ * if (isLoading) return <Loading />;
+ * if (error) return <Error message={error.message} />;
+ * 
+ * models?.forEach(model => console.log(model.name, model.input));
+ */
+export function useModelList() {
+    return useQuery({
+        queryKey: ['models', 'list'],
+        queryFn: async () => {
+            return apiClient.get<LLMInfo[]>('/api/v1/model/list');
+        },
+        refetchInterval: REFETCH_INTERVAL_CONFIG,
+        refetchOnMount: 'always',
+    });
+}
+
+/**
+ * 获取 LLM 模型与渠道关联列表 Hook
+ * 
+ * @example
+ * const { data: channelModels, isLoading, error } = useModelChannelList();
+ * 
+ * if (isLoading) return <Loading />;
+ * if (error) return <Error message={error.message} />;
+ * 
+ * channelModels?.forEach(item => console.log(item.name, item.channel_name));
+ */
+export function useModelChannelList() {
+    return useQuery({
+        queryKey: ['models', 'channel'],
+        queryFn: async () => {
+            return apiClient.get<LLMChannel[]>('/api/v1/model/channel');
+        },
+        refetchInterval: REFETCH_INTERVAL_CONFIG,
+    });
+}
+
+export function useModelMarket() {
+    return useQuery({
+        queryKey: ['models', 'market'],
+        queryFn: async () => {
+            const response = await apiClient.get<ModelMarketResponse>('/api/v1/model/market');
+            return normalizeModelMarketResponse(response);
+        },
+        refetchInterval: REFETCH_INTERVAL_CONFIG,
+        refetchOnMount: 'always',
+    });
+}
+
+/**
+ * 更新 LLM 模型 Hook
+ * 
+ * @example
+ * const updateModel = useUpdateModel();
+ * 
+ * updateModel.mutate({
+ *   name: 'gpt-4',
+ *   input: 0.03,
+ *   output: 0.06,
+ *   cache_read: 0.015,
+ *   cache_write: 0.03,
+ * });
+ */
+export function useUpdateModel() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (data: LLMInfo) => {
+            return apiClient.post<LLMInfo>('/api/v1/model/update', data);
+        },
+        onSuccess: (data) => {
+            logger.log('模型更新成功:', data);
+            queryClient.invalidateQueries({ queryKey: ['models', 'list'] });
+            queryClient.invalidateQueries({ queryKey: ['models', 'market'] });
+        },
+        onError: (error) => {
+            logger.error('模型更新失败:', error);
+        },
+    });
+}
+
+/**
+ * 创建 LLM 模型 Hook
+ * 
+ * @example
+ * const createModel = useCreateModel();
+ * 
+ * createModel.mutate({
+ *   name: 'gpt-4',
+ *   input: 0.03,
+ *   output: 0.06,
+ *   cache_read: 0.015,
+ *   cache_write: 0.03,
+ * });
+ */
+export function useCreateModel() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (data: LLMInfo) => {
+            return apiClient.post<LLMInfo>('/api/v1/model/create', data);
+        },
+        onSuccess: (data) => {
+            logger.log('模型创建成功:', data);
+            queryClient.invalidateQueries({ queryKey: ['models', 'list'] });
+            queryClient.invalidateQueries({ queryKey: ['models', 'market'] });
+        },
+        onError: (error) => {
+            logger.error('模型创建失败:', error);
+        },
+    });
+}
+
+/**
+ * 删除 LLM 模型 Hook
+ * 
+ * @example
+ * const deleteModel = useDeleteModel();
+ * 
+ * deleteModel.mutate('gpt-4'); // 删除名称为 'gpt-4' 的模型
+ */
+export function useDeleteModel() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (name: string) => {
+            return apiClient.post<null>('/api/v1/model/delete', { name });
+        },
+        onSuccess: () => {
+            logger.log('模型删除成功');
+            queryClient.invalidateQueries({ queryKey: ['models', 'list'] });
+            queryClient.invalidateQueries({ queryKey: ['models', 'market'] });
+        },
+        onError: (error) => {
+            logger.error('模型删除失败:', error);
+        },
+    });
+}
+
+/**
+ * 更新 LLM 模型价格 Hook
+ * 
+ * @example
+ * const updatePrice = useUpdateModelPrice();
+ * 
+ * updatePrice.mutate(); // 触发价格更新
+ */
+export function useUpdateModelPrice() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async () => {
+            return apiClient.post<null>('/api/v1/model/update-price', {});
+        },
+        onSuccess: () => {
+            logger.log('模型价格更新成功');
+            queryClient.invalidateQueries({ queryKey: ['models', 'last-update-time'] });
+            queryClient.invalidateQueries({ queryKey: ['models', 'market'] });
+        },
+        onError: (error) => {
+            logger.error('模型价格更新失败:', error);
+        },
+    });
+}
+
+/**
+ * 获取 LLM 模型价格最后更新时间 Hook
+ * 
+ * @example
+ * const { data: lastUpdateTime } = useLastUpdateTime();
+ * 
+ * if (lastUpdateTime) {
+ *   console.log('最后更新:', new Date(lastUpdateTime).toLocaleString());
+ * }
+ */
+export function useLastUpdateTime() {
+    return useQuery({
+        queryKey: ['models', 'last-update-time'],
+        queryFn: async () => {
+            return apiClient.get<string>('/api/v1/model/last-update-time');
+        },
+        refetchInterval: REFETCH_INTERVAL_CONFIG,
+    });
+}
+
+/**
+ * 模型能力信息（来自 GET /api/v1/model/capabilities）
+ */
+export interface ModelCapability {
+    name: string;
+    endpoints: string[];
+    conversation: boolean;
+    available: boolean;
+}
+
+/**
+ * 获取模型能力列表 Hook
+ *
+ * @example
+ * const { data: capabilities, isLoading, error } = useModelCapabilities();
+ *
+ * if (isLoading) return <Loading />;
+ * if (error) return <Error message={error.message} />;
+ *
+ * capabilities?.forEach(cap => {
+ *     console.log(cap.name, cap.endpoints, cap.conversation);
+ * });
+ */
+export function useModelCapabilities() {
+    return useQuery({
+        queryKey: ['models', 'capabilities'],
+        queryFn: async () => {
+            return apiClient.get<ModelCapability[]>('/api/v1/model/capabilities');
+        },
+        refetchInterval: 60_000,
+        refetchOnMount: 'always',
+    });
+}

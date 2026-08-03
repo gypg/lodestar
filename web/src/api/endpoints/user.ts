@@ -1,0 +1,411 @@
+import { useEffect } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import { apiClient, setAuthStoreGetter } from '../client';
+import { REFETCH_INTERVAL_DEFAULT } from '../constants';
+import { logger } from '@/lib/logger';
+
+/**
+ * 用户登录请求
+ */
+export interface UserLoginRequest {
+    username: string;
+    password: string;
+    totp_code?: string; // 仅当用户启用了 2FA 时需要
+    expire: number; // token 过期时间（分钟）
+}
+
+/**
+ * 用户登录响应
+ */
+export interface UserLoginResponse {
+    token: string;
+    expire_at: string; // ISO 8601 格式
+    requires_two_factor?: boolean; // true = 该用户启用了 2FA，需带 totp_code 重新提交
+}
+
+/**
+ * 修改密码请求
+ */
+export interface ChangePasswordRequest {
+    old_password: string;
+    new_password: string;
+}
+
+/**
+ * 修改用户名请求
+ */
+export interface ChangeUsernameRequest {
+    new_username: string;
+}
+
+/**
+ * 认证状态 Store
+ */
+interface AuthState {
+    isAuthenticated: boolean;
+    isLoading: boolean;
+    isAPIKeyAuth: boolean;
+    token: string | null;
+    expireAt: string | null;
+
+    // Actions
+    setAuth: (token: string, expireAt: string) => void;
+    setAPIKeyAuth: (apiKey: string) => void;
+    checkAuth: () => Promise<void>;
+    logout: () => void;
+}
+
+/**
+ * 认证状态管理 Store（使用 zustand + persist）
+ */
+export const useAuthStore = create<AuthState>()(
+    persist(
+        (set, get) => ({
+            isAuthenticated: false,
+            isLoading: true,
+            isAPIKeyAuth: false,
+            token: null,
+            expireAt: null,
+
+            setAuth: (token: string, expireAt: string) => {
+                set({
+                    isAuthenticated: true,
+                    isAPIKeyAuth: false,
+                    token,
+                    expireAt,
+                    isLoading: false
+                });
+            },
+
+            setAPIKeyAuth: (apiKey: string) => {
+                set({
+                    isAuthenticated: true,
+                    isAPIKeyAuth: true,
+                    token: apiKey,
+                    expireAt: null,
+                    isLoading: false
+                });
+            },
+
+            checkAuth: async () => {
+                const { token, expireAt, isAPIKeyAuth } = get();
+
+                if (!token) {
+                    set({ isAuthenticated: false, isLoading: false });
+                    return;
+                }
+
+                // API Key 不检查本地过期时间
+                if (!isAPIKeyAuth) {
+                    if (!expireAt || Date.now() >= new Date(expireAt).getTime()) {
+                        get().logout();
+                        return;
+                    }
+                }
+
+                try {
+                    // API Key 模式只需校验 key 是否有效即可
+                    const endpoint = isAPIKeyAuth ? '/api/v1/apikey/login' : '/api/v1/user/status';
+                    await apiClient.get<unknown>(endpoint);
+                    set({ isAuthenticated: true, isLoading: false });
+                } catch (error) {
+                    logger.error('认证验证失败:', error);
+                    get().logout();
+                }
+            },
+
+            logout: () => {
+                set({
+                    isAuthenticated: false,
+                    isAPIKeyAuth: false,
+                    token: null,
+                    expireAt: null,
+                    isLoading: false
+                });
+            }
+        }),
+        {
+            name: 'auth-storage',
+            partialize: (state) => ({
+                token: state.token,
+                expireAt: state.expireAt,
+                isAPIKeyAuth: state.isAPIKeyAuth,
+            })
+        }
+    )
+);
+
+// 注册 auth store getter 到 apiClient
+if (typeof window !== 'undefined') {
+    setAuthStoreGetter(() => {
+        const state = useAuthStore.getState();
+        return {
+            token: state.token,
+            logout: state.logout
+        };
+    });
+}
+
+/**
+ * 用户登录 Hook
+ * 
+ * @example
+ * const login = useLogin();
+ * login.mutate({ username: 'admin', password: '123456', expire: 86400 });
+ * 
+ * if (login.isPending) return <Loading />;
+ * if (login.isError) return <Error message={login.error.message} />;
+ */
+export function useLogin() {
+    const { setAuth } = useAuthStore();
+
+    return useMutation({
+        mutationFn: async (data: UserLoginRequest) => {
+            return apiClient.post<UserLoginResponse>('/api/v1/user/login', data, undefined, false);
+        },
+        onSuccess: (data) => {
+            // requires_two_factor 表示需要 TOTP，此时后端不发 token，不要写入 auth
+            if (data.requires_two_factor) return;
+            // 保存到 zustand store
+            setAuth(data.token, data.expire_at);
+        },
+        onError: (error) => {
+            logger.error('登录失败:', error);
+        },
+    });
+}
+
+/**
+ * 公开注册 Hook（仅商业模式开放）。成功即自动登录（返回 token）。
+ */
+export function useRegister() {
+    const { setAuth } = useAuthStore();
+
+    return useMutation({
+        mutationFn: async (data: UserLoginRequest & { invite_code?: string }) => {
+            return apiClient.post<UserLoginResponse>('/api/v1/user/register', data, undefined, false);
+        },
+        onSuccess: (data) => {
+            setAuth(data.token, data.expire_at);
+        },
+        onError: (error) => {
+            logger.error('注册失败:', error);
+        },
+    });
+}
+
+/** Lodestar：当前登录用户（驱动按角色分流——管理控制台 vs 用户自助门户） */
+export interface CurrentUser {
+    id: number;
+    username: string;
+    role: string;
+    quota: number;
+    used_quota: number;
+}
+
+export function useCurrentUser() {
+    const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+    return useQuery({
+        queryKey: ['user', 'me'],
+        queryFn: async () => apiClient.get<CurrentUser>('/api/v1/user/me'),
+        enabled: isAuthenticated,
+        staleTime: 60_000,
+        retry: false,
+        refetchOnWindowFocus: false,
+    });
+}
+
+/** staff（admin/editor）见完整控制台；其他（viewer，含商业注册用户）见受限门户 */
+export function isStaffRole(role?: string): boolean {
+    return role === 'admin' || role === 'editor';
+}
+
+/** 发送邮箱验证码（注册前，公开） */
+export function useSendEmailCode() {
+    return useMutation({
+        mutationFn: async (emailAddr: string) =>
+            apiClient.post('/api/v1/user/send-email-code', { email: emailAddr }, undefined, false),
+    });
+}
+
+/** Lodestar：每用户 UI 偏好（绑账户，跨设备一致） */
+export interface UserPreferences {
+    themePreset?: string;
+}
+
+export function useUserPreferences() {
+    return useQuery({
+        queryKey: ['user', 'preferences'],
+        queryFn: async () => {
+            const res = await apiClient.get<{ preferences: string }>('/api/v1/user/preferences');
+            try {
+                return (JSON.parse(res.preferences || '{}') ?? {}) as UserPreferences;
+            } catch (e) { console.error(e);
+                return {} as UserPreferences;
+            }
+        },
+        staleTime: Infinity,
+        retry: false,
+        refetchOnWindowFocus: false,
+    });
+}
+
+export function useSetUserPreferences() {
+    return useMutation({
+        mutationFn: async (prefs: UserPreferences) => {
+            return apiClient.post('/api/v1/user/preferences', { preferences: JSON.stringify(prefs) });
+        },
+        onError: (error) => {
+            logger.error('保存偏好失败:', error);
+        },
+    });
+}
+
+/**
+ * 修改密码 Hook
+ * 
+ * @example
+ * const changePassword = useChangePassword();
+ * changePassword.mutate({ oldPassword: '123', newPassword: '456' });
+ */
+export function useChangePassword() {
+    return useMutation({
+        mutationFn: async (data: { oldPassword: string; newPassword: string }) => {
+            const payload: ChangePasswordRequest = {
+                old_password: data.oldPassword,
+                new_password: data.newPassword,
+            };
+            return apiClient.post<string>('/api/v1/user/change-password', payload);
+        },
+        onSuccess: (message) => {
+            logger.log('密码修改成功:', message);
+        },
+        onError: (error) => {
+            logger.error('密码修改失败:', error);
+        },
+    });
+}
+
+/**
+ * 修改用户名 Hook
+ * 
+ * @example
+ * const changeUsername = useChangeUsername();
+ * changeUsername.mutate({ newUsername: 'newname' });
+ */
+export function useChangeUsername() {
+    return useMutation({
+        mutationFn: async (data: { newUsername: string }) => {
+            const payload: ChangeUsernameRequest = {
+                new_username: data.newUsername,
+            };
+            return apiClient.post<string>('/api/v1/user/change-username', payload);
+        },
+        onSuccess: (message) => {
+            logger.log('用户名修改成功:', message);
+        },
+        onError: (error) => {
+            logger.error('用户名修改失败:', error);
+        },
+    });
+}
+
+/**
+ * 认证状态和方法 Hook
+ * 
+ * @example
+ * const auth = useAuth();
+ * 
+ * if (auth.isAuthenticated) {
+ *   // 已登录
+ * }
+ * 
+ * auth.logout(); // 登出
+ */
+export function useAuth() {
+    const store = useAuthStore();
+    const { checkAuth, isLoading } = store;
+
+    // 只在首次挂载时检查认证状态
+    useEffect(() => {
+        if (isLoading) {
+            checkAuth();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // 有意只在挂载时执行一次
+
+    return {
+        isAuthenticated: store.isAuthenticated,
+        isAPIKeyAuth: store.isAPIKeyAuth,
+        isLoading: store.isLoading,
+        logout: store.logout,
+    };
+}
+
+export interface UserInfo {
+    id: number;
+    username: string;
+    role: string;
+}
+
+export interface UserCreateRequest {
+    username: string;
+    password: string;
+    role: string;
+}
+
+export function useUserList() {
+    return useQuery({
+        queryKey: ['users', 'list'],
+        queryFn: async () => apiClient.get<UserInfo[]>('/api/v1/user/list'),
+        refetchInterval: REFETCH_INTERVAL_DEFAULT,
+    });
+}
+
+export function useCreateUser() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (data: UserCreateRequest) => {
+            return apiClient.post<null>('/api/v1/user/create', data);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['users', 'list'] });
+        },
+        onError: (error) => {
+            logger.error('User create failed:', error);
+        },
+    });
+}
+
+export function useUpdateUserRole() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (data: { id: number; role: string }) => {
+            return apiClient.post<null>('/api/v1/user/update-role', data);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['users', 'list'] });
+        },
+        onError: (error) => {
+            logger.error('Role update failed:', error);
+        },
+    });
+}
+
+export function useDeleteUser() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (id: number) => {
+            return apiClient.delete<null>(`/api/v1/user/delete/${id}`);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['users', 'list'] });
+        },
+        onError: (error) => {
+            logger.error('User delete failed:', error);
+        },
+    });
+}
+

@@ -1,0 +1,187 @@
+import type { ApiError } from './types';
+import { HttpStatus } from './types';
+import { resolveRuntimeI18nMessage } from '@/lib/i18n-runtime';
+
+export const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || '.').trim();
+
+/**
+ * 获取认证 Store（延迟导入以避免循环依赖）
+ */
+let getAuthStore: (() => { token: string | null; logout: () => void }) | null = null;
+
+export function setAuthStoreGetter(getter: () => { token: string | null; logout: () => void }) {
+    getAuthStore = getter;
+}
+
+/**
+ * 全局错误处理
+ */
+const handleError = (error: ApiError) => {
+    console.error('API Error:', error);
+
+    // 401 未授权，调用 store 的 logout
+    if (error.code === HttpStatus.UNAUTHORIZED) {
+        if (getAuthStore) {
+            const store = getAuthStore();
+            store.logout();
+        }
+    }
+};
+
+function createApiError(
+    code: number,
+    message: string,
+    messageKey?: string,
+    messageArgs?: Record<string, unknown>,
+): ApiError {
+    const error = new Error(message) as ApiError;
+    error.name = 'ApiError';
+    error.code = code;
+    error.message_key = messageKey;
+    error.message_args = messageArgs;
+    return error;
+}
+
+function summarizeNonJSONErrorBody(status: number, body: string, statusText: string): string {
+    const text = body.trim();
+    if (!text) {
+        return statusText || `HTTP ${status}`;
+    }
+
+    if (/^<html[\s>]/i.test(text)) {
+        if (status === HttpStatus.GATEWAY_TIMEOUT) {
+            return 'Gateway timeout';
+        }
+        return statusText || `HTTP ${status}`;
+    }
+
+    if (text.length > 200) {
+        return `${text.slice(0, 200)}...`;
+    }
+
+    return text;
+}
+
+/**
+ * 处理响应
+ */
+async function handleResponse<T>(response: Response): Promise<T> {
+    const contentType = response.headers.get('content-type');
+    const isJson = contentType?.includes('application/json');
+
+    let data: unknown;
+    if (isJson) {
+        data = await response.json();
+    } else {
+        data = await response.text();
+    }
+
+    if (!response.ok) {
+        const messageKey = (data && typeof data === 'object' && 'message_key' in data && typeof data.message_key === 'string')
+            ? data.message_key
+            : undefined;
+        const messageArgs = (data && typeof data === 'object' && 'message_args' in data && data.message_args && typeof data.message_args === 'object')
+            ? data.message_args as Record<string, unknown>
+            : undefined;
+        const fallbackMessage = (data && typeof data === 'object' && 'message' in data && typeof data.message === 'string')
+            ? data.message
+            : (typeof data === 'string'
+                ? summarizeNonJSONErrorBody(response.status, data, response.statusText)
+                : response.statusText);
+        const error = createApiError(
+            response.status,
+            resolveRuntimeI18nMessage(messageKey, messageArgs, fallbackMessage) ?? fallbackMessage,
+            messageKey,
+            messageArgs,
+        );
+
+        handleError(error);
+        throw error;
+    }
+
+    // 如果是标准的 ApiResponse 格式，返回 data 字段
+    if (data && typeof data === 'object' && 'data' in data) {
+        return data.data as T;
+    }
+
+    return data as T;
+}
+
+/**
+ * 发送请求
+ */
+async function request<T>(
+    method: string,
+    path: string,
+    body?: BodyInit,
+    params?: Record<string, string | number | boolean>,
+    includeAuth = true,
+): Promise<T> {
+    // 构建 URL
+    const searchParams = params ? new URLSearchParams(
+        Object.entries(params).map(([k, v]) => [k, String(v)])
+    ).toString() : '';
+    const url = `${API_BASE_URL}${path}${searchParams ? `?${searchParams}` : ''}`;
+
+    // 构建请求头
+    const headers = new Headers();
+
+    // POST/PUT/PATCH 始终设置 Content-Type，即使无 body，
+    // 因为后端 RequireJSON() 中间件需要此头来放行非 GET/DELETE 请求
+    if (body || method === 'POST' || method === 'PUT' || method === 'PATCH') {
+        headers.set('Content-Type', 'application/json');
+    }
+
+    // 添加 Authorization - 从 zustand store 获取 token
+    if (includeAuth && typeof window !== 'undefined' && getAuthStore) {
+        const store = getAuthStore();
+        if (store.token) {
+            headers.set('Authorization', `Bearer ${store.token}`);
+        }
+    }
+
+    // 发送请求
+    const response = await fetch(url.toString(), {
+        method,
+        headers,
+        body,
+    });
+
+    return handleResponse<T>(response);
+}
+
+/**
+ * API 客户端 - 基础 HTTP 方法
+ */
+export const apiClient = {
+    /**
+     * GET 请求
+     */
+    get: <T>(path: string, params?: Record<string, string | number | boolean>, includeAuth = true): Promise<T> =>
+        request<T>('GET', path, undefined, params, includeAuth),
+
+    /**
+     * POST 请求
+     */
+    post: <T>(path: string, data?: unknown, params?: Record<string, string | number | boolean>, includeAuth = true): Promise<T> =>
+        request<T>('POST', path, JSON.stringify(data ?? {}), params, includeAuth),
+
+    /**
+     * PUT 请求
+     */
+    put: <T>(path: string, data?: unknown, params?: Record<string, string | number | boolean>, includeAuth = true): Promise<T> =>
+        request<T>('PUT', path, data ? JSON.stringify(data) : undefined, params, includeAuth),
+
+    /**
+     * DELETE 请求
+     */
+    delete: <T>(path: string, params?: Record<string, string | number | boolean>, includeAuth = true): Promise<T> =>
+        request<T>('DELETE', path, undefined, params, includeAuth),
+
+    /**
+     * PATCH 请求
+     */
+    patch: <T>(path: string, data?: unknown, params?: Record<string, string | number | boolean>, includeAuth = true): Promise<T> =>
+        request<T>('PATCH', path, data ? JSON.stringify(data) : undefined, params, includeAuth),
+};
+

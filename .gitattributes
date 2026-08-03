@@ -1,0 +1,9 @@
+# Auto-normalize text files; Git stores LF in blobs.
+* text=auto
+
+# Force Go sources to LF in both the blob and the working tree. Without this,
+# a Windows checkout with core.autocrlf=true produces CRLF working files, and
+# `gofmt -l .` flags every .go file on CI (CI checks out LF). Pinning eol=lf
+# keeps the local working tree LF too, so local `gofmt` matches CI exactly.
+*.go text eol=lf
+

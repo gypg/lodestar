@@ -1,0 +1,97 @@
+name: quality
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: backend
+    runs-on: ubuntu-latest
+
+    # Service container: a real PostgreSQL the migration tests talk to.
+    # Migrations must work on PostgreSQL (production DB), but SQLite-only
+    # tests can't catch reserved-word quoting bugs. CI spins up this service
+    # so the opt-in TestPostgres* tests actually run.
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: lodestar_migrate_test
+        ports:
+          - 5432:5432
+        # Wait until Postgres is accepting connections before the job's steps run.
+        options: >-
+          --health-cmd "pg_isready -U postgres -d lodestar_migrate_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Ensure static/out exists
+        run: mkdir -p static/out && touch static/out/.keep
+
+      - name: Go compile check
+        run: go test -run=TestNoSuchTest ./...
+
+      - name: Go test
+        run: go test ./...
+
+      - name: Migration tests on PostgreSQL
+        # Migrations must be cross-dialect: SQLite tests can't catch reserved-
+        # word quoting bugs (e.g. `key` = ? is a syntax error on PG). Run the
+        # opt-in postgres integration tests against the service container so
+        # the class of bug that previously blocked production boot is caught.
+        env:
+          LODESTAR_TEST_POSTGRES_DSN: "host=127.0.0.1 user=postgres password=postgres dbname=lodestar_migrate_test port=5432 sslmode=disable"
+        run: go test ./internal/db/migrate/... -count=1 -run TestPostgres
+
+  frontend:
+    name: frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: ESLint
+        run: pnpm lint
+
+      - name: Frontend tests
+        run: pnpm test:i18n && pnpm test:unit
+
+      - name: Static build
+        env:
+          NEXT_PUBLIC_APP_VERSION: ci
+        run: pnpm build
