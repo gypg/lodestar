@@ -516,10 +516,17 @@ func createAIRouteGroup(ctx context.Context, groupName string, endpointType stri
 	}
 
 	tx := db.GetDB().WithContext(ctx).Begin()
+	committed := false
 	defer func() {
 		if r := recover(); r != nil {
-			tx.Rollback()
+			if !committed {
+				tx.Rollback()
+			}
 			log.Errorf("panic recovered in createAIRouteGroup transaction: %v", r)
+			panic(r)
+		}
+		if !committed {
+			tx.Rollback()
 		}
 	}()
 
@@ -532,7 +539,6 @@ func createAIRouteGroup(ctx context.Context, groupName string, endpointType stri
 		SessionKeepTime:   0,
 	}
 	if err := tx.Create(&newGroup).Error; err != nil {
-		tx.Rollback()
 		return nil, 0, fmt.Errorf("创建分组失败: %w", err)
 	}
 
@@ -567,18 +573,17 @@ func createAIRouteGroup(ctx context.Context, groupName string, endpointType stri
 	}
 
 	if len(groupItems) == 0 {
-		tx.Rollback()
 		return nil, 0, fmt.Errorf("AI返回结果为空")
 	}
 
 	if err := tx.Create(&groupItems).Error; err != nil {
-		tx.Rollback()
 		return nil, 0, fmt.Errorf("创建分组项失败: %w", err)
 	}
 
 	if err := tx.Commit().Error; err != nil {
 		return nil, 0, fmt.Errorf("提交AI路由分组失败: %w", err)
 	}
+	committed = true
 
 	if err := group.RefreshCacheByID(newGroup.ID, ctx); err != nil {
 		return nil, 0, err

@@ -36,8 +36,20 @@ func FetchAndStoreAnnouncement(ctx context.Context, siteID int) error {
 	}
 
 	tx := db.GetDB().WithContext(ctx).Begin()
+	committed := false
+	defer func() {
+		if r := recover(); r != nil {
+			if !committed {
+				tx.Rollback()
+			}
+			panic(r)
+		}
+		if !committed {
+			tx.Rollback()
+		}
+	}()
+
 	if err := tx.Where("remote_site_id = ?", siteID).Delete(&model.SiteAnnouncement{}).Error; err != nil {
-		tx.Rollback()
 		return fmt.Errorf("delete old announcements: %w", err)
 	}
 	record := model.SiteAnnouncement{
@@ -46,10 +58,13 @@ func FetchAndStoreAnnouncement(ctx context.Context, siteID int) error {
 		FetchedAt:    time.Now(),
 	}
 	if err := tx.Create(&record).Error; err != nil {
-		tx.Rollback()
 		return fmt.Errorf("store announcement: %w", err)
 	}
-	return tx.Commit().Error
+	if err := tx.Commit().Error; err != nil {
+		return err
+	}
+	committed = true
+	return nil
 }
 
 // FetchAllAnnouncements fetches announcements for all enabled sites.

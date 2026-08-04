@@ -201,8 +201,15 @@ func Update(req *model.ChannelUpdateRequest, ctx context.Context) (*model.Channe
 	}
 
 	tx := db.GetDB().WithContext(ctx).Begin()
+	committed := false
 	defer func() {
 		if r := recover(); r != nil {
+			if !committed {
+				tx.Rollback()
+			}
+			panic(r)
+		}
+		if !committed {
 			tx.Rollback()
 		}
 	}()
@@ -273,14 +280,12 @@ func Update(req *model.ChannelUpdateRequest, ctx context.Context) (*model.Channe
 
 	if len(selectFields) > 0 {
 		if err := tx.Model(&model.Channel{}).Where("id = ?", req.ID).Select(selectFields).Updates(&updates).Error; err != nil {
-			tx.Rollback()
 			return nil, fmt.Errorf("failed to update channel: %w", err)
 		}
 	}
 
 	if len(req.KeysToDelete) > 0 {
 		if err := tx.Where("id IN ? AND channel_id = ?", req.KeysToDelete, req.ID).Delete(&model.ChannelKey{}).Error; err != nil {
-			tx.Rollback()
 			return nil, fmt.Errorf("failed to delete channel keys: %w", err)
 		}
 	}
@@ -303,7 +308,6 @@ func Update(req *model.ChannelUpdateRequest, ctx context.Context) (*model.Channe
 			if err := tx.Model(&model.ChannelKey{}).
 				Where("id = ? AND channel_id = ?", ku.ID, req.ID).
 				Updates(updates).Error; err != nil {
-				tx.Rollback()
 				return nil, fmt.Errorf("failed to update channel key %d: %w", ku.ID, err)
 			}
 		}
@@ -320,7 +324,6 @@ func Update(req *model.ChannelUpdateRequest, ctx context.Context) (*model.Channe
 			})
 		}
 		if err := tx.Create(&newKeys).Error; err != nil {
-			tx.Rollback()
 			return nil, fmt.Errorf("failed to create channel keys: %w", err)
 		}
 	}
@@ -328,6 +331,7 @@ func Update(req *model.ChannelUpdateRequest, ctx context.Context) (*model.Channe
 	if err := tx.Commit().Error; err != nil {
 		return nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
+	committed = true
 
 	if err := RefreshCacheByID(req.ID, ctx); err != nil {
 		return nil, err
@@ -452,8 +456,15 @@ func Delete(id int, ctx context.Context) error {
 	}
 
 	tx := db.GetDB().WithContext(ctx).Begin()
+	committed := false
 	defer func() {
 		if r := recover(); r != nil {
+			if !committed {
+				tx.Rollback()
+			}
+			panic(r)
+		}
+		if !committed {
 			tx.Rollback()
 		}
 	}()
@@ -461,28 +472,25 @@ func Delete(id int, ctx context.Context) error {
 	if err := tx.Model(&model.GroupItem{}).
 		Where("channel_id = ?", id).
 		Delete(&model.GroupItem{}).Error; err != nil {
-		tx.Rollback()
 		return fmt.Errorf("failed to delete group items: %w", err)
 	}
 
 	if err := tx.Where("channel_id = ?", id).Delete(&model.ChannelKey{}).Error; err != nil {
-		tx.Rollback()
 		return fmt.Errorf("failed to delete channel keys: %w", err)
 	}
 
 	if err := tx.Where("channel_id = ?", id).Delete(&model.StatsChannel{}).Error; err != nil {
-		tx.Rollback()
 		return fmt.Errorf("failed to delete channel stats: %w", err)
 	}
 
 	if err := tx.Delete(&model.Channel{}, id).Error; err != nil {
-		tx.Rollback()
 		return fmt.Errorf("failed to delete channel: %w", err)
 	}
 
 	if err := tx.Commit().Error; err != nil {
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
+	committed = true
 
 	runtimeUpdateLock.Lock()
 	chCache.Del(id)

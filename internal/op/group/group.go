@@ -654,10 +654,17 @@ func GroupUpdate(req *model.GroupUpdateRequest, ctx context.Context) (*model.Gro
 	}
 
 	tx := db.GetDB().WithContext(ctx).Begin()
+	committed := false
 	defer func() {
 		if r := recover(); r != nil {
-			tx.Rollback()
+			if !committed {
+				tx.Rollback()
+			}
 			log.Errorf("panic recovered in transaction: %v", r)
+			panic(r)
+		}
+		if !committed {
+			tx.Rollback()
 		}
 	}()
 
@@ -707,7 +714,6 @@ func GroupUpdate(req *model.GroupUpdateRequest, ctx context.Context) (*model.Gro
 
 	if len(selectFields) > 0 {
 		if err := tx.Model(&model.Group{}).Where("id = ?", req.ID).Select(selectFields).Updates(&updates).Error; err != nil {
-			tx.Rollback()
 			return nil, fmt.Errorf("failed to update group: %w", err)
 		}
 	}
@@ -715,7 +721,6 @@ func GroupUpdate(req *model.GroupUpdateRequest, ctx context.Context) (*model.Gro
 	// 删除 items
 	if len(req.ItemsToDelete) > 0 {
 		if err := tx.Where("id IN ? AND group_id = ?", req.ItemsToDelete, req.ID).Delete(&model.GroupItem{}).Error; err != nil {
-			tx.Rollback()
 			return nil, fmt.Errorf("failed to delete items: %w", err)
 		}
 	}
@@ -739,7 +744,6 @@ func GroupUpdate(req *model.GroupUpdateRequest, ctx context.Context) (*model.Gro
 				"priority": gorm.Expr(priorityCase),
 				"weight":   gorm.Expr(weightCase),
 			}).Error; err != nil {
-			tx.Rollback()
 			return nil, fmt.Errorf("failed to update items: %w", err)
 		}
 	}
@@ -757,7 +761,6 @@ func GroupUpdate(req *model.GroupUpdateRequest, ctx context.Context) (*model.Gro
 			}
 		}
 		if err := tx.Create(&newItems).Error; err != nil {
-			tx.Rollback()
 			return nil, fmt.Errorf("failed to create items: %w", err)
 		}
 	}
@@ -765,6 +768,7 @@ func GroupUpdate(req *model.GroupUpdateRequest, ctx context.Context) (*model.Gro
 	if err := tx.Commit().Error; err != nil {
 		return nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
+	committed = true
 
 	// 刷新缓存并返回最新数据
 	if err := RefreshCacheByID(req.ID, ctx); err != nil {
@@ -782,26 +786,32 @@ func GroupDel(id int, ctx context.Context) error {
 	}
 
 	tx := db.GetDB().WithContext(ctx).Begin()
+	committed := false
 	defer func() {
 		if r := recover(); r != nil {
-			tx.Rollback()
+			if !committed {
+				tx.Rollback()
+			}
 			log.Errorf("panic recovered in transaction: %v", r)
+			panic(r)
+		}
+		if !committed {
+			tx.Rollback()
 		}
 	}()
 
 	if err := tx.Where("group_id = ?", id).Delete(&model.GroupItem{}).Error; err != nil {
-		tx.Rollback()
 		return fmt.Errorf("failed to delete group items: %w", err)
 	}
 
 	if err := tx.Delete(&model.Group{}, id).Error; err != nil {
-		tx.Rollback()
 		return fmt.Errorf("failed to delete group: %w", err)
 	}
 
 	if err := tx.Commit().Error; err != nil {
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
+	committed = true
 
 	groupCache.Del(id)
 	RebuildIndexes()
@@ -810,39 +820,43 @@ func GroupDel(id int, ctx context.Context) error {
 
 func GroupDelAll(ctx context.Context) (int64, error) {
 	tx := db.GetDB().WithContext(ctx).Begin()
+	committed := false
 	defer func() {
 		if r := recover(); r != nil {
-			tx.Rollback()
+			if !committed {
+				tx.Rollback()
+			}
 			log.Errorf("panic recovered in transaction: %v", r)
+			panic(r)
+		}
+		if !committed {
+			tx.Rollback()
 		}
 	}()
 
 	var deletedCount int64
 	if err := tx.Model(&model.Group{}).Count(&deletedCount).Error; err != nil {
-		tx.Rollback()
 		return 0, fmt.Errorf("failed to count groups: %w", err)
 	}
 
 	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&model.GroupItem{}).Error; err != nil {
-		tx.Rollback()
 		return 0, fmt.Errorf("failed to delete group items: %w", err)
 	}
 
 	if err := tx.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&model.Group{}).Error; err != nil {
-		tx.Rollback()
 		return 0, fmt.Errorf("failed to delete groups: %w", err)
 	}
 
 	if err := tx.Model(&model.Setting{}).
 		Where("key = ?", model.SettingKeyAIRouteGroupID).
 		Update("value", "0").Error; err != nil {
-		tx.Rollback()
 		return 0, fmt.Errorf("failed to reset ai route group setting: %w", err)
 	}
 
 	if err := tx.Commit().Error; err != nil {
 		return 0, fmt.Errorf("failed to commit transaction: %w", err)
 	}
+	committed = true
 
 	groupCache.Clear()
 	RebuildIndexes()

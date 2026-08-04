@@ -32,8 +32,20 @@ func SyncTokens(ctx context.Context, siteID int) (int, error) {
 	}
 
 	tx := db.GetDB().WithContext(ctx).Begin()
+	committed := false
+	defer func() {
+		if r := recover(); r != nil {
+			if !committed {
+				tx.Rollback()
+			}
+			panic(r)
+		}
+		if !committed {
+			tx.Rollback()
+		}
+	}()
+
 	if err := tx.Where("remote_site_id = ?", siteID).Delete(&model.RemoteSiteToken{}).Error; err != nil {
-		tx.Rollback()
 		return 0, fmt.Errorf("delete old tokens: %w", err)
 	}
 
@@ -68,6 +80,7 @@ func SyncTokens(ctx context.Context, siteID int) (int, error) {
 	if err := tx.Commit().Error; err != nil {
 		return 0, fmt.Errorf("commit tokens: %w", err)
 	}
+	committed = true
 	return count, nil
 }
 

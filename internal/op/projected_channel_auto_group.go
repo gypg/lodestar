@@ -157,10 +157,17 @@ func AutoGroupAllProjectedChannels(ctx context.Context) error {
 // 用于自动分组前清空旧分组，确保每次分组都是全新的。
 func deleteAllNonDefaultGroups(ctx context.Context) error {
 	tx := db.GetDB().WithContext(ctx).Begin()
+	committed := false
 	defer func() {
 		if r := recover(); r != nil {
-			tx.Rollback()
+			if !committed {
+				tx.Rollback()
+			}
 			log.Errorf("panic recovered in deleteAllNonDefaultGroups: %v", r)
+			panic(r)
+		}
+		if !committed {
+			tx.Rollback()
 		}
 	}()
 
@@ -169,30 +176,27 @@ func deleteAllNonDefaultGroups(ctx context.Context) error {
 	if err := tx.Model(&model.ChannelGroup{}).
 		Where("is_default = ?", false).
 		Pluck("id", &nonDefaultGroupIDs).Error; err != nil {
-		tx.Rollback()
 		return fmt.Errorf("failed to query non-default groups: %w", err)
 	}
 
 	if len(nonDefaultGroupIDs) == 0 {
-		tx.Rollback()
 		return nil
 	}
 
 	// 删除这些分组的 group_items
 	if err := tx.Where("group_id IN ?", nonDefaultGroupIDs).Delete(&model.GroupItem{}).Error; err != nil {
-		tx.Rollback()
 		return fmt.Errorf("failed to delete group items: %w", err)
 	}
 
 	// 删除非默认分组
 	if err := tx.Where("is_default = ?", false).Delete(&model.ChannelGroup{}).Error; err != nil {
-		tx.Rollback()
 		return fmt.Errorf("failed to delete non-default groups: %w", err)
 	}
 
 	if err := tx.Commit().Error; err != nil {
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
+	committed = true
 
 	// 刷新缓存
 	if err := channelGroupRefreshCache(ctx); err != nil {

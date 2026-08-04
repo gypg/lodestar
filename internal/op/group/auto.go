@@ -163,10 +163,17 @@ func deleteAutoCreatedGroups(ctx context.Context) ([]model.AutoGroupDeletedItem,
 // 用于自动分组前清空旧分组，确保每次分组都是全新的。
 func deleteAllNonDefaultGroups(ctx context.Context) (int, error) {
 	tx := db.GetDB().WithContext(ctx).Begin()
+	committed := false
 	defer func() {
 		if r := recover(); r != nil {
-			tx.Rollback()
+			if !committed {
+				tx.Rollback()
+			}
 			log.Errorf("panic recovered in deleteAllNonDefaultGroups: %v", r)
+			panic(r)
+		}
+		if !committed {
+			tx.Rollback()
 		}
 	}()
 
@@ -175,30 +182,27 @@ func deleteAllNonDefaultGroups(ctx context.Context) (int, error) {
 	if err := tx.Model(&model.ChannelGroup{}).
 		Where("is_default = ?", false).
 		Pluck("id", &nonDefaultGroupIDs).Error; err != nil {
-		tx.Rollback()
 		return 0, fmt.Errorf("failed to query non-default groups: %w", err)
 	}
 
 	if len(nonDefaultGroupIDs) == 0 {
-		tx.Rollback()
 		return 0, nil
 	}
 
 	// 删除这些分组的 group_items
 	if err := tx.Where("group_id IN ?", nonDefaultGroupIDs).Delete(&model.GroupItem{}).Error; err != nil {
-		tx.Rollback()
 		return 0, fmt.Errorf("failed to delete group items: %w", err)
 	}
 
 	// 删除非默认分组
 	if err := tx.Where("is_default = ?", false).Delete(&model.ChannelGroup{}).Error; err != nil {
-		tx.Rollback()
 		return 0, fmt.Errorf("failed to delete non-default groups: %w", err)
 	}
 
 	if err := tx.Commit().Error; err != nil {
 		return 0, fmt.Errorf("failed to commit transaction: %w", err)
 	}
+	committed = true
 
 	// 刷新缓存
 	if err := RefreshAllCache(ctx); err != nil {
@@ -212,10 +216,17 @@ func deleteAllNonDefaultGroups(ctx context.Context) (int, error) {
 // 用于自动分组后清理历史残留，确保只有有渠道来源的分组存在。
 func deleteStaleGroups(ctx context.Context) (int, error) {
 	tx := db.GetDB().WithContext(ctx).Begin()
+	committed := false
 	defer func() {
 		if r := recover(); r != nil {
-			tx.Rollback()
+			if !committed {
+				tx.Rollback()
+			}
 			log.Errorf("panic recovered in deleteStaleGroups: %v", r)
+			panic(r)
+		}
+		if !committed {
+			tx.Rollback()
 		}
 	}()
 
@@ -224,24 +235,22 @@ func deleteStaleGroups(ctx context.Context) (int, error) {
 	if err := tx.Model(&model.Group{}).
 		Where("id NOT IN (?)", tx.Model(&model.GroupItem{}).Select("DISTINCT group_id")).
 		Pluck("id", &staleIDs).Error; err != nil {
-		tx.Rollback()
 		return 0, fmt.Errorf("failed to query stale groups: %w", err)
 	}
 
 	if len(staleIDs) == 0 {
-		tx.Rollback()
 		return 0, nil
 	}
 
 	// 删除这些分组
 	if err := tx.Where("id IN ?", staleIDs).Delete(&model.Group{}).Error; err != nil {
-		tx.Rollback()
 		return 0, fmt.Errorf("failed to delete stale groups: %w", err)
 	}
 
 	if err := tx.Commit().Error; err != nil {
 		return 0, fmt.Errorf("failed to commit stale group cleanup: %w", err)
 	}
+	committed = true
 
 	if err := RefreshAllCache(ctx); err != nil {
 		log.Warnf("failed to refresh group cache after stale cleanup: %v", err)
@@ -548,10 +557,17 @@ func IsCandidateCoveredByExistingGroups(candidate model.CandidateGroup, existing
 
 func createAutoGroupCandidate(candidate model.CandidateGroup, ctx context.Context) error {
 	tx := db.GetDB().WithContext(ctx).Begin()
+	committed := false
 	defer func() {
 		if r := recover(); r != nil {
-			tx.Rollback()
+			if !committed {
+				tx.Rollback()
+			}
 			log.Errorf("panic recovered in createAutoGroupCandidate transaction: %v", r)
+			panic(r)
+		}
+		if !committed {
+			tx.Rollback()
 		}
 	}()
 
@@ -564,7 +580,6 @@ func createAutoGroupCandidate(candidate model.CandidateGroup, ctx context.Contex
 		SessionKeepTime:   0,
 	}
 	if err := tx.Create(&group).Error; err != nil {
-		tx.Rollback()
 		return fmt.Errorf("create group failed: %w", err)
 	}
 
@@ -588,7 +603,6 @@ func createAutoGroupCandidate(candidate model.CandidateGroup, ctx context.Contex
 	}
 	if len(items) > 0 {
 		if err := tx.Create(&items).Error; err != nil {
-			tx.Rollback()
 			return fmt.Errorf("create group items failed: %w", err)
 		}
 	}
@@ -596,6 +610,7 @@ func createAutoGroupCandidate(candidate model.CandidateGroup, ctx context.Contex
 	if err := tx.Commit().Error; err != nil {
 		return fmt.Errorf("commit auto group failed: %w", err)
 	}
+	committed = true
 	return RefreshCacheByID(group.ID, ctx)
 }
 
