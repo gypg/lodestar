@@ -243,8 +243,9 @@ func Handler(endpointType string, inboundType inbound.InboundType, c *gin.Contex
 	apiKeyID := c.GetInt("api_key_id")
 
 	// Rate limiting: check RPM/TPM before forwarding
-	if rpm := c.GetInt("rate_limit_rpm"); rpm > 0 || c.GetInt("rate_limit_tpm") > 0 {
-		effectiveRPM, effectiveTPM := resolveAPIRateLimit(requestModel, c)
+	effectiveRPM, effectiveTPM := 0, 0
+	if c.GetInt("rate_limit_rpm") > 0 || c.GetInt("rate_limit_tpm") > 0 {
+		effectiveRPM, effectiveTPM = resolveAPIRateLimit(requestModel, c)
 		if effectiveRPM > 0 || effectiveTPM > 0 {
 			allowed, remaining, retryAfter := rl.CheckRateLimit(apiKeyID, requestModel, effectiveRPM, effectiveTPM, 0)
 			if !allowed {
@@ -333,6 +334,9 @@ func Handler(endpointType string, inboundType inbound.InboundType, c *gin.Contex
 	// 初始化 Metrics
 	clientIP := c.ClientIP()
 	metrics := NewRelayMetrics(apiKeyID, requestModel, endpointType, group.EndpointType, clientIP, internalRequest)
+	// Carry the effective TPM quota into metrics so Save can deduct the request's
+	// actual token usage from the TPM bucket after completion (see consumeRateLimitTokens).
+	metrics.SetTPM(effectiveTPM)
 
 	// 请求级上下文
 	req := &relayRequest{

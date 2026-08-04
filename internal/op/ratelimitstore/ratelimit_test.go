@@ -158,6 +158,34 @@ func TestConsumeTokensDepletesSharedBucket(t *testing.T) {
 	}
 }
 
+// TestPreCheckPlusPostDeductionCombined locks in the WO-008 fix contract: the
+// pre-check admission (tokenCount coerced to 1 when unknown) and the post-check
+// deduction of real usage together account for the true token consumption. With
+// tpm=100, one pre-check (deducts 1) + ConsumeTokens(60) leaves 39 tokens, so a
+// 40-token request is denied while a 39-token request still passes.
+func TestPreCheckPlusPostDeductionCombined(t *testing.T) {
+	resetBuckets()
+	const apiID = 6003
+	const model = "combined"
+	const tpm = 100
+
+	// Pre-check admission, tokenCount unknown at this point (production passes 0).
+	if allowed, _, _ := CheckRateLimit(apiID, model, 0, tpm, 0); !allowed {
+		t.Fatalf("pre-check: allowed=false, want true")
+	}
+	// Post-check: deduct the request's real usage (60 tokens).
+	ConsumeTokens(apiID, model, tpm, 60)
+
+	// Only 100 - 1 - 60 = 39 tokens remain.
+	if allowed, _, _ := CheckRateLimit(apiID, model, 0, tpm, 40); allowed {
+		t.Errorf("40-token check after pre(1)+post(60): allowed=true, want false (39 left)")
+	}
+	allowed39, _, _ := CheckRateLimit(apiID, model, 0, tpm, 39)
+	if !allowed39 {
+		t.Errorf("39-token check (exactly remaining): allowed=false, want true")
+	}
+}
+
 // TestRetryAfterSecondsIsDeltaNotEpoch locks in D1: retryAfterSeconds returns a
 // small delta-seconds wait for a denied request, not a Unix epoch timestamp. Any
 // value above 3600 is a regressed epoch timestamp; the exact value is 60 for a

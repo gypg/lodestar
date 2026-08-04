@@ -14,6 +14,7 @@ import (
 	"github.com/gypg/lodestar/internal/op/apikey"
 	billing "github.com/gypg/lodestar/internal/op/billing"
 	"github.com/gypg/lodestar/internal/op/cacheusage"
+	"github.com/gypg/lodestar/internal/op/ratelimitstore"
 	"github.com/gypg/lodestar/internal/op/relaylog"
 	"github.com/gypg/lodestar/internal/op/setting"
 	"github.com/gypg/lodestar/internal/op/stats"
@@ -46,6 +47,17 @@ type RelayMetrics struct {
 	// 统计指标
 	ActualModel string
 	Stats       model.StatsMetrics
+
+	// TPM 配额（per-minute token quota for this request's model, 0 = unconfigured）。
+	// 预检时只按 tokenCount=1 做准入；请求完成后按实际用量扣减，见 Save。
+	TPM int
+
+	// saved 标记本次请求是否已收尾。客户端断连路径会先由 handleClientDisconnect
+	// 调用 Save，随后 retryWithChannels 的 OnExhausted 再调一次（relay.go:1139 →
+	// retry_shared.go:108/122/162），同一请求因此会走两遍收尾。写日志/统计重复尚可
+	// 容忍，但 TPM 扣减与计费重复会真实多扣，故此处统一挡住第二次。
+	// 一次请求只在一个 goroutine 内收尾，无需加锁。
+	saved bool
 }
 
 func NewRelayMetrics(apiKeyID int, requestModel string, requestedEndpointType string, matchedGroupEndpointType string, clientIP string, req *transformerModel.InternalLLMRequest) *RelayMetrics {
@@ -94,7 +106,33 @@ func (m *RelayMetrics) SetInternalResponse(resp *transformerModel.InternalLLMRes
 	m.Stats.OutputCost = float64(usage.CompletionTokens) * modelPrice.Output * 1e-6
 }
 
+// SetTPM records the effective per-minute token quota for this request.
+// It is set immediately after the metrics are constructed, from the rate-limit
+// resolution that already ran for the pre-check (relay.go). A value <= 0 means
+// TPM is unconfigured for this model and the bucket must be left untouched.
+func (m *RelayMetrics) SetTPM(tpm int) {
+	m.TPM = tpm
+}
+
+// consumeRateLimitTokens deducts this request's actual token usage from the
+// TPM bucket after the request has finished. It is the post-check counterpart
+// to CheckRateLimit's pre-check admission (which only deducts 1 token when the
+// real usage is still unknown). ConsumeTokens no-ops when TPM <= 0 or the
+// actual usage is 0, so a request that recorded no tokens costs nothing.
+func (m *RelayMetrics) consumeRateLimitTokens() {
+	if m.TPM <= 0 {
+		return
+	}
+	ratelimitstore.ConsumeTokens(m.APIKeyID, m.RequestModel, m.TPM, int(m.Stats.InputToken)+int(m.Stats.OutputToken))
+}
+
 func (m *RelayMetrics) Save(success bool, err error, attempts []model.ChannelAttempt) {
+	// 同一请求只收尾一次，重复调用直接返回（见 saved 字段说明）。
+	if m.saved {
+		return
+	}
+	m.saved = true
+
 	ctx, cancel := newRelayPersistenceContext()
 	defer cancel()
 
@@ -155,6 +193,12 @@ func (m *RelayMetrics) Save(success bool, err error, attempts []model.ChannelAtt
 	stats.APIKeyUpdate(m.APIKeyID, globalStats)
 	// Lodestar commercial: deduct this request's USD cost from the key owner's balance (no-op unless commercial_mode on).
 	billing.ChargeKeyWithExpr(m.APIKeyID, m.RequestModel, int(m.Stats.InputToken), int(m.Stats.OutputToken), globalStats.InputCost+globalStats.OutputCost, ctx)
+
+	// Post-check TPM deduction: deduct the request's actual token usage from the
+	// TPM bucket. The pre-check in relay.go only admitted 1 token (usage unknown);
+	// this is where the real usage is charged. No-op when TPM unconfigured or no
+	// tokens were recorded.
+	m.consumeRateLimitTokens()
 
 	log.Infof("relay complete: model=%s, channel=%d(%s), success=%t, duration=%dms, input_token=%d, output_token=%d, input_cost=%f, output_cost=%f, total_cost=%f, attempts=%d, forwarded_attempts=%d",
 		m.RequestModel, channelID, channelName, success, duration.Milliseconds(),
