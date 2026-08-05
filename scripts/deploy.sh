@@ -42,17 +42,54 @@ IMAGE="ghcr.io/gypg/lodestar:${TARGET_TAG}"
 
 echo "==> 目标镜像：$IMAGE"
 
-OLD_DIGEST="$(docker inspect --format '{{.Image}}' lodestar 2>/dev/null || true)"
+# 记录 pull 前 tag 指向的镜像 ID。
+# 判断「有没有真的取回新镜像」要比对 tag 的前后指向，而不是容器的镜像：
+# 上一次部署若在 up 阶段失败（如端口冲突），容器会停在 Created 且已指向新镜像，
+# 此时容器前后 digest 相同，会把真实的升级误报成「镜像未变化」。
+PRE_PULL_DIGEST="$(docker image inspect --format '{{.Id}}' "$IMAGE" 2>/dev/null || true)"
 
-echo "==> 拉取镜像"
-docker compose pull
+# 拉取镜像。
+#
+# ★ 国内服务器实测：直连 ghcr.io 拉 blob 会无限卡在 "Pulling fs layer"——
+#   manifest 元数据秒回（HTTP 401/200 正常），但层数据一个字节都不动，
+#   docker compose pull 没有内建超时，会一直挂着。所以这里必须自己加 timeout，
+#   并在超时后回落到 NJU 镜像站拉取 + retag 回 ghcr.io 名字（compose 认的是这个名字）。
+#
+#   注意别用 `docker pull ... | tail` 判断成败：管道会把退出码换成 tail 的，
+#   卡死的 pull 也会显示 exit=0。必须直接取 docker 自己的退出码。
+MIRROR="ghcr.nju.edu.cn/gypg/lodestar"
+PULL_TIMEOUT="${LODESTAR_PULL_TIMEOUT:-120}"
 
+echo "==> 拉取镜像（直连 ghcr.io，最多 ${PULL_TIMEOUT}s）"
+if timeout "$PULL_TIMEOUT" docker compose pull; then
+  echo "   直连拉取成功"
+else
+  echo "   直连超时/失败，回落到镜像站 $MIRROR"
+  if timeout "$PULL_TIMEOUT" docker pull "${MIRROR}:${TARGET_TAG}"; then
+    docker tag "${MIRROR}:${TARGET_TAG}" "$IMAGE"
+    echo "   已从镜像站拉取并 retag 为 $IMAGE"
+  else
+    echo "✗ 镜像站也拉不动。若本地已有该 tag 可继续用旧镜像启动，否则请手动处理：" >&2
+    echo "    docker pull ${MIRROR}:${TARGET_TAG} && docker tag ${MIRROR}:${TARGET_TAG} ${IMAGE}" >&2
+    docker image inspect "$IMAGE" >/dev/null 2>&1 || exit 1
+    echo "   本地已存在 $IMAGE，用它继续。" >&2
+  fi
+fi
+
+# 回落路径已把镜像准备好，此处不能再让 compose 去 pull（pull_policy: always 会重蹈覆辙）。
 echo "==> 启动 / 滚动升级容器"
-docker compose up -d
+docker compose up -d --pull never
 
-NEW_DIGEST="$(docker inspect --format '{{.Image}}' lodestar 2>/dev/null || true)"
-if [[ -n "$OLD_DIGEST" && "$OLD_DIGEST" == "$NEW_DIGEST" ]]; then
-  echo "   （镜像未变化，容器沿用现有版本）"
+# 读 pull 后 tag 指向的镜像 ID，对比是否真的取回了新版。
+POST_PULL_DIGEST="$(docker image inspect --format '{{.Id}}' "$IMAGE" 2>/dev/null || true)"
+
+# 「有没有升级」要看 tag 指向的镜像在 pull 前后变没变，不能看容器的镜像：
+# 上一次部署若在 up 阶段失败（如端口冲突），容器会停在 Created 且已指向新镜像，
+# 此时容器前后 digest 相同，会把真实的升级误报成「镜像未变化」。
+if [[ -n "$PRE_PULL_DIGEST" && "$PRE_PULL_DIGEST" == "$POST_PULL_DIGEST" ]]; then
+  echo "   （registry 上 $TARGET_TAG 与本地一致，未取回新镜像）"
+else
+  echo "   镜像已更新：${PRE_PULL_DIGEST:-<本地无>} -> ${POST_PULL_DIGEST}"
 fi
 
 # 等健康检查。compose 里 start_period=10s、interval=30s，

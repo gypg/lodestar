@@ -25,7 +25,7 @@ services:
     # missing 会在本地已有同名 tag 时跳过拉取，导致「pull 了也不更新」。
     pull_policy: always
     ports:
-      - "8080:8080"
+      - "${LODESTAR_HOST_PORT:-8081}:8080"
     volumes:
       - ./data:/app/data
     env_file:
