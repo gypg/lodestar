@@ -7,19 +7,23 @@
 #
 # 镜像由 CI 构建并推到 GHCR（.github/workflows/docker.yml，quality 全绿后才推），
 # 服务器侧不 build——直接 pull。所有密钥走 .env（不入 git）。
-# 用法：cp .env.example .env && 填值 → docker compose pull && docker compose up -d
-# To update: change image tag to sha-<commit>, then docker compose up -d
-# To rollback: change image tag to previous sha-<commit>, then docker compose up -d
+# 用法：cp .env.example .env && 填值 → ./scripts/deploy.sh
+# 更新：./scripts/deploy.sh              （拉 .env 里 LODESTAR_IMAGE_TAG 指定的版本，默认 latest）
+# 回滚：./scripts/deploy.sh sha-<commit> （或改 .env 的 LODESTAR_IMAGE_TAG 后重跑）
 # 详见 docs/DEPLOY.md「生产全栈」。
 # =============================================================================
 services:
   lodestar:
     # CI 构建的多阶段镜像（非 root + healthcheck + 前端嵌入二进制）。
-    # 弱服务器无需 build，pull 即用。版本钉 sha-<commit> 可回滚，:latest 跟最新 main。
-    image: ghcr.io/gypg/lodestar:sha-31e7fdc
+    # 弱服务器无需 build，pull 即用。
+    # tag 由 .env 的 LODESTAR_IMAGE_TAG 控制（缺省 latest）：钉 sha-<commit> 即可回滚到任意版本。
+    # 不要把 tag 硬编码在这里——那样每次升级都要改入 git 的文件，且极易忘记而长期跑旧镜像。
+    image: ghcr.io/gypg/lodestar:${LODESTAR_IMAGE_TAG:-latest}
     container_name: lodestar
     restart: unless-stopped
-    pull_policy: missing
+    # 用 always：配合浮动 tag(latest)，确保 up -d 时总是取回 registry 上的最新 digest。
+    # missing 会在本地已有同名 tag 时跳过拉取，导致「pull 了也不更新」。
+    pull_policy: always
     ports:
       - "8080:8080"
     volumes:

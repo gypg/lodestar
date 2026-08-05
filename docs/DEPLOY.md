@@ -10,22 +10,30 @@
 镜像由 CI 构建并推到 GHCR（`.github/workflows/docker.yml`，**quality 全绿后才推**），服务器侧不 build，直接 pull。
 
 ```bash
-# 0. 把 docker-compose.yml 和 .env.example 传到服务器（/opt/docker/lodestar/）
+# 0. 把整个仓库（或至少 docker-compose.yml、.env.example、scripts/deploy.sh）传到服务器
 # 1. 准备密钥（一次性，妥善备份，勿改动）
 cp .env.example .env
 # 填好 LODESTAR_AUTH_JWT_SECRET / LODESTAR_SECURITY_ENCRYPTION_KEY / PG 密码 / Redis 配置
 # 生成随机值：openssl rand -hex 32
 
-# 2. 拉镜像并启动（不再有 --build）
-docker compose pull
-docker compose up -d
+# 2. 一键部署（拉镜像 + 滚动升级 + 健康检查）
+./scripts/deploy.sh
 # 访问 http://<server>:8080
 ```
+
+**更新 / 回滚**：
+```bash
+./scripts/deploy.sh              # 拉 .env 里 LODESTAR_IMAGE_TAG 指定的版本（缺省 latest）
+./scripts/deploy.sh latest       # 强制拉最新 main（覆盖 .env 设置，只对本次生效）
+./scripts/deploy.sh sha-e52826b  # 回滚到指定提交
+```
+
 - 默认连服务器现有 PG（`YOUR_DB_HOST:5432`，独立库 `lodestar`）+ Redis（独立 `db=2`）。
-- 镜像 tag：`:latest` 跟最新 main；`:sha-<commit>` 钉版本可回滚。
+- 镜像 tag 在 `.env` 里设 `LODESTAR_IMAGE_TAG`：留空或 `latest` 跟最新 main；钉 `sha-<commit>` 可回滚。
 - 若目标服务器没有现成 PG/Redis，取消注释 compose 末尾的 `postgres`/`redis` 块随栈自带。
 - 数据持久化在 `./data`（SQLite 回落场景的库 + 配置）；PG 数据在 PG 侧。
-- 改配置：编辑 `.env` 后 `docker compose up -d`。更新代码：push 后等 CI 推完镜像 → `docker compose pull && docker compose up -d`。
+- 改配置：编辑 `.env` 后重跑 `./scripts/deploy.sh`。
+- 脚本会等健康检查通过（最多 90s）并展示最近日志，失败时自动打印诊断信息。
 
 > **关键提示：商业模式准备**。即使当前自用（`commercial_mode=false`），架构搭建时就把
 > `LODESTAR_SECURITY_ENCRYPTION_KEY` 一次性设好并备份——它加密存储的渠道 API key，
