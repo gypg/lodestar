@@ -310,6 +310,62 @@ func TestInferErrorMessageKeyDefaultEmpty(t *testing.T) {
 	}
 }
 
+// TestErrorWithAppErrorInfersKeyForKnownPlainError locks in the fix for the
+// message_key gap: resp.Error(c, 500, ErrDatabase) yields errors.database, so
+// handing the same message to ErrorWithAppError as a plain error must yield the
+// same key instead of dropping it and forcing the raw English text on the UI.
+func TestErrorWithAppErrorInfersKeyForKnownPlainError(t *testing.T) {
+	setupRespTest(t)
+	rec := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(rec)
+	ErrorWithAppError(c, http.StatusInternalServerError, errPlain(ErrDatabase))
+	var m map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &m); err != nil {
+		t.Fatalf("unmarshal body: %v", err)
+	}
+	if m["message_key"] != "errors.database" {
+		t.Errorf("message_key = %v, want errors.database (inferred for a plain error)", m["message_key"])
+	}
+	if m["message"] != ErrDatabase {
+		t.Errorf("message = %v, want %q", m["message"], ErrDatabase)
+	}
+}
+
+// TestErrorWithAppErrorPrefersAppCodeOverInference locks in the precedence: an
+// *Error already carries a machine-readable code, so inference must not run and
+// overwrite it, even when the message happens to be an inferrable one.
+func TestErrorWithAppErrorPrefersAppCodeOverInference(t *testing.T) {
+	setupRespTest(t)
+	rec := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(rec)
+	ErrorWithAppError(c, http.StatusInternalServerError, apperror.New("my.explicit.code", ErrDatabase))
+	var m map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &m); err != nil {
+		t.Fatalf("unmarshal body: %v", err)
+	}
+	if m["message_key"] != "my.explicit.code" {
+		t.Errorf("message_key = %v, want my.explicit.code (app code wins over inference)", m["message_key"])
+	}
+}
+
+// TestErrorWithAppErrorWrappedPlainErrorKeepsWrapperCode locks in that a plain
+// error wrapped by apperror still reports the wrapper's code, so the inference
+// fallback cannot hijack an already-coded error.
+func TestErrorWithAppErrorWrappedPlainErrorKeepsWrapperCode(t *testing.T) {
+	setupRespTest(t)
+	rec := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(rec)
+	ErrorWithAppError(c, http.StatusInternalServerError,
+		apperror.Wrap(apperror.CodeCommonDatabaseError, ErrDatabase, errPlain(ErrDatabase)))
+	var m map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &m); err != nil {
+		t.Fatalf("unmarshal body: %v", err)
+	}
+	if m["message_key"] != apperror.CodeCommonDatabaseError {
+		t.Errorf("message_key = %v, want %q", m["message_key"], apperror.CodeCommonDatabaseError)
+	}
+}
+
 // errPlain is a tiny helper so the plain-error path is explicit without an
 // import cycle.
 func errPlain(msg string) error {

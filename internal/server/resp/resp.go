@@ -50,7 +50,16 @@ func ErrorWithAppError(c *gin.Context, fallbackStatus int, err error) {
 	if appStatus := apperror.Status(err); appStatus != 0 {
 		status = appStatus
 	}
-	ErrorWithCodeAndParams(c, status, apperror.Code(err), apperror.Message(err), apperror.Params(err))
+	message := apperror.Message(err)
+	code := apperror.Code(err)
+	if code == "" {
+		// A plain (non-apperror) error carries no machine-readable code, which
+		// would leave message_key empty and force the frontend to render the raw
+		// English message. Fall back to the same message inference Error() uses so
+		// both paths yield the same key for the same message.
+		code = inferErrorMessageKey(message)
+	}
+	ErrorWithCodeAndParams(c, status, code, message, apperror.Params(err))
 }
 
 func ErrorWithCodeAndParams(c *gin.Context, status int, code string, message string, params map[string]any) {
