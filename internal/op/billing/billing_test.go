@@ -135,24 +135,18 @@ func TestChargeKey_negativeCost_noOp(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// WO-009 §2.5 — ComputeExprCost: NaN result behavior (bug documentation)
+// WO-009 §2.5 — ComputeExprCost: NaN result is rejected (BUG-001 fix)
 //
-// KNOWN BUG (WO-009 §6.1): RunExpr can return NaN (e.g. expr "0/0" via
-// integer division by zero in the expr-lang engine) and ComputeExprCost does
-// not sanitize it — it returns (NaN, "", true) instead of (0, "", false).
-// This allows NaN to propagate into ChargeKeyWithExpr / ChargeKey, where it
-// is then silently absorbed by SQLite's WHERE guard (NaN comparisons are
-// false), meaning the charge is silently dropped.
+// BUG-001 (WO-010): RunExpr can return NaN (e.g. expr "0/0" in the expr-lang
+// engine). Previously ComputeExprCost returned (NaN, "", true), letting NaN
+// propagate into ChargeKeyWithExpr / ChargeKey where SQLite's WHERE guard
+// (NaN comparisons are false) silently dropped the charge — free usage.
 //
-// Expected: ComputeExprCost should check math.IsNaN(cost) and return
-//           (0, "", false) to fall back to upstream pricing.
-// Actual:   returns (NaN, "", true).
-//
-// This test passes in the current codebase (it asserts the CURRENT buggy
-// behavior) so the suite stays green. The bug is reported in §6.1.
+// Fixed: runProgram now rejects non-finite results with an error, so
+// ComputeExprCost falls back (ok=false, cost=0) and no NaN reaches billing.
 // ---------------------------------------------------------------------------
 
-func TestComputeExprCost_nanExprCurrentBehavior(t *testing.T) {
+func TestComputeExprCost_nanExprRejected(t *testing.T) {
 	dsn := fmt.Sprintf(
 		"file:%s?mode=memory&cache=shared",
 		strings.NewReplacer("/", "-", "\\", "-", " ", "-", ":", "-").Replace(t.Name()),
@@ -174,16 +168,13 @@ func TestComputeExprCost_nanExprCurrentBehavior(t *testing.T) {
 
 	cost, tier, ok := ComputeExprCost("gpt-4o", 1000, 500)
 
-	// Document the current (buggy) behavior so future fixes can diff against this.
-	t.Logf("ComputeExprCost(0/0): cost=%v tier=%q ok=%v isNaN=%v", cost, tier, ok, math.IsNaN(cost))
-
-	// KNOWN BUG: ok is true and cost is NaN. A future fix should make this
-	// assertion hold instead: !ok && cost == 0.
-	// Mutation kill: if the NaN check is added to source, ok becomes false and
-	// this assertion flips — surfacing the fix.
-	if ok && !math.IsNaN(cost) {
-		// The expression returned a non-NaN result with ok=true — unexpected for "0/0".
-		t.Errorf("unexpected: expr 0/0 returned finite cost=%.6f ok=true; expected NaN", cost)
+	t.Logf("ComputeExprCost(0/0): cost=%v tier=%q ok=%v", cost, tier, ok)
+	// BUG-001 fix: NaN must be rejected, not returned as a valid charge.
+	if ok {
+		t.Errorf("want ok=false for NaN expr, got ok=true cost=%v", cost)
+	}
+	if cost != 0 || tier != "" {
+		t.Errorf("want (0, \"\", false), got (%v, %q, %v)", cost, tier, ok)
 	}
 }
 

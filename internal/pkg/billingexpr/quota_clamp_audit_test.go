@@ -111,6 +111,26 @@ func TestRunExprByHash_matchesRunExpr(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// WO-010 BUG-001 — RunExpr rejects non-finite (NaN/Inf) results
+// ---------------------------------------------------------------------------
+
+func TestRunExpr_nanRejected(t *testing.T) {
+	// "0/0" in expr-lang yields NaN (float division by zero).
+	_, _, err := billingexpr.RunExpr("0/0", billingexpr.TokenParams{})
+	if err == nil {
+		t.Fatal("want error for NaN result, got nil")
+	}
+}
+
+func TestRunExpr_infRejected(t *testing.T) {
+	// Division by zero on a positive numerator yields +Inf.
+	_, _, err := billingexpr.RunExpr("1/0", billingexpr.TokenParams{})
+	if err == nil {
+		t.Fatal("want error for +Inf result, got nil")
+	}
+}
+
+// ---------------------------------------------------------------------------
 // WO-009-续 §2.3 — ExprVersion and UsedVars (compile.go)
 // ---------------------------------------------------------------------------
 
