@@ -320,6 +320,42 @@ func TestChargeKeyWithExpr_noExpr_fallsBackToUpstream(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// WO-010 BUG-001 — relay integration: NaN expr must not silently free the user
+//
+// The relay hot path calls ChargeKeyWithExpr (metrics.go / media_relay.go).
+// Before the fix, a NaN-producing billing expr made ComputeExprCost return
+// (NaN, "", true), so ChargeKeyWithExpr "charged" NaN, which SQLite's WHERE
+// guard (NaN comparisons are false) silently dropped — the user was never
+// debited. After the fix, ComputeExprCost rejects NaN (ok=false) and the
+// charge falls back to the upstream USD cost, so the user IS debited.
+// ---------------------------------------------------------------------------
+
+func TestChargeKeyWithExpr_nanExpr_fallsBackToUpstream(t *testing.T) {
+	uid, kid := initBillingTestDB(t, 100.0)
+	ctx := context.Background()
+	// NaN-producing expr (0/0) for the model. BUG-001: previously this made
+	// the charge silently vanish (free usage).
+	if err := setting.SetString(model.SettingKeyBillingExpr, `{"gpt-4o":"0/0"}`); err != nil {
+		t.Fatal(err)
+	}
+
+	// upstreamCost 30.0 is the price the relay computed from upstream pricing.
+	ChargeKeyWithExpr(kid, "gpt-4o", 1000, 500, 30.0, ctx)
+
+	rem, used, err := user.GetQuota(uid, ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// NaN must NOT be charged; the user must be debited upstream 30.0 → 70.
+	if math.Abs(rem-70.0) > 1e-6 {
+		t.Errorf("want rem 70.0 (upstream charge applied), got %.17g — NaN silently dropped the charge", rem)
+	}
+	if math.Abs(used-30.0) > 1e-6 {
+		t.Errorf("want used 30.0, got %.17g", used)
+	}
+}
+
+// ---------------------------------------------------------------------------
 // WO-009-续 §2.2 — ComputeExprCostFull: uses cr/cc dimensions
 // ---------------------------------------------------------------------------
 
