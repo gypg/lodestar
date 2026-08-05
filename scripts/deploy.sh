@@ -35,6 +35,24 @@ if [[ -z "$TARGET_TAG" ]]; then
 fi
 TARGET_TAG="${TARGET_TAG:-latest}"
 
+# 确保 data/ 存在且可被容器内的非 root 进程写入。
+#
+# ★ 镜像以 UID/GID 1000(lodestar) 运行，data/ 是 bind mount——宿主的 owner 直接
+#   决定容器内能否写。若用 root 手工 mkdir，容器启动时会死在：
+#     failed to create default config "/app/data/config.json": permission denied
+#   而这个坑只在全新部署时出现：已有部署的 data/ 早就是 1000:1000，升级时看不到，
+#   所以极易漏掉——本项目就是重建服务器时才暴露的。
+mkdir -p data
+CURRENT_OWNER="$(stat -c '%u:%g' data)"
+if [[ "$CURRENT_OWNER" != "1000:1000" ]]; then
+  echo "==> data/ 归属为 ${CURRENT_OWNER}，容器需要 1000:1000，正在修正"
+  if ! chown -R 1000:1000 data 2>/dev/null; then
+    echo "✗ 无法 chown data/（当前用户非 root？）。请手动执行：" >&2
+    echo "    sudo chown -R 1000:1000 $(pwd)/data" >&2
+    exit 1
+  fi
+fi
+
 # compose 通过 env_file 读 .env，但 image: 里的 ${LODESTAR_IMAGE_TAG} 是在
 # 解析 compose 文件时插值的，走的是 shell 环境（不是 env_file），故必须显式 export。
 export LODESTAR_IMAGE_TAG="$TARGET_TAG"
