@@ -188,21 +188,21 @@ func PurchaseWithBalance(userID uint, planID int, ctx context.Context) error {
 			return ErrPlanDisabled
 		}
 
-		// Check balance
-		var u model.User
-		if err := tx.Set("gorm:query_option", "FOR UPDATE").First(&u, userID).Error; err != nil {
-			return err
-		}
-		if plan.Price > 0 && u.Quota < plan.Price {
-			return ErrInsufficientBalance
-		}
-
-		// Deduct balance
+		// Deduct balance with an atomic WHERE guard (quota >= price). The
+		// WHERE guard, not a read-then-check, is what makes concurrent
+		// purchases safe: two requests for price 8 on a balance of 10 can
+		// only one succeed, so balance never goes negative. RowsAffected
+		// being 0 means insufficient balance (or zero-price plans, which
+		// skip the deduction entirely below).
 		if plan.Price > 0 {
-			if err := tx.Model(&model.User{}).
-				Where("id = ?", userID).
-				Update("quota", gorm.Expr("quota - ?", plan.Price)).Error; err != nil {
-				return err
+			res := tx.Model(&model.User{}).
+				Where("id = ? AND quota >= ?", userID, plan.Price).
+				Update("quota", gorm.Expr("quota - ?", plan.Price))
+			if res.Error != nil {
+				return res.Error
+			}
+			if res.RowsAffected == 0 {
+				return ErrInsufficientBalance
 			}
 		}
 
