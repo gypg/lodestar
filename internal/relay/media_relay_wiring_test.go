@@ -65,17 +65,17 @@ func TestMediaRelayWiring_normalCharge_reachesChargeKeyWithExpr(t *testing.T) {
 	t.Cleanup(func() { billing.CallRecorder = nil })
 
 	recordMediaRelayLog(
-		77010,                // apiKeyID
-		"images/generate",     // requestModel
-		"images",              // endpointType
-		nil,                   // bodyBytes
-		5,                     // channelID
-		"media-channel",       // channelName
-		"gpt-image-1",         // resolvedModel
-		time.Millisecond,      // duration
-		nil,                   // attempts
-		nil,                   // relayErr (nil = success)
-		"127.0.0.1",           // clientIP
+		77010,             // apiKeyID
+		"images/generate", // requestModel
+		"images",          // endpointType
+		nil,               // bodyBytes
+		5,                 // channelID
+		"media-channel",   // channelName
+		"gpt-image-1",     // resolvedModel
+		time.Millisecond,  // duration
+		nil,               // attempts
+		nil,               // relayErr (nil = success)
+		"127.0.0.1",       // clientIP
 	)
 
 	if !called {
