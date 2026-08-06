@@ -94,3 +94,20 @@ func ComputeExprCostFull(modelName string, params billingexpr.TokenParams) (floa
 	}
 	return cost, trace.MatchedTier, true
 }
+
+// ComputeExprCostFullWithRequest computes cost with the raw request context, so
+// the expression can use param() to price media endpoints by request body fields
+// (e.g. size / n / quality). Returns (cost, matchedTier, true) on success, or
+// (0, "", false) if the model has no expression or evaluation fails.
+func ComputeExprCostFullWithRequest(modelName string, params billingexpr.TokenParams, request billingexpr.RequestInput) (float64, string, bool) {
+	expr, ok := GetExprForModel(modelName)
+	if !ok {
+		return 0, "", false
+	}
+	cost, trace, err := billingexpr.RunExprWithRequest(expr, params, request)
+	if err != nil {
+		log.Warnf("billing expr with request failed, model=%q expr=%q err=%v — falling back", modelName, expr, err)
+		return 0, "", false
+	}
+	return cost, trace.MatchedTier, true
+}

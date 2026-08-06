@@ -25,6 +25,7 @@ import (
 	grp "github.com/gypg/lodestar/internal/op/group"
 	"github.com/gypg/lodestar/internal/op/relaylog"
 	st "github.com/gypg/lodestar/internal/op/stats"
+	"github.com/gypg/lodestar/internal/pkg/billingexpr"
 	"github.com/gypg/lodestar/internal/relay/balancer"
 	"github.com/gypg/lodestar/internal/relay/condition"
 	"github.com/gypg/lodestar/internal/server/resp"
@@ -242,6 +243,12 @@ func recordMediaRelayLog(apiKeyID int, requestModel string, endpointType string,
 	ctx, cancel := newRelayPersistenceContext()
 	defer cancel()
 
+	// resolvedModel 来自 ForwardRequest，仅在请求真正转发后才有值。OnExhausted 等
+	// 从未进入 ForwardRequest 的路径会传空串，回退到用户请求的模型名（BUG-003 附带缺陷 ②）。
+	if resolvedModel == "" {
+		resolvedModel = requestModel
+	}
+
 	relayLog := dbmodel.RelayLog{
 		Time:             time.Now().Add(-duration).Unix(),
 		RequestModelName: requestModel,
@@ -268,6 +275,16 @@ func recordMediaRelayLog(apiKeyID int, requestModel string, endpointType string,
 		relayLog.Error = relayErr.Error()
 	}
 
+	// Lodestar media billing (BUG-003): price the request by its body params when a
+	// billing expression is configured for the user-facing model. TokenParams is all
+	// zeros — media has no token dimension, only param() fields like size/n/quality.
+	// Cost must be computed before RelayLogAdd so relayLog.Cost persists with the log.
+	var mediaCost float64
+	if exprCost, _, ok := billing.ComputeExprCostFullWithRequest(requestModel, billingexpr.TokenParams{}, billingexpr.RequestInput{Body: bodyBytes}); ok {
+		mediaCost = exprCost
+	}
+	relayLog.Cost = mediaCost
+
 	if logErr := relaylog.RelayLogAdd(ctx, &relayLog); logErr != nil {
 		log.Warnf("failed to save media relay log: %v", logErr)
 	}
@@ -278,7 +295,9 @@ func recordMediaRelayLog(apiKeyID int, requestModel string, endpointType string,
 
 	// Record global and API-key stats (media endpoints don't have token/cost data)
 	stats := dbmodel.StatsMetrics{
-		WaitTime: int64(duration.Milliseconds()),
+		WaitTime:   int64(duration.Milliseconds()),
+		InputCost:  mediaCost,
+		OutputCost: 0,
 	}
 	if relayErr == nil {
 		stats.RequestSuccess = 1
