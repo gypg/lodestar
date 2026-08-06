@@ -290,8 +290,12 @@ func TestSyncUsageHistoryStoresExtendedFields(t *testing.T) {
 	mock := &mockSiteAdapter{
 		usageLogs: []hub.RemoteUsageLog{
 			{
-				ID:                  101,
-				CreatedAt:           time.Date(2026, 7, 31, 10, 30, 0, 0, time.UTC).Unix(),
+				ID: 101,
+				// Must stay inside the usageLogMaxDays look-back window, so keep it
+				// relative to now. An absolute date silently ages out of the window
+				// and turns this test red on a fixed calendar day (see the idiom in
+				// TestSyncUsageHistoryFlushesBatchBeforeAgeCutoff).
+				CreatedAt:           time.Now().Add(-24 * time.Hour).Unix(),
 				ModelName:           "gpt-5.6-sol",
 				TokenName:           "编程",
 				PromptTokens:        4942,
@@ -363,8 +367,11 @@ func TestSyncUsageHistoryDeduplicatesByRemoteLogID(t *testing.T) {
 	mock := &mockSiteAdapter{
 		usageLogs: []hub.RemoteUsageLog{
 			{
-				ID:          42,
-				CreatedAt:   time.Date(2026, 7, 30, 8, 0, 0, 0, time.UTC).Unix(),
+				ID: 42,
+				// Relative to now, not an absolute date: SyncUsageHistory skips
+				// entries older than usageLogMaxDays, so a pinned date makes this
+				// test start failing once it drifts out of the window.
+				CreatedAt:   time.Now().Add(-24 * time.Hour).Unix(),
 				ModelName:   "gpt-3.5-turbo",
 				TotalTokens: 10,
 				Quota:       100,
