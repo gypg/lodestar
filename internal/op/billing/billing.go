@@ -32,6 +32,14 @@ func Enabled() bool {
 	return v
 }
 
+// CallRecorder is an optional test-only hook that observes every
+// ChargeKeyWithExpr invocation, including when billing is off. It is nil in
+// production. Relay wiring tests (WO-011) install a recorder to assert that the
+// relay request actually reached the charging call site — media_relay.go:300
+// currently passes zero args, so a balance-based assertion cannot distinguish a
+// present call from a deleted one; only call observation can.
+var CallRecorder func(apiKeyID int, modelName string, inputTokens, outputTokens int, upstreamCost float64)
+
 // HasBalanceForKey reports whether a request on this key may proceed.
 // Fail-open: billing off, unowned key, or any lookup error => allow (never break
 // the relay hot path on a transient infra error). When billing is on, requires
@@ -82,6 +90,12 @@ func ChargeKey(apiKeyID int, cost float64, ctx context.Context) {
 // If a billing expression exists for the model, uses that to compute cost;
 // otherwise falls back to the provided upstream USD cost.
 func ChargeKeyWithExpr(apiKeyID int, modelName string, inputTokens, outputTokens int, upstreamCost float64, ctx context.Context) {
+	// Test-only observation hook (WO-011): fires before the Enabled shortcut so
+	// wiring tests can assert the relay reached this call site even when billing
+	// is off or the charge is otherwise a no-op.
+	if CallRecorder != nil {
+		CallRecorder(apiKeyID, modelName, inputTokens, outputTokens, upstreamCost)
+	}
 	if !Enabled() {
 		return
 	}
