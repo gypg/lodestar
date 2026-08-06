@@ -12,21 +12,20 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// WO-011 — relay 媒体扣费接线断言（media_relay.go:300 的 ChargeKeyWithExpr 调用）
+// WO-011/WO-013 — relay 媒体扣费接线断言（media_relay.go 的 ChargeKey 调用）
 //
 // 目标：防止重构时误删"媒体（图床）请求完成后确实走到了扣费"这条接线。
 //
-// 现状（需在测试中验证）：media_relay.go:300 传给 ChargeKeyWithExpr 的
-// stats.InputToken/OutputToken/InputCost/OutputCost 全部来自一个仅设置了
-// WaitTime 的零值 StatsMetrics，因此实际扣费参数恒为 (0, 0, 0.0)——即"媒体扣费
-// 当前是坏的，账单上消费为 $0"。这使余额型断言无法区分"调用被删"与"调用存在但
-// 传零值"。
+// WO-012 后 cost 已在 recordMediaRelayLog 内计算好（mediaCost）；WO-013 (BUG-004)
+// 改为直接调 billing.ChargeKey(apiKeyID, mediaCost, ctx)——ChargeKeyWithExpr 会
+// 无 body 重算表达式并覆盖 mediaCost，故媒体路径不再走它。modelName 不再随扣费
+// 调用传递（ChargeKey 只有 apiKeyID+cost）。
 //
 // 因此这里用 billing.CallRecorder 钩子直接观察调用是否发生，断言：
-//  1. 调用确实触达了 ChargeKeyWithExpr（这条接线是存在的）；
-//  2. 当前参数确实是 (0, 0, 0.0)（记录媒体扣费坏的现状，见 FIXME）。
+//  1. 调用确实触达了 ChargeKey（这条接线是存在的）；
+//  2. apiKeyID 正确（无表达式时 cost 为 0，记录无表达式媒体不扣费）。
 //
-// 若删除 media_relay.go:300 的调用 → recorder 不触发 → 红。
+// 若删除 media_relay.go 的 ChargeKey 调用 → recorder 不触发 → 红。
 // ---------------------------------------------------------------------------
 
 // initMediaRelayTestEnv 搭起最小环境（DB + 缓存），让 recordMediaRelayLog 的日志/
@@ -44,23 +43,20 @@ func initMediaRelayTestEnv(t *testing.T) {
 	t.Cleanup(func() { _ = db.Close() })
 }
 
-// TestMediaRelayWiring_normalCharge_reachesChargeKeyWithExpr
-// 验证 media_relay.go:300 的扣费调用确实被 recordMediaRelayLog 触达。
-func TestMediaRelayWiring_normalCharge_reachesChargeKeyWithExpr(t *testing.T) {
+// TestMediaRelayWiring_normalCharge_reachesChargeKey
+// 验证 media_relay.go 的扣费调用确实被 recordMediaRelayLog 触达。
+func TestMediaRelayWiring_normalCharge_reachesChargeKey(t *testing.T) {
 	initMediaRelayTestEnv(t)
 
 	var (
-		called        = false
-		gotKeyID      int
-		gotModel      string
-		gotIn, gotOut int
-		gotCost       float64
+		called   = false
+		gotKeyID int
+		gotCost  float64
 	)
-	billing.CallRecorder = func(apiKeyID int, modelName string, in, out int, cost float64) {
+	billing.CallRecorder = func(apiKeyID int, _ string, _, _ int, cost float64) {
 		called = true
 		gotKeyID = apiKeyID
-		gotModel = modelName
-		gotIn, gotOut, gotCost = in, out, cost
+		gotCost = cost
 	}
 	t.Cleanup(func() { billing.CallRecorder = nil })
 
@@ -79,23 +75,19 @@ func TestMediaRelayWiring_normalCharge_reachesChargeKeyWithExpr(t *testing.T) {
 	)
 
 	if !called {
-		t.Fatalf("ChargeKeyWithExpr was not called — media billing wiring (media_relay.go:300) likely removed")
+		t.Fatalf("ChargeKey was not called — media billing wiring (media_relay.go) likely removed")
 	}
 	if gotKeyID != 77010 {
 		t.Errorf("charge apiKeyID: want 77010, got %d", gotKeyID)
 	}
-	if gotModel != "gpt-image-1" {
-		t.Errorf("charge model: want %q, got %q", "gpt-image-1", gotModel)
-	}
-	// FIXME: media billing broken — recordMediaRelayLog never sets
-	// InputToken/OutputToken/InputCost/OutputCost, so the charge is always $0.
-	if gotIn != 0 || gotOut != 0 || gotCost != 0.0 {
-		t.Errorf("media charge args: want (0,0,0.0) documenting broken billing, got (%d,%d,%.6f)", gotIn, gotOut, gotCost)
+	// 无 billing 表达式（默认环境）→ mediaCost 为 0，扣费应为 $0（不扣钱但调用存在）。
+	if gotCost != 0.0 {
+		t.Errorf("media charge cost: want 0.0 (no expr), got %.6f", gotCost)
 	}
 }
 
 // TestMediaRelayWiring_ccBillingOffStillReachesCallSite
-// 即使 commercial_mode 关闭（ChargeKeyWithExpr 会 no-op），调用点仍必须被触达。
+// 即使 commercial_mode 关闭（ChargeKey 会 no-op），调用点仍必须被触达。
 // 这锁定"接线存在"与"商业模式开关"是两回事：改开关不能掩盖接线被删。
 func TestMediaRelayWiring_ccBillingOffStillReachesCallSite(t *testing.T) {
 	initMediaRelayTestEnv(t)
@@ -107,7 +99,7 @@ func TestMediaRelayWiring_ccBillingOffStillReachesCallSite(t *testing.T) {
 	recordMediaRelayLog(77011, "images/generate", "images", nil, 5, "c", "gpt-image-1", time.Millisecond, nil, nil, "127.0.0.1")
 
 	if !called {
-		t.Fatalf("ChargeKeyWithExpr not reached even though billing is off — media wiring removed")
+		t.Fatalf("ChargeKey not reached even though billing is off — media wiring removed")
 	}
 }
 
@@ -123,6 +115,6 @@ func TestMediaRelayWiring_failedRequestStillCharges(t *testing.T) {
 	recordMediaRelayLog(77012, "images/generate", "images", nil, 5, "c", "gpt-image-1", time.Millisecond, nil, fmt.Errorf("upstream failed"), "127.0.0.1")
 
 	if !called {
-		t.Fatalf("failed media request did not reach ChargeKeyWithExpr — media wiring removed")
+		t.Fatalf("failed media request did not reach ChargeKey — media wiring removed")
 	}
 }

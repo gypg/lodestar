@@ -74,6 +74,11 @@ func MediaHandler(endpointType MediaEndpointType, c *gin.Context) {
 		resp.Error(c, relayRequestBodyErrorStatus(err), err.Error())
 		return
 	}
+	// Multipart endpoints carry no JSON body (bodyBytes==nil), so billing
+	// expressions cannot read param('size'/'n'/'quality') from it (BUG-004b).
+	// Serialize the parsed form fields into a JSON object once, here, so the
+	// cost path and the relay log both see the fields.
+	bodyBytes = extractBodyForBilling(c, cfg, bodyBytes)
 	if cfg.MultipartInput && c.Request.MultipartForm != nil {
 		defer c.Request.MultipartForm.RemoveAll()
 	}
@@ -315,8 +320,12 @@ func recordMediaRelayLog(apiKeyID int, requestModel string, endpointType string,
 		log.Warnf("failed to update daily stats for media relay: %v", statsErr)
 	}
 	st.APIKeyUpdate(apiKeyID, stats)
-	// Lodestar commercial: deduct media request cost from key owner's balance (no-op unless commercial_mode on).
-	billing.ChargeKeyWithExpr(apiKeyID, resolvedModel, int(stats.InputToken), int(stats.OutputToken), stats.InputCost+stats.OutputCost, ctx)
+	// Lodestar commercial: deduct the already-computed media cost from the key
+	// owner's balance (no-op unless commercial_mode on). BUG-004: ChargeKeyWithExpr
+	// would re-run ComputeExprCost WITHOUT the request body and overwrite mediaCost
+	// with a body-less value; media cost is already final here, so call ChargeKey
+	// directly — exactly one charge, for exactly mediaCost.
+	billing.ChargeKey(apiKeyID, mediaCost, ctx)
 	opMain.StatsSiteModelHourlyRecordAttempts(attempts, resolvedModel)
 	telemetry.Global().RecordRequest(duration.Milliseconds(), relayErr == nil)
 }
@@ -368,6 +377,44 @@ func extractModelFromJSON(c *gin.Context) (string, []byte, bool, error) {
 	model, _ := raw["model"].(string)
 	streamRequested := parseMediaStreamFlag(raw["stream"])
 	return model, body, streamRequested, nil
+}
+
+// extractBodyForBilling returns the request body as seen by the billing path.
+// JSON endpoints pass bodyBytes through unchanged; multipart endpoints have no
+// JSON body, so their parsed form fields are serialized to a JSON object
+// (BUG-004b). Returns bodyBytes unchanged when the request is not multipart or
+// the form is absent.
+func extractBodyForBilling(c *gin.Context, cfg mediaEndpointConfig, bodyBytes []byte) []byte {
+	if !cfg.MultipartInput || bodyBytes != nil || c.Request.MultipartForm == nil {
+		return bodyBytes
+	}
+	return multipartFormToJSONBody(c.Request.MultipartForm)
+}
+
+// multipartFormToJSONBody serializes multipart form value fields into a JSON
+// object ({"field":"firstValue", ...}) so billing expressions can read them via
+// param(). Only the first value of each field is kept — multipart form fields
+// are string lists, and billing params like size/n/quality are single-valued.
+// Returns nil (no panic) when form is nil or has no value fields.
+func multipartFormToJSONBody(form *multipart.Form) []byte {
+	if form == nil {
+		return nil
+	}
+	fields := make(map[string]string, len(form.Value))
+	for key, values := range form.Value {
+		if len(values) > 0 {
+			fields[key] = values[0]
+		}
+	}
+	if len(fields) == 0 {
+		return nil
+	}
+	body, err := json.Marshal(fields)
+	if err != nil {
+		log.Warnf("multipart form serialization failed: %v", err)
+		return nil
+	}
+	return body
 }
 
 // extractModelFromMultipart extracts the model from a multipart/form-data request.

@@ -32,12 +32,13 @@ func Enabled() bool {
 	return v
 }
 
-// CallRecorder is an optional test-only hook that observes every
-// ChargeKeyWithExpr invocation, including when billing is off. It is nil in
-// production. Relay wiring tests (WO-011) install a recorder to assert that the
-// relay request actually reached the charging call site — media_relay.go:300
-// currently passes zero args, so a balance-based assertion cannot distinguish a
-// present call from a deleted one; only call observation can.
+// CallRecorder is an optional test-only hook that observes every ChargeKey
+// invocation, including when billing is off. It is nil in production. Relay
+// wiring tests (WO-011/WO-013) install a recorder to assert that the relay
+// request actually reached the charge call site. It fires before the
+// Enabled/cost shortcuts so a present-but-no-op charge stays observable.
+// modelName/tokens are empty for direct ChargeKey calls (media path); only
+// apiKeyID and cost are meaningful there.
 var CallRecorder func(apiKeyID int, modelName string, inputTokens, outputTokens int, upstreamCost float64)
 
 // HasBalanceForKey reports whether a request on this key may proceed.
@@ -67,6 +68,12 @@ func HasBalanceForKey(apiKeyID int, ctx context.Context) bool {
 // ChargeKey deducts the request's USD cost from the key owner's balance.
 // No-op when billing is off, cost is zero, or the key is unowned.
 func ChargeKey(apiKeyID int, cost float64, ctx context.Context) {
+	// Test-only observation hook (WO-011/WO-013): fires before the shortcuts so
+	// wiring tests can assert the relay reached this call site even when billing
+	// is off or the charge is otherwise a no-op.
+	if CallRecorder != nil {
+		CallRecorder(apiKeyID, "", 0, 0, cost)
+	}
 	if !Enabled() || cost <= 0 {
 		return
 	}
@@ -89,13 +96,9 @@ func ChargeKey(apiKeyID int, cost float64, ctx context.Context) {
 // ChargeKeyWithExpr is like ChargeKey but checks for expression-based billing first.
 // If a billing expression exists for the model, uses that to compute cost;
 // otherwise falls back to the provided upstream USD cost.
+// CallRecorder fires inside ChargeKey (the common funnel), so this wrapper does
+// not fire it again — a call observed there is already counted exactly once.
 func ChargeKeyWithExpr(apiKeyID int, modelName string, inputTokens, outputTokens int, upstreamCost float64, ctx context.Context) {
-	// Test-only observation hook (WO-011): fires before the Enabled shortcut so
-	// wiring tests can assert the relay reached this call site even when billing
-	// is off or the charge is otherwise a no-op.
-	if CallRecorder != nil {
-		CallRecorder(apiKeyID, modelName, inputTokens, outputTokens, upstreamCost)
-	}
 	if !Enabled() {
 		return
 	}
