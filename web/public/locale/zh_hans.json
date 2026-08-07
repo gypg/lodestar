@@ -1634,6 +1634,9 @@
       "checkinTriggered": "已触发后台站点全量签到",
       "checkinFailed": "触发签到失败"
     },
+    "apiKey": {
+      "title": "API 密钥",
+      "empty": "暂无 API 密钥",
       "add": "添加密钥",
       "loadFailed": "加载失败",
       "form": {
