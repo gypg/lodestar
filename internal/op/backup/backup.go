@@ -196,6 +196,25 @@ func (c *importConfig) upsertSettings(rows []model.Setting) error {
 	return nil
 }
 
+// usersWithCredentials returns only the dump users that carry a password hash.
+//
+// model.User.Password is tagged json:"-", so every dump that has been through
+// JSON loses all hashes: the settings-page export nils Users outright
+// (handlers/setting.go), and WebDAV backups keep the rows but with an empty
+// Password. Inserting such rows creates accounts nobody can log in to, and
+// because BootstrapCreate refuses to run once any user exists, that also blocks
+// admin recovery. Importing zero users is recoverable; importing credential-less
+// users is not.
+func usersWithCredentials(users []model.User) []model.User {
+	kept := make([]model.User, 0, len(users))
+	for _, u := range users {
+		if u.Password != "" {
+			kept = append(kept, u)
+		}
+	}
+	return kept
+}
+
 func (c *importConfig) deleteAll(table string) error {
 	result := c.conn.Exec(fmt.Sprintf("DELETE FROM %s", table))
 	appendStep(c.res, table, "delete", result.RowsAffected, result.Error)
@@ -223,6 +242,11 @@ func ImportWithModeToDB(ctx context.Context, target *gorm.DB, dump *model.DBDump
 	// 迁移路径（target 为另开的库）不走这里，relay_logs 跟随 target 一起迁移，
 	// 行为与旧版一致。
 	logToSeparateDB := target == db.GetDB() && db.IsLogDBSeparate()
+
+	// users 的删除与恢复必须成对：只有当 dump 真的带得回可登录的账户时，full
+	// 模式才清空 users 表。否则（官方 JSON 导出 Users=nil、WebDAV 备份 Password
+	// 为空）就是「先删光、再无物可插」，管理员被永久锁死。
+	importableUsers := usersWithCredentials(dump.Users)
 
 	err := cfg.conn.Transaction(func(tx *gorm.DB) error {
 		cfg.conn = tx
@@ -267,6 +291,10 @@ func ImportWithModeToDB(ctx context.Context, target *gorm.DB, dump *model.DBDump
 				if table == "relay_logs" && logToSeparateDB {
 					continue
 				}
+				// dump 里没有可登录的账户时保留现有 users，避免恢复后无人能登录。
+				if table == "users" && len(importableUsers) == 0 {
+					continue
+				}
 				if err := cfg.deleteAll(table); err != nil {
 					return fmt.Errorf("full import: delete %s: %w", table, err)
 				}
@@ -300,9 +328,10 @@ func ImportWithModeToDB(ctx context.Context, target *gorm.DB, dump *model.DBDump
 			return err
 		}
 
-		// Users — skip existing (backward compat: might be nil in old dumps)
-		if len(dump.Users) > 0 {
-			if err := cfg.doNothing("users", &dump.Users, len(dump.Users)); err != nil {
+		// Users — skip existing (backward compat: might be nil in old dumps).
+		// 只导入带密码哈希的账户，见 usersWithCredentials。
+		if len(importableUsers) > 0 {
+			if err := cfg.doNothing("users", &importableUsers, len(importableUsers)); err != nil {
 				return err
 			}
 		}
