@@ -3030,6 +3030,63 @@
     "closeDialog": "關閉"
   },
   "setting": {
+    "appearance": {
+      "title": "外觀"
+    },
+    "system": {
+      "title": "系統"
+    },
+    "info": {
+      "title": "版本資訊"
+    },
+    "account": {
+      "title": "帳戶設定"
+    },
+    "autoStrategy": {
+      "title": "智慧選擇策略"
+    },
+    "semanticCache": {
+      "title": "語義快取"
+    },
+    "retry": {
+      "title": "重試設定"
+    },
+    "log": {
+      "title": "日誌設定"
+    },
+    "llmSync": {
+      "title": "自動任務"
+    },
+    "circuitBreaker": {
+      "title": "熔斷器設定"
+    },
+    "responseFilter": {
+      "title": "輸出關鍵詞攔截"
+    },
+    "backup": {
+      "title": "備份 / 還原"
+    },
+    "webdav": {
+      "title": "WebDAV 雲端備份"
+    },
+    "imageBed": {
+      "title": "圖床"
+    },
+    "webauthn": {
+      "title": "Passkey(WebAuthn)"
+    },
+    "twofa": {
+      "title": "兩步驟驗證 (2FA)"
+    },
+    "commercialMode": {
+      "title": "商業模式",
+      "description": "切換商業/自用模式。開啟後開放公開註冊和計費。",
+      "enable": "啟用商業模式",
+      "disable": "關閉商業模式",
+      "status": "目前模式",
+      "statusCommercial": "商業模式",
+      "statusSelfUse": "自用模式"
+    },
     "email": {
       "title": "郵件 · SMTP",
       "description": "設定後可啟用註冊信箱驗證、發送通知（587 STARTTLS）。",
