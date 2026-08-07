@@ -9,6 +9,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/gypg/lodestar/internal/utils/xurl"
 )
 
 // WebDAVClient WebDAV 客户端
@@ -28,16 +30,37 @@ type WebDAVFile struct {
 	IsDir        bool
 }
 
-// NewWebDAVClient 创建 WebDAV 客户端
-func NewWebDAVClient(baseURL, username, password string) *WebDAVClient {
+// NewWebDAVClient 创建 WebDAV 客户端。
+//
+// baseURL 来自设置页（settings:write，editor 角色也持有），是用户可控的出站
+// 目标，因此必须过 SSRF 校验；校验失败时返回错误而不是一个「会打内网」的
+// 客户端。校验放在构造函数而非各调用点，是为了让 scheduler.go 的四条路径
+// （备份/恢复/列举/删除）无法漏掉其中任何一条。
+func NewWebDAVClient(baseURL, username, password string) (*WebDAVClient, error) {
+	trimmed := strings.TrimSuffix(strings.TrimSpace(baseURL), "/")
+	if err := xurl.AssertSafeURL(trimmed); err != nil {
+		return nil, fmt.Errorf("webdav base_url is not allowed: %w", err)
+	}
 	return &WebDAVClient{
-		baseURL:  strings.TrimSuffix(baseURL, "/"),
+		baseURL:  trimmed,
 		username: username,
 		password: password,
 		client: &http.Client{
 			Timeout: 30 * time.Second,
+			// 校验只覆盖第一跳。若不拦重定向，一个公网主机可以用
+			// 302 → http://169.254.169.254/ 把带着 Basic-Auth 的请求
+			// 引到内网/云元数据端点，绕开 AssertSafeURL。
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				if err := xurl.AssertSafeHost(req.URL); err != nil {
+					return fmt.Errorf("webdav redirect target is not allowed: %w", err)
+				}
+				if len(via) >= 5 {
+					return fmt.Errorf("too many webdav redirects")
+				}
+				return nil
+			},
 		},
-	}
+	}, nil
 }
 
 // Test 测试 WebDAV 连接

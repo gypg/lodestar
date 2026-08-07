@@ -61,7 +61,10 @@ func PerformWebDAVBackup(ctx context.Context) error {
 		return fmt.Errorf("webdav base URL is empty")
 	}
 
-	client := NewWebDAVClient(cfg.BaseURL, cfg.Username, cfg.Password)
+	client, err := NewWebDAVClient(cfg.BaseURL, cfg.Username, cfg.Password)
+	if err != nil {
+		return err
+	}
 
 	dump, err := ExportAll(ctx, cfg.IncludeLogs, cfg.IncludeStats)
 	if err != nil {
@@ -102,7 +105,10 @@ func RestoreFromWebDAV(ctx context.Context, filename string) (*model.DBImportRes
 		return nil, fmt.Errorf("webdav base URL is empty")
 	}
 
-	client := NewWebDAVClient(cfg.BaseURL, cfg.Username, cfg.Password)
+	client, err := NewWebDAVClient(cfg.BaseURL, cfg.Username, cfg.Password)
+	if err != nil {
+		return nil, err
+	}
 
 	remotePath := strings.TrimSuffix(cfg.RemotePath, "/") + "/" + filename
 	data, err := client.Download(remotePath)
@@ -133,7 +139,10 @@ func ListWebDAVBackups() ([]WebDAVFile, error) {
 		return nil, fmt.Errorf("webdav base URL is empty")
 	}
 
-	client := NewWebDAVClient(cfg.BaseURL, cfg.Username, cfg.Password)
+	client, err := NewWebDAVClient(cfg.BaseURL, cfg.Username, cfg.Password)
+	if err != nil {
+		return nil, err
+	}
 	files, err := client.List(cfg.RemotePath)
 	if err != nil {
 		return nil, fmt.Errorf("list: %w", err)
@@ -162,7 +171,10 @@ func DeleteWebDAVBackup(filename string) error {
 		return fmt.Errorf("read config: %w", err)
 	}
 
-	client := NewWebDAVClient(cfg.BaseURL, cfg.Username, cfg.Password)
+	client, err := NewWebDAVClient(cfg.BaseURL, cfg.Username, cfg.Password)
+	if err != nil {
+		return err
+	}
 	remotePath := strings.TrimSuffix(cfg.RemotePath, "/") + "/" + filename
 	return client.Delete(remotePath)
 }

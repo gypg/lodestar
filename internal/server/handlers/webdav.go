@@ -18,6 +18,7 @@ import (
 	"github.com/gypg/lodestar/internal/server/resp"
 	"github.com/gypg/lodestar/internal/server/router"
 	"github.com/gypg/lodestar/internal/utils/log"
+	"github.com/gypg/lodestar/internal/utils/xurl"
 )
 
 // backupMutex serialises all backup/restore operations (WebDAV backup,
@@ -129,6 +130,14 @@ func setWebDAVConfig(c *gin.Context) {
 	}
 
 	// Validate
+	// 在写入边界就拒绝不安全的 base_url，避免把一个「会打内网」的配置持久化到
+	// 设置里，让后台定时任务替调用者去踩。空值仍允许（未配置状态）。
+	if cfg.BaseURL != "" {
+		if err := xurl.AssertSafeURL(strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")); err != nil {
+			resp.Error(c, http.StatusBadRequest, "base_url is not allowed: "+err.Error())
+			return
+		}
+	}
 	if cfg.IntervalHours < 1 || cfg.IntervalHours > 168 {
 		resp.Error(c, http.StatusBadRequest, "interval_hours must be between 1 and 168")
 		return
@@ -181,7 +190,11 @@ func testWebDAVConnection(c *gin.Context) {
 		return
 	}
 
-	client := backup.NewWebDAVClient(baseURL, username, password)
+	client, err := backup.NewWebDAVClient(baseURL, username, password)
+	if err != nil {
+		resp.Error(c, http.StatusBadRequest, "base_url is not allowed: "+err.Error())
+		return
+	}
 	if err := client.Test(); err != nil {
 		log.Errorf("testWebDAVConnection failed: %v", err)
 		resp.Error(c, http.StatusBadRequest, "WebDAV connection test failed")

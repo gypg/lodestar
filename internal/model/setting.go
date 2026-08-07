@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"net/url"
 	"strconv"
+	"strings"
+
+	"github.com/gypg/lodestar/internal/utils/xurl"
 )
 
 type SettingKey string
@@ -403,6 +406,16 @@ func (s *Setting) Validate() error {
 		var cfg map[string]any
 		if err := json.Unmarshal([]byte(s.Value), &cfg); err != nil {
 			return fmt.Errorf("webdav config must be a valid JSON object")
+		}
+		// base_url 是用户可控的出站目标（settings:write，editor 角色也持有）。
+		// 通用设置端点也能写这个键，所以校验必须落在验证器里，否则 handlers
+		// 里的检查会被 /api/v1/setting 绕过。空值 = 未配置，允许。
+		if raw, ok := cfg["base_url"]; ok {
+			if baseURL, isStr := raw.(string); isStr && strings.TrimSpace(baseURL) != "" {
+				if err := xurl.AssertSafeURL(strings.TrimSuffix(strings.TrimSpace(baseURL), "/")); err != nil {
+					return fmt.Errorf("webdav base_url is not allowed: %w", err)
+				}
+			}
 		}
 		return nil
 	case SettingKeyResponseFilterEnabled:
