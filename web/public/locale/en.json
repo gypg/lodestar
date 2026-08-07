@@ -3030,6 +3030,63 @@
     "closeDialog": "Close"
   },
   "setting": {
+    "appearance": {
+      "title": "Appearance"
+    },
+    "system": {
+      "title": "System"
+    },
+    "info": {
+      "title": "Version Info"
+    },
+    "account": {
+      "title": "Account Settings"
+    },
+    "autoStrategy": {
+      "title": "Auto Strategy"
+    },
+    "semanticCache": {
+      "title": "Semantic Cache"
+    },
+    "retry": {
+      "title": "Retry Configuration"
+    },
+    "log": {
+      "title": "Log Settings"
+    },
+    "llmSync": {
+      "title": "Auto Tasks"
+    },
+    "circuitBreaker": {
+      "title": "Circuit Breaker"
+    },
+    "responseFilter": {
+      "title": "Response Filter"
+    },
+    "backup": {
+      "title": "Backup / Restore"
+    },
+    "webdav": {
+      "title": "WebDAV Cloud Backup"
+    },
+    "imageBed": {
+      "title": "Image Hosting"
+    },
+    "webauthn": {
+      "title": "Passkey (WebAuthn)"
+    },
+    "twofa": {
+      "title": "Two-Factor Authentication (2FA)"
+    },
+    "commercialMode": {
+      "title": "Commercial Mode",
+      "description": "Switch between commercial/personal mode. When enabled, public registration and billing are available.",
+      "enable": "Enable Commercial Mode",
+      "disable": "Disable Commercial Mode",
+      "status": "Current Mode",
+      "statusCommercial": "Commercial Mode",
+      "statusSelfUse": "Personal Mode"
+    },
     "email": {
       "title": "Email - SMTP",
       "description": "Enable email verification for registration and send notifications (587 STARTTLS).",
