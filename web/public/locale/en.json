@@ -3030,6 +3030,15 @@
     "closeDialog": "Close"
   },
   "setting": {
+    "apiKey": {
+      "title": "API Keys & Endpoints",
+      "page": {
+        "count": "{count, plural, =0 {No keys} other {# keys}}",
+        "searchPlaceholder": "Search by name or tag",
+        "newKey": "New Key"
+      },
+      "empty": "No API keys"
+    },
     "appearance": {
       "title": "Appearance"
     },
@@ -3055,7 +3064,11 @@
       "title": "Log Settings"
     },
     "llmSync": {
-      "title": "Auto Tasks"
+      "title": "Auto Tasks",
+      "lastSync": "Last Sync",
+      "manualSync": {
+        "button": "Sync Now"
+      }
     },
     "circuitBreaker": {
       "title": "Circuit Breaker"
@@ -3086,6 +3099,10 @@
       "status": "Current Mode",
       "statusCommercial": "Commercial Mode",
       "statusSelfUse": "Personal Mode"
+    },
+    "chinaMode": {
+      "label": "China Mode",
+      "description": "Display costs in CNY and use 万/亿 units"
     },
     "email": {
       "title": "Email - SMTP",

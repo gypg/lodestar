@@ -3030,6 +3030,15 @@
     "closeDialog": "關閉"
   },
   "setting": {
+    "apiKey": {
+      "title": "API 密鑰及端點",
+      "page": {
+        "count": "{count, plural, =0 {暫無密鑰} other {# 個密鑰}}",
+        "searchPlaceholder": "按名稱或標籤搜尋",
+        "newKey": "新建密鑰"
+      },
+      "empty": "暫無 API 密鑰"
+    },
     "appearance": {
       "title": "外觀"
     },
@@ -3055,7 +3064,11 @@
       "title": "日誌設定"
     },
     "llmSync": {
-      "title": "自動任務"
+      "title": "自動任務",
+      "lastSync": "上次同步",
+      "manualSync": {
+        "button": "立即同步"
+      }
     },
     "circuitBreaker": {
       "title": "熔斷器設定"
@@ -3086,6 +3099,10 @@
       "status": "目前模式",
       "statusCommercial": "商業模式",
       "statusSelfUse": "自用模式"
+    },
+    "chinaMode": {
+      "label": "中國化模式",
+      "description": "費用顯示人民幣，數字使用萬/億單位"
     },
     "email": {
       "title": "郵件 · SMTP",
