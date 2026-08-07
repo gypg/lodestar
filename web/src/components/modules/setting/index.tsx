@@ -39,13 +39,13 @@ type SettingItemDef = {
 
 const SETTING_ITEM_DEFS: SettingItemDef[] = [
     { id: 'info',              icon: <Info className="h-5 w-5" />,              titleKey: 'info.title',           component: <SettingInfo /> },
-    { id: 'appearance',        icon: <Sun className="h-5 w-5" />,              titleKey: 'appearance',           component: <SettingAppearance /> },
+    { id: 'appearance',        icon: <Sun className="h-5 w-5" />,              titleKey: 'appearance.title',     component: <SettingAppearance /> },
     { id: 'auto-strategy',     icon: <Sparkles className="h-5 w-5" />,         titleKey: 'autoStrategy.title',   component: <SettingAutoStrategy /> },
     { id: 'account',           icon: <User className="h-5 w-5" />,              titleKey: 'account.title',         component: <SettingAccount /> },
     { id: 'semantic-cache',    icon: <Database className="h-5 w-5" />,          titleKey: 'semanticCache.title',  component: <SettingSemanticCache /> },
     { id: 'retry',             icon: <RotateCcw className="h-5 w-5" />,        titleKey: 'retry.title',          component: <SettingRetry /> },
     { id: 'log',               icon: <ScrollText className="h-5 w-5" />,        titleKey: 'log.title',           component: <SettingLog /> },
-    { id: 'system',            icon: <Monitor className="h-5 w-5" />,           titleKey: 'system',               component: <SettingSystem /> },
+    { id: 'system',            icon: <Monitor className="h-5 w-5" />,           titleKey: 'system.title',         component: <SettingSystem /> },
     { id: 'llmsync',           icon: <RefreshCw className="h-5 w-5" />,        titleKey: 'llmSync.title',        component: <SettingLLMSync /> },
     { id: 'circuit-breaker',   icon: <Zap className="h-5 w-5" />,              titleKey: 'circuitBreaker.title', component: <SettingCircuitBreaker /> },
     { id: 'response-filter',   icon: <ShieldAlert className="h-5 w-5" />,      titleKey: 'responseFilter.title', component: <SettingResponseFilter /> },

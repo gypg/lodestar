@@ -1196,8 +1196,70 @@
     }
   },
   "setting": {
-    "appearance": "外观",
-    "system": "系统",
+    "apiKey": {
+      "title": "API 密钥及端点",
+      "page": {
+        "count": "{count, plural, =0 {暂无密钥} other {# 个密钥}}",
+        "searchPlaceholder": "按名称或标签搜索",
+        "newKey": "新建密钥"
+      },
+      "empty": "暂无 API 密钥"
+    },
+    "appearance": {
+      "title": "外观"
+    },
+    "system": {
+      "title": "系统"
+    },
+    "info": {
+      "title": "版本信息"
+    },
+    "account": {
+      "title": "账户设置"
+    },
+    "autoStrategy": {
+      "title": "智能选择策略"
+    },
+    "semanticCache": {
+      "title": "语义缓存"
+    },
+    "retry": {
+      "title": "重试配置"
+    },
+    "log": {
+      "title": "日志设置"
+    },
+    "llmSync": {
+      "title": "自动任务"
+    },
+    "circuitBreaker": {
+      "title": "熔断器配置"
+    },
+    "responseFilter": {
+      "title": "输出关键词拦截"
+    },
+    "backup": {
+      "title": "备份 / 恢复"
+    },
+    "webdav": {
+      "title": "WebDAV 云备份"
+    },
+    "imageBed": {
+      "title": "图床"
+    },
+    "commercialMode": {
+      "title": "商业模式",
+      "description": "切换商业/自用模式。开启后开放公开注册和计费。",
+      "enable": "启用商业模式",
+      "disable": "关闭商业模式",
+      "status": "当前模式",
+      "statusCommercial": "商业模式",
+      "statusSelfUse": "自用模式"
+    },
+    "chinaMode": {
+      "label": "中国化模式",
+      "description": "费用显示人民币，数字使用万/亿单位"
+    },
     "theme": {
       "label": "主题",
       "light": "浅色",
@@ -1572,9 +1634,6 @@
       "checkinTriggered": "已触发后台站点全量签到",
       "checkinFailed": "触发签到失败"
     },
-    "apiKey": {
-      "title": "API 密钥",
-      "empty": "暂无 API 密钥",
       "add": "添加密钥",
       "loadFailed": "加载失败",
       "form": {
