@@ -394,41 +394,45 @@ func Handler(endpointType string, inboundType inbound.InboundType, c *gin.Contex
 		result, sfErr, shared := relayInflightGroup.Do(inflightKey, func() (any, error) {
 			return executeRelay(req, group, requestModel, maxKeyRetriesPerRoute, maxRouteRetries, ratelimitCooldown, maxTotalAttempts)
 		})
-		if sfErr == nil {
-			if outcome, ok := result.(*inflightRelayResult); ok && outcome != nil {
-				if shared {
-					if outcome.namespace != "" && outcome.requestText != "" {
-						cfg, ok := semanticCacheRuntimeConfig()
-						if ok {
-							embedding, _, embErr := lookupSemanticEmbeddingWithCache(req.operationCtx, req, cfg, outcome.namespace, outcome.requestText)
-							if embErr == nil {
-								if payload, found := semantic_cache.Lookup(outcome.namespace, embedding); found {
-									normalizedPayload := semanticCacheHitPayload(payload, internalRequest)
-									c.Data(http.StatusOK, "application/json", normalizedPayload)
-									if internalResponse, parseErr := buildSemanticCacheHitInternalResponse(internalRequest, normalizedPayload); parseErr == nil {
-										metrics.SetInternalResponse(internalResponse, outcome.actualModel)
-									}
-									metrics.Save(true, nil, nil)
-									return
-								}
-							}
-						}
-					}
-					if resp := cloneInternalResponse(outcome.internalResp); resp != nil {
-						metrics.SetInternalResponse(resp, outcome.actualModel)
-						// singleflight follower: write response body so client gets data instead of empty 200
-						if inResponse, terr := req.inAdapter.TransformResponse(req.clientCtx, resp); terr == nil && len(inResponse) > 0 {
-							req.c.Data(http.StatusOK, "application/json", inResponse)
-						} else if terr != nil {
-							logRelayErrorfByContext(terr, "shared caller transform response: %v", terr)
-						}
-					}
-					metrics.Save(true, nil, outcome.attempts)
-					return
-				}
-				return
-			}
+		// executeRelay 已经跑过了 —— 无论成败都不能再跑第二遍。
+		// 失败时它已经把错误写给客户端、也已 metrics.Save；跌穿到下面的兜底
+		// executeRelay 会让整条重试链重打一遍（上游挨 2N 次），第二遍的错误响应
+		// 还会追加写在已写出的 body 后面，拼出两个顶层对象的非法 JSON。
+		if sfErr != nil {
+			return
 		}
+		if outcome, ok := result.(*inflightRelayResult); ok && outcome != nil && shared {
+			// singleflight 跟随者：本请求自己没转发过，需要把领头者的结果写给客户端。
+			if outcome.namespace != "" && outcome.requestText != "" {
+				cfg, ok := semanticCacheRuntimeConfig()
+				if ok {
+					embedding, _, embErr := lookupSemanticEmbeddingWithCache(req.operationCtx, req, cfg, outcome.namespace, outcome.requestText)
+					if embErr == nil {
+						if payload, found := semantic_cache.Lookup(outcome.namespace, embedding); found {
+							normalizedPayload := semanticCacheHitPayload(payload, internalRequest)
+							c.Data(http.StatusOK, "application/json", normalizedPayload)
+							if internalResponse, parseErr := buildSemanticCacheHitInternalResponse(internalRequest, normalizedPayload); parseErr == nil {
+								metrics.SetInternalResponse(internalResponse, outcome.actualModel)
+							}
+							metrics.Save(true, nil, nil)
+							return
+						}
+					}
+				}
+			}
+			if resp := cloneInternalResponse(outcome.internalResp); resp != nil {
+				metrics.SetInternalResponse(resp, outcome.actualModel)
+				// singleflight follower: write response body so client gets data instead of empty 200
+				if inResponse, terr := req.inAdapter.TransformResponse(req.clientCtx, resp); terr == nil && len(inResponse) > 0 {
+					req.c.Data(http.StatusOK, "application/json", inResponse)
+				} else if terr != nil {
+					logRelayErrorfByContext(terr, "shared caller transform response: %v", terr)
+				}
+			}
+			metrics.Save(true, nil, outcome.attempts)
+		}
+		// 领头者（shared==false）：executeRelay 内部已经把响应写给客户端了。
+		return
 	}
 
 	if _, err := executeRelay(req, group, requestModel, maxKeyRetriesPerRoute, maxRouteRetries, ratelimitCooldown, maxTotalAttempts); err != nil {

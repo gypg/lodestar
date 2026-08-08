@@ -165,7 +165,11 @@ func retryWithChannels(
 
 				var usedKey dbmodel.ChannelKey
 				if keyRound == 1 {
-					usedKey = channel.GetChannelKeyExcludingWithCooldownForModel(nil, ratelimitCooldown, resolvedModel)
+					// failedKeyIDs is nil on genuine first entry, so this is the plain
+					// "pick the best key" call. It is non-empty only when a skip below
+					// rewound keyRound back to 1; those keys must stay excluded or the
+					// same key gets re-picked, re-skipped and rewound forever (spin).
+					usedKey = channel.GetChannelKeyExcludingWithCooldownForModel(failedKeyIDs, ratelimitCooldown, resolvedModel)
 				} else if cbs.UsePrepareCandidateForRetry {
 					usedKey, _ = PrepareCandidateForRetry(channel, failedKeyIDs, routeIter, ratelimitCooldown, resolvedModel)
 				} else {
