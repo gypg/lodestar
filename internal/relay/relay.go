@@ -110,9 +110,17 @@ func outboundAttemptTypes(channelType outbound.OutboundType, request *model.Inte
 	return []outbound.OutboundType{channelType}
 }
 
+// isLLMRequestFormat 判断请求是否是「聊天类」格式，即内部请求/响应结构足以在
+// Chat Completions 与 Responses 两种出站 adapter 之间自由转换。
+// Anthropic Messages 同样走 Messages/Content 这套内部结构，所以对 OpenAI 类渠道
+// 也能做 chat↔responses 降级；漏掉它会让 Claude Code 之类的 Anthropic 客户端
+// 在 OpenAI 渠道上完全拿不到 adapter fallback。
 func isLLMRequestFormat(request *model.InternalLLMRequest) bool {
+	if request == nil {
+		return false
+	}
 	switch request.RawAPIFormat {
-	case model.APIFormatOpenAIChatCompletion, model.APIFormatOpenAIResponse:
+	case model.APIFormatOpenAIChatCompletion, model.APIFormatOpenAIResponse, model.APIFormatAnthropicMessage:
 		return true
 	default:
 		return false
@@ -120,15 +128,16 @@ func isLLMRequestFormat(request *model.InternalLLMRequest) bool {
 }
 
 func shouldTryAdapterFallback(result attemptResult, adapterIndex, attemptCount int) bool {
-	if result.Success || result.Written || result.Decision.Scope == ScopeAbortAll || adapterIndex >= attemptCount-1 {
+	if result.Success || result.Written || adapterIndex >= attemptCount-1 {
 		return false
 	}
-	// Key-scoped failures use the same credential across adapter formats, so
-	// trying another adapter only adds latency before the normal key retry path.
-	if result.Decision.Scope == ScopeSameChannel {
-		return false
-	}
-	return true
+	// 只有路由级失败（换候选）才值得换一种出站 adapter 格式再打一次。
+	//   - ScopeNone：400 类客户端错误（如 context_length_exceeded）。请求本身就不合法，
+	//     换 adapter 只会再挨一次同样的 400，还会推迟把上游错误体回给下游。
+	//   - ScopeSameChannel：Key 级失败。换 adapter 用的还是同一把 Key，
+	//     只是在正常的换 Key 重试之前白加一次延迟。
+	//   - ScopeAbortAll：已经往客户端写出过字节，任何重试都不安全。
+	return result.Decision.Scope == ScopeNextChannel
 }
 func isZenCandidateChannelAllowed(requestModel string, channelType outbound.OutboundType, isEmbeddingRequest bool) bool {
 	preferred := detectZenPreferredChannelTypes(requestModel, isEmbeddingRequest)
@@ -1242,11 +1251,13 @@ func executeRelay(req *relayRequest, group dbmodel.Group, requestModel string, m
 					resultSaved = true
 					return true
 				}
-				// ScopeNone: direct failure, send 502
+				// ScopeNone：客户端错误，不再重试。把上游状态码和错误体原样回给下游，
+				// 而不是吞成 502 —— 否则客户端无法识别 context_length_exceeded 这类
+				// 需要它自己压缩上下文的信号，只会把它当成网关抖动盲目重试。
 				if fwdResult.Decision.Scope == ScopeNone {
 					currentAttempts := append([]dbmodel.ChannelAttempt(nil), round.Iter.Attempts()...)
 					req.metrics.Save(false, fwdResult.Err, currentAttempts)
-					resp.BadGateway(req.c)
+					writeClientTerminalError(req.c, fwdResult.Decision.Code, fwdResult.Err)
 					relayErr = fwdResult.Err
 					resultSaved = true
 					return true

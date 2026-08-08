@@ -220,8 +220,9 @@ func MediaHandler(endpointType MediaEndpointType, c *gin.Context) {
 			},
 			OnFinalFailure: func(channel *dbmodel.Channel, usedKey dbmodel.ChannelKey, resolvedModel string, round retryRoundInfo, fwdResult retryForwardResult) bool {
 				recordMediaRelayLog(apiKeyID, requestModel, logEndpointType, bodyBytes, channel.ID, channel.Name, resolvedModel, time.Since(startTime), nil, fwdResult.Err, clientIP)
+				// 与 LLM relay 一致：客户端错误原样回给下游，不吞成 502。
 				if fwdResult.Decision.Scope == ScopeNone {
-					resp.Error(c, http.StatusBadGateway, fwdResult.Err.Error())
+					writeClientTerminalError(c, fwdResult.Decision.Code, fwdResult.Err)
 				}
 				mediaDone = true
 				return true
