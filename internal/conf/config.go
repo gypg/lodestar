@@ -174,6 +174,14 @@ func setDefaults() {
 	viper.SetDefault("security.encryption_key", "")
 }
 
+// DataDir returns the directory holding this instance's own data files
+// (config.json and, by default, the SQLite database). It reads the environment
+// on every call, mirroring defaultDataDir, so it stays correct for callers that
+// run before Load() and lets tests relocate the directory with t.Setenv.
+func DataDir() string {
+	return defaultDataDir()
+}
+
 func defaultDataDir() string {
 	if path := strings.TrimSpace(os.Getenv(strings.ToUpper(APP_NAME) + "_DATA_DIR")); path != "" {
 		return filepath.Clean(path)

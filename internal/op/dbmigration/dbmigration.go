@@ -3,6 +3,7 @@ package dbmigration
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/gypg/lodestar/internal/conf"
@@ -33,7 +34,59 @@ func ValidateRequest(req model.DatabaseMigrationRequest) (model.DatabaseMigratio
 	if req.Path == "" {
 		return req, fmt.Errorf("database path is required")
 	}
+	if req.Type == "sqlite" {
+		if err := validateSQLitePath(req.Path); err != nil {
+			return req, err
+		}
+	}
 	return req, nil
+}
+
+// validateSQLitePath confines a caller-supplied SQLite path to the instance data
+// directory.
+//
+// Without this, both /api/v1/setting/database/test and /database/migrate reach
+// db.ensureSQLiteDir (db.go:466), whose os.MkdirAll(dir, 0755) creates
+// directories at any depth the process can write, and GORM then creates a
+// database file there. Migrate additionally persists the path into config.json
+// via saveDatabaseConfig (:83), repointing this instance's own database on the
+// next restart. Both routes require auth.PermSettingsWrite (handlers/setting.go
+// :62, :68), which the editor role also holds (auth/permissions.go:43) — so this
+// is not anonymously reachable, but it does let a non-admin role write outside
+// the data directory and reconfigure the instance.
+//
+// Only sqlite is checked: mysql/postgres paths are network DSNs handed to their
+// drivers and never resolve to a local file.
+func validateSQLitePath(path string) error {
+	// Resolved by the same function the sink uses, so validation cannot disagree
+	// with what actually gets created. In-memory DSNs touch no files at all.
+	filePath, onDisk := db.SQLiteFilePath(path)
+	if !onDisk {
+		return nil
+	}
+	if strings.TrimSpace(filePath) == "" {
+		return fmt.Errorf("database path is required")
+	}
+
+	dataDir, err := filepath.Abs(conf.DataDir())
+	if err != nil {
+		return fmt.Errorf("resolve data directory: %w", err)
+	}
+	// Abs also applies filepath.Clean, collapsing any "..", so a traversal is
+	// judged by where it lands rather than by how it is spelled. Relative inputs
+	// resolve against the process working directory, which is how the sink reads
+	// them too.
+	absPath, err := filepath.Abs(filePath)
+	if err != nil {
+		return fmt.Errorf("resolve database path: %w", err)
+	}
+
+	rel, err := filepath.Rel(dataDir, absPath)
+	if err != nil || rel == "." || rel == ".." ||
+		strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return fmt.Errorf("database path must stay inside the data directory (%s)", dataDir)
+	}
+	return nil
 }
 
 func TestConnection(ctx context.Context, req model.DatabaseMigrationRequest) error {

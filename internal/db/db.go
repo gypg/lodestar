@@ -479,6 +479,20 @@ func ensureSQLiteDir(dsn string) error {
 	return nil
 }
 
+// SQLiteFilePath resolves a SQLite DSN to the on-disk file it designates.
+// ok is false for in-memory DSNs (":memory:", "file::memory:", "?mode=memory"),
+// which never touch the filesystem.
+//
+// Exported so request-boundary validators can reason about exactly the path this
+// package will later create in ensureSQLiteDir. Resolving the DSN a second time
+// with a separately written parser would reintroduce the hole it is meant to
+// close: any form the two parsers disagree on (the "file:" URI branch below,
+// Windows drive letters, opaque URIs) would pass validation and still land
+// somewhere else on disk.
+func SQLiteFilePath(dsn string) (string, bool) {
+	return sqliteFilePath(dsn)
+}
+
 func sqliteFilePath(dsn string) (string, bool) {
 	basePath, rawQuery, _ := strings.Cut(strings.TrimSpace(dsn), "?")
 	lowerBasePath := strings.ToLower(basePath)

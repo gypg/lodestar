@@ -30,7 +30,13 @@ func TestMigrateCopiesCoreDataAndSkipsLogsStatsByDefault(t *testing.T) {
 		t.Fatalf("seed stats daily: %v", err)
 	}
 
-	targetPath := filepath.Join(t.TempDir(), "target.db")
+	// The migration target must live inside the instance data directory
+	// (see validateSQLitePath), so point the data directory at the temp dir
+	// rather than migrating to an arbitrary location.
+	dataDir := t.TempDir()
+	t.Setenv("LODESTAR_DATA_DIR", dataDir)
+
+	targetPath := filepath.Join(dataDir, "target.db")
 	var savedType, savedPath string
 	restore := SetSaveDatabaseConfigFuncForTest(func(dbType, path string) error {
 		savedType = dbType
