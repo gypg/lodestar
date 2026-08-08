@@ -713,7 +713,13 @@ func (ra *relayAttempt) handleStreamResponse(ctx context.Context, response *http
 
 	// 安全网：确保 stream session 在所有退出路径上都被关闭，
 	// 避免外层 defer 产生 "relay stream ended without a terminal result"。
+	// 例外是空流重试：本次尝试没写出任何字节，同一个 session 会被下一次尝试
+	// 复用，此处置为终态会让重试成功的数据落进一个已 done 的会话——重连的
+	// 客户端看到的是失败终态。重试全部耗尽时由 Handler 的 defer 收尾。
 	defer func() {
+		if errors.Is(retErr, errEmptyOutput) {
+			return
+		}
 		if ra.streamSession != nil && !ra.streamSession.IsDone() {
 			ra.streamSession.Finish(retErr)
 		}
@@ -824,6 +830,20 @@ func (ra *relayAttempt) handleStreamResponse(ctx context.Context, response *http
 					return fmt.Errorf("stream interrupted: %w", ctxErr)
 				}
 				logClientDisconnected()
+				// 空流检测：上游以 EOF 正常结束，但整个流没有产生任何有效数据
+				// （firstToken 仍为 true），说明上游返回了空 SSE 流。客户端尚未收到
+				// 任何字节，可以安全换 Key 重试。这个判断必须放在 EOF 分支内：函数
+				// 末尾 for/select 之后是不可达代码（每个 case 都以 return 或 continue
+				// 结束），放在那里等于 retry_empty_output 设置对流式请求完全失效。
+				// session 的终态由上面的 defer 统一处理（空流会被显式豁免）。
+				if isRetryEmptyOutputEnabled() && firstToken {
+					channelName := ""
+					if ra.channel != nil {
+						channelName = ra.channel.Name
+					}
+					log.Infof("channel %s returned empty stream (no data chunks), will retry", channelName)
+					return errEmptyOutput
+				}
 				if ra.streamSession != nil {
 					ra.streamSession.Finish(nil)
 				}
@@ -909,18 +929,6 @@ func (ra *relayAttempt) handleStreamResponse(ctx context.Context, response *http
 			ra.c.Writer.Flush()
 		}
 	}
-
-	// 空流检测：整个流式响应没有产生任何有效数据（firstToken 仍为 true），
-	// 说明上游返回了空 SSE 流。客户端尚未收到任何数据，可以安全重试。
-	if isRetryEmptyOutputEnabled() && firstToken {
-		log.Infof("channel %s returned empty stream (no data chunks), will retry", ra.channel.Name)
-		if ra.streamSession != nil {
-			ra.streamSession.Finish(nil)
-		}
-		return errEmptyOutput
-	}
-
-	return nil
 }
 
 // transformStreamData 转换流式数据
