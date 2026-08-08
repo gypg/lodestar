@@ -211,7 +211,7 @@ func MediaHandler(endpointType MediaEndpointType, c *gin.Context) {
 				return retryForwardResult{Decision: decision, Err: fwdErr}
 			},
 			OnSuccess: func(channel *dbmodel.Channel, usedKey dbmodel.ChannelKey, resolvedModel string, round retryRoundInfo) {
-				recordMediaRelayLog(apiKeyID, requestModel, logEndpointType, bodyBytes, channel.ID, channel.Name, resolvedModel, time.Since(startTime), nil, nil, clientIP)
+				recordMediaRelayLog(apiKeyID, requestModel, logEndpointType, bodyBytes, channel.ID, channel.Name, resolvedModel, time.Since(startTime), snapshotAttempts(round.Iter), nil, clientIP)
 				mediaDone = true
 			},
 			OnFailure: func(channel *dbmodel.Channel, usedKey dbmodel.ChannelKey, resolvedModel string) {
@@ -219,7 +219,7 @@ func MediaHandler(endpointType MediaEndpointType, c *gin.Context) {
 				balancer.RecordAutoFailure(channel.ID, resolvedModel)
 			},
 			OnFinalFailure: func(channel *dbmodel.Channel, usedKey dbmodel.ChannelKey, resolvedModel string, round retryRoundInfo, fwdResult retryForwardResult) bool {
-				recordMediaRelayLog(apiKeyID, requestModel, logEndpointType, bodyBytes, channel.ID, channel.Name, resolvedModel, time.Since(startTime), nil, fwdResult.Err, clientIP)
+				recordMediaRelayLog(apiKeyID, requestModel, logEndpointType, bodyBytes, channel.ID, channel.Name, resolvedModel, time.Since(startTime), snapshotAttempts(round.Iter), fwdResult.Err, clientIP)
 				// 与 LLM relay 一致：客户端错误原样回给下游，不吞成 502。
 				if fwdResult.Decision.Scope == ScopeNone {
 					writeClientTerminalError(c, fwdResult.Decision.Code, fwdResult.Err)
@@ -242,6 +242,24 @@ func MediaHandler(endpointType MediaEndpointType, c *gin.Context) {
 			UsePrepareCandidateForRetry: false,
 		},
 	)
+}
+
+// snapshotAttempts copies the iterator's attempt records for the terminal
+// callbacks (R-4). OnSuccess/OnFinalFailure used to pass nil, so a media relay
+// that failed over A→B→C logged TotalAttempts=0, wrote no relay_log_attempts
+// rows, and never credited the per-(channel,model) site stats — the failed
+// hops were invisible and the winning hop uncounted.
+//
+// Both call sites are terminal (the retry loop returns right after), so the
+// backing array is not appended to afterwards today; the copy is defensive and
+// matches how the LLM relay hands attempts to its own callbacks (relay.go:1239).
+// It matters because the RelayLog that holds this slice outlives the call — it
+// is buffered in the relay-log cache and flushed asynchronously.
+func snapshotAttempts(iter *balancer.Iterator) []dbmodel.ChannelAttempt {
+	if iter == nil {
+		return nil
+	}
+	return append([]dbmodel.ChannelAttempt(nil), iter.Attempts()...)
 }
 
 // recordMediaRelayLog creates a RelayLog entry and updates global stats for media endpoints.
