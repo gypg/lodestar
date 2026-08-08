@@ -15,6 +15,17 @@ import (
 type Server struct {
 	Host string `mapstructure:"host"`
 	Port int    `mapstructure:"port"`
+	// TrustedProxies 限定哪些来源的 X-Forwarded-For / X-Real-IP 可信（S-3）。
+	// gin 的默认值是 0.0.0.0/0 + ::/0，即信任任何直连来源，任何客户端都能靠
+	// 一个请求头改写 c.ClientIP()，从而绕过 API key 的 IP 白名单
+	// (middleware/auth.go:176)、按 IP 的登录/邮件验证码限流
+	// (middleware/rate_limit.go:179、:292) 与 Turnstile 的 remoteip
+	// (middleware/turnstile.go:58)。
+	//
+	// 默认值收窄为本机回环 + RFC1918/CGNAT 私网：覆盖「反代与应用同机」和
+	// 「容器网络内反代」这两种实际部署形态，同时拒绝公网直连伪造。
+	// 显式配成空数组表示完全不信任任何代理（只认 TCP 源地址）。
+	TrustedProxies []string `mapstructure:"trusted_proxies"`
 }
 
 type Log struct {
@@ -143,6 +154,7 @@ func SaveDatabaseConfig(dbType, path string) error {
 func setDefaults() {
 	viper.SetDefault("server.host", "0.0.0.0")
 	viper.SetDefault("server.port", 8080)
+	viper.SetDefault("server.trusted_proxies", DefaultTrustedProxies())
 	viper.SetDefault("database.type", "sqlite")
 	viper.SetDefault("database.path", defaultDatabasePath())
 	// 日志库默认留空：留空表示与主库共用连接（向后兼容）。

@@ -71,6 +71,7 @@ LODESTAR_AUTH_JWT_SECRET="$(openssl rand -hex 32)" ./lodestar start
 |------|------|-------------|
 | `LODESTAR_SERVER_PORT` | 监听端口 | `8080` |
 | `LODESTAR_SERVER_HOST` | 监听地址 | 全网卡 |
+| `LODESTAR_SERVER_TRUSTED_PROXIES` | 可信代理网段（逗号分隔）。只有来自这些地址的 `X-Forwarded-For` / `X-Real-IP` 会被采信——它决定 API key 的 IP 白名单与按 IP 限流看到的是谁。默认已覆盖回环与私网，**反代在另一台机器上时必须显式列出它的 IP**，否则限流会按反代地址聚合 | `127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,...` |
 | `LODESTAR_DATA_DIR` | 数据/配置目录 | `./data`（容器内 `/app/data`） |
 | `LODESTAR_AUTH_JWT_SECRET` | JWT 签名密钥（**务必设**，否则重启掉登录） | 随机长字符串 |
 | `LODESTAR_SECURITY_ENCRYPTION_KEY` | 敏感凭据加密密钥（加密存储的渠道 API key；**一旦有数据不可改**，架构搭建时一次性生成并备份） | 随机长字符串 |
@@ -113,6 +114,8 @@ LODESTAR_REDIS_DB=2
 
 容器/进程监听 `:8080`，把隧道/反代指向它即可。注意放行 SSE（流式响应）——关闭代理缓冲、`proxy_read_timeout` 调大。
 健康检查端点：`GET /api/v1/bootstrap/status`。
+
+**客户端 IP**：反代必须转发 `X-Forwarded-For`，且反代自身地址要落在 `LODESTAR_SERVER_TRUSTED_PROXIES` 里，否则 API key 的 IP 白名单和按 IP 限流会看到反代的地址而不是真实客户端。本链路（隧道与容器同机/同容器网）在默认值覆盖范围内，无需额外配置；反代独立成机时要把它的 IP 加进去。反过来，**服务若直接暴露到公网就不要放宽这个列表**——信任范围内的来源可以随意伪造客户端 IP。
 
 部署后验收（热力图 / `per_model` / Banner 字段）：
 

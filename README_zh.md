@@ -215,6 +215,7 @@ http://localhost:3000
 |--------|------|--------|
 | `server.host` | 监听地址 | `0.0.0.0` |
 | `server.port` | 服务端口 | `8080` |
+| `server.trusted_proxies` | 可信代理网段：仅这些来源的 `X-Forwarded-For` / `X-Real-IP` 会被采信。反代不在本机/容器网时须在此列出其地址；填 `[]` 表示不信任任何代理 | 回环 + RFC1918 私网 + CGNAT |
 | `database.type` | 数据库类型 | `sqlite` |
 | `database.path` | 数据库连接地址 | `data/data.db` |
 | `log.level` | 日志级别 | `info` |
@@ -267,6 +268,7 @@ http://localhost:3000
 |----------|-----------|
 | `LODESTAR_SERVER_PORT` | `server.port` |
 | `LODESTAR_SERVER_HOST` | `server.host` |
+| `LODESTAR_SERVER_TRUSTED_PROXIES` | `server.trusted_proxies`（逗号分隔，如 `127.0.0.1,10.0.0.0/8`） |
 | `LODESTAR_DATABASE_TYPE` | `database.type` |
 | `LODESTAR_DATABASE_PATH` | `database.path` |
 | `LODESTAR_DATA_DIR` | 在未显式设置 `database.path` 时，`config.json` 和 SQLite 数据库的默认目录 |

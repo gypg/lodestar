@@ -31,6 +31,16 @@ func Start() error {
 	}
 
 	r := gin.New()
+
+	// S-3：gin 默认信任全部代理（0.0.0.0/0 + ::/0），任何直连客户端都能用
+	// X-Forwarded-For 改写 c.ClientIP()，绕过 API key 的 IP 白名单、按 IP 的
+	// 登录/邮件验证码限流与 Turnstile 校验。必须显式收窄。
+	// 配错 CIDR 时 gin 会把已解析的前几条留在 trustedCIDRs 里（gin.go:452-456
+	// 无条件赋值后才返回 error），所以这里必须 fail-closed，不能只记日志。
+	if err := r.SetTrustedProxies(conf.TrustedProxies()); err != nil {
+		return fmt.Errorf("invalid server.trusted_proxies: %w", err)
+	}
+
 	r.Use(gin.CustomRecovery(func(c *gin.Context, recovered interface{}) {
 		resp.Error(c, http.StatusInternalServerError, resp.ErrInternalServer)
 		c.Abort()
