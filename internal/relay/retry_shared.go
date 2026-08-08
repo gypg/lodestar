@@ -100,7 +100,28 @@ func retryWithChannels(
 ) {
 	var allAttempts []dbmodel.ChannelAttempt
 	var lastErr error
+
+	// forwardedBefore counts real upstream forwards made in *completed* route
+	// rounds. Every route round builds a fresh Iterator below, so
+	// routeIter.ForwardedAttempts() only knows about the current round; the
+	// running total is forwardedBefore + the current iterator's count.
+	//
+	// This must not be len(allAttempts): allAttempts is only appended at the
+	// end of a route round and on the terminal paths that return immediately,
+	// so it stays at 0 for the whole of route round 1 and the cap below never
+	// fires inside a round. It is also the wrong unit — Iterator.Attempts()
+	// includes AttemptSkipped and AttemptCircuitBreak records, which cost no
+	// upstream call and must not consume the budget.
+	var forwardedBefore int
 	var lastIter *balancer.Iterator
+
+	// capReached reports whether the configured budget of real upstream
+	// forwards is used up. Skips and circuit-breaker rejections are excluded
+	// by ForwardedAttempts (balancer/iterator.go:157), matching the
+	// countForwardedAttempts accounting used for logging (metrics.go:243).
+	capReached := func(iter *balancer.Iterator) bool {
+		return maxTotalAttempts > 0 && forwardedBefore+iter.ForwardedAttempts() >= maxTotalAttempts
+	}
 
 	for routeRound := 1; routeRound <= maxRouteRetries; routeRound++ {
 		if ctxErr := cbs.CheckContext(); ctxErr != nil {
@@ -113,7 +134,7 @@ func retryWithChannels(
 		lastIter = routeIter
 
 		for routeIter.Next() {
-			if maxTotalAttempts > 0 && len(allAttempts) >= maxTotalAttempts {
+			if capReached(routeIter) {
 				lastErr = fmt.Errorf("reached relay max total attempts: %d", maxTotalAttempts)
 				goto exhausted
 			}
@@ -153,7 +174,7 @@ func retryWithChannels(
 			// Key-level retry within this channel
 			var failedKeyIDs []int
 			for keyRound := 1; keyRound == 1 || keyRound <= maxKeyRetriesPerRoute; keyRound++ {
-				if maxTotalAttempts > 0 && len(allAttempts) >= maxTotalAttempts {
+				if capReached(routeIter) {
 					lastErr = fmt.Errorf("reached relay max total attempts: %d", maxTotalAttempts)
 					goto exhausted
 				}
@@ -205,8 +226,11 @@ func retryWithChannels(
 					MaxKeyRetries:    maxKeyRetriesPerRoute,
 					UsedKey:          usedKey,
 					MaxTotalAttempts: maxTotalAttempts,
-					AttemptCount:     len(allAttempts),
-					Iter:             routeIter,
+					// Real upstream forwards so far, same unit as
+					// MaxTotalAttempts. len(allAttempts) would be 0 for all of
+					// route round 1 and would count skips.
+					AttemptCount: forwardedBefore + routeIter.ForwardedAttempts(),
+					Iter:         routeIter,
 				}
 
 				if cbs.LogAttempt != nil {
@@ -256,6 +280,9 @@ func retryWithChannels(
 				}
 			}
 		}
+		// Carry this round's real forwards into the running total before the
+		// next round replaces routeIter with a fresh (zero-count) one.
+		forwardedBefore += routeIter.ForwardedAttempts()
 		allAttempts = append(allAttempts, routeIter.Attempts()...)
 	}
 
