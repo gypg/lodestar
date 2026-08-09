@@ -139,13 +139,17 @@ func (o *MessagesOutbound) TransformStream(ctx context.Context, eventData []byte
 // reasoningToThinkingBudget maps reasoning effort levels to thinking budget in tokens
 // https://ai.google.dev/gemini-api/docs/thinking
 func reasoningToThinkingBudget(effort string) int32 {
-	switch strings.ToLower(effort) {
+	switch strings.ToLower(strings.TrimSpace(effort)) {
 	case "low":
 		return 1024
 	case "medium":
 		return 4096
 	case "high":
 		return 24576
+	case "xhigh":
+		return 49152
+	case "max":
+		return 65536
 	default:
 		// 防御性：未知值走动态
 		return -1

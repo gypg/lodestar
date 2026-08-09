@@ -115,9 +115,13 @@ func TestResolveMaxTokens(t *testing.T) {
 	}
 }
 
-// G2: getThinkingBudget maps effort strings to fixed budgets, but "max" has no case
-// and falls through to the default 8192. current behavior, not an inferred expectation.
-func TestGetThinkingBudgetMaxEffortFallsBackToDefault(t *testing.T) {
+// G2: getThinkingBudget maps effort strings to fixed budgets. The mapping is strictly
+// monotonic in effort (low < medium < high < xhigh < max) — R-7 fixed xhigh/max, which
+// previously fell through to the default 8192, i.e. *below* high's 32768.
+// Casing/whitespace is normalized, so " High " must resolve like "high".
+// These are the raw pre-clamp budgets; clampThinkingBudget then fits them under
+// max_tokens at the call site (see TestConvertToAnthropicRequestClampsThinkingBudget).
+func TestGetThinkingBudgetEffortMapping(t *testing.T) {
 	cases := []struct {
 		name   string
 		effort string
@@ -127,7 +131,10 @@ func TestGetThinkingBudgetMaxEffortFallsBackToDefault(t *testing.T) {
 		{"low", anthropicModel.EffortLow, nil, 1024},
 		{"medium", anthropicModel.EffortMedium, nil, 8192},
 		{"high", anthropicModel.EffortHigh, nil, 32768},
-		{"maxFallsBackToDefault", anthropicModel.EffortMax, nil, 8192},
+		{"xhigh", anthropicModel.EffortXHigh, nil, 49152},
+		{"max", anthropicModel.EffortMax, nil, 65536},
+		{"paddedMixedCaseHigh", "  HiGh  ", nil, 32768},
+		{"paddedMixedCaseXHigh", "  XHigh  ", nil, 49152},
 		{"empty", "", nil, 8192},
 		{"bogus", "bogus", nil, 8192},
 		{"explicitBudgetOverridesElement", anthropicModel.EffortLow, lo.ToPtr(int64(42)), 42},
@@ -151,7 +158,10 @@ func TestConvertToAnthropicRequestThinkingBranch(t *testing.T) {
 		want string
 	}{
 		{"adaptive", &model.InternalLLMRequest{Model: "m", ReasoningEffort: "high", AdaptiveThinking: true}, `{"max_tokens":8192,"messages":[],"model":"m","thinking":{"type":"adaptive"},"output_config":{"effort":"high"}}`},
-		{"enabled", &model.InternalLLMRequest{Model: "m", ReasoningEffort: "high", AdaptiveThinking: false}, `{"max_tokens":8192,"messages":[],"model":"m","thinking":{"type":"enabled","budget_tokens":32768}}`},
+		// high's raw budget is 32768, but max_tokens defaults to 8192 here, so the clamp
+		// pulls it down to 8192-1024. Emitting the raw 32768 would be a hard 400.
+		{"enabled", &model.InternalLLMRequest{Model: "m", ReasoningEffort: "high", AdaptiveThinking: false}, `{"max_tokens":8192,"messages":[],"model":"m","thinking":{"type":"enabled","budget_tokens":7168}}`},
+		{"enabledRoomyMaxTokens", &model.InternalLLMRequest{Model: "m", ReasoningEffort: "high", AdaptiveThinking: false, MaxTokens: lo.ToPtr(int64(64000))}, `{"max_tokens":64000,"messages":[],"model":"m","thinking":{"type":"enabled","budget_tokens":32768}}`},
 		{"noEffort", &model.InternalLLMRequest{Model: "m"}, `{"max_tokens":8192,"messages":[],"model":"m"}`},
 	}
 	for _, tt := range cases {

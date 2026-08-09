@@ -320,9 +320,15 @@ func convertToAnthropicRequest(req *model.InternalLLMRequest) *anthropicModel.Me
 				Effort: req.ReasoningEffort,
 			}
 		} else {
+			// budget_tokens 必须严格小于 max_tokens，否则 Anthropic 直接 400。
+			// 显式 budget 也要夹：客户端可能传超过 max_tokens 的值。
+			budget := clampThinkingBudget(
+				*getThinkingBudget(req.ReasoningEffort, req.ReasoningBudget),
+				result.MaxTokens,
+			)
 			result.Thinking = &anthropicModel.Thinking{
 				Type:         anthropicModel.ThinkingTypeEnabled,
-				BudgetTokens: getThinkingBudget(req.ReasoningEffort, req.ReasoningBudget),
+				BudgetTokens: &budget,
 			}
 		}
 	}
@@ -751,19 +757,54 @@ func convertCacheControl(cc *model.CacheControl) *anthropicModel.CacheControl {
 	}
 }
 
+// minThinkingBudget 是 Anthropic 接受的最小 budget_tokens，低于此值直接 400。
+const minThinkingBudget int64 = 1024
+
+// thinkingResponseReserve 是夹 budget 时给最终回答留出的 token 数。
+// 思考 token 计入 max_tokens，budget 顶到 max_tokens-1 虽然合法，
+// 但只剩 1 个 token 写回答，等于把 400 换成截断的空响应。
+const thinkingResponseReserve int64 = 1024
+
+// clampThinkingBudget 把 budget_tokens 夹到 Anthropic 的合法区间：
+// 必须 >= 1024，且必须严格小于 max_tokens（思考 token 计入 max_tokens）。
+// 我们从不发 interleaved-thinking beta 头，所以那条“budget 可超 max_tokens”的
+// 例外不适用。不夹的话，高档位 effort 会把静默降级换成硬 400 —— 更糟。
+//
+// 优先级：先给回答留 thinkingResponseReserve，再保证 >= 最小值，
+// 最后兜底保证严格小于 max_tokens。max_tokens 本身极小时无两全解，
+// 此时优先保证请求不被拒。
+func clampThinkingBudget(budget, maxTokens int64) int64 {
+	if ceiling := maxTokens - thinkingResponseReserve; budget > ceiling {
+		budget = ceiling
+	}
+	if budget < minThinkingBudget {
+		budget = minThinkingBudget
+	}
+	if budget >= maxTokens {
+		budget = maxTokens - 1
+	}
+	return budget
+}
+
 func getThinkingBudget(effort string, budget *int64) *int64 {
 	if budget != nil {
 		return budget
 	}
 
 	var result int64
-	switch effort {
+	switch strings.ToLower(strings.TrimSpace(effort)) {
 	case anthropicModel.EffortLow:
 		result = 1024
 	case anthropicModel.EffortMedium:
 		result = 8192
 	case anthropicModel.EffortHigh:
 		result = 32768
+	case anthropicModel.EffortXHigh:
+		// 扩展高强度：介于 high 与 max 之间，给更大 budget。
+		// 与 Gemini 侧同档位保持一致。
+		result = 49152
+	case anthropicModel.EffortMax:
+		result = 65536
 	default:
 		result = 8192
 	}
