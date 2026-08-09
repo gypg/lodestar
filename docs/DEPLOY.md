@@ -35,9 +35,10 @@ cp .env.example .env
 - 改配置：编辑 `.env` 后重跑 `./scripts/deploy.sh`。
 - 脚本会等健康检查通过（最多 90s）并展示最近日志，失败时自动打印诊断信息。
 
-> **关键提示：商业模式准备**。即使当前自用（`commercial_mode=false`），架构搭建时就把
-> `LODESTAR_SECURITY_ENCRYPTION_KEY` 一次性设好并备份——它加密存储的渠道 API key，
-> 一旦有数据**不可更改**。事后开商业模式时无需再迁移凭据。Redis 也是同理：自用单实例可留空，
+> **关键提示：这个 key 是必填项**。`LODESTAR_SECURITY_ENCRYPTION_KEY` 未设置时应用
+> **拒绝启动**（fail-closed）——它加密存储 Stripe/SMTP/图床等敏感设置项与远端站点凭据
+> （**不含**渠道 API key，那些是明文存储），一旦有数据**不可更改**。
+> 架构搭建时一次性生成并备份，事后开商业模式时无需再迁移凭据。Redis 也是同理：自用单实例可留空，
 > 但既然要为商业化铺路，建议一上来就启用（多实例共享缓存/限流状态需要它）。
 
 ## 方式二：纯 Docker
@@ -74,7 +75,7 @@ LODESTAR_AUTH_JWT_SECRET="$(openssl rand -hex 32)" ./lodestar start
 | `LODESTAR_SERVER_TRUSTED_PROXIES` | 可信代理网段（逗号分隔）。只有来自这些地址的 `X-Forwarded-For` / `X-Real-IP` 会被采信——它决定 API key 的 IP 白名单与按 IP 限流看到的是谁。默认已覆盖回环与私网，**反代在另一台机器上时必须显式列出它的 IP**，否则限流会按反代地址聚合 | `127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,...` |
 | `LODESTAR_DATA_DIR` | 数据/配置目录 | `./data`（容器内 `/app/data`） |
 | `LODESTAR_AUTH_JWT_SECRET` | JWT 签名密钥（**务必设**，否则重启掉登录） | 随机长字符串 |
-| `LODESTAR_SECURITY_ENCRYPTION_KEY` | 敏感凭据加密密钥（加密存储的渠道 API key；**一旦有数据不可改**，架构搭建时一次性生成并备份） | 随机长字符串 |
+| `LODESTAR_SECURITY_ENCRYPTION_KEY` | 敏感凭据加密密钥（**必填，未设置则拒绝启动**）。加密 8 个敏感设置项（Stripe/易支付/SMTP/Turnstile/GitHub OAuth/AI 路由/图床）与远端站点凭据、API 凭证档案；**渠道 API key 不加密**。**一旦有数据不可改**，架构搭建时一次性生成并备份 | 随机长字符串 |
 | `LODESTAR_DATABASE_TYPE` | `sqlite`(默认) / `postgres` / `mysql` | `sqlite` |
 | `LODESTAR_DATABASE_PATH` | DB 连接串：sqlite=文件路径；postgres/mysql=DSN | 见下 |
 | `LODESTAR_DATABASE_LOG_TYPE` / `_LOG_PATH` | 可选独立日志库（仅 relay_logs；留空共用主库） | 空 |
@@ -143,7 +144,7 @@ Lodestar 是**全新自研栈**（非 newapi 容器），重新部署、独立�
 
 当前自用模式下（`commercial_mode=false`）商业面/计费/充值/多租户全部 gate 住、零影响。但下列「一次定终身的」基础设施务必在首次部署时配好，否则日后开商业模式需迁移：
 
-- [ ] `LODESTAR_SECURITY_ENCRYPTION_KEY`：加密存储的渠道 API key，**有数据后不可改**——架构期生成并备份。
+- [ ] `LODESTAR_SECURITY_ENCRYPTION_KEY`：加密 Stripe/SMTP/图床等敏感设置项与远端站点凭据（渠道 API key 明文存储，不在范围内），**未设置则拒绝启动、有数据后不可改**——架构期生成并备份。
 - [ ] PostgreSQL 接好：多用户/计费/兑换/订单均依赖关系库（SQLite 单连接不扛商业并发）。
 - [ ] Redis 接好：多实例共享缓存、限流、会话状态需要它（单实例自用可空，但商业建议启用）。
 - [ ] `LODESTAR_AUTH_JWT_SECRET`：固定值，否则重启全员掉登录。

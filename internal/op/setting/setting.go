@@ -56,11 +56,16 @@ func SetString(key model.SettingKey, value string) error {
 	}
 	// Decrypt cached value before comparison so that "same value" checks work
 	// even when the cache holds the encrypted form.
+	//
+	// A failed decrypt must NOT abort the write. The stored ciphertext is
+	// unreadable exactly when the process no longer holds the key that produced
+	// it, and aborting here would leave the setting permanently stuck: the admin
+	// can neither read the old value nor overwrite it with a good one, so the
+	// only way out would be editing the database by hand. Treat an undecryptable
+	// cached value as "differs from the new value" and fall through to the write
+	// so the operator can always repair the row from the UI.
 	decryptedCache, decErr := crypto.DecryptSettingValue(string(key), valueCache)
-	if decErr != nil {
-		return fmt.Errorf("failed to decrypt cached setting %s: %w", key, decErr)
-	}
-	if decryptedCache == value {
+	if decErr == nil && decryptedCache == value {
 		return nil
 	}
 	// Encrypt sensitive values before persisting.

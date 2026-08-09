@@ -195,14 +195,25 @@ docker compose up -d
 | 密钥 | 环境变量 | 丢失后果 |
 |------|----------|----------|
 | JWT 签名密钥 | `LODESTAR_AUTH_JWT_SECRET` | 全员掉登录（但可重新生成，不影响数据） |
-| 加密密钥 | `LODESTAR_SECURITY_ENCRYPTION_KEY` | **所有渠道 API key 无法解密，数据报废** |
+| 加密密钥 | `LODESTAR_SECURITY_ENCRYPTION_KEY` | 8 个敏感设置项 + 远端站点凭据 + API 凭证档案无法解密（详见下方范围说明）。渠道 API key **不受影响**——它们明文入库 |
 | PG 密码 | PG 连接串中的 `password` | 无法连接数据库 |
 
 ### !! ENCRYPTION_KEY 不可丢失 !!
 
 > `LODESTAR_SECURITY_ENCRYPTION_KEY` 一旦有加密数据后**不可更改**。
-> 丢失或篡改将导致所有已加密的渠道 API key 永久无法解密。
-> 这是唯一的不可恢复项——数据库可以重建，密钥丢了就是丢了。
+> 丢失或篡改将导致已加密的数据永久无法解密，且**无法从后台覆盖修正**——
+> 换 key 后应用会拒绝启动（fail-closed），只有把原 key 找回来才能恢复。
+
+**实际加密范围**（别按"全库加密"来做决策）：
+
+| 加密 | 不加密 |
+|------|--------|
+| 8 个敏感设置项：`stripe_api_key`、`stripe_webhook_secret`、`epay_key`、`smtp_pass`、`turnstile_secret_key`、`github_oauth_client_secret`、`ai_route_api_key`、`image_bed_token` | **渠道 API key**（`channel_keys.channel_key` 明文入库） |
+| 远端站点凭据（`remote_sites`、`remote_site_tokens`） | 用户、分组、日志、统计等其余全部数据 |
+| API 凭证档案（`api_credential_profiles`） | |
+
+所以丢 key **不会**让渠道配置报废，影响面限于上表左列。
+数据库其余部分照常可用，重新填一遍上面这些凭据即可。
 
 ### 密钥备份位置
 
@@ -231,7 +242,7 @@ docker compose up -d
 | 密钥 | 处理方式 |
 |------|----------|
 | `LODESTAR_AUTH_JWT_SECRET` | 生成新的：`openssl rand -hex 32`，填入 .env，重启。代价：全员重新登录 |
-| `LODESTAR_SECURITY_ENCRYPTION_KEY` | **如果丢失且已有加密数据，无法恢复。** 只能删除所有渠道、生成新 key、重新配置渠道 API key |
+| `LODESTAR_SECURITY_ENCRYPTION_KEY` | **已加密的值无法恢复，但不必删渠道。** 生成新 key 填入 .env 重启，然后在后台把上表左列的凭据重新填一遍（旧密文会被覆盖）。渠道明文存储，不受影响 |
 | PG 密码 | 修改 PG 角色密码后更新 .env，重启 |
 
 ---

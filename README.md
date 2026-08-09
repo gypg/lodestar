@@ -103,7 +103,9 @@ docker run -d --name lodestar \
 从 [Releases](https://github.com/gypg/lodestar/releases) 下载对应平台的二进制，然后运行：
 
 ```bash
-LODESTAR_AUTH_JWT_SECRET="$(openssl rand -hex 32)" ./lodestar start
+LODESTAR_AUTH_JWT_SECRET="$(openssl rand -hex 32)" \
+  LODESTAR_SECURITY_ENCRYPTION_KEY="$(openssl rand -hex 32)" \
+  ./lodestar start
 ```
 
 ### 🛠️ 从源码构建
@@ -123,7 +125,9 @@ rm -rf static/out && cp -r web/out static/out
 go build -tags=jsoniter -o lodestar .
 
 # 启动
-LODESTAR_AUTH_JWT_SECRET="$(openssl rand -hex 32)" ./lodestar start
+LODESTAR_AUTH_JWT_SECRET="$(openssl rand -hex 32)" \
+  LODESTAR_SECURITY_ENCRYPTION_KEY="$(openssl rand -hex 32)" \
+  ./lodestar start
 ```
 
 > 如果 `static/out/` 已包含构建好的前端资源，Go 二进制会直接提供管理 UI。否则 API 端点仍可正常工作，但管理 UI 不可用。
@@ -143,7 +147,7 @@ cd web && pnpm dev
 | 变量 | 说明 | 默认值 |
 |---|---|---|
 | `LODESTAR_AUTH_JWT_SECRET` | JWT 签名密钥（**必填**） | 空（重启掉登录） |
-| `LODESTAR_SECURITY_ENCRYPTION_KEY` | 敏感凭据加密密钥（**一次定终身**，有数据后不可改） | 生成临时随机密钥（重启失效） |
+| `LODESTAR_SECURITY_ENCRYPTION_KEY` | 敏感凭据加密密钥（**必填 + 一次定终身**，有数据后不可改） | 空（**未设置则拒绝启动**；本地开发可加 `--allow-ephemeral-encryption-key`） |
 | `LODESTAR_DATABASE_TYPE` | 数据库类型：`sqlite` / `postgres` / `mysql` | `sqlite` |
 | `LODESTAR_DATABASE_PATH` | 数据库连接串 | `./data/lodestar.db` |
 | `LODESTAR_REDIS_HOST` | Redis 地址（留空跳过，回落内存缓存） | 空 |
@@ -256,7 +260,7 @@ curl https://your-lodestar-domain/v1/chat/completions \
 ## 🔐 安全
 
 - **非 root 运行**：Docker 镜像以 UID/GID `1000` 运行
-- **密钥加密**：`LODESTAR_SECURITY_ENCRYPTION_KEY` 加密存储所有渠道 API Key
+- **密钥加密**：`LODESTAR_SECURITY_ENCRYPTION_KEY` 以 AES-256-GCM 加密存储 8 个敏感设置项（Stripe/易支付/SMTP/Turnstile/GitHub OAuth/AI 路由/图床）、API 凭证档案与远端站点凭据；渠道 API Key 目前明文存储
 - **JWT 过期**：可配置 Token 过期时间 + Remember Me 长期 Token
 - **审计日志**：所有管理写操作自动记录
 - **PII 脱敏**：响应关键词过滤 + Relay 日志敏感信息脱敏

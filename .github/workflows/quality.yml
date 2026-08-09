@@ -51,7 +51,10 @@ jobs:
         run: go test -run=TestNoSuchTest ./...
 
       - name: Go test
-        run: go test ./...
+        # -count=1 disables the test result cache. Without it a run can report
+        # green from cached results for packages whose inputs look unchanged,
+        # which has already masked a regression during verification once.
+        run: go test ./... -count=1
 
       - name: Migration tests on PostgreSQL
         # Migrations must be cross-dialect: SQLite tests can't catch reserved-
@@ -61,6 +64,32 @@ jobs:
         env:
           LODESTAR_TEST_POSTGRES_DSN: "host=127.0.0.1 user=postgres password=postgres dbname=lodestar_migrate_test port=5432 sslmode=disable"
         run: go test ./internal/db/migrate/... -count=1 -run TestPostgres
+
+  race:
+    name: race detector
+    runs-on: ubuntu-latest
+    # The race detector needs cgo + a C toolchain, which the Windows dev machine
+    # does not have, so this is the only place concurrency bugs get an automated
+    # check. Several past fixes (relay log ordering, the key-retry spin) had to be
+    # verified by observing corrupted output instead, because nothing ran -race.
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Ensure static/out exists
+        run: mkdir -p static/out && touch static/out/.keep
+
+      - name: Go test with race detector
+        env:
+          CGO_ENABLED: 1
+        # Timeout raised above the 10m default: -race instrumentation slows the
+        # suite down substantially.
+        run: go test ./... -count=1 -race -timeout 25m
 
   frontend:
     name: frontend

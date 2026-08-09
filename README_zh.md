@@ -55,6 +55,7 @@ docker run -d --name lodestar \
   -p 8080:8080 \
   -v lodestar-data:/app/data \
   -e LODESTAR_AUTH_JWT_SECRET="replace-with-a-long-random-secret" \
+  -e LODESTAR_SECURITY_ENCRYPTION_KEY="replace-with-another-long-random-secret" \
   gypg/lodestar:latest
 ```
 
@@ -66,8 +67,12 @@ docker run -d --name lodestar `
   -p 8080:8080 `
   -v lodestar-data:/app/data `
   -e LODESTAR_AUTH_JWT_SECRET="replace-with-a-long-random-secret" `
+  -e LODESTAR_SECURITY_ENCRYPTION_KEY="replace-with-another-long-random-secret" `
   gypg/lodestar:latest
 ```
+
+> `LODESTAR_SECURITY_ENCRYPTION_KEY` 是必填项：未设置时应用会拒绝启动。
+> 它一旦有数据便不可更改，请一次性生成（`openssl rand -hex 32`）并妥善备份。
 
 或者使用 docker compose 运行
 
@@ -124,9 +129,15 @@ export LODESTAR_INITIAL_ADMIN_USERNAME="admin"
 export LODESTAR_INITIAL_ADMIN_PASSWORD="change-this-password-long"
 # 可选但强烈建议：设置持久化 JWT 密钥
 export LODESTAR_AUTH_JWT_SECRET="replace-with-a-long-random-secret"
+# 必填：敏感数据加密密钥。未设置时应用拒绝启动（fail-closed）
+export LODESTAR_SECURITY_ENCRYPTION_KEY="replace-with-another-long-random-secret"
 # 直接启动后端服务（即使还没构建前端，也可以先以 API-only 模式启动）
 go run main.go start
 ```
+
+> 只是想临时跑起来、不在意数据能否长期解密时，可以改用
+> `go run main.go start --allow-ephemeral-encryption-key`：它每次启动生成一把
+> 一次性密钥，**重启后此前写入的密文全部读不出来**，仅限本地开发使用。
 
 如果 `static/out/` 中已经有前端构建产物，Go 二进制会直接提供管理界面；如果还没有构建产物，Lodestar 仍然可以正常启动并提供 API，但必须先构建前端并在执行 `go build` / `go run` 前将导出的资源放到 `static/out/` 下，管理界面才能访问。
 
@@ -139,7 +150,7 @@ mkdir -p static/out
 mv web/out/* static/out/
 # 如果 Next.js 导出了空的 _not-found 目录，请在构建 Go 前补一个占位文件
 printf 'placeholder for go:embed\n' > static/out/_not-found/.keep
-# 重新启动后端，此时可直接访问嵌入式管理界面
+# 重新启动后端，此时可直接访问嵌入式管理界面（环境变量沿用上一步导出的两个密钥）
 go run main.go start
 ```
 
@@ -152,6 +163,8 @@ export LODESTAR_INITIAL_ADMIN_USERNAME="admin"
 export LODESTAR_INITIAL_ADMIN_PASSWORD="change-this-password-long"
 ## 可选但强烈建议：设置持久化 JWT 密钥
 export LODESTAR_AUTH_JWT_SECRET="replace-with-a-long-random-secret"
+## 必填：敏感数据加密密钥。未设置时应用拒绝启动
+export LODESTAR_SECURITY_ENCRYPTION_KEY="replace-with-another-long-random-secret"
 ## 启动后端服务
 go run main.go start
 ## 访问前端地址
@@ -220,7 +233,7 @@ http://localhost:3000
 | `database.path` | 数据库连接地址 | `data/data.db` |
 | `log.level` | 日志级别 | `info` |
 | `auth.jwt_secret` | JWT 签名密钥 | 空（未设置时启动生成临时密钥） |
-| `security.encryption_key` | 敏感数据存储加密密钥（凭证档案、站点密码等） | 空（回退到 JWT 密钥） |
+| `security.encryption_key` | 敏感数据存储加密密钥（8 个敏感设置项、凭证档案、远端站点凭据；**不含**渠道 API key） | 空（**未设置则拒绝启动**，本地开发可用 `--allow-ephemeral-encryption-key` 绕过） |
 | `relay.max_json_body_bytes` | JSON 请求体最大大小 | `67108864`（64 MB） |
 | `relay.max_multipart_body_bytes` | Multipart 请求体最大大小 | `67108864`（64 MB） |
 
@@ -1046,7 +1059,7 @@ Lodestar 涉及时区的三层独立概念：
 - **JWT 认证**：管理 API 使用 JWT 令牌，支持可配置过期时间。登录频率限制可防止暴力破解（可配置窗口期和最大失败次数）。
 - **角色访问控制**：服务端 RBAC，内置 `admin`、`editor`、`viewer` 三种角色，每次请求从数据库重新加载角色。
 - **API Key 安全**：API Key（`sk-lodestar-...`）支持模型白名单、IP/CIDR 白名单、过期时间、费用上限、RPM/TPM 限额和按模型配额。
-- **静态加密**：敏感存储数据（凭证档案、站点密码等）通过 `security.encryption_key` 使用 AES-256-GCM 加密。
+- **静态加密**：部分敏感存储数据通过 `security.encryption_key` 使用 AES-256-GCM 加密——8 个敏感设置项（Stripe/易支付/SMTP/Turnstile/GitHub OAuth/AI 路由/图床）、API 凭证档案、远端站点凭据。**渠道 API key 目前明文存储，不在加密范围内。** 密钥未设置时应用拒绝启动。
 - **CORS 管理**：标签式 CORS 白名单管理器，支持 `*`（允许所有）、特定域名或全部拒绝（空）。
 - **Viewer 域名脱敏**：Hub 相关管理数据对 viewer 账号进行域名脱敏，覆盖站点、远程站点、凭证、渠道和 URL 设置。
 

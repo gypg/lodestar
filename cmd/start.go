@@ -5,6 +5,7 @@ import (
 	crypto_rand "crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gypg/lodestar/internal/conf"
@@ -22,6 +23,16 @@ import (
 )
 
 var cfgFile string
+
+// allowEphemeralEncryptionKey opts in to the old behaviour of generating a
+// throwaway encryption key when security.encryption_key is unset. It exists for
+// local development only (see README_zh.md "本地开发"): a process started this
+// way cannot read any ciphertext written by a previous run, so every sensitive
+// setting persisted earlier becomes unreadable — and, worse, unwritable through
+// the admin UI (setting.SetString decrypts before comparing). Requiring an
+// explicit flag keeps that trade-off a deliberate choice instead of a warning
+// nobody reads.
+var allowEphemeralEncryptionKey bool
 
 var startCmd = &cobra.Command{
 	Use:   "start",
@@ -42,17 +53,8 @@ var startCmd = &cobra.Command{
 func runStart() error {
 	shutdown.Init(log.Logger)
 
-	if key := conf.AppConfig.Security.EncryptionKey; key != "" {
-		crypto.Init(key)
-	} else {
-		// ENCRYPTION_KEY not set — generate a random ephemeral key instead of
-		// falling back to JWT_SECRET (which is weaker and leaks surface area).
-		randomKey, err := generateEphemeralEncryptionKey()
-		if err != nil {
-			return fmt.Errorf("failed to generate ephemeral encryption key: %w", err)
-		}
-		crypto.Init(randomKey)
-		log.Warnf("security.encryption_key is empty; generated an ephemeral key for this process. Set LODESTAR_SECURITY_ENCRYPTION_KEY for persistent encryption across restarts")
+	if err := initEncryption(); err != nil {
+		return err
 	}
 
 	if err := db.InitDB(conf.AppConfig.Database.Type, conf.AppConfig.Database.Path, conf.IsDebug()); err != nil {
@@ -154,9 +156,49 @@ func runStart() error {
 	return nil
 }
 
+// initEncryption initialises the at-rest encryption key, refusing to start when
+// none is configured (fail-closed).
+//
+// Starting with a freshly generated key is never a safe default: the key is not
+// persisted anywhere, so on the next restart every "enc:" value already in the
+// database becomes permanently undecryptable. That is not limited to read
+// failures — internal/op/setting.SetString decrypts the cached value before
+// comparing it, so a failed decrypt makes the setting unwritable too and the
+// affected credentials can no longer be repaired from the admin UI. Callers
+// that swallow the read error (stripe.go, turnstile.go) then degrade silently:
+// top-ups stop working and the human-verification challenge switches itself off
+// with nothing in the logs to explain why.
+//
+// --allow-ephemeral-encryption-key restores the old behaviour for local
+// development, where there is no ciphertext worth preserving.
+func initEncryption() error {
+	if key := conf.AppConfig.Security.EncryptionKey; key != "" {
+		crypto.Init(key)
+		return nil
+	}
+	if !allowEphemeralEncryptionKey {
+		return fmt.Errorf(
+			"security.encryption_key is not set: refusing to start because a generated key is lost on restart, "+
+				"making every encrypted setting permanently unreadable and unwritable. "+
+				"Set %s_SECURITY_ENCRYPTION_KEY (or security.encryption_key in the config file) to a long random value, "+
+				"or pass --%s for local development only",
+			strings.ToUpper(conf.APP_NAME), allowEphemeralEncryptionKeyFlag,
+		)
+	}
+	randomKey, err := generateEphemeralEncryptionKey()
+	if err != nil {
+		return fmt.Errorf("failed to generate ephemeral encryption key: %w", err)
+	}
+	crypto.Init(randomKey)
+	log.Warnf("--%s is set and security.encryption_key is empty; generated a throwaway key for this process. "+
+		"Encrypted settings written now cannot be read after a restart. Never use this in production",
+		allowEphemeralEncryptionKeyFlag)
+	return nil
+}
+
 // generateEphemeralEncryptionKey produces a 32-byte random hex string suitable
-// for use as an AES-256 encryption key. This is used when ENCRYPTION_KEY is not
-// configured, instead of falling back to JWT_SECRET.
+// for use as an AES-256 encryption key. Only reachable via
+// --allow-ephemeral-encryption-key.
 func generateEphemeralEncryptionKey() (string, error) {
 	buf := make([]byte, 32)
 	if _, err := crypto_rand.Read(buf); err != nil {
@@ -165,7 +207,11 @@ func generateEphemeralEncryptionKey() (string, error) {
 	return hex.EncodeToString(buf), nil
 }
 
+const allowEphemeralEncryptionKeyFlag = "allow-ephemeral-encryption-key"
+
 func init() {
 	startCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is ./data/config.json)")
+	startCmd.PersistentFlags().BoolVar(&allowEphemeralEncryptionKey, allowEphemeralEncryptionKeyFlag, false,
+		"start with a throwaway encryption key when security.encryption_key is unset (local development only; encrypted settings become unreadable after restart)")
 	rootCmd.AddCommand(startCmd)
 }
