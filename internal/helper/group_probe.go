@@ -454,16 +454,11 @@ func recordTestLog(ctx context.Context, endpointType string, item appmodel.Group
 		relayLog.Error = result.Message
 	}
 
+	// relayLog.Attempts 已在上面设好；尝试明细由 relayLogFlushToDB 在父日志
+	// 落库后同批写入（R-9）。此处不再单独写：RelayLogAdd 只进内存缓存，
+	// 在这里写明细会让 relay_log_attempts 先于 relay_logs 落库。
 	if logErr := relaylog.RelayLogAdd(ctx, &relayLog); logErr != nil {
 		log.Warnf("failed to save test log: %v", logErr)
-	}
-
-	// 把每次尝试落表，使测试失败渠道可按 channel_id 检索（与正常日志一致）。
-	// relayLog.ID 已由 RelayLogAdd 分配。
-	if len(attempts) > 0 {
-		if attemptsErr := relaylog.RelayLogAttemptsAdd(ctx, relayLog.ID, attempts, relayLog.Time); attemptsErr != nil {
-			log.Warnf("failed to save test log attempts: %v", attemptsErr)
-		}
 	}
 }
 

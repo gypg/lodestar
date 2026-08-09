@@ -334,14 +334,11 @@ func (m *RelayMetrics) saveLog(ctx context.Context, err error, duration time.Dur
 		relayLog.Error = err.Error()
 	}
 
+	// relayLog.Attempts 已在上面设好；尝试明细（issue #67 的 relay_log_attempts）
+	// 由 relayLogFlushToDB 在父日志落库后同批写入，此处不再单独写 ——
+	// RelayLogAdd 只进内存缓存，在这里写明细会让它先于父日志落库（R-9）。
 	if logErr := relaylog.RelayLogAdd(ctx, &relayLog); logErr != nil {
 		log.Warnf("failed to save relay log: %v", logErr)
-	}
-
-	// 把每次尝试（含失败）落表，使失败渠道可按 channel_id 检索（issue #67）。
-	// relayLog.ID 已由 RelayLogAdd 分配。
-	if attemptsErr := relaylog.RelayLogAttemptsAdd(ctx, relayLog.ID, attempts, relayLog.Time); attemptsErr != nil {
-		log.Warnf("failed to save relay log attempts: %v", attemptsErr)
 	}
 }
 

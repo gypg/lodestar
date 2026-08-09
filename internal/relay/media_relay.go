@@ -309,12 +309,11 @@ func recordMediaRelayLog(apiKeyID int, requestModel string, endpointType string,
 	}
 	relayLog.Cost = mediaCost
 
+	// relayLog.Attempts 已在上面设好；尝试明细由 relayLogFlushToDB 在父日志
+	// 落库后同批写入，此处不再单独写（R-9：RelayLogAdd 只进内存缓存，
+	// 在这里写明细会让 relay_log_attempts 先于 relay_logs 落库）。
 	if logErr := relaylog.RelayLogAdd(ctx, &relayLog); logErr != nil {
 		log.Warnf("failed to save media relay log: %v", logErr)
-	}
-	// relayLog.ID 已由 RelayLogAdd 分配。
-	if attemptsErr := relaylog.RelayLogAttemptsAdd(ctx, relayLog.ID, attempts, relayLog.Time); attemptsErr != nil {
-		log.Warnf("failed to save media relay attempts: %v", attemptsErr)
 	}
 
 	// Record global and API-key stats (media endpoints don't have token/cost data)

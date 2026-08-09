@@ -194,6 +194,16 @@ func relayLogFlushToDB(ctx context.Context) error {
 		return result.Error
 	}
 
+	// 尝试明细必须在父日志落库之后、同一次刷盘里写入。此前由调用方在
+	// RelayLogAdd 之后立即写，而 RelayLogAdd 只进内存缓存，导致
+	// relay_log_attempts 先于 relay_logs 落库（最长滞后 199 条请求或一个
+	// 定时任务周期）。窗口期内 IncludeAttempts 的 EXISTS 子查询和 analytics
+	// 的 INNER JOIN 都匹配不到这些行；若进程在刷盘前重启，明细永久孤立。
+	if err := flushAttemptsForBatch(ctx, conn, batch); err != nil {
+		// 明细是可重建的派生数据，写失败不应阻塞主日志刷盘与缓存截断。
+		log.Warnf("relay log attempts flush failed: %v", err)
+	}
+
 	relayLogCacheLock.Lock()
 	// 安全截断：只移除 ID <= lastFlushedID 的前缀部分
 	cutIdx := 0
@@ -252,25 +262,13 @@ func RelayLogAdd(ctx context.Context, relayLog *model.RelayLog) error {
 	return nil
 }
 
-// RelayLogAttemptsAdd 把一条 RelayLog 的各次尝试写入 relay_log_attempts 关联表，
-// 使失败尝试（尤其"渠道A 失败→重试到B 成功"中的渠道A）可被按 channel_id 过滤/聚合。
-// 日志关闭时不写（enabled=false）。写入走日志库连接，SQLite 下排队进写队列避免争用。
-// relayLogID 必须已分配（即 RelayLogAdd 之后调用）。返回错误仅供记录，调用方通常忽略。
-func RelayLogAttemptsAdd(ctx context.Context, relayLogID int64, attempts []model.ChannelAttempt, logTime int64) error {
-	if len(attempts) == 0 {
-		return nil
-	}
-	enabled, err := setting.GetBool(model.SettingKeyRelayLogKeepEnabled)
-	if err != nil {
-		return err
-	}
-	if !enabled {
-		return nil
-	}
+// attemptRowsFor 把一条日志的尝试明细展开成 relay_log_attempts 行。
+// 跳过无渠道归属的占位尝试（ChannelID==0），它们无法按渠道聚合。
+func attemptRowsFor(relayLogID int64, attempts []model.ChannelAttempt, logTime int64) []model.RelayLogAttempt {
 	rows := make([]model.RelayLogAttempt, 0, len(attempts))
 	for _, a := range attempts {
 		if a.ChannelID == 0 {
-			continue // 跳过无渠道归属的占位尝试
+			continue
 		}
 		rows = append(rows, model.RelayLogAttempt{
 			RelayLogID:  relayLogID,
@@ -282,6 +280,52 @@ func RelayLogAttemptsAdd(ctx context.Context, relayLogID int64, attempts []model
 			Time:        logTime,
 		})
 	}
+	return rows
+}
+
+// flushAttemptsForBatch 为刚落库的一批日志写入尝试明细。必须在父日志 Create
+// 之后调用，保证 relay_log_attempts 不会先于 relay_logs 出现。
+//
+// 复用调用方已持有的 conn（即 relayLogFlushToDB 里那个），不重新取连接也不
+// 再 EnqueueWrite：SQLite 下整个刷盘本身已经在串行写队列的作业内运行
+// （StartFlushWorker），从作业里再入队会在队列满时等满 5 秒才退化成同步执行，
+// 白白占住写队列。直接用同一连接写即可，顺序也天然有保证。
+func flushAttemptsForBatch(ctx context.Context, conn *gorm.DB, batch []model.RelayLog) error {
+	var rows []model.RelayLogAttempt
+	for _, l := range batch {
+		if len(l.Attempts) == 0 {
+			continue
+		}
+		rows = append(rows, attemptRowsFor(l.ID, l.Attempts, l.Time)...)
+	}
+	if len(rows) == 0 {
+		return nil
+	}
+	// 刷盘可能因 OnConflict{DoNothing} 重放同一条日志（缓存截断失败时），
+	// 明细侧同样忽略冲突，避免重复计数。
+	return conn.WithContext(ctx).Clauses(clause.OnConflict{DoNothing: true}).Create(&rows).Error
+}
+
+// RelayLogAttemptsAdd 把一条 RelayLog 的各次尝试写入 relay_log_attempts 关联表，
+// 使失败尝试（尤其"渠道A 失败→重试到B 成功"中的渠道A）可被按 channel_id 过滤/聚合。
+// 日志关闭时不写（enabled=false）。写入走日志库连接，SQLite 下排队进写队列避免争用。
+//
+// ★ 生产已无调用方：明细改为随父日志一起刷盘（见 flushAttemptsForBatch），
+// 三处原调用点（relay/metrics.go、relay/media_relay.go、helper/group_probe.go）
+// 都只需 RelayLogAdd。本函数保留给那些自己直接 Create 父日志、绕过缓存的调用方，
+// 目前只有测试在用。调用前 relayLogID 必须已存在于 relay_logs，否则明细成为孤儿行。
+func RelayLogAttemptsAdd(ctx context.Context, relayLogID int64, attempts []model.ChannelAttempt, logTime int64) error {
+	if len(attempts) == 0 {
+		return nil
+	}
+	enabled, err := setting.GetBool(model.SettingKeyRelayLogKeepEnabled)
+	if err != nil {
+		return err
+	}
+	if !enabled {
+		return nil
+	}
+	rows := attemptRowsFor(relayLogID, attempts, logTime)
 	if len(rows) == 0 {
 		return nil
 	}
@@ -394,6 +438,12 @@ func relayLogCleanup(ctx context.Context) error {
 		if thresholdID == 0 {
 			return nil
 		}
+		// 明细先删：即使父日志删除失败，也不会留下引用已删日志的孤儿行。
+		if err := conn.WithContext(ctx).
+			Where("relay_log_id < ?", thresholdID).
+			Delete(&model.RelayLogAttempt{}).Error; err != nil {
+			return err
+		}
 		return conn.WithContext(ctx).
 			Where("id < ?", thresholdID).
 			Delete(&model.RelayLog{}).Error
@@ -410,6 +460,12 @@ func relayLogCleanup(ctx context.Context) error {
 	}
 
 	cutoffTime := time.Now().Add(-time.Duration(keepPeriod) * 24 * time.Hour).Unix()
+	// 明细行自带 time（= 父日志的 time），按同一截止点删，无需先查父日志 id。
+	if err := conn.WithContext(ctx).
+		Where("time < ?", cutoffTime).
+		Delete(&model.RelayLogAttempt{}).Error; err != nil {
+		return err
+	}
 	return conn.WithContext(ctx).Where("time < ?", cutoffTime).Delete(&model.RelayLog{}).Error
 }
 
@@ -422,6 +478,9 @@ func relayLogCleanupAll(ctx context.Context) error {
 	if conn == nil {
 		// 独立日志库已断开（日志关闭场景）：无需清理。
 		return nil
+	}
+	if err := db.FastClearTable(conn.WithContext(ctx), &model.RelayLogAttempt{}, "relay_log_attempts"); err != nil {
+		return err
 	}
 	return db.FastClearTable(conn.WithContext(ctx), &model.RelayLog{}, "relay_logs")
 }
@@ -755,6 +814,10 @@ func RelayLogClear(ctx context.Context) error {
 		return nil
 	}
 	// 整表清空走 FastClearTable，避免百万级逐行 DELETE 卡住数十分钟。
+	// 尝试明细一并清空，否则 relay_log_attempts 永不回收（R-9）。
+	if err := db.FastClearTable(conn.WithContext(ctx), &model.RelayLogAttempt{}, "relay_log_attempts"); err != nil {
+		return err
+	}
 	return db.FastClearTable(conn.WithContext(ctx), &model.RelayLog{}, "relay_logs")
 }
 
