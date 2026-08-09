@@ -1,6 +1,7 @@
 package model
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -121,30 +122,51 @@ type ChannelKey struct {
 
 // ChannelUpdateRequest 渠道更新请求 - 仅包含变更的数据
 type ChannelUpdateRequest struct {
-	ID             int                    `json:"id" binding:"required"`
-	Name           *string                `json:"name,omitempty"`
-	GroupID        *int                   `json:"group_id,omitempty"`
-	Type           *outbound.OutboundType `json:"type,omitempty"`
-	Enabled        *bool                  `json:"enabled,omitempty"`
-	BaseUrls       *[]BaseUrl             `json:"base_urls,omitempty"`
-	Model          *string                `json:"model,omitempty"`
-	CustomModel    *string                `json:"custom_model,omitempty"`
-	ProxyMode      *ProxyUsageMode        `json:"proxy_mode,omitempty"`
-	ProxyConfigID  *int                   `json:"proxy_config_id,omitempty"`
-	Proxy          *bool                  `json:"proxy,omitempty"`
-	AutoSync       *bool                  `json:"auto_sync,omitempty"`
-	AutoGroup      *AutoGroupType         `json:"auto_group,omitempty"`
-	CustomHeader   *[]CustomHeader        `json:"custom_header,omitempty"`
-	ChannelProxy   *string                `json:"channel_proxy,omitempty"`
-	ParamOverride  *string                `json:"param_override,omitempty"`
-	RequestRewrite *RequestRewriteConfig  `json:"request_rewrite,omitempty"`
-	MatchRegex     *string                `json:"match_regex,omitempty"`
+	ID            int                    `json:"id" binding:"required"`
+	Name          *string                `json:"name,omitempty"`
+	GroupID       *int                   `json:"group_id,omitempty"`
+	Type          *outbound.OutboundType `json:"type,omitempty"`
+	Enabled       *bool                  `json:"enabled,omitempty"`
+	BaseUrls      *[]BaseUrl             `json:"base_urls,omitempty"`
+	Model         *string                `json:"model,omitempty"`
+	CustomModel   *string                `json:"custom_model,omitempty"`
+	ProxyMode     *ProxyUsageMode        `json:"proxy_mode,omitempty"`
+	ProxyConfigID *int                   `json:"proxy_config_id,omitempty"`
+	// ProxyConfigIDSet 区分"字段缺省"与"显式传 null"，与 SiteUpdateRequest 同构。
+	// 由 UnmarshalJSON 填充，客户端不可直接设置。
+	ProxyConfigIDSet bool                  `json:"-"`
+	Proxy            *bool                 `json:"proxy,omitempty"`
+	AutoSync         *bool                 `json:"auto_sync,omitempty"`
+	AutoGroup        *AutoGroupType        `json:"auto_group,omitempty"`
+	CustomHeader     *[]CustomHeader       `json:"custom_header,omitempty"`
+	ChannelProxy     *string               `json:"channel_proxy,omitempty"`
+	ParamOverride    *string               `json:"param_override,omitempty"`
+	RequestRewrite   *RequestRewriteConfig `json:"request_rewrite,omitempty"`
+	MatchRegex       *string               `json:"match_regex,omitempty"`
 
 	KeysToAdd    []ChannelKeyAddRequest    `json:"keys_to_add,omitempty"`
 	KeysToUpdate []ChannelKeyUpdateRequest `json:"keys_to_update,omitempty"`
 	KeysToDelete []int                     `json:"keys_to_delete,omitempty"`
 
 	BypassManagedCheck bool `json:"-"` // 内部使用：允许投影逻辑更新 managed channel
+}
+
+// UnmarshalJSON 记录 proxy_config_id 是否出现在请求体里，使"显式清空（null）"
+// 能与"本次不改该字段"区分开。与 SiteUpdateRequest.UnmarshalJSON 同构。
+func (r *ChannelUpdateRequest) UnmarshalJSON(data []byte) error {
+	type alias ChannelUpdateRequest
+	var aux alias
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	*r = ChannelUpdateRequest(aux)
+
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	_, r.ProxyConfigIDSet = raw["proxy_config_id"]
+	return nil
 }
 
 type ChannelKeyAddRequest struct {

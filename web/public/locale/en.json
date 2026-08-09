@@ -2193,6 +2193,7 @@
       "customHeaderAdd": "Add Header",
       "channelProxy": "Channel Proxy",
       "channelProxyPlaceholder": "Optional: proxy for this channel (overrides global proxy)",
+      "channelProxyOverridesMode": "A custom proxy URL is set, so it takes precedence over the proxy mode below.",
       "paramOverride": "Param Override",
       "paramOverridePlaceholder": "Optional: JSON string to override request params",
       "requestRewrite": "Request Rewrite",

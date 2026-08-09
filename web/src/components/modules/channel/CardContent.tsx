@@ -92,6 +92,8 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
         model: channel.model,
         custom_model: channel.custom_model,
         proxy: channel.proxy,
+        proxy_mode: channel.proxy_mode ?? 'direct',
+        proxy_config_id: channel.proxy_config_id ?? null,
         auto_sync: channel.auto_sync,
         auto_group: channel.auto_group,
         match_regex: channel.match_regex ?? '',
@@ -150,6 +152,19 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
         if (nextParamOverride !== curParamOverride) {
             // Empty string means "clear" for patch semantics; backend maps it to NULL.
             req.param_override = nextParamOverride;
+        }
+
+        // 代理模式：只在变化时下发。pool 以外的模式必须显式带上 proxy_config_id: null，
+        // 后端靠 proxy_config_id 这个键是否出现在 JSON 里区分"清空"与"不改"
+        // （ChannelUpdateRequest.UnmarshalJSON 的 ProxyConfigIDSet）。
+        const curProxyMode = channel.proxy_mode ?? 'direct';
+        const curProxyConfigID = channel.proxy_config_id ?? null;
+        const nextProxyConfigID = formData.proxy_mode === 'pool' ? formData.proxy_config_id ?? null : null;
+        if (formData.proxy_mode !== curProxyMode) {
+            req.proxy_mode = formData.proxy_mode;
+        }
+        if (nextProxyConfigID !== curProxyConfigID) {
+            req.proxy_config_id = nextProxyConfigID;
         }
 
         if (!requestRewriteEqual(effectiveRequestRewrite, channel.request_rewrite)) {

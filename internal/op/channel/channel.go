@@ -186,6 +186,29 @@ func Update(req *model.ChannelUpdateRequest, ctx context.Context) (*model.Channe
 		return nil, err
 	}
 
+	// 代理模式：在开事务前校验，避免拿着无效配置进事务再回滚。
+	// 渠道不支持 inherit（没有可继承的父级，Site→Account 才有那层关系）。
+	effectiveProxyMode := current.ProxyMode
+	if req.ProxyMode != nil {
+		if err := req.ProxyMode.Validate(false); err != nil {
+			return nil, err
+		}
+		effectiveProxyMode = *req.ProxyMode
+	}
+	effectiveProxyConfigID := current.ProxyConfigID
+	if req.ProxyConfigIDSet {
+		effectiveProxyConfigID = req.ProxyConfigID
+	}
+	if effectiveProxyMode == model.ProxyUsageModePool {
+		if effectiveProxyConfigID == nil || *effectiveProxyConfigID <= 0 {
+			return nil, fmt.Errorf("proxy config id is required when proxy mode is pool")
+		}
+		// 校验代理池配置存在且启用，否则保存后每个请求都会在取 client 时失败。
+		if _, err := ProxyURLForConfig(*effectiveProxyConfigID, ctx); err != nil {
+			return nil, err
+		}
+	}
+
 	groupID := 0
 	if req.GroupID != nil {
 		groupID = *req.GroupID
@@ -248,6 +271,26 @@ func Update(req *model.ChannelUpdateRequest, ctx context.Context) (*model.Channe
 	if req.Proxy != nil {
 		selectFields = append(selectFields, "proxy")
 		updates.Proxy = *req.Proxy
+	}
+	if req.ProxyMode != nil {
+		selectFields = append(selectFields, "proxy_mode")
+		updates.ProxyMode = *req.ProxyMode
+		// proxy 是给 helper.ChannelHttpClient 的派生布尔值，保持与 proxy_mode 同步，
+		// 否则"改了模式但 proxy 还是旧值"会让代理选择读到自相矛盾的状态。
+		// 显式传了 proxy 的话以客户端为准（上面那个分支后写覆盖不了这里，故此处判重）。
+		if req.Proxy == nil {
+			selectFields = append(selectFields, "proxy")
+			updates.Proxy = *req.ProxyMode != model.ProxyUsageModeDirect
+		}
+	}
+	// 非 pool 模式清空 proxy_config_id：留着一个不生效的 ID 只会误导排查。
+	if req.ProxyConfigIDSet || (req.ProxyMode != nil && *req.ProxyMode != model.ProxyUsageModePool) {
+		selectFields = append(selectFields, "proxy_config_id")
+		if effectiveProxyMode != model.ProxyUsageModePool {
+			updates.ProxyConfigID = nil
+		} else {
+			updates.ProxyConfigID = effectiveProxyConfigID
+		}
 	}
 	if req.AutoSync != nil {
 		selectFields = append(selectFields, "auto_sync")
@@ -512,4 +555,11 @@ var GroupDefaultID = func(ctx context.Context) (int, error) {
 // GroupGet is a placeholder; replaced by op via callback.
 var GroupGet = func(id int, ctx context.Context) (*model.ChannelGroup, error) {
 	return nil, fmt.Errorf("channel: GroupGet not registered")
+}
+
+// ProxyURLForConfig is a placeholder; replaced by op via callback.
+// 代理池配置住在 internal/op，而 op 反过来 import 本包，故走与 GroupGet 相同的
+// 回调注入方式，不能直接 import（会形成包循环）。
+var ProxyURLForConfig = func(id int, ctx context.Context) (string, error) {
+	return "", fmt.Errorf("channel: ProxyURLForConfig not registered")
 }

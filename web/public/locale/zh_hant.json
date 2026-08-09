@@ -2193,6 +2193,7 @@
       "customHeaderAdd": "新增 Header",
       "channelProxy": "供應源代理",
       "channelProxyPlaceholder": "可選：僅對該供應源生效（覆蓋全域代理）",
+      "channelProxyOverridesMode": "已填自訂代理位址，將優先於下方的代理模式生效。",
       "paramOverride": "參數覆蓋",
       "paramOverridePlaceholder": "可選：JSON 字串，用於覆蓋請求參數",
       "requestRewrite": "請求重寫",

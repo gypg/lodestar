@@ -25,6 +25,9 @@ func init() {
 	channel.GroupGet = func(id int, ctx context.Context) (*model.ChannelGroup, error) {
 		return ChannelGroupGet(id, ctx)
 	}
+	channel.ProxyURLForConfig = func(id int, ctx context.Context) (string, error) {
+		return ProxyURLForConfig(id, ctx)
+	}
 }
 
 // Deprecated: Use channel.List from internal/op/channel instead.

@@ -17,17 +17,65 @@ import (
 	"github.com/gypg/lodestar/internal/utils/xstrings"
 )
 
+// resolveChannelProxy 解析渠道最终使用的代理来源。
+//
+// 优先级：自定义 URL（channel_proxy）> proxy_mode。自定义 URL 优先是为了兼容
+// 既有数据 —— R-10 之前渠道代理完全由 proxy + channel_proxy 决定，proxy_mode
+// 那一列是死的（更新白名单里没有它，前端也从不发）。迁移 018 已把既有语义回填进
+// proxy_mode，但配了自定义 URL 的渠道回填成 direct（自定义 URL 不属于代理池），
+// 故这里必须让 channel_proxy 继续生效，否则它们会静默失去代理。
+//
+// 返回 (自定义代理 URL, 是否走系统代理, error)。两者都空/false 即直连。
+func resolveChannelProxy(ctx context.Context, channel *model.Channel) (string, bool, error) {
+	if custom := trimmedChannelProxy(channel); custom != "" {
+		return custom, false, nil
+	}
+	switch channel.ProxyMode {
+	case "", model.ProxyUsageModeDirect:
+		// 空值兜底为 direct：老库在迁移跑之前可能仍是空串。
+		// 但 proxy=true 说明这是迁移前的"用系统代理"语义，尊重它。
+		if channel.Proxy {
+			return "", true, nil
+		}
+		return "", false, nil
+	case model.ProxyUsageModeSystem:
+		return "", true, nil
+	case model.ProxyUsageModePool:
+		if channel.ProxyConfigID == nil || *channel.ProxyConfigID <= 0 {
+			return "", false, fmt.Errorf("channel %d: proxy config id is required when proxy mode is pool", channel.ID)
+		}
+		// 复用 op/channel 里那个由 op 注入的回调（见 op/channel.go 的 init），
+		// helper 不能直接 import op —— 虽然当前 op 不 import helper，
+		// 但 helper 已依赖 op/channel，走同一个 seam 更稳且零新增接线。
+		proxyURL, err := ch.ProxyURLForConfig(*channel.ProxyConfigID, ctx)
+		if err != nil {
+			return "", false, fmt.Errorf("channel %d: %w", channel.ID, err)
+		}
+		return proxyURL, false, nil
+	default:
+		return "", false, fmt.Errorf("channel %d: unsupported proxy mode: %s", channel.ID, channel.ProxyMode)
+	}
+}
+
+func trimmedChannelProxy(channel *model.Channel) string {
+	if channel == nil || channel.ChannelProxy == nil {
+		return ""
+	}
+	return strings.TrimSpace(*channel.ChannelProxy)
+}
+
 func ChannelHttpClient(channel *model.Channel) (*http.Client, error) {
 	if channel == nil {
 		return nil, errors.New("channel is nil")
 	}
-	if !channel.Proxy {
-		return client.GetHTTPClientSystemProxy(false)
-	} else if channel.ChannelProxy == nil || strings.TrimSpace(*channel.ChannelProxy) == "" {
-		return client.GetHTTPClientSystemProxy(true)
-	} else {
-		return client.GetHTTPClientCustomProxy(strings.TrimSpace(*channel.ChannelProxy))
+	customURL, useSystem, err := resolveChannelProxy(context.Background(), channel)
+	if err != nil {
+		return nil, err
 	}
+	if customURL != "" {
+		return client.GetHTTPClientCustomProxy(customURL)
+	}
+	return client.GetHTTPClientSystemProxy(useSystem)
 }
 
 // ChannelShortTimeoutHttpClient 返回一个短超时(30s)的 HTTP 客户端
@@ -36,13 +84,14 @@ func ChannelShortTimeoutHttpClient(channel *model.Channel) (*http.Client, error)
 	if channel == nil {
 		return nil, errors.New("channel is nil")
 	}
-	if !channel.Proxy {
-		return client.GetHTTPClientShortTimeout(false)
-	} else if channel.ChannelProxy == nil || strings.TrimSpace(*channel.ChannelProxy) == "" {
-		return client.GetHTTPClientShortTimeout(true)
-	} else {
-		return client.GetHTTPClientCustomProxyWithTimeout(strings.TrimSpace(*channel.ChannelProxy), 30*time.Second)
+	customURL, useSystem, err := resolveChannelProxy(context.Background(), channel)
+	if err != nil {
+		return nil, err
 	}
+	if customURL != "" {
+		return client.GetHTTPClientCustomProxyWithTimeout(customURL, 30*time.Second)
+	}
+	return client.GetHTTPClientShortTimeout(useSystem)
 }
 
 // ChannelBaseUrlDelayUpdate 更新 channel 的 base URL 延迟信息（使用短超时客户端）

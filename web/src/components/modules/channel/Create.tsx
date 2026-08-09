@@ -43,6 +43,8 @@ export function CreateDialogContent() {
         auto_group: AutoGroupType.None,
         enabled: true,
         proxy: false,
+        proxy_mode: 'direct' as const,
+        proxy_config_id: null,
         match_regex: '',
     });
     const t = useTranslations('channel.create');
@@ -65,6 +67,8 @@ export function CreateDialogContent() {
             auto_group: AutoGroupType.None,
             enabled: true,
             proxy: false,
+            proxy_mode: 'direct',
+            proxy_config_id: null,
             match_regex: '',
         });
         setShowPresetPicker(true);
@@ -105,6 +109,8 @@ export function CreateDialogContent() {
                 model: formData.model,
                 custom_model: formData.custom_model,
                 proxy: formData.proxy,
+                proxy_mode: formData.proxy_mode,
+                proxy_config_id: formData.proxy_mode === 'pool' ? formData.proxy_config_id ?? null : null,
                 auto_sync: formData.auto_sync,
                 auto_group: formData.auto_group,
                 custom_header: normalizedHeaders,

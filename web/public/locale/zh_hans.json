@@ -2193,6 +2193,7 @@
       "customHeaderAdd": "添加 Header",
       "channelProxy": "渠道代理",
       "channelProxyPlaceholder": "可选：仅对该渠道生效（覆盖全局代理）",
+      "channelProxyOverridesMode": "已填自定义代理地址，将优先于下方的代理模式生效。",
       "paramOverride": "参数覆盖",
       "paramOverridePlaceholder": "可选：JSON 字符串，用于覆盖请求参数",
       "requestRewrite": "请求重写",

@@ -4,6 +4,7 @@ import { REFETCH_INTERVAL_DEFAULT } from '../constants';
 import { logger } from '@/lib/logger';
 import { formatCount, formatMoney, formatTime } from '@/lib/utils';
 import { StatsChannel, type StatsMetricsFormatted } from './stats';
+import type { ProxyMode } from './proxy-pool';
 /**
  * 渠道类型枚举
  */
@@ -100,6 +101,8 @@ export type Channel = {
     model: string;
     custom_model: string;
     proxy: boolean;
+    proxy_mode: ProxyMode;
+    proxy_config_id?: number | null;
     auto_sync: boolean;
     auto_group: AutoGroupType;
     custom_header: CustomHeader[];
@@ -130,6 +133,8 @@ export type CreateChannelRequest = {
     model: string;
     custom_model?: string;
     proxy?: boolean;
+    proxy_mode?: ProxyMode;
+    proxy_config_id?: number | null;
     auto_sync?: boolean;
     auto_group?: AutoGroupType;
     custom_header?: CustomHeader[];
@@ -152,6 +157,8 @@ export type UpdateChannelRequest = {
     model?: string;
     custom_model?: string;
     proxy?: boolean;
+    proxy_mode?: ProxyMode;
+    proxy_config_id?: number | null;
     auto_sync?: boolean;
     auto_group?: AutoGroupType;
     custom_header?: CustomHeader[];

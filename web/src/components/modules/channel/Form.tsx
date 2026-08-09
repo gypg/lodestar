@@ -15,6 +15,8 @@ import {
 import { channelTemplates, getTemplatesByCategory, CATEGORY_LABELS } from './templates';
 import { CHANNEL_TYPE_OPTIONS } from './type-options';
 import { isOpenAICompatBaseUrlSuffixMode } from './base-url-suffix';
+import type { ProxyMode } from '@/api/endpoints/proxy-pool';
+import { ProxySelector } from '@/components/modules/proxy-pool/ProxySelector';
 import {
     Select,
     SelectContent,
@@ -67,6 +69,8 @@ export interface ChannelFormData {
     custom_model: string;
     enabled: boolean;
     proxy: boolean;
+    proxy_mode: ProxyMode;
+    proxy_config_id?: number | null;
     auto_sync: boolean;
     auto_group: AutoGroupType;
     match_regex: string;
@@ -586,6 +590,8 @@ export function ChannelForm({
             .filter((k) => k.channel_key.trim())
             .map((k) => ({ enabled: k.enabled, channel_key: k.channel_key.trim(), remark: k.remark ?? '' })),
         proxy: formData.proxy,
+        proxy_mode: formData.proxy_mode,
+        proxy_config_id: formData.proxy_mode === 'pool' ? formData.proxy_config_id ?? null : null,
         channel_proxy: formData.channel_proxy?.trim() || '',
         match_regex: formData.match_regex.trim() || '',
         custom_header: normalizedHeaders,
@@ -651,6 +657,8 @@ export function ChannelForm({
                     .filter((k) => k.channel_key.trim())
                     .map((k) => ({ enabled: k.enabled, channel_key: k.channel_key.trim() })),
                 proxy: formData.proxy,
+                proxy_mode: formData.proxy_mode,
+                proxy_config_id: formData.proxy_mode === 'pool' ? formData.proxy_config_id ?? null : null,
                 channel_proxy: formData.channel_proxy?.trim() || '',
                 match_regex: formData.match_regex.trim() || '',
                 custom_header: normalizedHeaders,
@@ -1192,6 +1200,31 @@ export function ChannelForm({
                                     className="rounded-lg"
                                 />
                             </div>
+                        </div>
+
+                        {/* 代理模式：自定义代理地址填了的话优先生效（与后端
+                            helper.resolveChannelProxy 的优先级一致），故这里给出提示。 */}
+                        <div className={fieldGroupClassName}>
+                            <ProxySelector
+                                value={{
+                                    proxy_mode: formData.proxy_mode,
+                                    proxy_config_id: formData.proxy_config_id,
+                                }}
+                                onChange={(next) =>
+                                    onFormDataChange({
+                                        ...formData,
+                                        proxy_mode: next.proxy_mode,
+                                        proxy_config_id: next.proxy_config_id,
+                                        // proxy 是派生布尔值，跟随模式，保持与后端一致。
+                                        proxy: next.proxy_mode !== 'direct',
+                                    })
+                                }
+                            />
+                            {formData.channel_proxy.trim() !== '' && (
+                                <p className="text-xs text-muted-foreground">
+                                    {t('channelProxyOverridesMode')}
+                                </p>
+                            )}
                         </div>
 
                         <div className={fieldGroupClassName}>
