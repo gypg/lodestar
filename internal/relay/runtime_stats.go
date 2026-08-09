@@ -14,60 +14,15 @@ var processStartedAt = time.Now()
 
 var inflightRequests int64
 
-const trendPoints = 12
-const trendInterval = 30 * time.Second
-
-type RuntimeTrendSnapshot struct {
-	Timestamp    time.Time `json:"timestamp"`
-	RequestDelta int64     `json:"request_delta"`
-	FailedDelta  int64     `json:"failed_delta"`
-	AvgLatencyMs float64   `json:"avg_latency_ms"`
-	MemoryMB     int64     `json:"memory_mb"`
-}
-
-var (
-	trendSnapshots   [trendPoints]RuntimeTrendSnapshot
-	trendSnapshotIdx int
-	trendTotalReqs   int64
-	trendFailedReqs  int64
-	trendTotalLatMs  int64
-)
+// 运行时趋势数据由 internal/utils/telemetry 那一套提供（Store.trendSnapshots，
+// 读写都在 Store.mu 内），经 ops.TelemetrySummaryGet 出到仪表盘。
+// 本文件曾并存第二套 trend 实现（trendWorker + TrendSnapshots + 三个计数器），
+// 读端零调用方、写端每 30 秒空转一次 runtime.ReadMemStats，且对
+// trendSnapshots/trendSnapshotIdx 既无锁也无 atomic —— 已整套删除（R-8）。
+// 若以后要恢复，请直接扩展 telemetry.Store，不要再起第二份状态。
 
 func init() {
-	go trendWorker()
 	go sessionMetricsWorker()
-}
-
-func trendWorker() {
-	ticker := time.NewTicker(trendInterval)
-	defer ticker.Stop()
-	for range ticker.C {
-		sampleTrendSnapshot()
-	}
-}
-
-func sampleTrendSnapshot() {
-	deltaReqs := atomic.SwapInt64(&trendTotalReqs, 0)
-	deltaFailed := atomic.SwapInt64(&trendFailedReqs, 0)
-	deltaLatMs := atomic.SwapInt64(&trendTotalLatMs, 0)
-
-	var avgLat float64
-	if deltaReqs > 0 {
-		avgLat = float64(deltaLatMs) / float64(deltaReqs)
-	}
-
-	var mem runtime.MemStats
-	runtime.ReadMemStats(&mem)
-
-	idx := trendSnapshotIdx % trendPoints
-	trendSnapshots[idx] = RuntimeTrendSnapshot{
-		Timestamp:    time.Now(),
-		RequestDelta: deltaReqs,
-		FailedDelta:  deltaFailed,
-		AvgLatencyMs: avgLat,
-		MemoryMB:     int64(mem.Alloc / (1024 * 1024)),
-	}
-	trendSnapshotIdx++
 }
 
 func InflightCount() int64 {
@@ -92,34 +47,6 @@ func ProcessMemoryMB() int64 {
 	var mem runtime.MemStats
 	runtime.ReadMemStats(&mem)
 	return int64(mem.Alloc / (1024 * 1024))
-}
-
-func TrendSnapshots() []RuntimeTrendSnapshot {
-	count := trendSnapshotIdx
-	if count > trendPoints {
-		count = trendPoints
-	}
-	result := make([]RuntimeTrendSnapshot, 0, count)
-	start := trendSnapshotIdx - count
-	if start < 0 {
-		start = 0
-	}
-	for i := start; i < trendSnapshotIdx; i++ {
-		idx := i % trendPoints
-		snap := trendSnapshots[idx]
-		if !snap.Timestamp.IsZero() {
-			result = append(result, snap)
-		}
-	}
-	return result
-}
-
-func RecordRequest(latencyMs int64, failed bool) {
-	atomic.AddInt64(&trendTotalReqs, 1)
-	atomic.AddInt64(&trendTotalLatMs, latencyMs)
-	if failed {
-		atomic.AddInt64(&trendFailedReqs, 1)
-	}
 }
 
 // sessionMetricsWorker periodically pushes session/sticky counts to the shared telemetry store

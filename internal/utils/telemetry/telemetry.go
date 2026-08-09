@@ -109,40 +109,50 @@ func (s *Store) StartBackground() {
 			case <-s.stopChan:
 				return
 			case <-ticker.C:
-				currentReq := s.totalRequests.Load()
-				currentFail := s.totalFailures.Load()
-
-				reqDelta := currentReq - lastReqCount
-				failDelta := currentFail - lastFailCount
-				lastReqCount = currentReq
-				lastFailCount = currentFail
-
-				var avgLatency float64
-				if s.totalRequests.Load() > 0 {
-					avgLatency = float64(s.totalWaitMs.Load()) / float64(s.totalRequests.Load())
-				}
-
-				var memStats runtime.MemStats
-				runtime.ReadMemStats(&memStats)
-				memMB := int64(memStats.Alloc / 1024 / 1024)
-
-				point := TrendPoint{
-					Timestamp:    time.Now().Unix(),
-					RequestDelta: reqDelta,
-					FailedDelta:  failDelta,
-					AvgLatencyMs: avgLatency,
-					MemoryMB:     memMB,
-				}
-
-				s.mu.Lock()
-				s.trendSnapshots = append(s.trendSnapshots, point)
-				if len(s.trendSnapshots) > maxTrendSnapshots {
-					s.trendSnapshots = s.trendSnapshots[1:]
-				}
-				s.mu.Unlock()
+				lastReqCount, lastFailCount = s.captureTrendPoint(lastReqCount, lastFailCount)
 			}
 		}
 	}()
+}
+
+// captureTrendPoint appends one trend snapshot and evicts the oldest once the
+// ring is full, returning the counter values to diff against next tick.
+//
+// Extracted from the ticker closure so it is reachable from tests without waiting
+// out trendSnapshotPeriod. This is the only trend implementation in the tree:
+// internal/relay/runtime_stats.go used to carry a second, unsynchronized copy
+// whose reader was never called — deleted in R-8.
+func (s *Store) captureTrendPoint(lastReqCount, lastFailCount int64) (int64, int64) {
+	currentReq := s.totalRequests.Load()
+	currentFail := s.totalFailures.Load()
+
+	reqDelta := currentReq - lastReqCount
+	failDelta := currentFail - lastFailCount
+
+	var avgLatency float64
+	if currentReq > 0 {
+		avgLatency = float64(s.totalWaitMs.Load()) / float64(currentReq)
+	}
+
+	var memStats runtime.MemStats
+	runtime.ReadMemStats(&memStats)
+
+	point := TrendPoint{
+		Timestamp:    time.Now().Unix(),
+		RequestDelta: reqDelta,
+		FailedDelta:  failDelta,
+		AvgLatencyMs: avgLatency,
+		MemoryMB:     int64(memStats.Alloc / 1024 / 1024),
+	}
+
+	s.mu.Lock()
+	s.trendSnapshots = append(s.trendSnapshots, point)
+	if len(s.trendSnapshots) > maxTrendSnapshots {
+		s.trendSnapshots = s.trendSnapshots[1:]
+	}
+	s.mu.Unlock()
+
+	return currentReq, currentFail
 }
 
 // StopBackground stops the background collection goroutines.
