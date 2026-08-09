@@ -36,6 +36,15 @@ import (
 const (
 	sessionTTL        = 5 * time.Minute
 	maxCredentialName = 64
+	// maxPendingSessions 限制待完成的 challenge 会话总数。
+	// /login/begin 匿名可达且不校验任何凭证，无上限时每次调用都留下一条 5 分钟的记录，
+	// 攻击者可把进程内存推到 OOM（实测每条约 338 字节，容器上限 512MiB）。
+	// 正常用量远低于此：一条会话只在用户点击登录到浏览器完成指纹/PIN 之间存活。
+	maxPendingSessions = 4096
+	// sessionPurgeInterval 是惰性清理的最小间隔。原实现每次 saveSession 都持锁
+	// 遍历全表（O(n)），表变大后单次调用从 2.5µs 退化到 10.97ms（20 万条实测），
+	// 且退化发生在全局锁内，连带拖慢 finish。改为按间隔摊还，正常路径 O(1)。
+	sessionPurgeInterval = 30 * time.Second
 	// userHandleBase: 用户句柄(userHandle)采用用户 ID 的十进制字符串字节，
 	// 在注册/登录之间稳定可逆映射（解析侧用 ParseUint 还原）。
 	userHandleBase = 10
@@ -45,6 +54,8 @@ var (
 	ErrNotConfigured = errors.New("webauthn is not configured")
 	ErrInvalidToken  = errors.New("invalid or expired webauthn session")
 	ErrUserNotFound  = errors.New("user not found")
+	// ErrTooManySessions 表示待完成的 challenge 会话已达上限，请稍后重试。
+	ErrTooManySessions = errors.New("too many pending webauthn sessions, please retry shortly")
 )
 
 // --- 会话存储 ---
@@ -57,26 +68,49 @@ type pendingSession struct {
 }
 
 var (
-	sessionsMu sync.Mutex
-	sessions   = make(map[string]*pendingSession)
+	sessionsMu    sync.Mutex
+	sessions      = make(map[string]*pendingSession)
+	lastPurgeAt   time.Time
+	sessionsClock = time.Now // 测试可替换，生产恒为 time.Now
 )
 
-// saveSession 生成随机 token 并保存会话，顺带惰性清理过期项。
+// saveSession 生成随机 token 并保存会话，并在容量上限内摊还式清理过期项。
+//
+// 清理是"按间隔摊还"而非每次全表扫描：后者在表变大时会把 O(n) 遍历压在全局锁内。
+// 但当表已满时必须**先无条件强制清理再判上限**，否则一批过期会话会把上限永久
+// 占死，让合法用户再也开不出新 challenge（把内存 DoS 换成了功能 DoS）。
 func saveSession(s *pendingSession) (string, error) {
 	token, err := randomToken()
 	if err != nil {
 		return "", err
 	}
-	now := time.Now()
+	now := sessionsClock()
 	sessionsMu.Lock()
 	defer sessionsMu.Unlock()
+
+	if now.Sub(lastPurgeAt) >= sessionPurgeInterval {
+		purgeExpiredSessionsLocked(now)
+	}
+	if len(sessions) >= maxPendingSessions {
+		// 表满：强制清理一次，回收间隔内到期的条目。
+		purgeExpiredSessionsLocked(now)
+		if len(sessions) >= maxPendingSessions {
+			return "", ErrTooManySessions
+		}
+	}
+
+	sessions[token] = s
+	return token, nil
+}
+
+// purgeExpiredSessionsLocked 删除所有已过期会话。调用方必须持 sessionsMu。
+func purgeExpiredSessionsLocked(now time.Time) {
 	for k, v := range sessions {
 		if now.After(v.expiry) {
 			delete(sessions, k)
 		}
 	}
-	sessions[token] = s
-	return token, nil
+	lastPurgeAt = now
 }
 
 // takeSession 取出并删除会话（单次消费）。过期或不存在返回 nil。

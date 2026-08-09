@@ -9,11 +9,16 @@ type MatchResult = {
 
 const missingGroupKeyNoUsableKeyPattern = /^site sync requires a key for group "([^"]+)"; create a key for that group on the site and sync again$/i;
 const missingGroupKeyFallbackPattern = /^site sync could not resolve models for group "([^"]+)"; create a key for that group on the site and sync again$/i;
+// S-7：后端消息形如 "site import payload exceeds 64 MiB limit"，上限值随配置变化，
+// 所以捕获上限文本作为插值参数，而不是把整句写死进 exactSiteMessageKeys。
+const importTooLargePattern = /^site import payload exceeds (.+) limit$/i;
 // Legacy compatibility for responses/log messages emitted before coded API errors were introduced.
 const exactSiteMessageKeys: Record<string, string> = {
     'invalid json format': 'siteImport.errors.invalidJson',
     'site import invalid json': 'siteImport.errors.invalidJson',
     'site import empty payload': 'siteImport.errors.emptyPayload',
+    // S-7 体积上限。后端消息带具体上限（如 "64 MiB"），故用前缀匹配而非精确匹配，
+    // 见 matchSiteMessage 里的 tooLargePattern。
     'site import no recognizable all api hub payload sections': 'siteImport.errors.unrecognizedAllAPIHub',
     'site import no recognizable metapi accounts section': 'siteImport.errors.unrecognizedMetapi',
     'site import no importable all api hub site account data': 'siteImport.errors.noImportableAllAPIHub',
@@ -29,6 +34,14 @@ function matchSiteMessage(message: string): MatchResult | null {
     const exactKey = exactSiteMessageKeys[trimmed.toLowerCase()];
     if (exactKey) {
         return { key: exactKey };
+    }
+
+    const tooLargeMatch = trimmed.match(importTooLargePattern);
+    if (tooLargeMatch) {
+        return {
+            key: 'siteImport.errors.tooLarge',
+            values: { limit: tooLargeMatch[1] },
+        };
     }
 
     const noUsableKeyMatch = trimmed.match(missingGroupKeyNoUsableKeyPattern);
@@ -98,6 +111,16 @@ function fallbackTranslate(locale: Locale, key: string, values?: Record<string, 
                 case 'zh-Hans':
                 default:
                     return '导入内容为空，请选择 JSON 文件或粘贴导出内容。';
+            }
+        case 'siteImport.errors.tooLarge':
+            switch (locale) {
+                case 'en':
+                    return interpolate('The import file exceeds the {limit} limit. Split the export or import in batches.', values);
+                case 'zh-Hant':
+                    return interpolate('匯入檔案超過 {limit} 上限，請拆分匯出檔案或分批匯入。', values);
+                case 'zh-Hans':
+                default:
+                    return interpolate('导入文件超过 {limit} 上限，请拆分导出文件或分批导入。', values);
             }
         case 'siteImport.errors.unrecognizedAllAPIHub':
             switch (locale) {

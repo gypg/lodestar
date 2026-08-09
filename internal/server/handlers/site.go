@@ -96,6 +96,7 @@ func listSite(c *gin.Context) {
 }
 
 func importAllAPIHub(c *gin.Context) {
+	defer cleanupSiteImportMultipartForm(c)
 	body, err := readImportPayload(c)
 	if err != nil {
 		resp.ErrorWithAppError(c, http.StatusBadRequest, err)
@@ -121,6 +122,7 @@ func importAllAPIHub(c *gin.Context) {
 }
 
 func importMetAPI(c *gin.Context) {
+	defer cleanupSiteImportMultipartForm(c)
 	body, err := readImportPayload(c)
 	if err != nil {
 		resp.ErrorWithAppError(c, http.StatusBadRequest, err)
@@ -136,21 +138,85 @@ func importMetAPI(c *gin.Context) {
 	resp.Success(c, result)
 }
 
+// S-7：站点导入原先两条路径都无体积上限——raw JSON 直接 io.ReadAll(Body)，
+// multipart 走 gin 默认 32MB 内存 + 溢写 TMPDIR 后再 io.ReadAll 整份进堆。
+// 实测 256MB 请求体 → 堆涨 256MB；128MB multipart → 堆 128MB + tmpfs 128MB
+// 共 256MB 峰值，而容器上限 512MiB 且 /tmp 是 tmpfs（占的也是内存）。
+// 再叠加 json.Unmarshal 进 map[string]any 的约 4.5 倍放大，单个请求即可 OOM。
+// 上限与 DB 导入（maxDBImportBytes）取齐，multipart 多留一份 MIME 框架余量。
+var (
+	maxSiteImportBytes               int64 = 64 << 20
+	maxSiteImportMultipartExtraBytes int64 = 1 << 20
+)
+
 func readImportPayload(c *gin.Context) ([]byte, error) {
 	contentType := c.GetHeader("Content-Type")
 	if strings.Contains(contentType, "multipart/form-data") {
+		// 闸门必须在 c.FormFile 之前——FormFile 内部会解析整个 multipart 体，
+		// 一旦解析完成内存与临时文件都已经吃下去了，之后再判大小为时已晚。
+		limitSiteImportRequestBody(c)
 		fileHeader, err := c.FormFile("file")
 		if err != nil {
-			return nil, apperror.Wrap(op.CodeSiteImportEmptyPayload, "site import empty payload", err).WithStatus(http.StatusBadRequest)
+			return nil, normalizeSiteImportReadError(err)
+		}
+		if fileHeader.Size > maxSiteImportBytes {
+			return nil, newSiteImportTooLargeError()
 		}
 		file, err := fileHeader.Open()
 		if err != nil {
 			return nil, apperror.Wrap(op.CodeSiteImportEmptyPayload, "site import empty payload", err).WithStatus(http.StatusBadRequest)
 		}
 		defer file.Close()
-		return io.ReadAll(file)
+		return readAllSiteImportLimited(file)
 	}
-	return io.ReadAll(c.Request.Body)
+	limitSiteImportRequestBody(c)
+	return readAllSiteImportLimited(c.Request.Body)
+}
+
+func limitSiteImportRequestBody(c *gin.Context) {
+	if c == nil || c.Request == nil || c.Request.Body == nil {
+		return
+	}
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxSiteImportBytes+maxSiteImportMultipartExtraBytes)
+}
+
+// readAllSiteImportLimited 读满 maxSiteImportBytes+1 字节即判超限。
+// 多读 1 字节是为了区分"恰好等于上限"（合法）与"超过上限"（拒绝）。
+func readAllSiteImportLimited(r io.Reader) ([]byte, error) {
+	limited := &io.LimitedReader{R: r, N: maxSiteImportBytes + 1}
+	body, err := io.ReadAll(limited)
+	if err != nil {
+		return nil, normalizeSiteImportReadError(err)
+	}
+	if limited.N <= 0 {
+		return nil, newSiteImportTooLargeError()
+	}
+	return body, nil
+}
+
+func normalizeSiteImportReadError(err error) error {
+	if err == nil {
+		return nil
+	}
+	if isHTTPMaxBytesError(err) {
+		return newSiteImportTooLargeError()
+	}
+	return apperror.Wrap(op.CodeSiteImportEmptyPayload, "site import empty payload", err).WithStatus(http.StatusBadRequest)
+}
+
+func newSiteImportTooLargeError() error {
+	return op.NewSiteImportTooLargeError(formatDBImportLimit(maxSiteImportBytes))
+}
+
+// cleanupSiteImportMultipartForm 主动删掉 multipart 溢写的临时文件。
+// net/http 在请求收尾时也会 RemoveAll（server.go:1683），但那要等 handler
+// 返回并走完响应写出；导入这条路径随后还要做 JSON 解析与整库事务，
+// 期间临时文件一直占着 /tmp（生产是 tmpfs，即内存）。提前释放。
+func cleanupSiteImportMultipartForm(c *gin.Context) {
+	if c == nil || c.Request == nil || c.Request.MultipartForm == nil {
+		return
+	}
+	_ = c.Request.MultipartForm.RemoveAll()
 }
 
 func createSite(c *gin.Context) {

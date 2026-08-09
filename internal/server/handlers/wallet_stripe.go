@@ -67,9 +67,24 @@ func stripeTopup(c *gin.Context) {
 	resp.Success(c, gin.H{"pay_link": payLink})
 }
 
+// maxStripeWebhookBytes 限制 webhook 体积。这条路由刻意无鉴权（Stripe S2S 回调，
+// 靠签名而非登录态），故是**匿名可达**的无限 io.ReadAll —— 比站点导入那条更易触达。
+// Stripe 事件体实际只有几十 KB，1 MiB 已是充裕上限。
+// 注意签名校验发生在读完 body 之后（HandleWebhook 需要原始字节算 HMAC），
+// 所以闸门必须落在读取处，不能指望"签名不对就不会读"。
+const maxStripeWebhookBytes int64 = 1 << 20
+
 func stripeWebhook(c *gin.Context) {
+	if c.Request.Body != nil {
+		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxStripeWebhookBytes)
+	}
 	payload, err := io.ReadAll(c.Request.Body)
 	if err != nil {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			c.Status(http.StatusRequestEntityTooLarge)
+			return
+		}
 		c.Status(http.StatusServiceUnavailable)
 		return
 	}

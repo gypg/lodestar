@@ -5,9 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gin-gonic/gin"
 	"github.com/gypg/lodestar/internal/server/middleware"
-	"github.com/gypg/lodestar/internal/server/router"
 )
 
 // exemptFromAudit lists management write routes that intentionally skip audit
@@ -38,12 +36,9 @@ var exemptFromAudit = map[string]string{
 // corresponding entry in the audit whitelist. This prevents silently
 // missing audit coverage when new write endpoints are added.
 func TestAllManagementWriteRoutesAreAudited(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	engine := gin.New()
-
-	if err := router.RegisterAll(engine); err != nil {
-		t.Fatalf("RegisterAll: %v", err)
-	}
+	// 共用本包唯一的生产路由表（见 webauthn_ratelimit_route_test.go）：
+	// RegisterAll 只能成功一次，各测试自行调用会让结果依赖执行顺序。
+	engine := getProductionEngine(t)
 
 	routes := engine.Routes()
 	missing := []string{}

@@ -25,8 +25,18 @@ func init() {
 	publicWebAuthn.AddRoute(
 		router.NewRoute("/status", http.MethodGet).Handle(webauthnStatus),
 	)
+	// S-8：/login/begin 原先只有 RequireJSON，而紧邻的 /login/finish 有
+	// LoginRateLimit——这个不对称是缺陷本体。begin 不校验任何凭证，故不是暴力破解面，
+	// 真实代价是匿名可达的内存放大：每次调用都往进程内会话表塞一条留存 5 分钟的记录
+	// （实测 5 万次 → 5 万条留存、约 338 字节/条），且 saveSession 的惰性清理是
+	// 持锁全表扫描（实测单次 begin：0 条时 2.5µs / 5 万条 1.79ms / 20 万条 10.97ms）。
+	// 注意 LoginRateLimit 只在"已积累失败计数"时才拦截，begin 本身没有失败概念，
+	// 所以它挡不住洪水，只在同 IP 已因密码错误被封时顺带生效——真正的兜底是
+	// wa.BeginLogin 内的会话表容量上限。两者互补，都需要。
 	publicWebAuthn.AddRoute(
-		router.NewRoute("/login/begin", http.MethodPost).Handle(webauthnLoginBegin),
+		router.NewRoute("/login/begin", http.MethodPost).
+			Use(middleware.LoginRateLimit()).
+			Handle(webauthnLoginBegin),
 	)
 	publicWebAuthn.AddRoute(
 		router.NewRoute("/login/finish", http.MethodPost).
@@ -68,7 +78,7 @@ func webauthnStatus(c *gin.Context) {
 func webauthnLoginBegin(c *gin.Context) {
 	token, assertion, err := wa.BeginLogin()
 	if err != nil {
-		resp.Error(c, http.StatusBadRequest, webauthnErrorMessage(err))
+		resp.Error(c, webauthnErrorStatus(err), webauthnErrorMessage(err))
 		return
 	}
 	options, err := json.Marshal(assertion)
@@ -143,7 +153,7 @@ func webauthnRegisterBegin(c *gin.Context) {
 	currentUserID := uint(c.GetInt("user_id"))
 	token, creation, err := wa.BeginRegistration(currentUserID)
 	if err != nil {
-		resp.Error(c, http.StatusBadRequest, webauthnErrorMessage(err))
+		resp.Error(c, webauthnErrorStatus(err), webauthnErrorMessage(err))
 		return
 	}
 	options, err := json.Marshal(creation)
@@ -190,6 +200,15 @@ func deleteWebAuthnCredential(c *gin.Context) {
 	resp.Success(c, nil)
 }
 
+// webauthnErrorStatus 把会话表满映射成 429（可重试的暂时性拒绝），
+// 其余仍是 400——配置缺失/用户不存在都不是"稍后重试就会好"的错误。
+func webauthnErrorStatus(err error) int {
+	if errors.Is(err, wa.ErrTooManySessions) {
+		return http.StatusTooManyRequests
+	}
+	return http.StatusBadRequest
+}
+
 func webauthnErrorMessage(err error) string {
 	if err == nil {
 		return ""
@@ -199,6 +218,8 @@ func webauthnErrorMessage(err error) string {
 		return "Passkey login is not configured"
 	case errors.Is(err, wa.ErrInvalidToken):
 		return "Passkey session expired, please try again"
+	case errors.Is(err, wa.ErrTooManySessions):
+		return "Too many pending Passkey logins, please retry shortly"
 	default:
 		log.Warnf("webauthn error: %v", err)
 		msg := err.Error()

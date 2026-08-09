@@ -9,6 +9,7 @@ import (
 const (
 	CodeSiteImportInvalidJSON           = "site.import.invalid_json"
 	CodeSiteImportEmptyPayload          = "site.import.empty_payload"
+	CodeSiteImportTooLarge              = "site.import.too_large"
 	CodeSiteImportUnrecognizedAllAPIHub = "site.import.unrecognized_all_api_hub"
 	CodeSiteImportUnrecognizedMetapi    = "site.import.unrecognized_metapi"
 	CodeSiteImportNoImportableAllAPIHub = "site.import.no_importable_all_api_hub"
@@ -23,6 +24,14 @@ func newSiteImportInvalidJSONError() *apperror.Error {
 
 func newSiteImportEmptyPayloadError() *apperror.Error {
 	return apperror.New(CodeSiteImportEmptyPayload, "site import empty payload").WithStatus(http.StatusBadRequest)
+}
+
+// NewSiteImportTooLargeError 报告导入体超过大小上限。导出给 handler 层用，
+// 因为体积闸门必须在读入 body 之前生效，而 body 尚未到达 op 层。
+func NewSiteImportTooLargeError(limit string) *apperror.Error {
+	return apperror.Newf(CodeSiteImportTooLarge, "site import payload exceeds %s limit", limit).
+		WithStatus(http.StatusRequestEntityTooLarge).
+		WithParam("limit", limit)
 }
 
 func newSiteImportUnrecognizedAllAPIHubError() *apperror.Error {
