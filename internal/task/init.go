@@ -38,6 +38,11 @@ func Init() {
 		db.StartSerialWriter(context.Background())
 	}
 	relaylog.StartFlushWorker(context.Background())
+
+	// 会话指标 worker 必须显式启动，不能放在 relay 包的 init() 里。
+	// 它读 relayStreamSessions.shards，而那些 map 由 stream_session.go 中**更晚**的
+	// init() 建立（同包 init 按文件名顺序执行），曾因此被 race detector 抓到真实竞态。
+	relay.StartSessionMetricsWorker()
 	priceUpdateIntervalHours, err := setting.GetInt(model.SettingKeyModelInfoUpdateInterval)
 	if err != nil {
 		log.Errorf("failed to get model info update interval: %v", err)
