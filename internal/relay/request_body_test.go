@@ -167,6 +167,7 @@ func TestForwardMediaRequestMultipartRewritesModelAndStreamsFiles(t *testing.T) 
 		"whisper-1-rewritten",
 		false,
 		context.Background(),
+		&usageScanner{},
 	)
 	if err != nil {
 		t.Fatalf("forwardMediaRequestMultipart() error = %v", err)
@@ -262,7 +263,7 @@ func TestHandleSSEResponseFlushesLines(t *testing.T) {
 	}
 	response.Header.Set("Content-Type", "text/event-stream")
 
-	status, err := handleSSEResponse(ctx, response)
+	status, err := handleSSEResponse(ctx, response, &usageScanner{})
 	if err != nil {
 		t.Fatalf("handleSSEResponse() error = %v", err)
 	}

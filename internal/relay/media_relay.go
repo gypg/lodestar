@@ -144,6 +144,10 @@ func MediaHandler(endpointType MediaEndpointType, c *gin.Context) {
 	var lastChannelName string
 	var lastResolvedModel string
 	var mediaDone bool
+	// Upstream-reported token usage of the attempt that produced the response the
+	// client received. Reset per attempt so a failed hop's usage can never be
+	// billed against a later hop's success (P1 #11 / scan doc §10.1).
+	var billedUsage mediaUsage
 
 	retryWithChannels(group, requestModel, apiKeyID, c.GetString("excluded_channels"),
 		maxKeyRetriesPerRoute, maxRouteRetries, ratelimitCooldown, maxTotalAttempts,
@@ -170,7 +174,15 @@ func MediaHandler(endpointType MediaEndpointType, c *gin.Context) {
 			},
 			ForwardRequest: func(channel *dbmodel.Channel, usedKey dbmodel.ChannelKey, resolvedModel string, round retryRoundInfo) retryForwardResult {
 				span := round.Iter.StartAttempt(channel.ID, usedKey.ID, channel.Name, resolvedModel)
-				statusCode, fwdErr := forwardMediaRequest(c, cfg, group, channel, usedKey.ChannelKey, bodyBytes, requestModel, resolvedModel, streamRequested, operationCtx)
+				// One scanner per attempt: a retry must not inherit the previous
+				// hop's usage.
+				usageScan := &usageScanner{}
+				statusCode, fwdErr := forwardMediaRequest(c, cfg, group, channel, usedKey.ChannelKey, bodyBytes, requestModel, resolvedModel, streamRequested, operationCtx, usageScan)
+				if scanned, ok := usageScan.Usage(); ok {
+					billedUsage = scanned
+				} else {
+					billedUsage = mediaUsage{}
+				}
 
 				lastChannelID = channel.ID
 				lastChannelName = channel.Name
@@ -211,7 +223,7 @@ func MediaHandler(endpointType MediaEndpointType, c *gin.Context) {
 				return retryForwardResult{Decision: decision, Err: fwdErr}
 			},
 			OnSuccess: func(channel *dbmodel.Channel, usedKey dbmodel.ChannelKey, resolvedModel string, round retryRoundInfo) {
-				recordMediaRelayLog(apiKeyID, requestModel, logEndpointType, bodyBytes, channel.ID, channel.Name, resolvedModel, time.Since(startTime), snapshotAttempts(round.Iter), nil, clientIP)
+				recordMediaRelayLog(apiKeyID, requestModel, logEndpointType, bodyBytes, channel.ID, channel.Name, resolvedModel, time.Since(startTime), snapshotAttempts(round.Iter), nil, clientIP, billedUsage)
 				mediaDone = true
 			},
 			OnFailure: func(channel *dbmodel.Channel, usedKey dbmodel.ChannelKey, resolvedModel string) {
@@ -219,7 +231,7 @@ func MediaHandler(endpointType MediaEndpointType, c *gin.Context) {
 				balancer.RecordAutoFailure(channel.ID, resolvedModel)
 			},
 			OnFinalFailure: func(channel *dbmodel.Channel, usedKey dbmodel.ChannelKey, resolvedModel string, round retryRoundInfo, fwdResult retryForwardResult) bool {
-				recordMediaRelayLog(apiKeyID, requestModel, logEndpointType, bodyBytes, channel.ID, channel.Name, resolvedModel, time.Since(startTime), snapshotAttempts(round.Iter), fwdResult.Err, clientIP)
+				recordMediaRelayLog(apiKeyID, requestModel, logEndpointType, bodyBytes, channel.ID, channel.Name, resolvedModel, time.Since(startTime), snapshotAttempts(round.Iter), fwdResult.Err, clientIP, billedUsage)
 				// 与 LLM relay 一致：客户端错误原样回给下游，不吞成 502。
 				if fwdResult.Decision.Scope == ScopeNone {
 					writeClientTerminalError(c, fwdResult.Decision.Code, fwdResult.Err)
@@ -231,7 +243,9 @@ func MediaHandler(endpointType MediaEndpointType, c *gin.Context) {
 				if mediaDone {
 					return
 				}
-				recordMediaRelayLog(apiKeyID, requestModel, logEndpointType, bodyBytes, lastChannelID, lastChannelName, lastResolvedModel, time.Since(startTime), allAttempts, lastErr, clientIP)
+				// No attempt produced a response the client kept, so there is no
+				// usage to bill — pass the zero value, not the last hop's.
+				recordMediaRelayLog(apiKeyID, requestModel, logEndpointType, bodyBytes, lastChannelID, lastChannelName, lastResolvedModel, time.Since(startTime), allAttempts, lastErr, clientIP, mediaUsage{})
 				if lastErr != nil {
 					resp.Error(c, http.StatusBadGateway, fmt.Sprintf("all channels failed: %v", lastErr))
 				} else {
@@ -263,7 +277,12 @@ func snapshotAttempts(iter *balancer.Iterator) []dbmodel.ChannelAttempt {
 }
 
 // recordMediaRelayLog creates a RelayLog entry and updates global stats for media endpoints.
-func recordMediaRelayLog(apiKeyID int, requestModel string, endpointType string, bodyBytes []byte, channelID int, channelName string, resolvedModel string, duration time.Duration, attempts []dbmodel.ChannelAttempt, relayErr error, clientIP string) {
+//
+// usage carries the upstream-reported token counts for the attempt whose response
+// reached the client, or the zero value when upstream reported none (binary TTS,
+// providers that omit usage, every failed request). A zero usage keeps the
+// pre-existing request-param pricing behavior untouched.
+func recordMediaRelayLog(apiKeyID int, requestModel string, endpointType string, bodyBytes []byte, channelID int, channelName string, resolvedModel string, duration time.Duration, attempts []dbmodel.ChannelAttempt, relayErr error, clientIP string, usage mediaUsage) {
 	ctx, cancel := newRelayPersistenceContext()
 	defer cancel()
 
@@ -285,6 +304,12 @@ func recordMediaRelayLog(apiKeyID int, requestModel string, endpointType string,
 		UseTime:          int(duration.Milliseconds()),
 		Attempts:         attempts,
 		TotalAttempts:    len(attempts),
+		// P1 #11: persist the upstream token counts. These were hard zero for all
+		// 10 /v1 media routes, which left the token dimension of the dashboard,
+		// and the per-key MaxTokens ceiling, permanently blind to media traffic.
+		InputTokens:     int(usage.InputTokens),
+		OutputTokens:    int(usage.OutputTokens),
+		CacheReadTokens: int(usage.CachedTokens),
 	}
 
 	if apiKey, getErr := ak.Get(apiKeyID, ctx); getErr == nil {
@@ -300,11 +325,21 @@ func recordMediaRelayLog(apiKeyID int, requestModel string, endpointType string,
 	}
 
 	// Lodestar media billing (BUG-003): price the request by its body params when a
-	// billing expression is configured for the user-facing model. TokenParams is all
-	// zeros — media has no token dimension, only param() fields like size/n/quality.
-	// Cost must be computed before RelayLogAdd so relayLog.Cost persists with the log.
+	// billing expression is configured for the user-facing model. Cost must be
+	// computed before RelayLogAdd so relayLog.Cost persists with the log.
+	//
+	// P1 #11 priority rule (scan doc §10.1, written down deliberately): when
+	// upstream reported real usage, feed those tokens into the expression;
+	// otherwise pass all-zero TokenParams so param()-only expressions price the
+	// request exactly as they did before. The request body is passed either way,
+	// so an expression may mix param() with token dimensions. Tokens are never
+	// fabricated when upstream reported none.
+	tokenParams := billingexpr.TokenParams{}
+	if usage.Valid() {
+		tokenParams = usage.TokenParams()
+	}
 	var mediaCost float64
-	if exprCost, _, ok := billing.ComputeExprCostFullWithRequest(requestModel, billingexpr.TokenParams{}, billingexpr.RequestInput{Body: bodyBytes}); ok {
+	if exprCost, _, ok := billing.ComputeExprCostFullWithRequest(requestModel, tokenParams, billingexpr.RequestInput{Body: bodyBytes}); ok {
 		mediaCost = exprCost
 	}
 	relayLog.Cost = mediaCost
@@ -316,16 +351,22 @@ func recordMediaRelayLog(apiKeyID int, requestModel string, endpointType string,
 		log.Warnf("failed to save media relay log: %v", logErr)
 	}
 
-	// Record global and API-key stats (media endpoints don't have token/cost data)
+	// Record global and API-key stats. InputToken/OutputToken were hard zero
+	// before P1 #11; APIKeyUpdate feeds the accumulator that the per-key
+	// MaxTokens ceiling reads (middleware/auth.go), so media traffic now counts
+	// against it instead of being unlimited.
 	stats := dbmodel.StatsMetrics{
-		WaitTime:   int64(duration.Milliseconds()),
-		InputCost:  mediaCost,
-		OutputCost: 0,
+		WaitTime:    int64(duration.Milliseconds()),
+		InputToken:  usage.InputTokens,
+		OutputToken: usage.OutputTokens,
+		InputCost:   mediaCost,
+		OutputCost:  0,
 	}
 	if relayErr == nil {
 		stats.RequestSuccess = 1
-		log.Infof("media relay complete: model=%s, channel=%d(%s), duration=%dms, attempts=%d",
-			requestModel, channelID, channelName, duration.Milliseconds(), len(attempts))
+		log.Infof("media relay complete: model=%s, channel=%d(%s), duration=%dms, attempts=%d, input_token=%d, output_token=%d, cost=%f",
+			requestModel, channelID, channelName, duration.Milliseconds(), len(attempts),
+			usage.InputTokens, usage.OutputTokens, mediaCost)
 	} else {
 		stats.RequestFailed = 1
 		log.Infof("media relay failed: model=%s, duration=%dms, attempts=%d, error=%v",
@@ -462,11 +503,12 @@ func forwardMediaRequest(
 	resolvedModel string,
 	streamRequested bool,
 	operationCtx context.Context,
+	usage *usageScanner,
 ) (int, error) {
 	if cfg.MultipartInput {
-		return forwardMediaRequestMultipart(c, cfg, channel, key, requestModel, resolvedModel, streamRequested, operationCtx)
+		return forwardMediaRequestMultipart(c, cfg, channel, key, requestModel, resolvedModel, streamRequested, operationCtx, usage)
 	}
-	return forwardMediaRequestJSON(c, cfg, group, channel, key, bodyBytes, requestModel, resolvedModel, streamRequested, operationCtx)
+	return forwardMediaRequestJSON(c, cfg, group, channel, key, bodyBytes, requestModel, resolvedModel, streamRequested, operationCtx, usage)
 }
 
 // forwardMediaRequestJSON handles JSON-based media endpoint forwarding.
@@ -481,6 +523,7 @@ func forwardMediaRequestJSON(
 	resolvedModel string,
 	streamRequested bool,
 	operationCtx context.Context,
+	usage *usageScanner,
 ) (int, error) {
 	ctx := operationCtx
 
@@ -543,7 +586,7 @@ func forwardMediaRequestJSON(
 	// Image bed: for image generation endpoints, try to upload base64 images
 	// to an external image bed and replace with hosted URLs.
 	if cfg.UpstreamPath == "/v1/images/generations" {
-		if modified, ok := tryImageBedRewrite(c, response); ok {
+		if modified, ok := tryImageBedRewrite(c, response, usage); ok {
 			return response.StatusCode, modified
 		}
 	}
@@ -552,14 +595,14 @@ func forwardMediaRequestJSON(
 	if cfg.BinaryResponse {
 		provider := strings.ToLower(strings.TrimSpace(group.EndpointProvider))
 		if provider == "mimo" && cfg.UpstreamPath == "/v1/chat/completions" {
-			return handleMimoTTSResponse(c, response, cfg.AudioFormat)
+			return handleMimoTTSResponse(c, response, cfg.AudioFormat, usage)
 		}
 		return handleBinaryResponse(c, response)
 	}
 	if isMediaSSEResponse(response) {
-		return handleSSEResponse(c, response)
+		return handleSSEResponse(c, response, usage)
 	}
-	return handleJSONResponse(c, response)
+	return handleJSONResponse(c, response, usage)
 }
 
 // forwardMediaRequestMultipart handles multipart/form-data media endpoint forwarding.
@@ -572,6 +615,7 @@ func forwardMediaRequestMultipart(
 	resolvedModel string,
 	streamRequested bool,
 	operationCtx context.Context,
+	usage *usageScanner,
 ) (int, error) {
 	ctx := operationCtx
 
@@ -610,9 +654,9 @@ func forwardMediaRequestMultipart(
 	}
 
 	if isMediaSSEResponse(response) {
-		return handleSSEResponse(c, response)
+		return handleSSEResponse(c, response, usage)
 	}
-	return handleJSONResponse(c, response)
+	return handleJSONResponse(c, response, usage)
 }
 
 func parseMediaStreamFlag(raw any) bool {
@@ -750,6 +794,8 @@ func copyMediaForwardHeaders(req *http.Request, c *gin.Context, channel *dbmodel
 }
 
 // handleBinaryResponse streams a binary response (e.g. audio) back to the client.
+// Binary bodies carry no JSON usage object, so nothing is scanned here — TTS
+// keeps request-param pricing.
 func handleBinaryResponse(c *gin.Context, response *http.Response) (int, error) {
 	// Copy relevant headers
 	if ct := response.Header.Get("Content-Type"); ct != "" {
@@ -772,7 +818,10 @@ func isMediaSSEResponse(response *http.Response) bool {
 	return strings.Contains(strings.ToLower(response.Header.Get("Content-Type")), "text/event-stream")
 }
 
-func handleSSEResponse(c *gin.Context, response *http.Response) (int, error) {
+// handleSSEResponse streams an SSE response back to the client, teeing each line
+// through usage so the final frame's usage object is captured. Streaming image
+// generation repeats `usage` per frame; the scanner keeps the newest complete one.
+func handleSSEResponse(c *gin.Context, response *http.Response, usage *usageScanner) (int, error) {
 	c.Header("Content-Type", "text/event-stream")
 	c.Header("Cache-Control", "no-cache")
 	c.Header("Connection", "keep-alive")
@@ -785,6 +834,7 @@ func handleSSEResponse(c *gin.Context, response *http.Response) (int, error) {
 			if _, writeErr := c.Writer.Write(line); writeErr != nil {
 				return 0, fmt.Errorf("failed to stream sse response: %w", writeErr)
 			}
+			usage.Scan(line)
 			c.Writer.Flush()
 		}
 		if err != nil {
@@ -796,14 +846,20 @@ func handleSSEResponse(c *gin.Context, response *http.Response) (int, error) {
 	}
 }
 
-// handleJSONResponse streams a JSON response back to the client.
-func handleJSONResponse(c *gin.Context, response *http.Response) (int, error) {
+// handleJSONResponse streams a JSON response back to the client, teeing it
+// through usage to capture the upstream token counts.
+//
+// The body is *not* buffered: image responses carry multi-megabyte base64 data,
+// so it is copied straight to the client while the scanner keeps only the usage
+// object. io.MultiWriter keeps io.Copy's read/write loop (and its buffer reuse)
+// intact.
+func handleJSONResponse(c *gin.Context, response *http.Response, usage *usageScanner) (int, error) {
 	// For large responses (e.g. image generation with base64), stream directly
 	if ct := response.Header.Get("Content-Type"); ct != "" {
 		c.Header("Content-Type", ct)
 	}
 
-	_, err := io.Copy(c.Writer, response.Body)
+	_, err := io.Copy(io.MultiWriter(c.Writer, usage), response.Body)
 	if err != nil {
 		return 0, fmt.Errorf("failed to stream response: %w", err)
 	}
@@ -932,11 +988,14 @@ type mimoTTSChatResponse struct {
 
 // handleMimoTTSResponse extracts the base64-encoded audio from a MiMo chat
 // completion JSON response and sends it as binary audio to the client.
-func handleMimoTTSResponse(c *gin.Context, response *http.Response, audioFormat string) (int, error) {
+func handleMimoTTSResponse(c *gin.Context, response *http.Response, audioFormat string, usage *usageScanner) (int, error) {
 	respBody, err := io.ReadAll(response.Body)
 	if err != nil {
 		return 0, fmt.Errorf("failed to read MiMo TTS response: %w", err)
 	}
+	// The upstream here is chat/completions, so it reports usage even though what
+	// we hand the client is binary audio.
+	usage.Scan(respBody)
 
 	var mimoResp mimoTTSChatResponse
 	if err := json.Unmarshal(respBody, &mimoResp); err != nil {
@@ -973,7 +1032,7 @@ func handleMimoTTSResponse(c *gin.Context, response *http.Response, audioFormat 
 // each b64_json item to the image bed, and rewrites the response with hosted
 // URLs. Returns (error, true) on successful rewrite, (nil, false) if image
 // bed is disabled or the rewrite should be skipped.
-func tryImageBedRewrite(c *gin.Context, response *http.Response) (error, bool) {
+func tryImageBedRewrite(c *gin.Context, response *http.Response, usage *usageScanner) (error, bool) {
 	cfg := readImageBedConfig()
 	if !cfg.Enabled {
 		return nil, false
@@ -984,6 +1043,9 @@ func tryImageBedRewrite(c *gin.Context, response *http.Response) (error, bool) {
 		log.Warnf("image bed: failed to read response body: %v", err)
 		return nil, false
 	}
+	// Scan before any rewrite: the rewritten body is re-marshalled from
+	// imageGenResponse, and Usage must survive that round-trip either way.
+	usage.Scan(respBody)
 
 	var parsed imageGenResponse
 	if err := json.Unmarshal(respBody, &parsed); err != nil {
@@ -1015,9 +1077,15 @@ func tryImageBedRewrite(c *gin.Context, response *http.Response) (error, bool) {
 
 // imageGenResponse represents the minimal structure of an image generation
 // response needed for image bed rewriting.
+//
+// Usage is carried as raw JSON purely so the image-bed rewrite does not drop it:
+// the rewritten body is re-marshalled from this struct, and a client that asked
+// for token usage must still get it. Billing reads usage from the scanner, not
+// from here. omitempty keeps responses without usage byte-identical to before.
 type imageGenResponse struct {
 	Created int64           `json:"created"`
 	Data    []imageGenDatum `json:"data"`
+	Usage   json.RawMessage `json:"usage,omitempty"`
 }
 
 // imageGenDatum represents a single image in the response.

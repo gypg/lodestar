@@ -149,16 +149,28 @@ func TestRecordMediaRelayLog_emptyResolvedModel_usesRequestModel(t *testing.T) {
 // ---- 测试辅助：捕获 recordMediaRelayLog 的副作用 ----
 
 type mediaRelayCostResult struct {
-	RelayLogCost        float64
-	RelayLogActualModel string
-	ChargeCost          float64
+	RelayLogCost         float64
+	RelayLogActualModel  string
+	ChargeCost           float64
+	RelayLogInputTokens  int
+	RelayLogOutputTokens int
+	RelayLogCacheRead    int
 }
 
-type mediaRelayOpt func(*mediaRelayCostResult, *int, *string)
+// mediaRelayOpt 覆盖 recordMediaRelayLogForTest 的默认实参。usage 默认零值
+// （= 上游未报 usage），这样既有测试的语义与 P1 #11 之前完全一致。
+type mediaRelayOpt func(*mediaRelayCostResult, *int, *string, *mediaUsage)
 
 func withResolvedModel(m string) mediaRelayOpt {
-	return func(_ *mediaRelayCostResult, _ *int, resolved *string) {
+	return func(_ *mediaRelayCostResult, _ *int, resolved *string, _ *mediaUsage) {
 		*resolved = m
+	}
+}
+
+// withUsage 让测试模拟"上游报了真实 usage"。
+func withUsage(u mediaUsage) mediaRelayOpt {
+	return func(_ *mediaRelayCostResult, _ *int, _ *string, usage *mediaUsage) {
+		*usage = u
 	}
 }
 
@@ -168,8 +180,9 @@ func recordMediaRelayLogForTest(requestModel string, body []byte, opts ...mediaR
 	res := mediaRelayCostResult{}
 	apiKeyID := 99001
 	resolvedModel := "gpt-image-1"
+	var usage mediaUsage
 	for _, o := range opts {
-		o(&res, &apiKeyID, &resolvedModel)
+		o(&res, &apiKeyID, &resolvedModel, &usage)
 	}
 
 	// 拦截 ChargeKey 的实参，观察实际传给扣费的 cost。若调用方已安装了
@@ -184,7 +197,7 @@ func recordMediaRelayLogForTest(requestModel string, body []byte, opts ...mediaR
 	}
 	defer func() { billing.CallRecorder = prev }()
 
-	recordMediaRelayLog(apiKeyID, requestModel, "images", body, 5, "media-channel", resolvedModel, time.Millisecond, nil, nil, "127.0.0.1")
+	recordMediaRelayLog(apiKeyID, requestModel, "images", body, 5, "media-channel", resolvedModel, time.Millisecond, nil, nil, "127.0.0.1", usage)
 
 	// relayLog 进入内存缓存（relaylog.RelayLogAdd 追加到 relayLogCache），取最新一条。
 	logs, lock := relaylog.GetCacheAndLock()
@@ -193,6 +206,9 @@ func recordMediaRelayLogForTest(requestModel string, body []byte, opts ...mediaR
 		last := logs[n-1]
 		res.RelayLogCost = last.Cost
 		res.RelayLogActualModel = last.ActualModelName
+		res.RelayLogInputTokens = last.InputTokens
+		res.RelayLogOutputTokens = last.OutputTokens
+		res.RelayLogCacheRead = last.CacheReadTokens
 	}
 	lock.Unlock()
 

@@ -236,7 +236,7 @@ func initBug004BillingEnv(t *testing.T) (uint, int) {
 // withAPIKeyID 覆盖 recordMediaRelayLogForTest 的默认 apiKeyID（99001），
 // 让扣费落在本测试创建的 owned key 上。
 func withAPIKeyID(id int) mediaRelayOpt {
-	return func(_ *mediaRelayCostResult, apiKeyID *int, _ *string) {
+	return func(_ *mediaRelayCostResult, apiKeyID *int, _ *string, _ *mediaUsage) {
 		*apiKeyID = id
 	}
 }

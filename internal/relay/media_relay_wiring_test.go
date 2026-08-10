@@ -72,6 +72,7 @@ func TestMediaRelayWiring_normalCharge_reachesChargeKey(t *testing.T) {
 		nil,               // attempts
 		nil,               // relayErr (nil = success)
 		"127.0.0.1",       // clientIP
+		mediaUsage{},      // usage（零值 = 上游未报 usage，与 P1 #11 之前行为一致）
 	)
 
 	if !called {
@@ -96,7 +97,7 @@ func TestMediaRelayWiring_ccBillingOffStillReachesCallSite(t *testing.T) {
 	billing.CallRecorder = func(int, string, int, int, float64) { called = true }
 	t.Cleanup(func() { billing.CallRecorder = nil })
 
-	recordMediaRelayLog(77011, "images/generate", "images", nil, 5, "c", "gpt-image-1", time.Millisecond, nil, nil, "127.0.0.1")
+	recordMediaRelayLog(77011, "images/generate", "images", nil, 5, "c", "gpt-image-1", time.Millisecond, nil, nil, "127.0.0.1", mediaUsage{})
 
 	if !called {
 		t.Fatalf("ChargeKey not reached even though billing is off — media wiring removed")
@@ -112,7 +113,7 @@ func TestMediaRelayWiring_failedRequestStillCharges(t *testing.T) {
 	billing.CallRecorder = func(int, string, int, int, float64) { called = true }
 	t.Cleanup(func() { billing.CallRecorder = nil })
 
-	recordMediaRelayLog(77012, "images/generate", "images", nil, 5, "c", "gpt-image-1", time.Millisecond, nil, fmt.Errorf("upstream failed"), "127.0.0.1")
+	recordMediaRelayLog(77012, "images/generate", "images", nil, 5, "c", "gpt-image-1", time.Millisecond, nil, fmt.Errorf("upstream failed"), "127.0.0.1", mediaUsage{})
 
 	if !called {
 		t.Fatalf("failed media request did not reach ChargeKey — media wiring removed")
