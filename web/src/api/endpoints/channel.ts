@@ -177,6 +177,8 @@ export type FetchModelRequest = {
     base_urls: BaseUrl[];
     keys: Array<Pick<ChannelKey, 'enabled' | 'channel_key'>>;
     proxy?: boolean;
+    proxy_mode?: ProxyMode;
+    proxy_config_id?: number | null;
     channel_proxy?: string | null;
     match_regex?: string | null;
     custom_header?: CustomHeader[];

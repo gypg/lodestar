@@ -1,34 +1,37 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { writeClipboardText } from './clipboard.ts';
+import { writeClipboardText, type ClipboardLike, type DocumentLike } from './clipboard.ts';
 
-type ClipboardLike = {
-    writeText: (text: string) => Promise<void>;
-};
-
-type TextAreaLike = {
+/**
+ * 桩 textarea 只实现 fallbackCopyText 真正用到的成员，不是完整 HTMLElement。
+ * 之前这里另声明了一套同名 DocumentLike，与源类型结构不兼容（TS2719）；
+ * 现在直接复用导出的源类型，仅在传参处做一次窄化断言。
+ */
+type TextAreaStub = {
     value: string;
     style: Record<string, string>;
     setAttribute: (name: string, value: string) => void;
     select: () => void;
 };
 
-type DocumentLike = {
+type DocumentStub = {
     body: {
-        appendChild: (node: TextAreaLike) => void;
-        removeChild: (node: TextAreaLike) => void;
+        appendChild: (node: TextAreaStub) => void;
+        removeChild: (node: TextAreaStub) => void;
     };
-    createElement: (tag: string) => TextAreaLike;
+    createElement: (tag: string) => TextAreaStub;
     execCommand: (command: string) => boolean;
 };
 
+const asDocumentLike = (stub: DocumentStub): DocumentLike => stub as unknown as DocumentLike;
+
 test('writeClipboardText falls back to execCommand when clipboard permission is denied', async () => {
-    const appended: TextAreaLike[] = [];
-    const removed: TextAreaLike[] = [];
+    const appended: TextAreaStub[] = [];
+    const removed: TextAreaStub[] = [];
     let selected = false;
 
-    const documentLike: DocumentLike = {
+    const documentLike: DocumentStub = {
         body: {
             appendChild: (node) => appended.push(node),
             removeChild: (node) => removed.push(node),
@@ -58,7 +61,7 @@ test('writeClipboardText falls back to execCommand when clipboard permission is 
 
     await assert.doesNotReject(() => writeClipboardText('sk-lodestar-test', {
         clipboard: clipboardLike,
-        document: documentLike,
+        document: asDocumentLike(documentLike),
     }));
     assert.equal(appended.length, 1);
     assert.equal(removed.length, 1);

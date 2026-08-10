@@ -26,10 +26,14 @@ export interface SubscriptionOrder {
     trade_no: string;
     money: number;
     payment_method: string;
-    status: number;
+    /** 后端 varchar，默认 'pending'；不是数字枚举 */
+    status: string;
     created_at: number;
     completed_at: number;
 }
+
+/** 与后端 model.SubStatus* 对齐（varchar，不是数字枚举） */
+export type SubscriptionStatus = 'active' | 'expired' | 'cancelled';
 
 export interface UserSubscription {
     id: number;
@@ -40,7 +44,7 @@ export interface UserSubscription {
     amount_used: number;
     starts_at: number;
     expires_at: number;
-    status: number;
+    status: SubscriptionStatus;
     source: string;
     created_at: number;
 }

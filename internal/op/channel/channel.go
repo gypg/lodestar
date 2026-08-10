@@ -45,6 +45,24 @@ func Create(ch *model.Channel, ctx context.Context) error {
 		if err := ch.RequestRewrite.Validate(ch.Type); err != nil {
 			return err
 		}
+		// 代理模式：与 Update 同一套校验。内部调用方（远端站点导入）不设这个字段，
+		// 故空值先兜底为 direct 再校验，否则它们会被这里挡掉。
+		if ch.ProxyMode == "" {
+			ch.ProxyMode = model.ProxyUsageModeDirect
+		}
+		// 渠道不支持 inherit（没有可继承的父级）。
+		if err := ch.ProxyMode.Validate(false); err != nil {
+			return err
+		}
+		if ch.ProxyMode == model.ProxyUsageModePool {
+			if ch.ProxyConfigID == nil || *ch.ProxyConfigID <= 0 {
+				return fmt.Errorf("proxy config id is required when proxy mode is pool")
+			}
+			// 校验代理池配置存在且启用，否则保存后每个请求都会在取 client 时失败。
+			if _, err := ProxyURLForConfig(*ch.ProxyConfigID, ctx); err != nil {
+				return err
+			}
+		}
 		if ch.GroupID == 0 {
 			defaultGroupID, err := GroupDefaultID(ctx)
 			if err != nil {

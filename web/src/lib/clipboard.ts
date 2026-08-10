@@ -1,5 +1,5 @@
-type ClipboardLike = Pick<Clipboard, 'writeText'>;
-type DocumentLike = Pick<Document, 'createElement' | 'execCommand'> & {
+export type ClipboardLike = Pick<Clipboard, 'writeText'>;
+export type DocumentLike = Pick<Document, 'createElement' | 'execCommand'> & {
     body: Pick<HTMLElement, 'appendChild' | 'removeChild'>;
 };
 

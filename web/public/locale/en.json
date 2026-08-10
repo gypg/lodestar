@@ -2972,7 +2972,8 @@
     "status": {
       "active": "Active",
       "expired": "Expired",
-      "inactive": "Inactive"
+      "inactive": "Inactive",
+      "cancelled": "Cancelled"
     },
     "toast": {
       "purchaseSuccess": "Purchase successful",

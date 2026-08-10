@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
     CreditCard,
     Loader,
@@ -110,12 +110,16 @@ function PlanCard({
 
 function MySubscriptionCard({ sub }: { sub: UserSubscription }) {
     const t = useTranslations('subscription');
+    // 后端 status 是字符串（model.SubStatus*），不是数字枚举。
     const statusConfig = {
-        0: { label: t('status.inactive'), color: 'secondary' as const },
-        1: { label: t('status.active'), color: 'default' as const },
-        2: { label: t('status.expired'), color: 'destructive' as const },
+        active: { label: t('status.active'), color: 'default' as const },
+        expired: { label: t('status.expired'), color: 'destructive' as const },
+        cancelled: { label: t('status.cancelled'), color: 'secondary' as const },
     };
-    const status = statusConfig[sub.status as keyof typeof statusConfig] ?? statusConfig[0];
+    const status = statusConfig[sub.status as keyof typeof statusConfig] ?? {
+        label: t('status.inactive'),
+        color: 'secondary' as const,
+    };
 
     return (
         <Card>
@@ -383,6 +387,10 @@ export function Subscription() {
     // Admin hooks
     const { data: adminPlans, isLoading: adminPlansLoading } = useAdminPlans();
     const { data: adminSubs, isLoading: adminSubsLoading } = useAdminSubscriptions();
+    const planNameById = useMemo(
+        () => new Map((adminPlans ?? []).map((p) => [p.id, p.name])),
+        [adminPlans],
+    );
     const createPlan = useCreatePlan();
     const updatePlan = useUpdatePlan();
     const deletePlan = useDeletePlan();
@@ -610,10 +618,13 @@ export function Subscription() {
                                         <div className="min-w-0 flex-1">
                                             <div className="flex items-center gap-2">
                                                 <span className="font-medium text-sm">#{sub.user_id}</span>
-                                                <span className="text-sm text-muted-foreground">{sub.plan_name}</span>
-                                                <Badge variant={sub.status === 1 ? 'default' : sub.status === 2 ? 'destructive' : 'secondary'}>
-                                                    {sub.status === 1 ? <CheckCircle className="h-3 w-3" /> : sub.status === 2 ? <XCircle className="h-3 w-3" /> : null}
-                                                    {sub.status === 1 ? t('status.active') : sub.status === 2 ? t('status.expired') : t('status.inactive')}
+                                                {/* 后端只返回 plan_id，方案名在本地用已加载的 adminPlans 解析。 */}
+                                                <span className="text-sm text-muted-foreground">
+                                                    {planNameById.get(sub.plan_id) ?? `#${sub.plan_id}`}
+                                                </span>
+                                                <Badge variant={sub.status === 'active' ? 'default' : sub.status === 'expired' ? 'destructive' : 'secondary'}>
+                                                    {sub.status === 'active' ? <CheckCircle className="h-3 w-3" /> : sub.status === 'expired' ? <XCircle className="h-3 w-3" /> : null}
+                                                    {sub.status === 'active' ? t('status.active') : sub.status === 'expired' ? t('status.expired') : t('status.cancelled')}
                                                 </Badge>
                                             </div>
                                             <div className="text-xs text-muted-foreground truncate">

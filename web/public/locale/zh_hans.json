@@ -2972,7 +2972,8 @@
     "status": {
       "active": "生效中",
       "expired": "已过期",
-      "inactive": "未激活"
+      "inactive": "未激活",
+      "cancelled": "已取消"
     },
     "toast": {
       "purchaseSuccess": "购买成功",

@@ -117,6 +117,14 @@ jobs:
       - name: ESLint
         run: pnpm lint
 
+      # `next build` does NOT type-check (typescript.ignoreBuildErrors is on so
+      # the static export can't be blocked by types), so a green build is not
+      # type evidence. 18 type errors once rode to production this way —
+      # including a missing useTranslations() that white-screened a dialog.
+      # This step is the only thing that catches that class of bug.
+      - name: TypeScript
+        run: pnpm typecheck
+
       - name: Frontend tests
         run: pnpm test:i18n && pnpm test:unit
 

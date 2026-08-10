@@ -17,6 +17,21 @@ export interface UserLoginRequest {
 }
 
 /**
+ * 注册请求：与后端 register handler 的匿名 struct 对齐。
+ * 登录不接受 email/invite_code，故单列一个类型而非复用 UserLoginRequest。
+ */
+export interface UserRegisterRequest {
+    username: string;
+    password: string;
+    expire: number;
+    /** register_invite_required 开启时必填 */
+    invite_code?: string;
+    /** register_email_required 开启时必填 */
+    email?: string;
+    email_code?: string;
+}
+
+/**
  * 用户登录响应
  */
 export interface UserLoginResponse {
@@ -184,7 +199,7 @@ export function useRegister() {
     const { setAuth } = useAuthStore();
 
     return useMutation({
-        mutationFn: async (data: UserLoginRequest & { invite_code?: string }) => {
+        mutationFn: async (data: UserRegisterRequest) => {
             return apiClient.post<UserLoginResponse>('/api/v1/user/register', data, undefined, false);
         },
         onSuccess: (data) => {

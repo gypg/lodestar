@@ -26,11 +26,13 @@ function resolveAppVersion() {
 const createNextConfig = (phase: string): NextConfig => ({
   reactCompiler: false,
   output: "export",
-  // Lodestar: type-check & lint run as a separate `pnpm lint` step (per root
-  // package.json), so don't fail the production build on them. Keeps `next
-  // build` focused on producing the embeddable static export.
+  // Lodestar: type-check & lint run as separate `pnpm lint` / `pnpm typecheck`
+  // steps (per package.json), so don't fail the production build on them. Keeps
+  // `next build` focused on producing the embeddable static export.
+  //
+  // Next 16 dropped the `eslint` key from NextConfig — `next build` no longer
+  // runs ESLint at all, so there is nothing left to opt out of here.
   typescript: { ignoreBuildErrors: true },
-  eslint: { ignoreDuringBuilds: true },
   images: {
     unoptimized: true,
   },

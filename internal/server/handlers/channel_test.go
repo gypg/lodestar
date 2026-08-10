@@ -301,6 +301,86 @@ func TestListChannelEncodesEmptySlicesAsArrays(t *testing.T) {
 	}
 }
 
+// channelRequestPayload 此前没有 proxy_mode / proxy_config_id 两个字段，前端明明
+// 发了，ShouldBindJSON 直接丢弃 —— 于是 create/test/fetch-model 三条路径上渠道代理
+// 全部静默退化成建表默认值 direct（改好模式保存后代理不生效，且无任何报错）。
+// 这里从原始 JSON 反序列化而不是直接构造 struct：直接构造会绕过 json tag，
+// 字段少了也照样过。
+func TestChannelPayloadBindsProxyMode(t *testing.T) {
+	t.Run("pool mode is carried through with its config id", func(t *testing.T) {
+		// 只断言 toChannel() 的产物（即真正落库/取 client 的那个值），不碰
+		// payload 的字段名 —— 断言中间 struct 的字段会让"删掉该字段"的变异
+		// 编译不过，而编译失败不算杀死。
+		var payload channelRequestPayload
+		body := `{"name":"p","proxy":true,"proxy_mode":"pool","proxy_config_id":7}`
+		if err := json.Unmarshal([]byte(body), &payload); err != nil {
+			t.Fatalf("unmarshal: %v", err)
+		}
+		ch := payload.toChannel()
+		if ch.ProxyMode != model.ProxyUsageModePool {
+			t.Fatalf("channel.ProxyMode = %q, want %q", ch.ProxyMode, model.ProxyUsageModePool)
+		}
+		if ch.ProxyConfigID == nil || *ch.ProxyConfigID != 7 {
+			t.Fatalf("channel.ProxyConfigID = %v, want 7", ch.ProxyConfigID)
+		}
+	})
+
+	t.Run("system mode is carried through", func(t *testing.T) {
+		var payload channelRequestPayload
+		if err := json.Unmarshal([]byte(`{"proxy_mode":"system"}`), &payload); err != nil {
+			t.Fatalf("unmarshal: %v", err)
+		}
+		if got := payload.toChannel().ProxyMode; got != model.ProxyUsageModeSystem {
+			t.Fatalf("channel.ProxyMode = %q, want %q", got, model.ProxyUsageModeSystem)
+		}
+	})
+
+	t.Run("missing proxy_mode falls back to direct", func(t *testing.T) {
+		var payload channelRequestPayload
+		if err := json.Unmarshal([]byte(`{"name":"legacy-client"}`), &payload); err != nil {
+			t.Fatalf("unmarshal: %v", err)
+		}
+		if got := payload.toChannel().ProxyMode; got != model.ProxyUsageModeDirect {
+			t.Fatalf("channel.ProxyMode = %q, want %q", got, model.ProxyUsageModeDirect)
+		}
+	})
+
+	t.Run("non-pool mode drops a stale config id", func(t *testing.T) {
+		var payload channelRequestPayload
+		if err := json.Unmarshal([]byte(`{"proxy_mode":"system","proxy_config_id":9}`), &payload); err != nil {
+			t.Fatalf("unmarshal: %v", err)
+		}
+		if got := payload.toChannel().ProxyConfigID; got != nil {
+			t.Fatalf("channel.ProxyConfigID = %v, want nil (非 pool 模式不应留下失效 ID)", *got)
+		}
+	})
+}
+
+// 代理模式非法时必须回 400 而不是 500：这类错误是客户端传参问题，
+// 500 会让前端把它当服务端故障提示，掩盖真实原因。
+func TestClassifyChannelMutationErrorProxyMode(t *testing.T) {
+	for _, tt := range []struct {
+		name string
+		err  error
+	}{
+		{"unsupported mode", errors.New("unsupported proxy mode: bogus")},
+		{"pool without config id", errors.New("proxy config id is required when proxy mode is pool")},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			status, msg, ok := classifyChannelMutationError(tt.err)
+			if !ok {
+				t.Fatalf("classify ok = false, want true (错误会退化成 500)")
+			}
+			if status != http.StatusBadRequest {
+				t.Fatalf("status = %d, want %d", status, http.StatusBadRequest)
+			}
+			if msg != tt.err.Error() {
+				t.Fatalf("msg = %q, want %q", msg, tt.err.Error())
+			}
+		})
+	}
+}
+
 func TestChannelPayloadToModelDropsReadonlyAndRuntimeFields(t *testing.T) {
 	payload := channelRequestPayload{
 		ID:      99,

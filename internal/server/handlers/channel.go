@@ -291,6 +291,8 @@ type channelRequestPayload struct {
 	Model          string                      `json:"model"`
 	CustomModel    string                      `json:"custom_model"`
 	Proxy          bool                        `json:"proxy"`
+	ProxyMode      model.ProxyUsageMode        `json:"proxy_mode"`
+	ProxyConfigID  *int                        `json:"proxy_config_id"`
 	AutoSync       bool                        `json:"auto_sync"`
 	AutoGroup      model.AutoGroupType         `json:"auto_group"`
 	CustomHeader   []model.CustomHeader        `json:"custom_header"`
@@ -324,6 +326,17 @@ func (p channelRequestPayload) toChannel() model.Channel {
 			Remark:     key.Remark,
 		})
 	}
+	// proxy_mode 空值兜底为 direct：老客户端不发这个字段，而 resolveChannelProxy
+	// 把空串也当 direct，但落库时留空会让 DB 里出现非法枚举值。
+	proxyMode := p.ProxyMode
+	if proxyMode == "" {
+		proxyMode = model.ProxyUsageModeDirect
+	}
+	// 非 pool 模式不保留 config id：留一个不生效的 ID 只会误导排查（与 op.Update 同策略）。
+	proxyConfigID := p.ProxyConfigID
+	if proxyMode != model.ProxyUsageModePool {
+		proxyConfigID = nil
+	}
 	return model.Channel{
 		Name:           p.Name,
 		GroupID:        p.GroupID,
@@ -334,6 +347,8 @@ func (p channelRequestPayload) toChannel() model.Channel {
 		Model:          p.Model,
 		CustomModel:    p.CustomModel,
 		Proxy:          p.Proxy,
+		ProxyMode:      proxyMode,
+		ProxyConfigID:  proxyConfigID,
 		AutoSync:       p.AutoSync,
 		AutoGroup:      p.AutoGroup,
 		CustomHeader:   p.CustomHeader,
@@ -439,6 +454,9 @@ func classifyChannelMutationError(err error) (int, string, bool) {
 		return http.StatusBadRequest, "default channel group cannot be deleted", true
 	case strings.Contains(msg, "channel group is not empty"):
 		return http.StatusConflict, "channel group is not empty", true
+	case strings.Contains(msg, "unsupported proxy mode"),
+		strings.Contains(msg, "proxy config id is required when proxy mode is pool"):
+		return http.StatusBadRequest, err.Error(), true
 	case strings.Contains(msg, "request rewrite profile is required when enabled"),
 		strings.Contains(msg, "unsupported request rewrite profile"),
 		strings.Contains(msg, "unsupported tool role strategy"),

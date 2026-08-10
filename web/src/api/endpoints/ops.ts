@@ -123,6 +123,8 @@ export interface OpsSystemSummary {
     build_time: string;
     repo: string;
     database_type: string;
+    // 后端 redisStatus()：'not configured' | 'connected' | 'disconnected'
+    redis_status: string;
     public_api_base_url: string;
     proxy_url: string;
     relay_log_keep_enabled: boolean;
