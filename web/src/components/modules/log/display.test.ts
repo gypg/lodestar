@@ -2,7 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import type { RelayLog, RelayLogDetail } from '@/api/endpoints/log';
-import { formatJsonForCopy, resolveLogDisplayFields } from './display.ts';
+import { formatJsonForCopy, resolveLogDisplayFields, resolveEndpointTypeLabel } from './display.ts';
+import fs from 'node:fs';
+import path from 'node:path';
 
 function buildLog(overrides: Partial<RelayLog> = {}): RelayLog {
     return {
@@ -212,5 +214,114 @@ test('formatJsonForCopy returns empty string for empty or missing input', () => 
     assert.equal(formatJsonForCopy(null), '');
 });
 
+// ---- 端点类型标签解析 ----------------------------------------------------
+// 用真实 locale 文件驱动：写死 messages 的话，词条缺失/改名就测不出来。
+const LOCALE = JSON.parse(
+    fs.readFileSync(path.join(process.cwd(), 'public', 'locale', 'zh_hans.json'), 'utf8'),
+) as Record<string, unknown>;
 
+function lookup(root: Record<string, unknown>, dotted: string): string | undefined {
+    let cur: unknown = root;
+    for (const seg of dotted.split('.')) {
+        if (!cur || typeof cur !== 'object') return undefined;
+        cur = (cur as Record<string, unknown>)[seg];
+    }
+    return typeof cur === 'string' ? cur : undefined;
+}
 
+// 复刻 next-intl 的 miss 行为：返回**完整**键路径（含命名空间前缀），
+// 这正是原 bug 的触发条件。实测已确认（createTranslator 探针）。
+function makeT(namespace: string) {
+    return (key: string) => lookup(LOCALE, `${namespace}.${key}`) ?? `${namespace}.${key}`;
+}
+// group/utils.ts 里 ENDPOINT_TYPE_OPTIONS 的真实内容（该文件运行时 import 了
+// @/api 别名，裸 node test runner 解析不了，故从源码文本解析而非直接 import，
+// 保证这张表一改测试就会跟着变，不会退化成写死的副本）。
+const GROUP_UTILS_SRC = fs.readFileSync(
+    path.join(process.cwd(), 'src', 'components', 'modules', 'group', 'utils.ts'),
+    'utf8',
+);
+const ENDPOINT_TYPE_OPTIONS: Array<{ labelKey: string; value: string }> = [
+    ...GROUP_UTILS_SRC.slice(
+        GROUP_UTILS_SRC.indexOf('ENDPOINT_TYPE_OPTIONS'),
+        GROUP_UTILS_SRC.indexOf('MUSIC_ENDPOINT_PROVIDER_OPTIONS'),
+    ).matchAll(/labelKey: '([^']+)', value: '([^']+)'/g),
+].map((m) => ({ labelKey: m[1], value: m[2] }));
+
+test('测试自身前提：从源码解析出的端点选项表非空', () => {
+    assert.ok(ENDPOINT_TYPE_OPTIONS.length >= 11, `只解析到 ${ENDPOINT_TYPE_OPTIONS.length} 项`);
+});
+
+function normalizeEndpointType(value?: string | null) {
+    const n = value?.trim().toLowerCase();
+    if (n === 'responses' || n === 'messages' || n === 'deepseek' || n === 'mimo') return 'chat';
+    return n || '*';
+}
+function endpointTypeLabelKey(value?: string | null) {
+    const ep = normalizeEndpointType(value);
+    return ENDPOINT_TYPE_OPTIONS.find((o) => o.value === ep)?.labelKey;
+}
+
+const t = makeT('log.card');
+const tGroup = makeT('group');
+
+function label(endpointType: string, requestTypeKey?: string) {
+    return resolveEndpointTypeLabel({ requestTypeKey, endpointType, t, tGroup, endpointTypeLabelKey });
+}
+
+test('resolveEndpointTypeLabel 命中 requestTypeLabels 时直接用该词条', () => {
+    assert.equal(label('chat', 'chat'), '对话');
+    assert.equal(label('embeddings', 'embedding'), 'Embedding');
+    assert.equal(label('mimo', 'mimoChat'), 'MiMo Chat');
+});
+
+test('resolveEndpointTypeLabel 对 requestTypeLabels 缺失的端点回退到分组词条', () => {
+    // inferRequestTypeKey 兜底会把原始端点名当 key（requestTypeLabels 下无此词条）。
+    // 修复前这些全部显示成 'log.card.requestTypeLabels.xxx' 键路径。
+    const cases: Array<[string, string]> = [
+        ['rerank', 'Rerank'],
+        ['moderations', 'Moderations'],
+        ['image_generation', '图片生成'],
+        ['audio_speech', '语音合成'],
+        ['audio_transcription', '音频转写'],
+        ['video_generation', '视频生成'],
+        ['music_generation', '音乐生成'],
+        ['search', '搜索'],
+    ];
+    for (const [endpointType, want] of cases) {
+        assert.equal(label(endpointType, endpointType), want, `endpointType=${endpointType}`);
+    }
+});
+
+test('resolveEndpointTypeLabel 任何情况下都不把翻译键路径当标签显示', () => {
+    const endpointTypes = [
+        '*', 'chat', 'deepseek', 'mimo', 'responses', 'messages', 'embeddings',
+        'rerank', 'moderations', 'image_generation', 'audio_speech',
+        'audio_transcription', 'video_generation', 'music_generation', 'search',
+    ];
+    for (const ep of endpointTypes) {
+        // requestTypeKey 传原始端点名 = inferRequestTypeKey 的兜底分支
+        const out = label(ep, ep);
+        assert.ok(
+            !out.includes('requestTypeLabels.') && !out.includes('form.endpointType.'),
+            `endpointType=${ep} 渗出了翻译键路径: ${out}`,
+        );
+        assert.notEqual(out.trim(), '', `endpointType=${ep} 标签为空`);
+    }
+});
+
+test('resolveEndpointTypeLabel 端点类型为空时显示占位符', () => {
+    assert.equal(label(''), '-');
+});
+
+test('resolveEndpointTypeLabel 两级词条都缺失时显示原始端点名而非键路径', () => {
+    const missing = () => 'group.form.endpointType.options.chat';
+    const out = resolveEndpointTypeLabel({
+        requestTypeKey: 'chat',
+        endpointType: 'chat',
+        t: (k) => `log.card.${k}`,
+        tGroup: missing,
+        endpointTypeLabelKey,
+    });
+    assert.equal(out, 'chat');
+});

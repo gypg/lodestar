@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn, formatCount, formatMoney } from '@/lib/utils';
 import { formatUnixSeconds } from '@/lib/time';
 import { endpointTypeLabelKey } from '@/components/modules/group/utils';
-import { resolveLogDisplayFields, formatJsonForCopy } from './display';
+import { resolveLogDisplayFields, formatJsonForCopy, resolveEndpointTypeLabel } from './display';
 import { useLogFieldVisibility } from './ui-store';
 import { useSettingStore } from '@/stores/setting';
 import { CopyIconButton } from '@/components/common/CopyButton';
@@ -235,17 +235,17 @@ export const LogCard = memo(function LogCard({ log, channelNameById }: { log: Re
     const effectiveInputTokens = Math.max(0, log.input_tokens - cacheReadTokens);
     const inputLabel = cacheReadTokens > 0 ? t('realInput') : t('input');
     const displayChannelName = displayFields.channelName || '-';
-    const displayEndpointType = useMemo(() => {
-        const reqTypeKey = displayFields.requestTypeKey;
-        if (reqTypeKey) {
-            const label = t(`requestTypeLabels.${reqTypeKey}`);
-            if (label && label !== `requestTypeLabels.${reqTypeKey}`) return label;
-        }
-        const rawEndpointType = displayFields.endpointType;
-        if (!rawEndpointType) return '-';
-        const labelKey = endpointTypeLabelKey(rawEndpointType);
-        return labelKey ? tGroup(labelKey) : rawEndpointType;
-    }, [displayFields.endpointType, displayFields.requestTypeKey, t, tGroup]);
+    const displayEndpointType = useMemo(
+        () =>
+            resolveEndpointTypeLabel({
+                requestTypeKey: displayFields.requestTypeKey,
+                endpointType: displayFields.endpointType,
+                t,
+                tGroup,
+                endpointTypeLabelKey,
+            }),
+        [displayFields.endpointType, displayFields.requestTypeKey, t, tGroup],
+    );
     const displayActualModelName = displayFields.actualModelName || '-';
     const displayRequestModelName = displayFields.requestModelName || log.request_model_name;
 

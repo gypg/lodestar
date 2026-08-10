@@ -146,6 +146,45 @@ export function resolveLogDisplayFields(
     };
 }
 
+/**
+ * 解析日志条目「端点类型」列要显示的文案。
+ *
+ * 两级回退：先查 log.card.requestTypeLabels（只有 8 个词条，覆盖对话族/embedding
+ * 等常见类型），查不到再退到 group.form.endpointType.options（覆盖全部 11 个端点）。
+ *
+ * ⚠️ 关键点：inferRequestTypeKey 兜底时会把原始 endpointType 原样当 key 返回，
+ * 所以第一级必然会有一批 miss（rerank / image_generation / audio_* / video_* /
+ * music_generation / search）。next-intl 在 miss 时返回**完整键路径**
+ * （'log.card.requestTypeLabels.rerank'），不是传入的短路径，因此判定 miss 必须
+ * 用 endsWith 而不是 ===。用 === 的话守卫永远不成立，键路径会被当标签显示，
+ * 而且第二级回退再也走不到 —— 这正是"一半界面显示内部端点名"的成因。
+ *
+ * 注入 t / tGroup 而不是直接调 hook，是为了能在 node:test 里不渲染组件就验证。
+ */
+export function resolveEndpointTypeLabel(params: {
+    requestTypeKey?: string;
+    endpointType?: string;
+    t: (key: string) => string;
+    tGroup: (key: string) => string;
+    endpointTypeLabelKey: (value?: string | null) => string | undefined;
+}): string {
+    const { requestTypeKey, endpointType, t, tGroup, endpointTypeLabelKey } = params;
+
+    if (requestTypeKey) {
+        const shortPath = `requestTypeLabels.${requestTypeKey}`;
+        const label = t(shortPath);
+        if (label && !label.endsWith(shortPath)) return label;
+    }
+
+    if (!endpointType) return '-';
+    const labelKey = endpointTypeLabelKey(endpointType);
+    if (!labelKey) return endpointType;
+
+    const groupLabel = tGroup(labelKey);
+    // 第二级同样可能 miss（词条被删/改名），此时宁可显示原始端点名也不要键路径。
+    return groupLabel.endsWith(labelKey) ? endpointType : groupLabel;
+}
+
 // formatJsonForCopy pretty-prints JSON content for clipboard use so that copied
 // request/response bodies keep their newlines and indentation instead of being
 // pasted as a single minified line. Non-JSON content is returned unchanged.
