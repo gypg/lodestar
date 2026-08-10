@@ -3060,6 +3060,8 @@
     "openSite": "開啟站點",
     "sitePage": "站點頁",
     "sitePageAccount": "站點頁帳號",
+    "accountEnabled": "帳號啟用",
+    "accountDisabled": "帳號停用",
     "hideFullKey": "隱藏完整 Key",
     "showFullKey": "顯示完整 Key",
     "closeDialog": "關閉"

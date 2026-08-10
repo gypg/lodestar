@@ -3060,6 +3060,8 @@
     "openSite": "Open site",
     "sitePage": "Site page",
     "sitePageAccount": "Site page account",
+    "accountEnabled": "Account enabled",
+    "accountDisabled": "Account disabled",
     "hideFullKey": "Hide full key",
     "showFullKey": "Show full key",
     "closeDialog": "Close"

@@ -2812,6 +2812,7 @@ function SiteChannelDialog({
     onNavigateToSiteAccount: (accountId: number) => void;
     onNavigateToChannel: (channelId: number) => void;
 }) {
+    const t = useTranslations();
     const { setIsOpen } = useMorphingDialog();
     const [activeAccountId, setActiveAccountId] = useState<number | null>(card.accounts[0]?.account_id ?? null);
     const [highlightedAccountId, setHighlightedAccountId] = useState<number | null>(null);
@@ -2944,7 +2945,7 @@ function SiteChannelDialog({
                                 )}
                             >
                                 <Power className={cn('size-3', enableSiteAccount.isPending && 'animate-spin')} />
-                                {resolvedAccount.enabled ? '账号启用' : '账号停用'}
+                                {resolvedAccount.enabled ? t('site.accountEnabled') : t('site.accountDisabled')}
                             </button>
                         </>
                     ) : null}
