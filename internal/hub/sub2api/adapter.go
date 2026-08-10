@@ -5,6 +5,7 @@ package sub2api
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -61,11 +62,27 @@ func cleanupTokenCache() {
 }
 
 // sub2apiEnvelope is the response envelope used by Sub2API: {code: 0, message, data}.
+//
+// On failure Sub2API puts the *HTTP status* in `code` and the stable
+// machine-readable identifier in `reason` (e.g. "REDEEM_CODE_USED"). Callers that
+// need to branch on a specific failure must therefore match on Reason — matching
+// on Code only tells you the status class, and Message is localized.
 type sub2apiEnvelope struct {
 	Code    int             `json:"code"`
 	Message string          `json:"message"`
+	Reason  string          `json:"reason"`
 	Data    json.RawMessage `json:"data"`
 }
+
+// sub2apiAPIError is returned by sub2apiFetch for API-level failures. It carries
+// the envelope's stable `reason` identifier alongside the human-readable text so
+// callers can classify a failure without string-matching localized messages.
+type sub2apiAPIError struct {
+	reason string
+	text   string
+}
+
+func (e *sub2apiAPIError) Error() string { return e.text }
 
 func cacheKey(site *model.RemoteSite) string {
 	return strings.TrimRight(site.BaseURL, "/") + ":" + site.Username
@@ -210,7 +227,15 @@ func sub2apiFetch[T any](ctx context.Context, site *model.RemoteSite, method, en
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return zero, fmt.Errorf("HTTP %d from %s: %s", resp.StatusCode, endpoint, truncate(string(respBody), 200))
+		// Error responses still carry the {code, message, reason} envelope, so
+		// surface `reason` when present. A body that does not parse is not an
+		// error here: the HTTP status is already the failure signal.
+		var errEnvelope sub2apiEnvelope
+		_ = json.Unmarshal(respBody, &errEnvelope)
+		return zero, &sub2apiAPIError{
+			reason: errEnvelope.Reason,
+			text:   fmt.Sprintf("HTTP %d from %s: %s", resp.StatusCode, endpoint, truncate(string(respBody), 200)),
+		}
 	}
 
 	var envelope sub2apiEnvelope
@@ -218,7 +243,10 @@ func sub2apiFetch[T any](ctx context.Context, site *model.RemoteSite, method, en
 		return zero, fmt.Errorf("parse response from %s: %w", endpoint, err)
 	}
 	if envelope.Code != 0 {
-		return zero, fmt.Errorf("API error from %s (code %d): %s", endpoint, envelope.Code, envelope.Message)
+		return zero, &sub2apiAPIError{
+			reason: envelope.Reason,
+			text:   fmt.Sprintf("API error from %s (code %d): %s", endpoint, envelope.Code, envelope.Message),
+		}
 	}
 
 	if len(envelope.Data) == 0 || string(envelope.Data) == "null" {
@@ -420,8 +448,93 @@ func (a *Adapter) FetchSiteStatus(_ context.Context, _ *model.RemoteSite) (*hub.
 	}, nil
 }
 
-func (a *Adapter) RedeemCode(_ context.Context, _ *model.RemoteSite, _ string) (*hub.RedeemResult, error) {
-	return nil, nil
+// ── Redemption ──────────────────────────────────────────────────────────────
+
+// Sub2API redeem code types. Only `balance` carries a USD amount in `value`;
+// `concurrency` uses it as a slot count and `subscription` ignores it entirely
+// (validity comes from validity_days), so `value` must not be converted to
+// quota for those types.
+const (
+	redeemTypeBalance      = "balance"
+	redeemTypeConcurrency  = "concurrency"
+	redeemTypeSubscription = "subscription"
+)
+
+// Stable `reason` identifiers from Sub2API's redeem service. Matching these is
+// robust across locales, unlike the human-readable message.
+const (
+	reasonRedeemCodeUsed = "REDEEM_CODE_USED"
+)
+
+// sub2apiRedeemRequest is the POST /api/v1/redeem payload.
+type sub2apiRedeemRequest struct {
+	Code string `json:"code"`
+}
+
+// sub2apiRedeemResponse mirrors the subset of Sub2API's dto.RedeemCode that we
+// need. Note the credited amount is `value` — Sub2API has no `quota` field on
+// this response, so the New-API-family shape used by the common adapter does not
+// apply here. The handler's own RedeemResponse struct is dead code; the wire
+// shape comes from dto.RedeemCodeFromService.
+type sub2apiRedeemResponse struct {
+	Type         string  `json:"type"`
+	Value        float64 `json:"value"`
+	Status       string  `json:"status"`
+	ValidityDays int     `json:"validity_days"`
+}
+
+// RedeemCode redeems a code on a Sub2API site via POST /api/v1/redeem. The
+// endpoint is on the normal authenticated (user JWT) route group, not an admin
+// one, so the site's stored user credentials are sufficient.
+func (a *Adapter) RedeemCode(ctx context.Context, site *model.RemoteSite, code string) (*hub.RedeemResult, error) {
+	resp, err := sub2apiFetch[sub2apiRedeemResponse](
+		ctx, site, http.MethodPost, "/api/v1/redeem", sub2apiRedeemRequest{Code: code},
+	)
+	if err != nil {
+		// A failed redemption is a reportable outcome, not a transport failure:
+		// return it as an unsuccessful result so the caller records it.
+		var apiErr *sub2apiAPIError
+		alreadyUsed := errors.As(err, &apiErr) && apiErr.reason == reasonRedeemCodeUsed
+		return &hub.RedeemResult{
+			Success:     false,
+			AlreadyUsed: alreadyUsed,
+			Message:     err.Error(),
+		}, nil
+	}
+
+	// Only balance codes credit money; report quota for those alone so a
+	// concurrency code's slot count is never scaled by the USD rate.
+	quotaAwarded := 0.0
+	if resp.Type == redeemTypeBalance {
+		quotaAwarded = resp.Value * quotaPerUSD
+	}
+
+	return &hub.RedeemResult{
+		Success:      true,
+		Message:      redeemSuccessMessage(resp),
+		QuotaAwarded: quotaAwarded,
+	}, nil
+}
+
+// redeemSuccessMessage describes what a redemption granted, since the credited
+// amount only reaches the caller as QuotaAwarded for balance codes.
+func redeemSuccessMessage(resp sub2apiRedeemResponse) string {
+	switch resp.Type {
+	case redeemTypeBalance:
+		return fmt.Sprintf("Redemption successful: %.2f USD balance", resp.Value)
+	case redeemTypeConcurrency:
+		return fmt.Sprintf("Redemption successful: %d concurrency slots", int(resp.Value))
+	case redeemTypeSubscription:
+		days := resp.ValidityDays
+		if days == 0 {
+			days = 30 // Sub2API defaults a zero validity_days to 30
+		}
+		return fmt.Sprintf("Redemption successful: subscription for %d days", days)
+	case "":
+		return "Redemption successful"
+	default:
+		return fmt.Sprintf("Redemption successful: %s", resp.Type)
+	}
 }
 
 // sub2apiUsageList is the paginated response from GET /api/v1/usage (user-facing).
