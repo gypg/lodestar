@@ -17,8 +17,10 @@
     "button": {
       "loading": "登入中...",
       "submit": "登入",
-      "passkey": "使用 Passkey 登入"
-    }
+      "passkey": "使用 Passkey 登入",
+      "githubOAuth": "使用 GitHub 登入"
+    },
+    "githubOAuthError": "GitHub 登入失敗，請重試"
   },
   "bootstrap": {
     "title": "完成首次初始化",
@@ -468,7 +470,10 @@
         "saved": "儲存成功",
         "modeLocal": "本站模型",
         "modeExternal": "外部連線",
-        "autoChannelNote": "自動使用本站渠道 {name} 的配置"
+        "autoChannelNote": "自動使用本站渠道 {name} 的配置",
+        "noChannelFound": "找不到可用渠道",
+        "channelIncomplete": "渠道設定不完整，請補齊位址與密鑰",
+        "switchToExternal": "已切換為外部服務"
       }
     },
     "evaluation": {
@@ -763,7 +768,8 @@
         "latency": "平均延遲",
         "successRate": "成功率",
         "requests": "請求",
-        "sparkline7d": "近 7 日成功率"
+        "sparkline7d": "近 7 日成功率",
+        "availability30d": "30 天可用率"
       }
     },
     "system": {
@@ -1087,7 +1093,34 @@
     "copyLatencyUrl": "複製測速地址",
     "errorBoundary": {
       "title": "出錯了",
+      "retry": "重試",
+      "message": "頁面渲染時發生錯誤，可嘗試重試或重新載入",
+      "tryAgain": "重試",
+      "reloadPage": "重新載入頁面"
+    },
+    "unknown": "未知",
+    "routeNotFound": "頁面不存在",
+    "copy": {
+      "button": "複製",
+      "success": "已複製",
+      "failed": "複製失敗",
+      "noContent": "沒有可複製的內容"
+    },
+    "errorState": {
+      "title": "載入失敗",
+      "message": "資料載入出錯，請稍後重試",
       "retry": "重試"
+    },
+    "loadingState": {
+      "message": "載入中…"
+    },
+    "maintenance": {
+      "title": "系統維護中",
+      "message": "服務正在維護，請稍後再造訪"
+    },
+    "dialog": {
+      "open": "開啟",
+      "close": "關閉"
     }
   },
   "home": {
@@ -1176,9 +1209,96 @@
       "page": {
         "count": "{count, plural, =0 {暫無密鑰} other {# 個密鑰}}",
         "searchPlaceholder": "按名稱或標籤搜尋",
-        "newKey": "新建密鑰"
+        "newKey": "新建密鑰",
+        "statusEnabled": "已啟用",
+        "statusDisabled": "已停用",
+        "expired": "已過期",
+        "expires": "到期",
+        "neverExpires": "永不過期",
+        "viewStats": "查看統計",
+        "edit": "編輯",
+        "delete": "刪除",
+        "deleteConfirm": "確認刪除此密鑰？",
+        "requests": "請求數",
+        "successRate": "成功率",
+        "tokens": "Token",
+        "cost": "費用",
+        "noStats": "暫無統計資料",
+        "filterByTag": "按標籤篩選",
+        "allTags": "全部",
+        "untagged": "未加標籤",
+        "noMatch": "沒有符合的密鑰",
+        "clearFilters": "清除篩選",
+        "createTitle": "新建密鑰",
+        "createDescription": "建立一個新的 API 密鑰並設定其權限與限額",
+        "editTitle": "編輯密鑰",
+        "editDescription": "修改此 API 密鑰的權限與限額"
       },
-      "empty": "暫無 API 密鑰"
+      "empty": "暫無 API 密鑰",
+      "add": "新建密鑰",
+      "loadFailed": "載入 API 密鑰失敗",
+      "form": {
+        "name": "名稱",
+        "customKey": "自訂密鑰",
+        "optional": "選填",
+        "customKeyPlaceholder": "留空則自動產生",
+        "customKeyHint": "只需填寫 sk-lodestar- 之後的部分，留空將自動產生隨機密鑰",
+        "tags": "標籤",
+        "tagsPlaceholder": "輸入後按 Enter 新增",
+        "maxCost": "消費上限",
+        "maxCostPlaceholder": "留空表示不限額",
+        "unlimited": "不限額",
+        "rateLimitRpm": {
+          "label": "每分鐘請求數（RPM）",
+          "placeholder": "0 表示不限制"
+        },
+        "rateLimitTpm": {
+          "label": "每分鐘 Token 數（TPM）",
+          "placeholder": "0 表示不限制"
+        },
+        "perModelQuota": {
+          "label": "按模型配額（JSON）"
+        },
+        "allowedIPs": "IP 白名單",
+        "allowedIPsPlaceholder": "逗號分隔的 IP 或 CIDR，留空表示不限制",
+        "expireAt": "過期時間",
+        "expireTimePlaceholder": "00:00",
+        "neverExpire": "永不過期",
+        "selectDate": "選擇日期",
+        "supportedModels": "可用模型",
+        "noModels": "暫無可用模型",
+        "modelsHint": "不選擇則表示允許全部模型",
+        "excludedChannels": "排除渠道",
+        "noChannels": "暫無渠道",
+        "excludedChannelsHint": "被排除的渠道不會被此密鑰命中",
+        "enabled": "啟用",
+        "cancel": "取消",
+        "confirm": "確認",
+        "create": "建立",
+        "save": "儲存"
+      },
+      "stats": {
+        "noData": "暫無統計資料",
+        "inputToken": "輸入 Token",
+        "outputToken": "輸出 Token",
+        "inputCost": "輸入費用",
+        "outputCost": "輸出費用",
+        "requestSuccess": "成功請求",
+        "requestFailed": "失敗請求"
+      },
+      "actions": {
+        "viewStats": "查看統計",
+        "edit": "編輯",
+        "close": "關閉"
+      },
+      "toast": {
+        "createSuccess": "建立成功",
+        "createError": "建立失敗",
+        "updateSuccess": "更新成功",
+        "updateError": "更新失敗",
+        "deleteSuccess": "刪除成功",
+        "deleteError": "刪除失敗"
+      }
     },
     "appearance": {
       "title": "外觀",
@@ -1209,7 +1329,16 @@
       "unknown": "未知",
       "database": "資料庫",
       "redis": "Redis",
-      "connected": "已連接"
+      "connected": "已連接",
+      "updateSuccess": "更新成功",
+      "updateFailed": "更新失敗",
+      "versionMismatch": "前後端版本不一致",
+      "versionMismatchHint": "前端 {frontend}，後端 {backend}，建議強制重新整理頁面",
+      "forceRefresh": "強制重新整理",
+      "newVersionAvailable": "有新版本可用",
+      "newVersionAvailableHint": "更新後需要重啟服務才會生效",
+      "updateNow": "立即更新",
+      "updating": "更新中…"
     },
     "account": {
       "title": "帳戶設定",
@@ -1219,7 +1348,10 @@
       },
       "username": {
         "label": "使用者名稱",
-        "placeholder": "請輸入使用者名稱"
+        "placeholder": "請輸入使用者名稱",
+        "empty": "使用者名稱不能為空",
+        "success": "使用者名稱修改成功，即將重新登入",
+        "failed": "使用者名稱修改失敗"
       },
       "save": "儲存",
       "password": {
@@ -1227,13 +1359,48 @@
         "change": "修改密碼",
         "oldPlaceholder": "請輸入舊密碼",
         "newPlaceholder": "請輸入新密碼",
-        "confirmPlaceholder": "請確認新密碼"
+        "confirmPlaceholder": "請確認新密碼",
+        "oldEmpty": "請輸入舊密碼",
+        "newEmpty": "請輸入新密碼",
+        "mismatch": "兩次輸入的新密碼不一致",
+        "tooShort": "新密碼至少需要 6 個字元",
+        "success": "密碼修改成功，即將重新登入",
+        "failed": "密碼修改失敗",
+        "showOld": "顯示舊密碼",
+        "hideOld": "隱藏舊密碼",
+        "showNew": "顯示新密碼",
+        "hideNew": "隱藏新密碼",
+        "showConfirm": "顯示確認密碼",
+        "hideConfirm": "隱藏確認密碼"
       },
       "passkey": {
         "title": "Passkey 管理",
         "description": "使用 Passkey 進行免密登入",
         "namePlaceholder": "Passkey 名稱",
-        "add": "新增 Passkey"
+        "add": "新增 Passkey",
+        "adding": "新增中…",
+        "addSuccess": "Passkey 新增成功",
+        "addFailed": "Passkey 新增失敗",
+        "deleteSuccess": "Passkey 已刪除",
+        "deleteFailed": "Passkey 刪除失敗",
+        "delete": "刪除 Passkey",
+        "unnamed": "未命名 Passkey",
+        "lastUsed": "上次使用",
+        "created": "建立於"
+      },
+      "saving": "儲存中…",
+      "githubBind": {
+        "title": "GitHub 綁定",
+        "description": "綁定 GitHub 帳號後可使用 GitHub 登入",
+        "bound": "已綁定",
+        "boundAs": "已綁定至 {username}",
+        "unbound": "未綁定",
+        "bind": "綁定",
+        "bindRedirect": "正在跳轉到 GitHub 授權頁面…",
+        "unbind": "解除綁定",
+        "confirmUnbind": "確認解除綁定 GitHub 帳號？",
+        "unbindSuccess": "GitHub 已解除綁定",
+        "unbindFailed": "GitHub 解除綁定失敗"
       }
     },
     "autoStrategy": {
@@ -1264,15 +1431,18 @@
       },
       "ttl": {
         "label": "快取有效期（秒）",
-        "hint": "快取條目的存活時間"
+        "hint": "快取條目的存活時間",
+        "placeholder": "3600"
       },
       "threshold": {
         "label": "相似度閾值（%）",
-        "hint": "只有相似度超過此閾值的請求才會命中快取"
+        "hint": "只有相似度超過此閾值的請求才會命中快取",
+        "placeholder": "95"
       },
       "maxEntries": {
         "label": "最大快取條目數",
-        "hint": "快取條目數量上限，超出後會刪除最舊的條目"
+        "hint": "快取條目數量上限，超出後會刪除最舊的條目",
+        "placeholder": "10000"
       },
       "embedding": {
         "title": "Embedding 設定",
@@ -1292,7 +1462,8 @@
       },
       "timeoutSeconds": {
         "label": "逾時時間（秒）",
-        "hint": "Embedding 請求的逾時時間"
+        "hint": "Embedding 請求的逾時時間",
+        "placeholder": "30"
       }
     },
     "retry": {
@@ -1333,38 +1504,59 @@
       },
       "keepPeriod": {
         "label": "保留天數",
-        "description": "日誌保留的天數，超過此天數的日誌將被自動刪除"
+        "description": "日誌保留的天數，超過此天數的日誌將被自動刪除",
+        "placeholder": "30"
       },
       "excludedGroups": {
         "label": "遮蔽分組",
         "description": "選中的分組不在日誌清單與即時流中顯示或載入",
-        "empty": "暫無分組"
+        "empty": "暫無分組",
+        "addHint": "點擊屏蔽此分組",
+        "removeHint": "點擊取消屏蔽"
       },
       "clear": {
-        "label": "清空日誌"
+        "label": "清空日誌",
+        "button": "清空日誌",
+        "clearing": "清空中…"
+      },
+      "clearSuccess": "日誌已清空",
+      "clearFailed": "清空日誌失敗",
+      "keepCount": {
+        "label": "保留筆數",
+        "description": "日誌保留的最大筆數，超出後將自動刪除最舊的日誌",
+        "placeholder": "10000"
       }
     },
     "llmSync": {
       "title": "自動任務",
       "lastSync": "上次同步",
       "syncInterval": {
-        "label": "同步間隔（小時）"
+        "label": "同步間隔（小時）",
+        "placeholder": "24"
       },
       "manualSync": {
-        "button": "立即同步"
-      }
+        "button": "立即同步",
+        "syncing": "同步中…"
+      },
+      "neverSynced": "從未同步",
+      "syncSuccess": "同步成功",
+      "syncFailed": "同步失敗"
     },
     "circuitBreaker": {
       "title": "熔斷器設定",
       "threshold": {
-        "label": "熔斷觸發閾值（連續失敗次數）"
+        "label": "熔斷觸發閾值（連續失敗次數）",
+        "placeholder": "5"
       },
       "cooldown": {
-        "label": "基礎冷卻時間（秒）"
+        "label": "基礎冷卻時間（秒）",
+        "placeholder": "60"
       },
       "maxCooldown": {
-        "label": "最大冷卻時間（秒）"
-      }
+        "label": "最大冷卻時間（秒）",
+        "placeholder": "3600"
+      },
+      "hint": "連續失敗達到閾值後自動熔斷該渠道，冷卻結束後恢復"
     },
     "responseFilter": {
       "title": "輸出關鍵詞攔截",
@@ -1376,7 +1568,8 @@
         "label": "攔截動作",
         "block": "阻斷",
         "replace": "替換",
-        "blockHint": "檢測到關鍵詞後立即終止回應，傳回錯誤資訊。"
+        "blockHint": "檢測到關鍵詞後立即終止回應，傳回錯誤資訊。",
+        "replaceHint": "命中時將符合內容替換為指定文字"
       },
       "keywords": {
         "label": "攔截關鍵詞",
@@ -1393,10 +1586,80 @@
       }
     },
     "backup": {
-      "title": "備份 / 還原"
+      "title": "備份 / 還原",
+      "export": {
+        "title": "匯出備份",
+        "includeLogs": "包含日誌",
+        "includeLogsHint": "日誌資料量較大，會顯著增加備份體積",
+        "includeStats": "包含統計資料",
+        "button": "匯出",
+        "exporting": "匯出中…",
+        "success": "匯出成功",
+        "failed": "匯出失敗"
+      },
+      "import": {
+        "title": "匯入備份",
+        "mode": {
+          "label": "匯入模式",
+          "incremental": "增量",
+          "full": "全量",
+          "fullWarning": "全量匯入會清空現有資料後再寫入，此操作無法復原"
+        },
+        "button": "匯入",
+        "importing": "匯入中…",
+        "noFile": "請先選擇備份檔案",
+        "success": "匯入成功",
+        "failed": "匯入失敗",
+        "result": "匯入結果"
+      },
+      "migration": {
+        "title": "資料庫遷移",
+        "description": "將目前資料遷移到另一個資料庫，遷移前請先測試連線",
+        "migrateLogs": "遷移日誌",
+        "migrateLogsHint": "日誌資料量較大，遷移耗時會明顯增加",
+        "migrateStats": "遷移統計資料",
+        "targetRequired": "請輸入目標資料庫路徑 / DSN",
+        "testButton": "測試連線",
+        "testSuccess": "連線成功",
+        "testFailed": "連線失敗",
+        "button": "開始遷移",
+        "migrating": "遷移中…",
+        "confirm": "確認遷移資料庫？請先確保已備份現有資料。",
+        "success": "遷移成功",
+        "successDetail": "已遷移到 {type}：{path}",
+        "failed": "遷移失敗"
+      }
     },
     "webdav": {
-      "title": "WebDAV 雲端備份"
+      "title": "WebDAV 雲端備份",
+      "enabled": "啟用 WebDAV 備份",
+      "enabledHint": "按設定週期自動將備份上傳到 WebDAV 伺服器",
+      "baseUrl": "伺服器位址",
+      "username": "使用者名稱",
+      "password": "密碼",
+      "remotePath": "遠端路徑",
+      "includeStats": "包含統計資料",
+      "includeLogs": "包含日誌",
+      "intervalHours": "備份間隔（小時）",
+      "maxBackups": "最多保留份數",
+      "save": "儲存",
+      "test": "測試連線",
+      "testSuccess": "連線成功",
+      "testFailed": "連線失敗",
+      "saveFailed": "儲存失敗",
+      "backupNow": "立即備份",
+      "backupStarted": "備份已開始",
+      "backupFailed": "備份失敗",
+      "remoteBackups": "遠端備份",
+      "restore": "還原",
+      "restoreConfirm": "確認從 {filename} 還原？現有資料將被覆蓋。",
+      "restoreSuccess": "還原成功",
+      "restoreFailed": "還原失敗",
+      "delete": "刪除",
+      "deleteConfirm": "確認刪除備份 {filename}？",
+      "deleteSuccess": "刪除成功",
+      "deleteFailed": "刪除失敗",
+      "saved": "儲存成功"
     },
     "imageBed": {
       "title": "圖床",
@@ -1404,7 +1667,11 @@
       "enabledDescription": "上傳圖片到圖床服務",
       "endpoint": "圖床端點",
       "endpointPlaceholder": "請輸入圖床端點位址",
-      "token": "圖床 Token"
+      "token": "圖床 Token",
+      "tokenPlaceholder": "請輸入圖床 Token",
+      "testConnection": "測試連線",
+      "testing": "測試中…",
+      "testSuccess": "連線成功"
     },
     "webauthn": {
       "title": "Passkey(WebAuthn)",
@@ -1414,14 +1681,46 @@
       "rpIdHint": "WebAuthn 依賴方識別碼，通常是您的網域名稱",
       "rpName": "RP 名稱",
       "origins": "允許的來源",
-      "originsHint": "允許進行 WebAuthn 認證的來源清單，每行一個"
+      "originsHint": "允許進行 WebAuthn 認證的來源清單，每行一個",
+      "needRpid": "請先填寫 RP ID",
+      "saved": "儲存成功",
+      "saveFailed": "儲存失敗"
     },
     "twofa": {
       "title": "兩步驟驗證 (2FA)",
       "description": "為帳戶新增額外的安全層",
       "status": "狀態",
       "statusDisabled": "未啟用",
-      "enable": "啟用兩步驟驗證"
+      "enable": "啟用兩步驟驗證",
+      "enableSuccess": "兩步驗證已啟用",
+      "enableFailed": "啟用兩步驗證失敗",
+      "disableSuccess": "兩步驗證已停用",
+      "disableFailed": "停用兩步驗證失敗",
+      "regenSuccess": "新的備用碼已產生",
+      "regenFailed": "備用碼產生失敗",
+      "copied": "已複製到剪貼簿",
+      "copyFailed": "複製失敗",
+      "statusEnabled": "已啟用",
+      "backupCodesRemaining": "剩餘備用碼",
+      "settingUp": "正在設定…",
+      "setupInstructions": "使用驗證器 App 掃描 QR Code，或手動輸入下方密鑰",
+      "qrCode": "QR Code",
+      "secretKey": "密鑰",
+      "backupCodes": "備用恢復碼",
+      "copyCodes": "複製",
+      "backupCodesHint": "請妥善保存備用碼，遺失後將無法恢復帳戶",
+      "verificationCode": "驗證碼",
+      "codePlaceholder": "6 位驗證碼",
+      "verifying": "驗證中…",
+      "confirm": "確認",
+      "disable": "停用兩步驗證",
+      "regenCodes": "重新產生備用碼",
+      "disableInstructions": "輸入目前驗證碼以確認停用兩步驗證",
+      "confirmDisable": "確認停用",
+      "regenInstructions": "輸入目前驗證碼以確認重新產生備用碼",
+      "confirmRegen": "確認重新產生",
+      "newBackupCodes": "新的備用恢復碼",
+      "dismiss": "知道了"
     },
     "commercialMode": {
       "title": "商業模式",
@@ -1434,7 +1733,11 @@
     },
     "chinaMode": {
       "label": "中國化模式",
-      "description": "費用顯示人民幣，數字使用萬/億單位"
+      "description": "費用顯示人民幣，數字使用萬/億單位",
+      "exchangeRate": {
+        "label": "美元匯率",
+        "hint": "用於將美元費用換算為人民幣顯示"
+      }
     },
     "email": {
       "title": "郵件 · SMTP",
@@ -1502,12 +1805,17 @@
       "reset": "重設順序",
       "visible": "可見",
       "fixed": "固定",
-      "minimumVisibleHint": "至少需要保留一個可見項目"
+      "minimumVisibleHint": "至少需要保留一個可見項目",
+      "hidden": "隱藏",
+      "minimumVisibleError": "至少需要保留 {count} 個可見項",
+      "resetSuccess": "導覽順序已重設",
+      "toggleAriaLabel": "切換 {page} 的可見性"
     },
     "settingOrder": {
       "title": "設定順序",
       "description": "調整設定頁面各項的顯示順序",
-      "reset": "重設順序"
+      "reset": "重設順序",
+      "resetSuccess": "順序已重設"
     },
     "timeZone": {
       "label": "使用者時區",
@@ -1534,20 +1842,168 @@
     "purgeUnavailable": {
       "title": "清理不可用渠道",
       "description": "刪除長時間不可用的渠道",
-      "button": "清理"
+      "button": "清理",
+      "successNone": "沒有需要清理的模型",
+      "success": "已清理 {count} 個不可用模型",
+      "summary": "停用渠道 {disabled} 個，缺失模型 {missing} 個，移除渠道 {removed} 個",
+      "failed": "清理失敗",
+      "purging": "清理中…",
+      "confirmTitle": "確認清理不可用模型",
+      "confirmDescription": "將移除所有偵測不可用的模型，此操作無法復原。是否繼續？",
+      "cancel": "取消",
+      "confirm": "確認清理"
     },
     "routeGroups": {
       "title": "路由分組",
       "description": "管理渠道路由分組設定",
-      "count": "{count, plural, =0 {暫無分組} other {# 個分組}}"
+      "count": "{count, plural, =0 {暫無分組} other {# 個分組}}",
+      "success": "分組已全部刪除",
+      "failed": "刪除失敗",
+      "button": "刪除全部分組",
+      "deleting": "刪除中…",
+      "confirmTitle": "確認刪除全部分組",
+      "confirmDescription": "將刪除全部 {count} 個分組，此操作無法復原。是否繼續？",
+      "cancel": "取消",
+      "confirm": "確認刪除"
     },
     "billingExpr": {
-      "title": "計費表示式"
+      "title": "計費表示式",
+      "description": "為模型設定表達式定價（選填）。留空則使用上游 USD 成本直通。",
+      "variables": "變數參考",
+      "functions": "函式",
+      "modelPlaceholder": "模型名 (如 gpt-4o)",
+      "preview": "預覽",
+      "sampleTokens": "範例 token 數",
+      "addModel": "新增模型",
+      "showPreview": "顯示預覽",
+      "hidePreview": "隱藏預覽",
+      "save": "儲存",
+      "saving": "儲存中…",
+      "toastSaved": "儲存成功",
+      "toastFailed": "儲存失敗"
     },
     "llmPrice": {
       "updateInterval": {
-        "label": "價格更新間隔（小時）"
+        "label": "價格更新間隔（小時）",
+        "placeholder": "24"
+      },
+      "title": "模型價格",
+      "updateSuccess": "價格更新成功",
+      "updateFailed": "價格更新失敗",
+      "neverUpdated": "從未更新",
+      "lastUpdate": "上次更新",
+      "manualUpdate": {
+        "label": "手動更新價格",
+        "button": "立即更新",
+        "updating": "更新中…"
       }
+    },
+    "siteAutomation": {
+      "title": "站點自動化",
+      "saveFailed": "儲存失敗",
+      "syncTriggered": "站點同步已觸發",
+      "syncFailed": "站點同步失敗",
+      "checkinTriggered": "簽到已觸發",
+      "checkinFailed": "簽到失敗",
+      "autoGroupMode": {
+        "label": "自動分組模式",
+        "description": "渠道模型自動分組的比對方式",
+        "none": "關閉",
+        "fuzzy": "模糊比對",
+        "exact": "精確比對",
+        "regex": "正規表達式比對"
+      },
+      "syncInterval": {
+        "label": "站點同步間隔",
+        "placeholder": "分鐘"
+      },
+      "checkinInterval": {
+        "label": "站點簽到間隔",
+        "placeholder": "分鐘"
+      },
+      "manualSync": {
+        "label": "手動同步全部站點",
+        "syncing": "同步中…",
+        "button": "立即同步"
+      },
+      "manualCheckin": {
+        "label": "手動簽到全部站點",
+        "checking": "簽到中…",
+        "button": "立即簽到"
+      }
+    },
+    "aiRoute": {
+      "title": "AI 智慧路由",
+      "badge": "實驗特性",
+      "group": {
+        "label": "路由分組",
+        "placeholder": "請選擇分組",
+        "hint": "AI 路由決策將在該分組內的渠道之間進行"
+      },
+      "model": {
+        "label": "決策模型",
+        "placeholder": "如 gpt-4o-mini"
+      },
+      "baseUrl": {
+        "label": "Base URL",
+        "placeholder": "請輸入 API 位址"
+      },
+      "apiKey": {
+        "label": "API 密鑰",
+        "placeholder": "請輸入 API 密鑰"
+      },
+      "timeoutSeconds": {
+        "label": "逾時時間（秒）",
+        "placeholder": "30",
+        "hint": "單次路由決策的最長等待時間"
+      },
+      "parallelism": {
+        "label": "並行數",
+        "placeholder": "4",
+        "hint": "同時進行路由決策的最大數量"
+      },
+      "services": {
+        "label": "服務列表（JSON）",
+        "placeholder": "[{\"name\":\"example\",\"base_url\":\"https://api.example.com\"}]",
+        "hint": "使用大模型自動為請求選擇最合適的渠道",
+        "invalid": "服務列表必須是合法的 JSON 陣列"
+      }
+    },
+    "saved": "儲存成功",
+    "saveFailed": "儲存失敗",
+    "form": {
+      "cancel": "取消"
+    },
+    "proxyUrl": {
+      "label": "代理位址",
+      "placeholder": "如 http://127.0.0.1:7890"
+    },
+    "publicApiBaseUrl": {
+      "label": "公開 API 基礎位址",
+      "hint": "對外顯示的 API 呼叫位址，留空則使用目前站點位址",
+      "placeholder": "https://api.example.com"
+    },
+    "statsSaveInterval": {
+      "label": "統計儲存週期（分鐘）",
+      "placeholder": "5"
+    },
+    "corsAllowOrigins": {
+      "label": "CORS 跨域白名單",
+      "hint": "允許跨域存取的來源，留空表示不限制",
+      "example": "如 https://example.com",
+      "removeAriaLabel": "移除此來源"
+    },
+    "stripe": {
+      "title": "Stripe 支付",
+      "description": "設定 Stripe 以支援線上充值",
+      "apiKey": "API 密鑰",
+      "webhookSecret": "Webhook 密鑰",
+      "currency": "貨幣",
+      "minTopup": "最低充值金額",
+      "enable": "啟用 Stripe 支付",
+      "save": "儲存",
+      "saved": "儲存成功",
+      "saveFailed": "儲存失敗"
     }
   },
   "group": {
@@ -1571,19 +2027,24 @@
       "testPartialFailed": "部分模型不可用",
       "testPartialFailedDescription": "檢測失敗的模型建議移除",
       "testRequestFailed": "分組檢測失敗",
-      "removableSuggestion": "可考慮移除"
+      "removableSuggestion": "可考慮移除",
+      "autoGroupDeleted": "已刪除 {deleted} 個舊分組"
     },
     "actions": {
       "autoGroup": "自動分組",
       "aiRoute": "AI路由",
       "aiRouteGroup": "AI同步當前分組",
-      "aiRouteProgress": "查看進度"
+      "aiRouteProgress": "查看進度",
+      "forceRegroup": "強制重新分組"
     },
     "autoGroup": {
       "confirmTitle": "確認自動分組",
       "confirmDescription": "將刪除所有非預設分組，然後自動掃描所有供應源模型並重新建立分組。\n每次自動分組都是全新的，不會被舊分組干擾。\n是否繼續？",
       "submit": "開始自動分組",
-      "submitting": "自動分組中..."
+      "submitting": "自動分組中...",
+      "forceConfirmTitle": "確認強制重新分組",
+      "forceConfirmDescription": "將忽略現有分組狀態，刪除所有非預設分組並重新掃描全部渠道模型。\n此操作無法復原。\n是否繼續？",
+      "forceSubmit": "強制重新分組"
     },
     "aiRoute": {
       "table": {
@@ -2482,7 +2943,11 @@
       "jumpToReference": "跳轉到引用",
       "derivedReferences": "+{count} 個託管渠道"
     },
-    "selectRequired": "請選擇代理配置。"
+    "selectRequired": "請選擇代理配置。",
+    "createFailed": "代理建立失敗",
+    "updateFailed": "代理更新失敗",
+    "deleteFailed": "代理刪除失敗",
+    "testFailed": "代理測試失敗"
   },
   "subscription": {
     "tabs": {

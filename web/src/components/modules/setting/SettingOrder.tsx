@@ -115,14 +115,14 @@ export function SettingOrder() {
 
     const titleByKey = useMemo(() => {
         const map: Record<SettingItemId, string> = {
-            appearance: settingT('appearance'),
+            appearance: settingT('appearance.title'),
             'auto-strategy': settingT('autoStrategy.title'),
             account: settingT('account.title'),
             'semantic-cache': settingT('semanticCache.title'),
             retry: settingT('retry.title'),
             log: settingT('log.title'),
             info: settingT('info.title'),
-            system: settingT('system'),
+            system: settingT('system.title'),
             llmsync: settingT('llmSync.title'),
             'circuit-breaker': settingT('circuitBreaker.title'),
             'response-filter': settingT('responseFilter.title'),

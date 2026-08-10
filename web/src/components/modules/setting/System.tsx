@@ -127,7 +127,7 @@ export function SettingSystem() {
         <div className="rounded-xl border-border/35 bg-card p-4 sm:p-6 space-y-4 sm:space-y-5 text-card-foreground shadow-md ">
             <h2 className="text-lg font-bold text-card-foreground flex items-center gap-2">
                 <Monitor className="h-5 w-5" />
-                {t('system')}
+                {t('system.title')}
             </h2>
 
             {/* 代理地址 */}

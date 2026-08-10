@@ -343,7 +343,7 @@ export function SettingAppearance() {
                     <div className="space-y-1.5">
                         <h2 className="flex items-center gap-2 text-lg font-bold text-card-foreground">
                             <Sun className="h-5 w-5" />
-                            {t('appearance')}
+                            {t('appearance.title')}
                         </h2>
                         <p className="text-sm text-muted-foreground">{t('navOrder.description')}</p>
                     </div>

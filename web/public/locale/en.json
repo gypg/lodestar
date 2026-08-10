@@ -17,8 +17,10 @@
     "button": {
       "loading": "Logging in...",
       "submit": "Login",
-      "passkey": "Sign in with Passkey"
-    }
+      "passkey": "Sign in with Passkey",
+      "githubOAuth": "Sign in with GitHub"
+    },
+    "githubOAuthError": "GitHub sign-in failed, please try again"
   },
   "bootstrap": {
     "title": "Complete initial setup",
@@ -468,7 +470,10 @@
         "saved": "Saved successfully",
         "modeLocal": "Local Model",
         "modeExternal": "External Connection",
-        "autoChannelNote": "Auto-configured from channel: {name}"
+        "autoChannelNote": "Auto-configured from channel: {name}",
+        "noChannelFound": "No available channel found",
+        "channelIncomplete": "Channel configuration is incomplete; please fill in the base URL and key",
+        "switchToExternal": "Switched to external service"
       }
     },
     "evaluation": {
@@ -763,7 +768,8 @@
         "latency": "Avg latency",
         "successRate": "Success rate",
         "requests": "Requests",
-        "sparkline7d": "7d Success Rate"
+        "sparkline7d": "7d Success Rate",
+        "availability30d": "30-day Availability"
       }
     },
     "system": {
@@ -1087,7 +1093,34 @@
     "copyLatencyUrl": "Copy latency URL",
     "errorBoundary": {
       "title": "Something went wrong",
+      "retry": "Retry",
+      "message": "An error occurred while rendering this page. Try again or reload.",
+      "tryAgain": "Try again",
+      "reloadPage": "Reload page"
+    },
+    "unknown": "Unknown",
+    "routeNotFound": "Page not found",
+    "copy": {
+      "button": "Copy",
+      "success": "Copied",
+      "failed": "Copy failed",
+      "noContent": "Nothing to copy"
+    },
+    "errorState": {
+      "title": "Failed to load",
+      "message": "Something went wrong loading this data. Please try again.",
       "retry": "Retry"
+    },
+    "loadingState": {
+      "message": "Loading…"
+    },
+    "maintenance": {
+      "title": "Under Maintenance",
+      "message": "The service is under maintenance. Please check back later."
+    },
+    "dialog": {
+      "open": "Open",
+      "close": "Close"
     }
   },
   "home": {
@@ -1176,9 +1209,96 @@
       "page": {
         "count": "{count, plural, =0 {No keys} other {# keys}}",
         "searchPlaceholder": "Search by name or tag",
-        "newKey": "New Key"
+        "newKey": "New Key",
+        "statusEnabled": "Enabled",
+        "statusDisabled": "Disabled",
+        "expired": "Expired",
+        "expires": "Expires",
+        "neverExpires": "Never expires",
+        "viewStats": "View stats",
+        "edit": "Edit",
+        "delete": "Delete",
+        "deleteConfirm": "Delete this key?",
+        "requests": "Requests",
+        "successRate": "Success Rate",
+        "tokens": "Tokens",
+        "cost": "Cost",
+        "noStats": "No stats yet",
+        "filterByTag": "Filter by tag",
+        "allTags": "All",
+        "untagged": "Untagged",
+        "noMatch": "No matching keys",
+        "clearFilters": "Clear filters",
+        "createTitle": "New Key",
+        "createDescription": "Create a new API key and configure its permissions and limits",
+        "editTitle": "Edit Key",
+        "editDescription": "Update the permissions and limits for this API key"
       },
-      "empty": "No API keys"
+      "empty": "No API keys",
+      "add": "New Key",
+      "loadFailed": "Failed to load API keys",
+      "form": {
+        "name": "Name",
+        "customKey": "Custom Key",
+        "optional": "optional",
+        "customKeyPlaceholder": "Leave empty to generate automatically",
+        "customKeyHint": "Enter only the part after sk-lodestar-; leave empty to generate a random key",
+        "tags": "Tags",
+        "tagsPlaceholder": "Type and press Enter to add",
+        "maxCost": "Spending Limit",
+        "maxCostPlaceholder": "Leave empty for no limit",
+        "unlimited": "Unlimited",
+        "rateLimitRpm": {
+          "label": "Requests per Minute (RPM)",
+          "placeholder": "0 means unlimited"
+        },
+        "rateLimitTpm": {
+          "label": "Tokens per Minute (TPM)",
+          "placeholder": "0 means unlimited"
+        },
+        "perModelQuota": {
+          "label": "Per-model Quota (JSON)"
+        },
+        "allowedIPs": "IP Allowlist",
+        "allowedIPsPlaceholder": "Comma-separated IPs or CIDRs; leave empty for no restriction",
+        "expireAt": "Expires At",
+        "expireTimePlaceholder": "00:00",
+        "neverExpire": "Never expires",
+        "selectDate": "Select date",
+        "supportedModels": "Available Models",
+        "noModels": "No models available",
+        "modelsHint": "Selecting none allows all models",
+        "excludedChannels": "Excluded Channels",
+        "noChannels": "No channels available",
+        "excludedChannelsHint": "Excluded channels will never be used by this key",
+        "enabled": "Enabled",
+        "cancel": "Cancel",
+        "confirm": "Confirm",
+        "create": "Create",
+        "save": "Save"
+      },
+      "stats": {
+        "noData": "No stats yet",
+        "inputToken": "Input Tokens",
+        "outputToken": "Output Tokens",
+        "inputCost": "Input Cost",
+        "outputCost": "Output Cost",
+        "requestSuccess": "Successful Requests",
+        "requestFailed": "Failed Requests"
+      },
+      "actions": {
+        "viewStats": "View stats",
+        "edit": "Edit",
+        "close": "Close"
+      },
+      "toast": {
+        "createSuccess": "Created successfully",
+        "createError": "Create failed",
+        "updateSuccess": "Updated successfully",
+        "updateError": "Update failed",
+        "deleteSuccess": "Deleted successfully",
+        "deleteError": "Delete failed"
+      }
     },
     "appearance": {
       "title": "Appearance",
@@ -1209,7 +1329,16 @@
       "unknown": "Unknown",
       "database": "Database",
       "redis": "Redis",
-      "connected": "Connected"
+      "connected": "Connected",
+      "updateSuccess": "Updated successfully",
+      "updateFailed": "Update failed",
+      "versionMismatch": "Frontend and backend versions differ",
+      "versionMismatchHint": "Frontend {frontend}, backend {backend}. A hard refresh is recommended.",
+      "forceRefresh": "Hard Refresh",
+      "newVersionAvailable": "A new version is available",
+      "newVersionAvailableHint": "The service must be restarted for the update to take effect",
+      "updateNow": "Update Now",
+      "updating": "Updating…"
     },
     "account": {
       "title": "Account Settings",
@@ -1219,7 +1348,10 @@
       },
       "username": {
         "label": "Username",
-        "placeholder": "Enter username"
+        "placeholder": "Enter username",
+        "empty": "Username cannot be empty",
+        "success": "Username updated, signing you out",
+        "failed": "Failed to update username"
       },
       "save": "Save",
       "password": {
@@ -1227,13 +1359,48 @@
         "change": "Change Password",
         "oldPlaceholder": "Enter old password",
         "newPlaceholder": "Enter new password",
-        "confirmPlaceholder": "Confirm new password"
+        "confirmPlaceholder": "Confirm new password",
+        "oldEmpty": "Please enter your current password",
+        "newEmpty": "Please enter a new password",
+        "mismatch": "The two new passwords do not match",
+        "tooShort": "New password must be at least 6 characters",
+        "success": "Password updated, signing you out",
+        "failed": "Failed to update password",
+        "showOld": "Show current password",
+        "hideOld": "Hide current password",
+        "showNew": "Show new password",
+        "hideNew": "Hide new password",
+        "showConfirm": "Show password confirmation",
+        "hideConfirm": "Hide password confirmation"
       },
       "passkey": {
         "title": "Passkey Management",
         "description": "Use Passkey for passwordless login",
         "namePlaceholder": "Passkey name",
-        "add": "Add Passkey"
+        "add": "Add Passkey",
+        "adding": "Adding…",
+        "addSuccess": "Passkey added",
+        "addFailed": "Failed to add passkey",
+        "deleteSuccess": "Passkey deleted",
+        "deleteFailed": "Failed to delete passkey",
+        "delete": "Delete passkey",
+        "unnamed": "Unnamed passkey",
+        "lastUsed": "Last used",
+        "created": "Created"
+      },
+      "saving": "Saving…",
+      "githubBind": {
+        "title": "GitHub Account",
+        "description": "Link your GitHub account to sign in with GitHub",
+        "bound": "Linked",
+        "boundAs": "Linked as {username}",
+        "unbound": "Not linked",
+        "bind": "Link",
+        "bindRedirect": "Redirecting to GitHub for authorization…",
+        "unbind": "Unlink",
+        "confirmUnbind": "Unlink your GitHub account?",
+        "unbindSuccess": "GitHub account unlinked",
+        "unbindFailed": "Failed to unlink GitHub account"
       }
     },
     "autoStrategy": {
@@ -1264,15 +1431,18 @@
       },
       "ttl": {
         "label": "Cache TTL (seconds)",
-        "hint": "Lifetime of cache entries"
+        "hint": "Lifetime of cache entries",
+        "placeholder": "3600"
       },
       "threshold": {
         "label": "Similarity Threshold (%)",
-        "hint": "Only requests with similarity above this threshold will hit the cache"
+        "hint": "Only requests with similarity above this threshold will hit the cache",
+        "placeholder": "95"
       },
       "maxEntries": {
         "label": "Max Cache Entries",
-        "hint": "Maximum number of cache entries, oldest entries will be deleted when exceeded"
+        "hint": "Maximum number of cache entries, oldest entries will be deleted when exceeded",
+        "placeholder": "10000"
       },
       "embedding": {
         "title": "Embedding Configuration",
@@ -1292,7 +1462,8 @@
       },
       "timeoutSeconds": {
         "label": "Timeout (seconds)",
-        "hint": "Timeout for embedding requests"
+        "hint": "Timeout for embedding requests",
+        "placeholder": "30"
       }
     },
     "retry": {
@@ -1333,38 +1504,59 @@
       },
       "keepPeriod": {
         "label": "Retention Days",
-        "description": "Number of days to keep logs"
+        "description": "Number of days to keep logs",
+        "placeholder": "30"
       },
       "excludedGroups": {
         "label": "Excluded Groups",
         "description": "Selected groups will not be displayed in the log list",
-        "empty": "No groups"
+        "empty": "No groups",
+        "addHint": "Click to exclude this group",
+        "removeHint": "Click to stop excluding"
       },
       "clear": {
-        "label": "Clear Logs"
+        "label": "Clear Logs",
+        "button": "Clear Logs",
+        "clearing": "Clearing…"
+      },
+      "clearSuccess": "Logs cleared",
+      "clearFailed": "Failed to clear logs",
+      "keepCount": {
+        "label": "Retained Entries",
+        "description": "Maximum number of log entries to keep; the oldest are deleted beyond this limit",
+        "placeholder": "10000"
       }
     },
     "llmSync": {
       "title": "Auto Tasks",
       "lastSync": "Last Sync",
       "syncInterval": {
-        "label": "Sync Interval (hours)"
+        "label": "Sync Interval (hours)",
+        "placeholder": "24"
       },
       "manualSync": {
-        "button": "Sync Now"
-      }
+        "button": "Sync Now",
+        "syncing": "Syncing…"
+      },
+      "neverSynced": "Never synced",
+      "syncSuccess": "Synced successfully",
+      "syncFailed": "Sync failed"
     },
     "circuitBreaker": {
       "title": "Circuit Breaker",
       "threshold": {
-        "label": "Circuit Breaker Threshold (consecutive failures)"
+        "label": "Circuit Breaker Threshold (consecutive failures)",
+        "placeholder": "5"
       },
       "cooldown": {
-        "label": "Base Cooldown Time (seconds)"
+        "label": "Base Cooldown Time (seconds)",
+        "placeholder": "60"
       },
       "maxCooldown": {
-        "label": "Max Cooldown Time (seconds)"
-      }
+        "label": "Max Cooldown Time (seconds)",
+        "placeholder": "3600"
+      },
+      "hint": "Trip the channel automatically after consecutive failures reach the threshold; it recovers once the cooldown ends"
     },
     "responseFilter": {
       "title": "Response Filter",
@@ -1376,7 +1568,8 @@
         "label": "Filter Action",
         "block": "Block",
         "replace": "Replace",
-        "blockHint": "Immediately terminate response when keywords are detected."
+        "blockHint": "Immediately terminate response when keywords are detected.",
+        "replaceHint": "Replace the matched content with the given text"
       },
       "keywords": {
         "label": "Filter Keywords",
@@ -1393,10 +1586,80 @@
       }
     },
     "backup": {
-      "title": "Backup / Restore"
+      "title": "Backup / Restore",
+      "export": {
+        "title": "Export Backup",
+        "includeLogs": "Include logs",
+        "includeLogsHint": "Log data is large and will significantly increase the backup size",
+        "includeStats": "Include statistics",
+        "button": "Export",
+        "exporting": "Exporting…",
+        "success": "Export completed",
+        "failed": "Export failed"
+      },
+      "import": {
+        "title": "Import Backup",
+        "mode": {
+          "label": "Import mode",
+          "incremental": "Incremental",
+          "full": "Full",
+          "fullWarning": "A full import wipes existing data before writing. This cannot be undone."
+        },
+        "button": "Import",
+        "importing": "Importing…",
+        "noFile": "Please select a backup file first",
+        "success": "Import completed",
+        "failed": "Import failed",
+        "result": "Import result"
+      },
+      "migration": {
+        "title": "Database Migration",
+        "description": "Migrate current data to another database. Test the connection before migrating.",
+        "migrateLogs": "Migrate logs",
+        "migrateLogsHint": "Log data is large and will noticeably increase migration time",
+        "migrateStats": "Migrate statistics",
+        "targetRequired": "Please enter the target database path / DSN",
+        "testButton": "Test Connection",
+        "testSuccess": "Connection succeeded",
+        "testFailed": "Connection failed",
+        "button": "Start Migration",
+        "migrating": "Migrating…",
+        "confirm": "Migrate the database? Make sure you have backed up existing data first.",
+        "success": "Migration completed",
+        "successDetail": "Migrated to {type}: {path}",
+        "failed": "Migration failed"
+      }
     },
     "webdav": {
-      "title": "WebDAV Cloud Backup"
+      "title": "WebDAV Cloud Backup",
+      "enabled": "Enable WebDAV Backup",
+      "enabledHint": "Automatically upload backups to a WebDAV server on a schedule",
+      "baseUrl": "Server URL",
+      "username": "Username",
+      "password": "Password",
+      "remotePath": "Remote Path",
+      "includeStats": "Include statistics",
+      "includeLogs": "Include logs",
+      "intervalHours": "Backup Interval (hours)",
+      "maxBackups": "Max Backups Kept",
+      "save": "Save",
+      "test": "Test Connection",
+      "testSuccess": "Connection succeeded",
+      "testFailed": "Connection failed",
+      "saveFailed": "Save failed",
+      "backupNow": "Back Up Now",
+      "backupStarted": "Backup started",
+      "backupFailed": "Backup failed",
+      "remoteBackups": "Remote Backups",
+      "restore": "Restore",
+      "restoreConfirm": "Restore from {filename}? Existing data will be overwritten.",
+      "restoreSuccess": "Restore completed",
+      "restoreFailed": "Restore failed",
+      "delete": "Delete",
+      "deleteConfirm": "Delete backup {filename}?",
+      "deleteSuccess": "Deleted successfully",
+      "deleteFailed": "Delete failed",
+      "saved": "Saved successfully"
     },
     "imageBed": {
       "title": "Image Hosting",
@@ -1404,7 +1667,11 @@
       "enabledDescription": "Upload images to image hosting service",
       "endpoint": "Image Hosting Endpoint",
       "endpointPlaceholder": "Enter endpoint URL",
-      "token": "Image Hosting Token"
+      "token": "Image Hosting Token",
+      "tokenPlaceholder": "Enter the image host token",
+      "testConnection": "Test Connection",
+      "testing": "Testing…",
+      "testSuccess": "Connection successful"
     },
     "webauthn": {
       "title": "Passkey (WebAuthn)",
@@ -1414,14 +1681,46 @@
       "rpIdHint": "WebAuthn Relying Party Identifier, usually your domain name",
       "rpName": "RP Name",
       "origins": "Allowed Origins",
-      "originsHint": "List of origins allowed for WebAuthn authentication, one per line"
+      "originsHint": "List of origins allowed for WebAuthn authentication, one per line",
+      "needRpid": "Please fill in the RP ID first",
+      "saved": "Saved successfully",
+      "saveFailed": "Save failed"
     },
     "twofa": {
       "title": "Two-Factor Authentication (2FA)",
       "description": "Add an extra layer of security to your account",
       "status": "Status",
       "statusDisabled": "Disabled",
-      "enable": "Enable Two-Factor Authentication"
+      "enable": "Enable Two-Factor Authentication",
+      "enableSuccess": "Two-factor authentication enabled",
+      "enableFailed": "Failed to enable two-factor authentication",
+      "disableSuccess": "Two-factor authentication disabled",
+      "disableFailed": "Failed to disable two-factor authentication",
+      "regenSuccess": "New backup codes generated",
+      "regenFailed": "Failed to generate backup codes",
+      "copied": "Copied to clipboard",
+      "copyFailed": "Failed to copy",
+      "statusEnabled": "Enabled",
+      "backupCodesRemaining": "Backup codes remaining",
+      "settingUp": "Setting up…",
+      "setupInstructions": "Scan the QR code with an authenticator app, or enter the secret key manually",
+      "qrCode": "QR Code",
+      "secretKey": "Secret Key",
+      "backupCodes": "Backup Recovery Codes",
+      "copyCodes": "Copy",
+      "backupCodesHint": "Store these codes somewhere safe. If you lose them, you won't be able to recover your account.",
+      "verificationCode": "Verification Code",
+      "codePlaceholder": "6-digit code",
+      "verifying": "Verifying…",
+      "confirm": "Confirm",
+      "disable": "Disable Two-Factor Auth",
+      "regenCodes": "Regenerate Backup Codes",
+      "disableInstructions": "Enter your current code to confirm disabling two-factor authentication",
+      "confirmDisable": "Disable",
+      "regenInstructions": "Enter your current code to confirm regenerating backup codes",
+      "confirmRegen": "Regenerate",
+      "newBackupCodes": "New Backup Recovery Codes",
+      "dismiss": "Got it"
     },
     "commercialMode": {
       "title": "Commercial Mode",
@@ -1434,7 +1733,11 @@
     },
     "chinaMode": {
       "label": "China Mode",
-      "description": "Display costs in CNY and use 万/亿 units"
+      "description": "Display costs in CNY and use 万/亿 units",
+      "exchangeRate": {
+        "label": "USD Exchange Rate",
+        "hint": "Used to convert USD costs into CNY for display"
+      }
     },
     "email": {
       "title": "Email - SMTP",
@@ -1502,12 +1805,17 @@
       "reset": "Reset Order",
       "visible": "Visible",
       "fixed": "Fixed",
-      "minimumVisibleHint": "At least one visible item must be kept"
+      "minimumVisibleHint": "At least one visible item must be kept",
+      "hidden": "Hidden",
+      "minimumVisibleError": "At least {count} item(s) must stay visible",
+      "resetSuccess": "Navigation order reset",
+      "toggleAriaLabel": "Toggle visibility of {page}"
     },
     "settingOrder": {
       "title": "Settings Order",
       "description": "Adjust the display order of settings items",
-      "reset": "Reset Order"
+      "reset": "Reset Order",
+      "resetSuccess": "Order reset"
     },
     "timeZone": {
       "label": "User Timezone",
@@ -1534,20 +1842,168 @@
     "purgeUnavailable": {
       "title": "Purge Unavailable Channels",
       "description": "Delete channels that have been unavailable for a long time",
-      "button": "Purge"
+      "button": "Purge",
+      "successNone": "No models needed cleanup",
+      "success": "Purged {count} unavailable model(s)",
+      "summary": "{disabled} channel(s) disabled, {missing} model(s) missing, {removed} channel(s) removed",
+      "failed": "Cleanup failed",
+      "purging": "Purging…",
+      "confirmTitle": "Confirm Purging Unavailable Models",
+      "confirmDescription": "This removes every model that failed availability checks. It cannot be undone. Continue?",
+      "cancel": "Cancel",
+      "confirm": "Purge"
     },
     "routeGroups": {
       "title": "Route Groups",
       "description": "Manage channel routing group configuration",
-      "count": "{count, plural, =0 {No groups} other {# groups}}"
+      "count": "{count, plural, =0 {No groups} other {# groups}}",
+      "success": "All groups deleted",
+      "failed": "Delete failed",
+      "button": "Delete All Groups",
+      "deleting": "Deleting…",
+      "confirmTitle": "Confirm Deleting All Groups",
+      "confirmDescription": "This deletes all {count} group(s) and cannot be undone. Continue?",
+      "cancel": "Cancel",
+      "confirm": "Delete"
     },
     "billingExpr": {
-      "title": "Billing Expression"
+      "title": "Billing Expression",
+      "description": "Configure expression-based pricing per model (optional). Leave empty to pass through upstream USD cost.",
+      "variables": "Variable reference",
+      "functions": "Functions",
+      "modelPlaceholder": "Model name (e.g. gpt-4o)",
+      "preview": "Preview",
+      "sampleTokens": "Sample tokens",
+      "addModel": "Add Model",
+      "showPreview": "Show preview",
+      "hidePreview": "Hide preview",
+      "save": "Save",
+      "saving": "Saving…",
+      "toastSaved": "Saved successfully",
+      "toastFailed": "Save failed"
     },
     "llmPrice": {
       "updateInterval": {
-        "label": "Price Update Interval (hours)"
+        "label": "Price Update Interval (hours)",
+        "placeholder": "24"
+      },
+      "title": "Model Pricing",
+      "updateSuccess": "Prices updated",
+      "updateFailed": "Price update failed",
+      "neverUpdated": "Never updated",
+      "lastUpdate": "Last updated",
+      "manualUpdate": {
+        "label": "Update prices manually",
+        "button": "Update Now",
+        "updating": "Updating…"
       }
+    },
+    "siteAutomation": {
+      "title": "Site Automation",
+      "saveFailed": "Save failed",
+      "syncTriggered": "Site sync triggered",
+      "syncFailed": "Site sync failed",
+      "checkinTriggered": "Check-in triggered",
+      "checkinFailed": "Check-in failed",
+      "autoGroupMode": {
+        "label": "Auto-grouping Mode",
+        "description": "How channel models are matched into groups",
+        "none": "Off",
+        "fuzzy": "Fuzzy Match",
+        "exact": "Exact Match",
+        "regex": "Regex Match"
+      },
+      "syncInterval": {
+        "label": "Site Sync Interval",
+        "placeholder": "minutes"
+      },
+      "checkinInterval": {
+        "label": "Site Check-in Interval",
+        "placeholder": "minutes"
+      },
+      "manualSync": {
+        "label": "Sync All Sites Manually",
+        "syncing": "Syncing…",
+        "button": "Sync Now"
+      },
+      "manualCheckin": {
+        "label": "Check In to All Sites Manually",
+        "checking": "Checking in…",
+        "button": "Check In Now"
+      }
+    },
+    "aiRoute": {
+      "title": "AI Smart Routing",
+      "badge": "Experimental",
+      "group": {
+        "label": "Routing Group",
+        "placeholder": "Select a group",
+        "hint": "Routing decisions are made among channels in this group"
+      },
+      "model": {
+        "label": "Decision Model",
+        "placeholder": "e.g. gpt-4o-mini"
+      },
+      "baseUrl": {
+        "label": "Base URL",
+        "placeholder": "Enter the API base URL"
+      },
+      "apiKey": {
+        "label": "API Key",
+        "placeholder": "Enter the API key"
+      },
+      "timeoutSeconds": {
+        "label": "Timeout (seconds)",
+        "placeholder": "30",
+        "hint": "Maximum wait time for a single routing decision"
+      },
+      "parallelism": {
+        "label": "Concurrency",
+        "placeholder": "4",
+        "hint": "Maximum number of routing decisions running at once"
+      },
+      "services": {
+        "label": "Service List (JSON)",
+        "placeholder": "[{\"name\":\"example\",\"base_url\":\"https://api.example.com\"}]",
+        "hint": "Use an LLM to pick the most suitable channel for each request",
+        "invalid": "The service list must be a valid JSON array"
+      }
+    },
+    "saved": "Saved successfully",
+    "saveFailed": "Save failed",
+    "form": {
+      "cancel": "Cancel"
+    },
+    "proxyUrl": {
+      "label": "Proxy URL",
+      "placeholder": "e.g. http://127.0.0.1:7890"
+    },
+    "publicApiBaseUrl": {
+      "label": "Public API Base URL",
+      "hint": "The API URL shown to users; leave empty to use the current site URL",
+      "placeholder": "https://api.example.com"
+    },
+    "statsSaveInterval": {
+      "label": "Stats Save Interval (minutes)",
+      "placeholder": "5"
+    },
+    "corsAllowOrigins": {
+      "label": "CORS Allowed Origins",
+      "hint": "Origins allowed for cross-origin requests; leave empty for no restriction",
+      "example": "e.g. https://example.com",
+      "removeAriaLabel": "Remove this origin"
+    },
+    "stripe": {
+      "title": "Stripe Payments",
+      "description": "Configure Stripe to accept online top-ups",
+      "apiKey": "API Key",
+      "webhookSecret": "Webhook Secret",
+      "currency": "Currency",
+      "minTopup": "Minimum Top-up",
+      "enable": "Enable Stripe payments",
+      "save": "Save",
+      "saved": "Saved successfully",
+      "saveFailed": "Save failed"
     }
   },
   "group": {
@@ -1571,19 +2027,24 @@
       "testPartialFailed": "Some models are unavailable",
       "testPartialFailedDescription": "You may want to remove the failed models",
       "testRequestFailed": "Group test failed",
-      "removableSuggestion": "Suggested removals"
+      "removableSuggestion": "Suggested removals",
+      "autoGroupDeleted": "Deleted {deleted} old groups"
     },
     "actions": {
       "autoGroup": "Auto Group",
       "aiRoute": "AI Route",
       "aiRouteGroup": "AI Sync Current Group",
-      "aiRouteProgress": "View Progress"
+      "aiRouteProgress": "View Progress",
+      "forceRegroup": "Force Regroup"
     },
     "autoGroup": {
       "confirmTitle": "Confirm Auto Grouping",
       "confirmDescription": "This will delete all non-default groups, then scan all channel models and recreate groups from scratch.\nEach auto-grouping starts fresh without interference from old groups.\nContinue?",
       "submit": "Start Auto Grouping",
-      "submitting": "Grouping..."
+      "submitting": "Grouping...",
+      "forceConfirmTitle": "Confirm Force Regroup",
+      "forceConfirmDescription": "This ignores the current grouping state, deletes all non-default groups, and rescans every channel model.\nThis cannot be undone.\nContinue?",
+      "forceSubmit": "Force Regroup"
     },
     "aiRoute": {
       "table": {
@@ -2482,7 +2943,11 @@
       "jumpToReference": "Go to reference",
       "derivedReferences": "+{count} managed channels"
     },
-    "selectRequired": "Please select a proxy configuration."
+    "selectRequired": "Please select a proxy configuration.",
+    "createFailed": "Failed to create proxy",
+    "updateFailed": "Failed to update proxy",
+    "deleteFailed": "Failed to delete proxy",
+    "testFailed": "Proxy test failed"
   },
   "subscription": {
     "tabs": {
