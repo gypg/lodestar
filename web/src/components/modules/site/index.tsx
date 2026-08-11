@@ -1844,16 +1844,27 @@ export function Site() {
           onFilterChange={handleCheckinFilterChange}
         />
 
-        <div className="flex justify-end">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <Button
-            variant="outline"
+            variant="default"
             size="sm"
             className="rounded-xl"
-            onClick={() => setShowAutomation((v) => !v)}
+            onClick={openCreateSiteDialog}
           >
-            <Settings className="size-4" />
-            {showAutomation ? '隐藏自动化设置' : '自动化设置'}
+            <Plus className="size-4" />
+            新增站点
           </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-xl"
+              onClick={() => setShowAutomation((v) => !v)}
+            >
+              <Settings className="size-4" />
+              {showAutomation ? '隐藏自动化设置' : '自动化设置'}
+            </Button>
+          </div>
         </div>
 
         {showAutomation && <SettingSiteAutomation />}
