@@ -317,9 +317,20 @@ func runGroupModelTest(ctx context.Context, group *appmodel.Group, channels map[
 	}
 
 	if progress != nil {
+		// The terminal record must be rebuilt from the summary, not from
+		// `progress`. `progress` is never mutated (see appendGroupTestResult:
+		// mutating it would race with the clone StartGroupModelTest takes right
+		// after launching this goroutine), so cloning it yields Results=[] and
+		// Completed=0. Publishing that clone used to wipe the per-item verdicts
+		// that had been accumulating in the store — and the UI derives PASS/FAIL
+		// by filtering Results, so "no results" rendered as "all models
+		// available" even when every item had answered 404.
 		finalProgress := cloneGroupModelProgress(progress)
 		finalProgress.Done = true
 		finalProgress.Passed = summary.Passed
+		finalProgress.Completed = summary.Completed
+		finalProgress.Total = summary.Total
+		finalProgress.Results = append([]GroupModelTestResult(nil), summary.Results...)
 		storeGroupModelProgress(&finalProgress)
 		persistGroupTestResult(&finalProgress, group.Name, time.Now())
 	}
@@ -490,9 +501,14 @@ func appendGroupTestResult(summary *GroupModelTestSummary, progress *GroupModelT
 		return
 	}
 
+	// Copy the accumulated results off the summary rather than appending to a
+	// clone of `progress`. `progress` is intentionally never mutated, so
+	// `append(clone.Results, result)` produced a record holding only the single
+	// newest result — Completed stuck at 1 for the whole run regardless of how
+	// many items had finished.
 	next := cloneGroupModelProgress(progress)
-	next.Results = append(next.Results, result)
-	next.Completed = len(next.Results)
+	next.Results = append([]GroupModelTestResult(nil), summary.Results...)
+	next.Completed = summary.Completed
 	next.Passed = summary.Passed
 	storeGroupModelProgress(&next)
 }
