@@ -223,9 +223,12 @@ curl https://your-lodestar-domain/v1/chat/completions \
 ## 📖 文档
 
 - [部署指南](docs/DEPLOY.md) — Docker / 二进制 / 源码构建 + 环境变量 + 反代配置
-- [运维手册](docs/STATUS.md) — 运行状态 + 健康检查 + 日志
-- [项目宪章](docs/CHARTER.md) — 愿景 + 技术选型 + 设计原则
-- [Release Notes](https://github.com/gypg/lodestar/releases) — 版本变更记录
+- [监控手册](docs/MONITORING.md) — 健康检查 + 指标 + 告警
+- [备份指南](docs/BACKUP.md) — 数据库与配置备份策略
+- [灾难恢复](docs/DISASTER-RECOVERY.md) — 故障场景与恢复步骤
+- [技术债](docs/TECHNICAL-DEBT.md) — 已知取舍与后续改进项
+- [变更日志](CHANGELOG.md) — 版本变更记录
+- [Release Notes](https://github.com/gypg/lodestar/releases) — 发布说明
 
 ## 🏗️ 架构
 

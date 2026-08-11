@@ -23,6 +23,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🐛 Bug Fixes
 
 #### Critical (Production Impact)
+- **Channel cache poisoning**: A single viewer-role `GET /api/v1/channel/list` call
+  permanently rewrote every channel's base URL to `https://***` in the live channel
+  cache. `chCache` stores `model.Channel` by value, so the copies returned by
+  `Get`/`List` still carried slice headers aliasing the cache's backing array, and
+  the viewer redaction mutated those elements in place. The relay resolves upstreams
+  from that same cache, so affected channels stayed broken for every role until
+  restart. Fixed by replacing the `BaseUrls` slice instead of mutating its elements.
+- **Group model test reported false success**: `appendGroupTestResult` folded
+  per-member results with any-passed instead of all-passed, so a group where one
+  member returned `upstream error: 404` still showed PASS. Single-member tests
+  cannot distinguish the two, which is why existing tests stayed green.
 - **BUG-001**: Reject NaN/Inf in billing expressions to prevent silent free charges
 - **BUG-002**: Fix subscription purchase race condition allowing negative balance via atomic `WHERE balance >= price` guard
 - **BUG-003**: Enable media endpoint billing (was charging $0) via parameter-based expressions
@@ -53,7 +64,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix TPM bucket charging by actual token usage (was under-counting)
 - Roll back transactions on every early return path
 
+#### Site Management
+- **Username/password site accounts**: These accounts could never sync or check in.
+  NewAPI-style logins authenticate with a session cookie plus a `new-api-user`
+  header and return no `access_token`, which the credential path treated as
+  success while storing an empty token.
+- **Managed channel projection**: Masked and disabled tokens were counted as usable
+  keys, so a group whose only token was masked produced an enabled channel with
+  zero keys — every request failed while the UI showed it healthy. Channel keys are
+  now rebuilt per route bucket, since `op.ChannelCreate` cascades the insert and
+  writes generated IDs back into the slice; sharing one slice handed the second
+  channel keys already owned by the first.
+- **Add Site entry point**: Add a persistent "新增站点" button. Only the empty state
+  had one, so after the first site there was no way to add another.
+
+#### AI Routing
+- Register `GET /api/v1/channel/:id`. The AI route config refetches a channel by id
+  to auto-fill `base_url`/`api_key` when the cached list entry has neither, but the
+  route was never registered — that fallback could only ever 404.
+- Unblock AI routing for single-group setups.
+- Confirm local-mode AI route config saves automatically and add a visible
+  confirmation line, since the absent Save button read as a broken form.
+
 #### Frontend & i18n
+- Show the real version number in the ops center. The root cause was in CI, not the
+  UI: `docker.yml` passed `APP_VERSION=dev-<40-char sha>` into `conf.Version` via
+  ldflags. Also fixes `BUILD_TIME`, a Dockerfile ARG that was never given a value,
+  so every image reported its container start time as its build time.
 - Add 385 missing translation keys and enable i18n reconciliation gate
 - Fix endpoint type column showing internal key paths instead of labels
 - Fix `SiteChannelDialog` crash due to missing `useTranslations` hook
