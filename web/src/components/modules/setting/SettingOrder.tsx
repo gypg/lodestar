@@ -33,7 +33,8 @@ export type SettingItemId =
     | 'route-group-danger'
     | 'image-bed'
     | 'twofa'
-    | 'billing-expr';
+    | 'billing-expr'
+    | 'ai-route';
 
 export const DEFAULT_SETTING_ORDER: SettingItemId[] = [
     'info',
@@ -55,6 +56,7 @@ export const DEFAULT_SETTING_ORDER: SettingItemId[] = [
     'route-group-danger',
     'twofa',
     'billing-expr',
+    'ai-route',
 ];
 
 export const SETTING_ORDER_STORAGE_KEY = 'lodestar-setting-order';
@@ -134,6 +136,7 @@ export function SettingOrder() {
             'route-group-danger': settingT('routeGroups.title'),
             twofa: settingT('twofa.title'),
             'billing-expr': settingT('billingExpr.title'),
+            'ai-route': settingT('aiRoute.title'),
         };
         return map;
     }, [settingT]);

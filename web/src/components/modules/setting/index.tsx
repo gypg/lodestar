@@ -6,7 +6,7 @@ import {
     Sun, User, Database, RotateCcw, Zap,
     ScrollText, Monitor, RefreshCw, ChevronsUpDown,
     Info, Sparkles, FolderX, Cloud, ShieldAlert, Eraser, Fingerprint, Globe2,
-    Shield,
+    Shield, Bot,
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { SettingAppearance } from './Appearance';
@@ -28,6 +28,7 @@ import { SettingPurgeUnavailableModels } from './PurgeUnavailableModels';
 import { SettingResponseFilter } from './ResponseFilter';
 import { SettingSiteAutomation } from './SiteAutomation';
 import { SettingTwoFA } from './TwoFA';
+import { SettingAIRoute } from './AIRoute';
 import { DEFAULT_SETTING_ORDER } from './SettingOrder';
 
 type SettingItemDef = {
@@ -56,6 +57,7 @@ const SETTING_ITEM_DEFS: SettingItemDef[] = [
     { id: 'purge-unavailable', icon: <Eraser className="h-5 w-5" />,           titleKey: 'purgeUnavailable.title', component: <SettingPurgeUnavailableModels /> },
     { id: 'route-group-danger',icon: <FolderX className="h-5 w-5" />,          titleKey: 'routeGroups.title',    component: <SettingRouteGroupDanger /> },
     { id: 'twofa',           icon: <Shield className="h-5 w-5" />,            titleKey: 'twofa.title',          component: <SettingTwoFA /> },
+    { id: 'ai-route',          icon: <Bot className="h-5 w-5" />,               titleKey: 'aiRoute.title',        component: <SettingAIRoute /> },
 ];
 
 const SETTING_ITEM_MAP = new Map<string, SettingItemDef>(
