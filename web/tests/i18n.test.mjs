@@ -10,7 +10,7 @@ const { analyze } = require('./i18n-keys.cjs');
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const webRoot = path.resolve(__dirname, '..');
-const localeDir = path.join(webRoot, 'public', 'locale');
+const localeDir = path.join(webRoot, 'src', 'locales');
 const localeFiles = ['en.json', 'zh_hans.json', 'zh_hant.json'];
 
 function readJson(filePath) {

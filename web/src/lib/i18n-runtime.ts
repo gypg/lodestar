@@ -1,6 +1,6 @@
-import enMessages from '../../public/locale/en.json';
-import zhHansMessages from '../../public/locale/zh_hans.json';
-import zhHantMessages from '../../public/locale/zh_hant.json';
+import enMessages from '../locales/en.json';
+import zhHansMessages from '../locales/zh_hans.json';
+import zhHantMessages from '../locales/zh_hant.json';
 import { normalizeLocale, useSettingStore, type Locale } from '@/stores/setting';
 
 const LOCALE_MESSAGES: Record<Locale, Record<string, unknown>> = {

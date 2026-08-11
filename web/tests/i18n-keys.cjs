@@ -13,7 +13,7 @@ const ts = require('typescript');
 
 const webRoot = path.join(__dirname, '..');
 const srcRoot = path.join(webRoot, 'src');
-const localeDir = path.join(webRoot, 'public', 'locale');
+const localeDir = path.join(webRoot, 'src', 'locales');
 const LOCALE_FILES = ['zh_hans.json', 'zh_hant.json', 'en.json'];
 
 const TRANSLATOR_FACTORIES = new Set(['useTranslations', 'getTranslations']);

@@ -5,9 +5,9 @@ import { NextIntlClientProvider } from 'next-intl';
 import { DEFAULT_TIME_ZONE, normalizeLocale, normalizeTimeZone, useSettingStore, type Locale } from '@/stores/setting';
 import { registerSettingStoreGetter } from '@/lib/utils';
 
-import zh_hansMessages from '../../public/locale/zh_hans.json';
-import zh_hantMessages from '../../public/locale/zh_hant.json';
-import enMessages from '../../public/locale/en.json';
+import zh_hansMessages from '../locales/zh_hans.json';
+import zh_hantMessages from '../locales/zh_hant.json';
+import enMessages from '../locales/en.json';
 
 const messages: Record<Locale, typeof zh_hansMessages> = {
     'zh-Hans': zh_hansMessages,
