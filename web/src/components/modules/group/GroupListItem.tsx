@@ -46,7 +46,6 @@ import {
     MODE_LABELS,
     endpointTypeLabelKey,
     normalizeEndpointType,
-    supportsGroupTest,
 } from './utils';
 import { getModelIcon } from '@/lib/model-icons';
 import {
@@ -122,7 +121,9 @@ function EditDialogContent({
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
-                        {group.id && supportsGroupTest(group.endpoint_type) ? (
+                        {/* See the note in Card.tsx: AI routing works for every
+                            endpoint type, so it must not reuse the group-test gate. */}
+                        {group.id ? (
                             <AIRouteButton
                                 scope="group"
                                 groupId={group.id}

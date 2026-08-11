@@ -174,9 +174,17 @@ func generateAIRouteForGroup(
 	}
 
 	targetPromptEndpointType := detectAIRoutePromptEndpointTypeForGroup(*g)
-	routes, err := generateAIRoutesFromModelList(ctx, modelInputs, g.Name, targetPromptEndpointType, tracker)
-	if err != nil {
-		return nil, err
+	// Tolerate partial batch failures the same way generateAIRouteTable does.
+	// generateAIRoutesFromModelList returns valid routes TOGETHER with a non-nil
+	// error when only some buckets failed, so aborting on any error meant one
+	// flaky batch killed the whole group run while the table run survived it.
+	// Only give up when nothing usable came back.
+	routes, routesErr := generateAIRoutesFromModelList(ctx, modelInputs, g.Name, targetPromptEndpointType, tracker)
+	if routesErr != nil {
+		if len(routes) == 0 {
+			return nil, routesErr
+		}
+		log.Warnf("ai route group partial failure, continuing with %d routes: group_id=%d err=%v", len(routes), g.ID, routesErr)
 	}
 	if tracker != nil {
 		tracker.SetValidatingRoutes(len(routes))

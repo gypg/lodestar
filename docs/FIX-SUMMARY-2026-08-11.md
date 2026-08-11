@@ -5,15 +5,38 @@
 | 问题 | 优先级 | 状态 | Commit | 说明 |
 |------|--------|------|--------|------|
 | #1 站点管理重复添加 | P0 | ✅ 已修复 | 2bebc38 | 添加了持久的"新增站点"按钮 |
-| #2 用户名密码验证 | P1 | ⏳ 待分析 | - | 需后端支持 |
-| #3 密钥显示不一致 | P1 | ⏳ 待排查 | - | 需数据库审计 |
-| #4 AI路由分组 | P1 | ⏳ 待分析 | - | 需前端调试 |
+| #2 用户名密码验证 | P1 | ⏳ 待分析 | - | Agent 调查无果：后端无密码登录端点 |
+| #3 密钥显示不一致 | P1 | ✅ 已修复 | 185c390 | **根因**：createSiteAccount 从未调用 ProjectAccount |
+| #4 AI路由分组 | P1 | ⏳ 待修复 | - | Agent 已诊断 6 个根因（详见下方） |
 | #5 AI路由配置保存 | P1 | ✅ 已修复 | 3a7faf8 | 非缺陷，本站模式本来就自动保存；补了"已自动保存"绿色确认行 |
-| #6 分组测试假成功 | P0 | ✅ 已修复 | 2848398 | **已复现并修好**：any-passed 折叠错误 |
-| #7 使用日志缺失 | P2 | ⏳ 待排查 | - | 中间件问题 |
+| #6 分组测试假成功 | P0 | ✅ 已修复 | 65496ef | **已复现并修好**：any-passed 折叠错误 |
+| #7 使用日志缺失 | P2 | ⏳ 待排查 | - | Agent 调查无果：日志持久化逻辑正常 |
 | #8 版本信息显示 | P3 | ✅ 已修复 | 3a7faf8 | 根因在构建，不在 UI：docker.yml 把 40 位 sha 当版本号 |
 
 ## 已确认根因（有代码证据）
+
+### #3 密钥显示不一致 — 已修复
+
+`internal/server/handlers/site_handler.go:343` 的 `createSiteAccount` 从未调用
+`ProjectAccount`，但 `updateSiteAccount`（:378）和 `enableSiteAccount` 都调用了：
+
+```go
+// createSiteAccount — 缺失
+if err := dal.CreateSiteAccount(ctx, &account); err != nil {
+    return nil, err
+}
+return &account, nil   // 直接返回，没有 ProjectAccount
+
+// updateSiteAccount — 有
+if err := dal.UpdateSiteAccount(ctx, &updates); err != nil {
+    return nil, err
+}
+go op.ProjectAccount(context.Background(), accountID)   // 投影到渠道
+```
+
+所以通过站点管理添加的账号不会生成 managed channels，直到你编辑或切换启用状态。
+
+修复：在 `createSiteAccount` 返回前加 `go op.ProjectAccount(..., account.ID)`。
 
 ### #6 分组测试假成功 — 已复现
 
@@ -37,6 +60,84 @@ per-item: passed=1 failed=1 | summary.Passed=true      ← 用户看到的 PASS
 单成员测试分辨不出 any-passed 和 all-passed，所以原有测试全绿也没发现。
 另外两个 error 分支（`StartGroupModelTest` / `StartDraftGroupModelTest`）
 克隆了进行中的 progress 但没清 `Passed`，panic 分支清了 —— 也一并补上。
+
+**⚠️ 2848398 修得不完整** —— 用户的实际场景是「只有一个成员且它 404」，
+any-passed 根本解释不了。第二个根因（65496ef 修复）：
+
+`progress` 是**故意不 mutate** 的（`StartGroupModelTest` 会在另一个 goroutine
+里 clone 它，mutate 会 race）。但两个写入路径都是 clone 后往 clone 上 append：
+
+```go
+// runGroupModelTest 终态发布 —— clone 的是仍然空的 progress
+finalProgress := cloneGroupModelProgress(progress)   // Results=[] Completed=0
+finalProgress.Passed = summary.Passed
+storeGroupModelProgress(&finalProgress)   // ← 把累积的逐项结果全冲掉了
+```
+
+前端 toast **不读 `progress.passed`**，而是自己过滤 `results`
+（`Card.tsx:318`、`GroupListItem.tsx:443`）：
+
+```ts
+failedResults = (testProgress.results ?? []).filter((r) => !r.passed)
+if (failedResults.length === 0) toast.success('分组内模型均可用')
+```
+
+空数组 → 过滤结果也是空 → 无论上游返回什么都显示「分组内模型均可用」。
+同一个数组还喂给逐模型可用性列表和「移除失败模型」，所以两者一起瞎了。
+draft 路径的终态块本来就是从 summary 重建 Results 的，所以只有已保存分组会误报。
+
+复现（单成员 404 分组，修复前失败）：
+
+```
+group test result: item_id=1 channel_id=930001 passed=false status=404 message=upstream error: 404
+progress.Results len = 0, want 1
+```
+
+变异测试 3 个变异全杀。其中「还原增量累积」这个变异在我第一版测试下**存活**
+（只观察终态看不到它），补了直接测 `appendGroupTestResult` 的用例才杀掉。
+
+### #4 AI 路由分组不可用 — 6 个独立根因（待修）
+
+配置键**全部对得上**（`ai_route_base_url` / `_api_key` / `_model` 写读一致），
+原先怀疑的「写读键名不匹配」已排除。按可能性排序：
+
+1. **分组列表页根本没有分组级 AI 路由按钮**。`group/index.tsx:88,110` 两处
+   `<AIRouteButton />` 都不传 `scope`，默认是 `'table'`（`AIRouteButton.tsx:104`），
+   点了是重算**整张路由表**。分组级的那个（`AI同步当前分组`）只存在于分组详情
+   弹窗里（`Card.tsx:90`、`GroupListItem.tsx:126`）。用户说「分组界面的 AI 路由
+   无法使用」很可能就是这个 —— 功能不在他找的地方。
+
+2. **非 chat 类 endpoint 的分组级按钮直接不渲染**。`Card.tsx:89` /
+   `GroupListItem.tsx:125` 用了 `supportsGroupTest(group.endpoint_type)`，
+   embeddings / rerank / image_generation 等一律不显示，没有禁用态也没有提示。
+   后端其实全支持（`route_prompt.go:219-232`）。这是把「分组测试」的门错用到
+   了「AI 路由」上。
+
+3. **分组作用域对批次部分失败零容忍**。`route.go:177-180` 拿到 err 就 return，
+   而表作用域（`:227-230`）是 `if err != nil && len(routes) == 0` 才放弃。
+   `generateAIRoutesFromModelList` 在部分失败时会**同时返回有效 routes 和
+   非 nil error**（`:494-496`），所以一个批次抽风就能弄死分组任务、表任务却没事。
+
+4. **`-free` 自动改名必然打断分组名匹配**。`selectAIRouteForGroup`
+   （`route_validate.go:18-24`）是精确不区分大小写相等，没有模糊回退；而
+   `normalizeAIRouteRequestedModel`（`:161-169`）会在候选上游里含 `free`/`公益`
+   时给名字加 `-free` 后缀。分组叫 `gpt-4o`、上游有 `gpt-4o-free` → 路由被改名
+   成 `gpt-4o-free` → 匹配失败报「AI 返回结果未包含目标分组对应路由」。
+   表作用域有 `autoCorrectAIRouteTableRoutes` 兜底，分组作用域没有。
+
+5. **`SettingAIRoute` 是孤儿组件**。`setting/AIRoute.tsx:18` 定义后全仓库无人
+   import，而它是唯一写 `ai_route_group_id` / `_timeout_seconds` /
+   `_parallelism` / `_services` 的 UI。`AIRouteButton.tsx:230` 的报错
+   「请先在设置中选择单分组 AI 路由默认目标分组」指向一个不存在的设置页。
+
+6. **`GET /api/v1/channel/:id` 不存在**。`AIRouteConfig.tsx:234` 会请求它，
+   `handlers/channel.go:26-99` 没注册裸 `/:id` GET。但触发条件苛刻
+   （需要 `base_urls` 和 `keys` 同时为空，而 `BaseUrls` 是 json 列总是有值），
+   实际很少走到，走到就是必然 404。
+
+**待办**：需要用户确认点的是哪个按钮（工具栏=表作用域 / 弹窗内=分组作用域），
+以及目标分组的 `endpoint_type`。查 `/api/v1/route/ai-generate/history` 的
+`error_reason` 能直接区分根因 3、4 和「配置不完整」。
 
 ### #8 版本号显示成一长串英文 — 根因在 CI，不在前端
 

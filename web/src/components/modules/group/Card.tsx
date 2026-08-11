@@ -86,7 +86,12 @@ function EditDialogContent({
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
-{group.id && supportsGroupTest(group.endpoint_type) ? (
+{/* AI routing supports every endpoint type (see orderedAIRoutePromptEndpointTypes
+    in internal/op/airoute/route_prompt.go). The supportsGroupTest() gate that
+    used to be here belongs to group *testing* — reusing it silently hid this
+    button for embeddings / rerank / image / audio groups, with no disabled
+    state and no explanation. */}
+                        {group.id ? (
                             <AIRouteButton
                                 scope="group"
                                 groupId={group.id}

@@ -15,13 +15,45 @@ import (
 
 // ---------- Validation & normalization ----------
 
+// selectAIRouteForGroup finds the route that belongs to the target group.
+//
+// Exact (case-insensitive) match is tried first. The fallback exists because
+// normalizeAIRouteRequestedModel rewrites `name` to `name-free` whenever the
+// candidate upstreams include a free-tier model, and it runs BEFORE this
+// lookup. Without the fallback, a group named `gpt-4o` whose upstreams include
+// `gpt-4o-free` could never match its own route — the run always failed with
+// "AI 返回结果未包含目标分组对应路由" even though the route was right there.
+// Only the tier suffix is tolerated, so unrelated groups still cannot collide.
 func selectAIRouteForGroup(group model.Group, routes []model.AIRouteEntry) (model.AIRouteEntry, error) {
+	groupName := strings.TrimSpace(group.Name)
+
 	for _, route := range routes {
-		if strings.EqualFold(strings.TrimSpace(route.RequestedModel), strings.TrimSpace(group.Name)) {
+		if strings.EqualFold(strings.TrimSpace(route.RequestedModel), groupName) {
 			return route, nil
 		}
 	}
+
+	// Fallback: compare with the auto-added tier suffix stripped off both sides.
+	for _, route := range routes {
+		if strings.EqualFold(stripAIRouteTierSuffix(route.RequestedModel), stripAIRouteTierSuffix(groupName)) {
+			log.Warnf("ai route group matched after stripping tier suffix: group=%q route=%q", groupName, strings.TrimSpace(route.RequestedModel))
+			return route, nil
+		}
+	}
+
 	return model.AIRouteEntry{}, fmt.Errorf("AI 返回结果未包含目标分组对应路由")
+}
+
+// stripAIRouteTierSuffix removes a trailing `-free` / `-公益` tier marker.
+// Mirrors aiRouteHasTierSuffix so the two stay in agreement.
+func stripAIRouteTierSuffix(name string) string {
+	trimmed := strings.TrimSpace(name)
+	for _, suffix := range []string{"-free", "-公益"} {
+		if len(trimmed) > len(suffix) && strings.EqualFold(trimmed[len(trimmed)-len(suffix):], suffix) {
+			return trimmed[:len(trimmed)-len(suffix)]
+		}
+	}
+	return trimmed
 }
 
 func validateAIRouteItems(route model.AIRouteEntry, inputModelSet map[int]map[string]struct{}) ([]model.GroupItem, error) {
