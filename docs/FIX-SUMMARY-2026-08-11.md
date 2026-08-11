@@ -8,10 +8,48 @@
 | #2 用户名密码验证 | P1 | ⏳ 待分析 | - | 需后端支持 |
 | #3 密钥显示不一致 | P1 | ⏳ 待排查 | - | 需数据库审计 |
 | #4 AI路由分组 | P1 | ⏳ 待分析 | - | 需前端调试 |
-| #5 AI路由配置保存 | P1 | ⏳ UX优化 | - | 本站模式已自动保存,需提示 |
-| #6 分组测试假成功 | P0 | ⏳ 待修复 | - | 后端逻辑问题 |
+| #5 AI路由配置保存 | P1 | ✅ 已修复 | 3a7faf8 | 非缺陷，本站模式本来就自动保存；补了"已自动保存"绿色确认行 |
+| #6 分组测试假成功 | P0 | ✅ 已修复 | 2848398 | **已复现并修好**：any-passed 折叠错误 |
 | #7 使用日志缺失 | P2 | ⏳ 待排查 | - | 中间件问题 |
-| #8 版本信息显示 | P3 | ⏳ 待优化 | - | 构建脚本 |
+| #8 版本信息显示 | P3 | ✅ 已修复 | 3a7faf8 | 根因在构建，不在 UI：docker.yml 把 40 位 sha 当版本号 |
+
+## 已确认根因（有代码证据）
+
+### #6 分组测试假成功 — 已复现
+
+`internal/helper/group_probe.go` 的 `appendGroupTestResult` 用的是
+**any-passed** 而不是 all-passed：
+
+```go
+if result.Passed {
+    summary.Passed = true      // 一个成功就把整组标成通过
+}
+```
+
+复现（两成员分组，一个正常 + 一个 404）：
+
+```
+group test result: item_id=1 ... passed=true  status=200 message=ok
+group test result: item_id=2 ... passed=false status=404 message=upstream error: 404
+per-item: passed=1 failed=1 | summary.Passed=true      ← 用户看到的 PASS
+```
+
+单成员测试分辨不出 any-passed 和 all-passed，所以原有测试全绿也没发现。
+另外两个 error 分支（`StartGroupModelTest` / `StartDraftGroupModelTest`）
+克隆了进行中的 progress 但没清 `Passed`，panic 分支清了 —— 也一并补上。
+
+### #8 版本号显示成一长串英文 — 根因在 CI，不在前端
+
+i18n key 都在（`ops.system.fields.version` = 版本），`conf.Version` 默认值
+也是正常的 `v2.1.4`。问题是 `.github/workflows/docker.yml`：
+
+```yaml
+APP_VERSION=dev-${{ github.sha }}      # → dev-<40位十六进制>
+```
+
+这个值通过 `-ldflags` 写进 `conf.Version`，运维中心原样显示。
+顺带发现 `BUILD_TIME` 这个 Dockerfile ARG 从来没人传值，
+所以每个镜像的构建时间其实是 `init()` 里的容器启动时间。
 
 ---
 
