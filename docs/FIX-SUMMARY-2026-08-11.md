@@ -6,7 +6,7 @@
 |------|--------|------|--------|------|
 | #1 站点管理重复添加 | P0 | ✅ 已修复 | 2bebc38 | 添加了持久的"新增站点"按钮 |
 | #2 用户名密码验证 | P1 | ❓ 待复现 | - | **原判断有误**：密码登录后端已实现，需用户提供平台+报错 |
-| #3 密钥显示不一致 | P1 | ✅ 已修复 | 185c390 | **根因**：createSiteAccount 从未调用 ProjectAccount |
+| #3 密钥显示不一致 | P1 | ⚠️ 部分无效 | 185c390, 5c69589 | **185c390 是 no-op**；真因：auto_sync=false 或同步失败 → 无 token → 无投影；masked-token 也会显示有 key 但渠道 0 key |
 | #4 AI路由分组 | P1 | ⏳ 待修复 | - | Agent 已诊断 6 个根因（详见下方） |
 | #5 AI路由配置保存 | P1 | ✅ 已修复 | 3a7faf8 | 非缺陷，本站模式本来就自动保存；补了"已自动保存"绿色确认行 |
 | #6 分组测试假成功 | P0 | ✅ 已修复 | 65496ef | **已复现并修好**：any-passed 折叠错误 |
@@ -15,28 +15,57 @@
 
 ## 已确认根因（有代码证据）
 
-### #3 密钥显示不一致 — 已修复
+### #3 密钥显示不一致 — 185c390 是 no-op，已证伪
 
-`internal/server/handlers/site_handler.go:343` 的 `createSiteAccount` 从未调用
-`ProjectAccount`，但 `updateSiteAccount`（:378）和 `enableSiteAccount` 都调用了：
+**Agent 诊断正确，我的修复无效。** `185c390` 在 `createSiteAccount` 后添加的
+`ProjectAccount` 调用是 no-op：
 
 ```go
-// createSiteAccount — 缺失
-if err := dal.CreateSiteAccount(ctx, &account); err != nil {
-    return nil, err
+// internal/sitesync/project.go:55-64
+tokenGroups := make(map[string][]model.SiteToken)
+for _, token := range account.Tokens {
+    // 新创建的账号 account.Tokens 是空数组
 }
-return &account, nil   // 直接返回，没有 ProjectAccount
 
-// updateSiteAccount — 有
-if err := dal.UpdateSiteAccount(ctx, &updates); err != nil {
-    return nil, err
+// project.go:116-121
+desiredKeys := make([]string, 0, len(groupMap))
+for groupKey, group := range groupMap {
+    if len(tokenGroups[groupKey]) > 0 && !group.ProjectionDisabled {
+        desiredKeys = append(desiredKeys, groupKey)
+    }
 }
-go op.ProjectAccount(context.Background(), accountID)   // 投影到渠道
+// tokenGroups 为空 → desiredKeys 为空 → 没有任何投影发生
 ```
 
-所以通过站点管理添加的账号不会生成 managed channels，直到你编辑或切换启用状态。
+新创建的 `SiteAccount` 只有凭据字段，**没有 tokens**（API 类型 omits 该字段，
+`op.SiteAccountCreate` 只插入账号行）。所以 `ProjectAccount` 遍历 `account.Tokens`
+时是空数组 → `tokenGroups` 空 → `desiredKeys` 空 → 不创建任何 channel 或 binding。
 
-修复：在 `createSiteAccount` 返回前加 `go op.ProjectAccount(..., account.ID)`。
+**真正创建 managed channel 的路径** 是另一个 goroutine（已存在）：
+
+```go
+// internal/server/handlers/site.go:373-381（185c390 之前就有）
+if account.Enabled && account.AutoSync {
+    safe.Go("site-account-create-sync", func() {
+        if _, err := sitesvc.SyncAccount(ctx, accountID); err != nil {
+```
+
+`SyncAccount` → `persistSyncSnapshot`（写 `site_tokens`）→ `ProjectAccount` → 创建
+channel。**真正的门控是 `account.AutoSync`**，默认 `true`（前端 `:150`），但用户可关。
+
+**两个独立的真实缺陷**（5c69589 有复现测试）：
+
+1. **masked token 被计数但不可用。** `buildChannelKeys` 丢弃 masked token
+   (`project.go:354-366`)，但 `enabled` 判断用的是 `len(groupTokens) > 0` (`:135`)
+   包含 masked token → 生成**启用的 0-key 渠道**。站点管理显示"1 key"（`KeyCount`
+   包含 masked），渠道页显示"0/0"，每个请求都失败。
+   
+2. **pendingKeyGroups 过滤器排除错误。** `site-channel/index.tsx:2047` 用
+   `!group.has_keys` 过滤，但 `has_keys` 包含 masked token，所以 masked-only
+   的分组被排除在"待建 Key"之外 → 用户看不到快捷创建按钮。正确的判断是
+   `group.enabled_key_count === 0`（警告横幅已经用了这个）。
+
+**需要回滚 185c390** 并修这两个。
 
 ### #6 分组测试假成功 — 已复现
 
