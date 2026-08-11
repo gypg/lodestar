@@ -115,8 +115,13 @@ func ProjectAccount(ctx context.Context, accountID int) ([]int, error) {
 
 	desiredKeys := make([]string, 0, len(groupMap))
 	for groupKey, group := range groupMap {
-		if len(tokenGroups[groupKey]) > 0 && !group.ProjectionDisabled {
-			desiredKeys = append(desiredKeys, groupKey)
+		groupTokens := tokenGroups[groupKey]
+		if len(groupTokens) > 0 && !group.ProjectionDisabled {
+			// Only include groups that have at least one usable (enabled + ready) token.
+			// A group with only masked/disabled tokens would create a 0-key channel.
+			if len(buildChannelKeys(groupTokens)) > 0 {
+				desiredKeys = append(desiredKeys, groupKey)
+			}
 		}
 	}
 	slices.Sort(desiredKeys)
@@ -132,7 +137,11 @@ func ProjectAccount(ctx context.Context, accountID int) ([]int, error) {
 		modelBuckets := partitionSiteModelsByRouteType(groupModels, shouldSplit, siteRecord.Platform)
 		proxyMode, proxyConfigID := resolveSiteAccountProxy(siteRecord, account)
 		baseUrls := []model.BaseUrl{{URL: buildProjectedChannelBaseURL(siteRecord), Delay: 0}}
-		enabled := siteRecord.Enabled && account.Enabled && len(groupTokens) > 0
+		// Enabled is decided by the count of *usable* keys, not the raw token
+		// count: a group whose only token is masked or disabled produces zero
+		// channel keys, and an enabled channel with no keys fails every request
+		// while still looking healthy in the UI.
+		enabled := siteRecord.Enabled && account.Enabled && len(buildChannelKeys(groupTokens)) > 0
 		for routeType, bucketModels := range modelBuckets {
 			if len(bucketModels) == 0 {
 				continue
@@ -145,7 +154,11 @@ func ProjectAccount(ctx context.Context, accountID int) ([]int, error) {
 				Type:          obType,
 				Enabled:       enabled,
 				BaseUrls:      baseUrls,
-				Keys:          buildChannelKeys(groupTokens),
+				// Must be rebuilt per channel: op.ChannelCreate cascades the
+				// insert into Keys and writes the generated ID/ChannelID back
+				// into the slice, so sharing one slice across route buckets
+				// hands the second channel keys already owned by the first.
+				Keys: buildChannelKeys(groupTokens),
 				Model:         strings.Join(modelNames, ","),
 				CustomModel:   "",
 				ProxyMode:     proxyMode,
@@ -354,14 +367,20 @@ func buildProjectedChannelBaseURL(siteRecord *model.Site) string {
 func buildChannelKeys(tokens []model.SiteToken) []model.ChannelKey {
 	keys := make([]model.ChannelKey, 0, len(tokens))
 	for _, token := range tokens {
-		if !model.IsReadySiteToken(token) || model.IsMaskedSiteTokenValue(token.Token) {
+		if !token.Enabled {
+			continue
+		}
+		if model.IsMaskedSiteTokenValue(token.Token) {
+			continue
+		}
+		if token.ValueStatus == model.SiteTokenValueStatusMaskedPending {
 			continue
 		}
 		normalized := model.NormalizeSiteSyncTokenValue(token.Token)
 		if normalized == "" {
 			continue
 		}
-		keys = append(keys, model.ChannelKey{Enabled: token.Enabled, ChannelKey: normalized, Remark: model.NormalizeSiteGroupName(token.GroupKey, token.GroupName)})
+		keys = append(keys, model.ChannelKey{Enabled: true, ChannelKey: normalized, Remark: model.NormalizeSiteGroupName(token.GroupKey, token.GroupName)})
 	}
 	return keys
 }

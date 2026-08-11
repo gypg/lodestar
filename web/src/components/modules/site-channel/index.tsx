@@ -2044,7 +2044,7 @@ function SiteAccountPanel({
     const activeGroupLabel = activeGroup ? (activeGroup.group_name || activeGroup.group_key) : '全部分组';
     const activeQuickFilterCount = panelPreferences.quickFilters.length;
     const pendingKeyGroups = useMemo(
-        () => visibleGroups.filter((group) => !group.has_keys),
+        () => visibleGroups.filter((group) => group.enabled_key_count === 0),
         [visibleGroups],
     );
     const projectedGroups = useMemo(
