@@ -150,15 +150,15 @@ func ProjectAccount(ctx context.Context, accountID int) ([]int, error) {
 			modelNames := extractSiteModelNames(bucketModels)
 			bindingKey := compositeBindingKey(groupKey, obType, shouldSplit)
 			channelPayload := model.Channel{
-				Name:          buildManagedChannelName(siteRecord, account, group, obType),
-				Type:          obType,
-				Enabled:       enabled,
-				BaseUrls:      baseUrls,
+				Name:     buildManagedChannelName(siteRecord, account, group, obType),
+				Type:     obType,
+				Enabled:  enabled,
+				BaseUrls: baseUrls,
 				// Must be rebuilt per channel: op.ChannelCreate cascades the
 				// insert into Keys and writes the generated ID/ChannelID back
 				// into the slice, so sharing one slice across route buckets
 				// hands the second channel keys already owned by the first.
-				Keys: buildChannelKeys(groupTokens),
+				Keys:          buildChannelKeys(groupTokens),
 				Model:         strings.Join(modelNames, ","),
 				CustomModel:   "",
 				ProxyMode:     proxyMode,

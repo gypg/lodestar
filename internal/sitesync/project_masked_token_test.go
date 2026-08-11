@@ -92,10 +92,10 @@ func TestBuildChannelKeys_MaskedTokenExclusion(t *testing.T) {
 
 func TestProjectAccount_EnabledWithMaskedTokens(t *testing.T) {
 	tests := []struct {
-		name            string
-		groupTokens     []model.SiteToken
-		siteEnabled     bool
-		accountEnabled  bool
+		name               string
+		groupTokens        []model.SiteToken
+		siteEnabled        bool
+		accountEnabled     bool
 		wantChannelEnabled bool
 	}{
 		{
