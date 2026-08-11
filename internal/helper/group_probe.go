@@ -141,6 +141,11 @@ func StartGroupModelTest(group *appmodel.Group, channels map[int]appmodel.Channe
 			log.Errorf("group model test failed: group=%s progress_id=%s err=%v", group.Name, id, err)
 			failed := cloneGroupModelProgress(progress)
 			failed.Done = true
+			// Passed must be cleared explicitly: the clone carries whatever the
+			// in-flight progress had accumulated, so a run that errored out after
+			// some items already passed would otherwise be published as PASS.
+			// (The panic path above already does this.)
+			failed.Passed = false
 			failed.Message = err.Error()
 			storeGroupModelProgress(&failed)
 			persistGroupTestResult(&failed, group.Name, testStartTime)
@@ -207,6 +212,9 @@ func StartDraftGroupModelTest(endpointType string, items []GroupModelDraftTestIt
 			log.Errorf("draft group model test failed: progress_id=%s err=%v", id, err)
 			failed := cloneGroupModelProgress(progress)
 			failed.Done = true
+			// See the note in StartGroupModelTest: the clone inherits any
+			// Passed=true accumulated before the error, so clear it.
+			failed.Passed = false
 			failed.Message = err.Error()
 			for i := range failed.Results {
 				if clientID, ok := clientIDs[failed.Results[i].ItemID]; ok {
@@ -462,13 +470,21 @@ func recordTestLog(ctx context.Context, endpointType string, item appmodel.Group
 	}
 }
 
+// appendGroupTestResult folds one item's probe result into the running summary.
+//
+// summary.Passed is ALL-passed, not any-passed. It used to be `if result.Passed
+// { summary.Passed = true }`, which meant a single healthy item masked every
+// broken sibling: a group whose second channel answered 404 still reported
+// PASS in the UI while the log line right below said
+// `passed=false status=404 message=upstream error: 404`. A group is only usable
+// if every item in it is usable, so one failure has to sink the whole group.
+//
+// An empty result set stays false — "nothing probed" is not "everything passed".
 func appendGroupTestResult(summary *GroupModelTestSummary, progress *GroupModelTestProgress, result GroupModelTestResult) {
 	log.Infof("group test result: item_id=%d channel_id=%d model=%s passed=%t status=%d message=%s", result.ItemID, result.ChannelID, result.ModelName, result.Passed, result.StatusCode, result.Message)
 	summary.Results = append(summary.Results, result)
 	summary.Completed = len(summary.Results)
-	if result.Passed {
-		summary.Passed = true
-	}
+	summary.Passed = allGroupTestResultsPassed(summary.Results)
 
 	if progress == nil {
 		return
@@ -479,6 +495,20 @@ func appendGroupTestResult(summary *GroupModelTestSummary, progress *GroupModelT
 	next.Completed = len(next.Results)
 	next.Passed = summary.Passed
 	storeGroupModelProgress(&next)
+}
+
+// allGroupTestResultsPassed reports whether every probed item passed.
+// Returns false for an empty slice on purpose (see appendGroupTestResult).
+func allGroupTestResultsPassed(results []GroupModelTestResult) bool {
+	if len(results) == 0 {
+		return false
+	}
+	for _, result := range results {
+		if !result.Passed {
+			return false
+		}
+	}
+	return true
 }
 
 func storeGroupModelProgress(progress *GroupModelTestProgress) {
