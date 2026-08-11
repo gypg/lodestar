@@ -217,7 +217,7 @@ test('formatJsonForCopy returns empty string for empty or missing input', () => 
 // ---- 端点类型标签解析 ----------------------------------------------------
 // 用真实 locale 文件驱动：写死 messages 的话，词条缺失/改名就测不出来。
 const LOCALE = JSON.parse(
-    fs.readFileSync(path.join(process.cwd(), 'public', 'locale', 'zh_hans.json'), 'utf8'),
+    fs.readFileSync(path.join(process.cwd(), 'src', 'locales', 'zh_hans.json'), 'utf8'),
 ) as Record<string, unknown>;
 
 function lookup(root: Record<string, unknown>, dotted: string): string | undefined {
