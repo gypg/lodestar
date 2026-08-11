@@ -12,18 +12,69 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### 🚀 Features
+- **Hub/Sub2API integration**: Real redemption code exchange via `/api/v1/redeem` (P1 #10)
+- **Media endpoints**: Capture upstream usage metrics for images/audio/video endpoints (P1 #11)
+- **Proxy pool**: Channels can now use proxy pools via `proxy_mode` and `proxy_config_id` (R-10)
+- **Deployment automation**: One-click deploy script with polling-based auto-update
 - Validate group routing conditions on save. Unknown keys and operators are now
   rejected at configuration time with an actionable message, instead of silently
   producing a group that can never match a request.
 
 ### 🐛 Bug Fixes
-- Fail closed on unknown condition keys and non-numeric operands, so a typo can no
-  longer turn a rule into an always-true match.
-- Populate every condition key at both relay call sites.
-- Return delta-seconds in `Retry-After` and fix the hourly email quota accounting.
+
+#### Critical (Production Impact)
+- **BUG-001**: Reject NaN/Inf in billing expressions to prevent silent free charges
+- **BUG-002**: Fix subscription purchase race condition allowing negative balance via atomic `WHERE balance >= price` guard
+- **BUG-003**: Enable media endpoint billing (was charging $0) via parameter-based expressions
+- **BUG-004**: Fix double-charging on media endpoints by removing redundant expression recompute
+- **BUG-005**: Fix singleflight failure path executing relay twice, causing 2× upstream calls and malformed response bodies
+- **BUG-006**: Fix infinite CPU spin on single-key channel 401/403 errors due to failed key rewind logic
+- **R-1**: Make empty-stream retry reachable by moving check inside SSE loop (was dead code)
+- **R-4**: Pass attempts to media relay callbacks; failure-then-success chains now visible in logs and stats
+- **R-5**: Fix total attempts quota (was always 0, allowing unlimited retries)
+- **Race condition**: Fix relay metrics worker init order race detected by race detector
+
+#### Security
+- **S-1**: Never delete users unless backup can restore logins
+- **S-2**: Refuse startup without encryption key; unlock `SetString` self-deadlock
+- **S-3**: Narrow trusted proxy list to block X-Forwarded-For spoofing
+- **S-5**: Validate WebDAV base_url against SSRF including redirects
+- **S-6**: Restrict database migration paths to data directory, blocking arbitrary directory creation
+- **S-7**: Add 64MiB limit on site import payloads
+- **S-8**: Add rate limiting to WebAuthn login begin endpoint and 4096-entry session cap
+- Add 1MiB limit on anonymous Stripe webhook payloads
+
+#### Relay & Protocol
+- **R-3**: Return 400/ScopeNone errors as-is instead of swallowing into 502
+- **R-6**: Add Anthropic to adapter fallback logic
+- **R-7**: Stop silently downgrading xhigh/max reasoning effort; clamp Anthropic thinking budget correctly
+- **R-8**: Remove second lockless trend implementation; unify on telemetry.Store
+- **R-9**: Write relay log attempts in same transaction as parent log; reclaim on cleanup
+- Fix TPM bucket charging by actual token usage (was under-counting)
+- Roll back transactions on every early return path
+
+#### Frontend & i18n
+- Add 385 missing translation keys and enable i18n reconciliation gate
+- Fix endpoint type column showing internal key paths instead of labels
+- Fix `SiteChannelDialog` crash due to missing `useTranslations` hook
+- Move locale files out of `public/` to enable cache busting via JS bundle hashing
+- Clear all 18 TypeScript errors and add tsc CI gate
+- Remove `console.error` from `normalizeTimeZone` (Node test runner treated as failure)
+
+#### Other
+- Infer i18n message keys for plain errors in `ErrorWithAppError`
+- Remove unused `const Stub = true` dead symbol from sitesync
 
 ### 📚 Documentation
 - Replace real deployment coordinates (database host, SSH endpoint, production
   domain) with `YOUR_*` placeholders throughout the docs.
 - Fix stale `OCTOPUS_*` environment variable names in the Chinese README; the
   binary reads the `LODESTAR_*` prefix.
+
+### 🔧 CI & Testing
+- Add gofmt gate (fails at 12s if format issues, before tests run)
+- Add tsc gate (TypeScript type checking)
+- Add i18n reconciliation gate (catches missing translation keys)
+- Add mutation testing for billing, relay, and media endpoints
+- Add integration tests for media handler billing wiring
+- Pin usage-log fixtures to relative time for reproducibility
