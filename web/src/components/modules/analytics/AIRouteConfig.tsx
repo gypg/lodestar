@@ -217,7 +217,7 @@ export function AIRouteConfig({ compact }: { compact?: boolean }) {
             saveSingle(SettingKey.AIRouteModel, modelName, initialModel);
             setAutoChannelName(null);
             setChannelLookupFailed(true);
-            toast.warning(t('aiRoute.config.noChannelFound') || '未找到该模型对应的渠道，base_url 和 api_key 需手动填写');
+            toast.warning(t('aiRoute.config.noChannelFound'));
             return;
         }
 
@@ -249,7 +249,7 @@ export function AIRouteConfig({ compact }: { compact?: boolean }) {
             saveSingle(SettingKey.AIRouteModel, modelName, initialModel);
             setAutoChannelName(null);
             setChannelLookupFailed(true);
-            toast.warning(t('aiRoute.config.noChannelFound') || '未找到该模型对应的渠道，base_url 和 api_key 需手动填写');
+            toast.warning(t('aiRoute.config.noChannelFound'));
             return;
         }
 
@@ -264,7 +264,7 @@ export function AIRouteConfig({ compact }: { compact?: boolean }) {
             saveSingle(SettingKey.AIRouteModel, modelName, initialModel);
             setChannelLookupFailed(true);
             toast.warning(
-                t('aiRoute.config.channelIncomplete') || '渠道信息不完整，base_url 或 api_key 为空，请手动补充',
+                t('aiRoute.config.channelIncomplete'),
             );
             return;
         }
@@ -313,7 +313,7 @@ export function AIRouteConfig({ compact }: { compact?: boolean }) {
                         <label className={labelClass}>{t('aiRoute.config.model')}</label>
                         <Select value={model} onValueChange={handleLocalModelSelect}>
                             <SelectTrigger className={cn('rounded-lg', compact && 'h-8')}>
-                                <SelectValue placeholder={t('aiRoute.config.modelPlaceholder') || 'Select a model'} />
+                                <SelectValue placeholder={t('aiRoute.config.modelPlaceholder')} />
                             </SelectTrigger>
                             <SelectContent>
                                 {Object.entries(modelsByProvider).map(([provider, providerModels]) => (
@@ -336,13 +336,13 @@ export function AIRouteConfig({ compact }: { compact?: boolean }) {
                         )}>
                             <Check className={cn('shrink-0 text-emerald-600', compact ? 'h-3 w-3' : 'h-3.5 w-3.5')} />
                             <span className="text-emerald-700 dark:text-emerald-300">
-                                {t('aiRoute.config.autoSaved') || '已自动保存'} · {t('aiRoute.config.autoChannelNote', { name: autoChannelName })}
+                                {t('aiRoute.config.autoSaved')} · {t('aiRoute.config.autoChannelNote', { name: autoChannelName })}
                             </span>
                         </div>
                     )}
                     {channelLookupFailed && (
                         <p className={cn('text-amber-600 dark:text-amber-400', compact ? 'text-[10px]' : 'text-xs')}>
-                            {t('aiRoute.config.switchToExternal') || '请切换到外部模式手动填写 base_url 和 api_key'}
+                            {t('aiRoute.config.switchToExternal')}
                         </p>
                     )}
                 </>
@@ -390,7 +390,7 @@ export function AIRouteConfig({ compact }: { compact?: boolean }) {
                             }}
                         >
                             <SelectTrigger className={cn('rounded-lg', compact && 'h-8')}>
-                                <SelectValue placeholder={t('aiRoute.config.modelPlaceholder') || 'Select a model'} />
+                                <SelectValue placeholder={t('aiRoute.config.modelPlaceholder')} />
                             </SelectTrigger>
                             <SelectContent>
                                 {Object.entries(modelsByProvider).map(([provider, providerModels]) => (

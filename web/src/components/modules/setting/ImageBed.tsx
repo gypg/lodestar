@@ -172,7 +172,7 @@ export function SettingImageBed() {
                     onClick={() => {
                         testConnection.mutate(undefined, {
                             onSuccess: (data) => {
-                                toast.success(t('imageBed.testSuccess') || 'Connection successful');
+                                toast.success(t('imageBed.testSuccess'));
                             },
                             onError: (error: Error) => {
                                 toast.error(error.message || 'Connection failed');
@@ -181,7 +181,7 @@ export function SettingImageBed() {
                     }}
                 >
                     <Zap className="size-4" />
-                    {testConnection.isPending ? (t('imageBed.testing') || 'Testing...') : (t('imageBed.testConnection') || 'Test Connection')}
+                    {testConnection.isPending ? t('imageBed.testing') : t('imageBed.testConnection')}
                 </Button>
             </div>
         </div>

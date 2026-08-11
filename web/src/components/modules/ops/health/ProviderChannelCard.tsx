@@ -77,7 +77,7 @@ export function ProviderChannelCard({ provider }: { provider: OpsTelemetryProvid
             {provider.sparkline_30d && provider.sparkline_30d.length > 0 ? (
                 <div className="space-y-1 border-t border-border/20 pt-2">
                     <div className="flex items-center justify-between text-[10px] uppercase tracking-wide text-muted-foreground">
-                        <span>{t('health.portal.availability30d') || '30d 可用性'}</span>
+                        <span>{t('health.portal.availability30d')}</span>
                         <span className="tabular-nums">
                             {(provider.sparkline_30d.reduce((a, b) => a + b, 0) / provider.sparkline_30d.length).toFixed(0)}%
                         </span>

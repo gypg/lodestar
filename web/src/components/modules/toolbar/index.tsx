@@ -465,7 +465,7 @@ export function Toolbar() {
                                         )}
                                         {toolbarItem === 'model' && uniqueProviders.length > 1 && (
                                             <div className="grid gap-2 rounded-lg border border-border bg-muted/14 p-2">
-                                                <p className="text-[11px] font-semibold text-muted-foreground">{t('popover.filter.model.provider') || 'Provider'}</p>
+                                                <p className="text-[11px] font-semibold text-muted-foreground">{t('popover.filter.model.provider')}</p>
                                                 <div className="flex flex-wrap gap-1.5">
                                                     <button
                                                         type="button"
@@ -476,7 +476,7 @@ export function Toolbar() {
                                                             modelProviderFilter === 'all' ? ACTIVE_OPTION_CLASS : INACTIVE_OPTION_CLASS
                                                         )}
                                                     >
-                                                        {t('popover.filter.model.all') || 'All'}
+                                                        {t('popover.filter.model.all')}
                                                     </button>
                                                     {uniqueProviders.map((provider) => (
                                                         <button

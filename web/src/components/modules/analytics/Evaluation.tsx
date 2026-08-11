@@ -180,10 +180,10 @@ export function Evaluation() {
                             ? t('evaluation.availability.hint', { count: runtime.groupCount })
                             : t('evaluation.availability.empty')}
                     stats={groupStats ? [
-                        { label: t('evaluation.groupStats.total') || '总分组', value: String(groupStats.total) },
-                        { label: t('evaluation.groupStats.active') || '有成员', value: String(groupStats.withItems) },
-                        { label: t('evaluation.groupStats.empty') || '空分组', value: String(groupStats.empty) },
-                        { label: t('evaluation.groupStats.endpointTypes') || '端点类型', value: String(groupStats.endpointTypes) },
+                        { label: t('evaluation.groupStats.total'), value: String(groupStats.total) },
+                        { label: t('evaluation.groupStats.active'), value: String(groupStats.withItems) },
+                        { label: t('evaluation.groupStats.empty'), value: String(groupStats.empty) },
+                        { label: t('evaluation.groupStats.endpointTypes'), value: String(groupStats.endpointTypes) },
                     ] : undefined}
                     status={groupTest
                         ? { label: groupTestResultLabel, tone: getStatusTone(groupTest.done ? (groupTestHasFailures ? 'failed' : 'completed') : 'running') }
@@ -199,21 +199,21 @@ export function Evaluation() {
                     hint={aiRoute
                         ? t('evaluation.aiRoute.hint', { step: t(`evaluation.runtime.step.${aiRouteStep}`) })
                         : !aiRouteConfigured
-                            ? t('evaluation.aiRoute.notConfigured') || 'AI 路由分析需要先配置分析模型（设置 → AI 路由）'
+                            ? t('evaluation.aiRoute.notConfigured')
                             : hasAiRouteUnavailable
                                 ? t('evaluation.aiRoute.unavailable')
                                 : t('evaluation.aiRoute.empty')}
                     status={{
                         label: !aiRouteConfigured
-                            ? (t('evaluation.aiRoute.needConfig') || '需配置')
+                            ? t('evaluation.aiRoute.needConfig')
                             : t(`evaluation.runtime.status.${aiRouteStatus}`),
                         tone: !aiRouteConfigured ? 'warning' : getStatusTone(aiRouteStatus),
                     }}
                     stats={lastAiRouteTask?.result ? [
-                        { label: t('evaluation.summary.groups') || '分组', value: String(lastAiRouteTask.result.group_count ?? 0) },
-                        { label: t('evaluation.summary.routes') || '路由', value: `${lastAiRouteTask.result.route_count ?? 0} / ${lastAiRouteTask.result.item_count ?? 0}` },
-                        { label: t('evaluation.summary.lastRun') || '上次运行', value: lastAiRouteTask.finished_at ? new Date(lastAiRouteTask.finished_at).toLocaleString() : '-' },
-                        { label: t('evaluation.summary.status') || '状态', value: lastAiRouteTask.status ?? '-' },
+                        { label: t('evaluation.summary.groups'), value: String(lastAiRouteTask.result.group_count ?? 0) },
+                        { label: t('evaluation.summary.routes'), value: `${lastAiRouteTask.result.route_count ?? 0} / ${lastAiRouteTask.result.item_count ?? 0}` },
+                        { label: t('evaluation.summary.lastRun'), value: lastAiRouteTask.finished_at ? new Date(lastAiRouteTask.finished_at).toLocaleString() : '-' },
+                        { label: t('evaluation.summary.status'), value: lastAiRouteTask.status ?? '-' },
                     ] : undefined}
                     action={
                         !aiRouteConfigured ? (
@@ -222,7 +222,7 @@ export function Evaluation() {
                             <div className="space-y-2">
                                 {lastAiRouteTask?.result ? (
                                     <div className="rounded-lg border border-border/20 bg-card px-3 py-2 text-sm text-muted-foreground">
-                                        {t('evaluation.summary.groups') || '分组'}: {lastAiRouteTask.result.group_count ?? 0} | {t('evaluation.summary.routes') || '路由'}: {lastAiRouteTask.result.route_count ?? 0} / {lastAiRouteTask.result.item_count ?? 0}
+                                        {t('evaluation.summary.groups')}: {lastAiRouteTask.result.group_count ?? 0} | {t('evaluation.summary.routes')}: {lastAiRouteTask.result.route_count ?? 0} / {lastAiRouteTask.result.item_count ?? 0}
                                     </div>
                                 ) : null}
                                 {showAiConfig ? <AIRouteConfig compact /> : null}
@@ -240,7 +240,7 @@ export function Evaluation() {
                                                         progressId: progress.id,
                                                         timestamp: Date.now(),
                                                     }));
-                                                    toast.success(t('evaluation.aiRoute.started') || 'AI Route analysis started');
+                                                    toast.success(t('evaluation.aiRoute.started'));
                                                 },
                                                 onError: (error: Error) => {
                                                     toast.error(error.message || 'Failed to start AI route');
@@ -250,7 +250,7 @@ export function Evaluation() {
                                     }}
                                 >
                                     <Route className="size-4" />
-                                    {generateAIRoute.isPending ? (t('evaluation.aiRoute.starting') || 'Starting...') : (t('evaluation.aiRoute.start') || 'Start AI Route Analysis')}
+                                    {generateAIRoute.isPending ? t('evaluation.aiRoute.starting') : t('evaluation.aiRoute.start')}
                                 </Button>
                                 <Button
                                     variant="outline"
@@ -260,8 +260,8 @@ export function Evaluation() {
                                 >
                                     <Settings className="size-3" />
                                     {showAiConfig
-                                        ? (t('evaluation.actions.closeConfig') || 'Close Config')
-                                        : (t('evaluation.actions.editConfig') || 'Edit Config')}
+                                        ? t('evaluation.actions.closeConfig')
+                                        : t('evaluation.actions.editConfig')}
                                 </Button>
                             </div>
                         )
@@ -286,7 +286,7 @@ export function Evaluation() {
                         <div className="mt-4 flex items-center justify-between gap-3">
                             <h4 className="text-sm font-semibold">{t('evaluation.summary.aiRoute')}</h4>
                             <StatusBadge
-                                label={!aiRouteConfigured ? (t('evaluation.aiRoute.needConfig') || '需配置') : t(`evaluation.runtime.status.${aiRouteStatus}`)}
+                                label={!aiRouteConfigured ? t('evaluation.aiRoute.needConfig') : t(`evaluation.runtime.status.${aiRouteStatus}`)}
                                 tone={!aiRouteConfigured ? 'warning' : getStatusTone(aiRouteStatus)}
                             />
                         </div>
@@ -312,11 +312,11 @@ export function Evaluation() {
                         ) : !aiRouteConfigured ? (
                             <div className="mt-4 space-y-3">
                                 <div className="rounded-lg border border-amber-500/25 bg-amber-500/5 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
-                                    {t('evaluation.aiRoute.configWarning') || '请先在设置页面配置 AI 路由的 Base URL、API Key 和分析模型，否则无法执行分析。'}
+                                    {t('evaluation.aiRoute.configWarning')}
                                 </div>
                                 <Button variant="outline" size="sm" className="rounded-lg" onClick={() => setActiveItem('setting')}>
                                     <Settings className="size-4" />
-                                    {t('evaluation.actions.goToSettings') || '前往设置'}
+                                    {t('evaluation.actions.goToSettings')}
                                 </Button>
                             </div>
                         ) : (
@@ -376,7 +376,7 @@ export function Evaluation() {
                 <div className="mt-4 space-y-3">
                     <div className="inline-flex items-center gap-2 rounded-full border border-primary/10 bg-card px-3 py-1 text-[0.68rem] font-semibold text-primary">
                         <Clock className="h-3.5 w-3.5" />
-                        {t('evaluation.history.title') || 'Recent History'}
+                        {t('evaluation.history.title')}
                     </div>
                     <div className="space-y-2">
                         {/* Current runtime group test result */}
@@ -388,7 +388,7 @@ export function Evaluation() {
                                         tone={getStatusTone(groupTest.done ? (groupTestHasFailures ? 'failed' : 'completed') : 'running')}
                                     />
                                     <span className="text-sm text-muted-foreground">
-                                        {t('evaluation.summary.groupTest') || 'Group Test'}
+                                        {t('evaluation.summary.groupTest')}
                                     </span>
                                     <span className="text-xs text-muted-foreground">
                                         {passedCount} passed / {failedCount} failed ({groupTest.completed}/{groupTest.total})
@@ -425,7 +425,7 @@ export function Evaluation() {
                                             ) : null}
                                             {task.current_step ? (
                                                 <p className="mt-1 text-[0.68rem] text-muted-foreground">
-                                                    {t('evaluation.summary.status') || 'Step'}: {task.current_step}
+                                                    {t('evaluation.summary.status')}: {task.current_step}
                                                 </p>
                                             ) : null}
                                         </div>
@@ -459,7 +459,7 @@ export function Evaluation() {
                                             ) : null}
                                             {record.current_step ? (
                                                 <p className="mt-1 text-[0.68rem] text-muted-foreground">
-                                                    {t('evaluation.summary.status') || 'Step'}: {String(record.current_step)}
+                                                    {t('evaluation.summary.status')}: {String(record.current_step)}
                                                 </p>
                                             ) : null}
                                         </div>

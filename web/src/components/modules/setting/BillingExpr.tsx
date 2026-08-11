@@ -99,8 +99,8 @@ export function BillingExpr() {
         setSetting.mutate(
             { key: SettingKey.BillingExpr, value: json },
             {
-                onSuccess: () => toast.success(t('billingExpr.toastSaved') || '表达式计费已保存'),
-                onError: () => toast.error(t('billingExpr.toastFailed') || '保存失败'),
+                onSuccess: () => toast.success(t('billingExpr.toastSaved')),
+                onError: () => toast.error(t('billingExpr.toastFailed')),
             },
         );
     };
@@ -112,9 +112,9 @@ export function BillingExpr() {
                     <Calculator className="h-5 w-5 text-primary" />
                 </div>
                 <div className="space-y-0.5 flex-1">
-                    <span className="text-sm font-semibold text-card-foreground">{t('billingExpr.title') || '表达式计费'}</span>
+                    <span className="text-sm font-semibold text-card-foreground">{t('billingExpr.title')}</span>
                     <p className="text-xs text-muted-foreground">
-                        {t('billingExpr.description') || '为模型配置表达式定价（可选）。留空则使用上游 USD 成本直通。'}
+                        {t('billingExpr.description')}
                     </p>
                 </div>
             </div>
@@ -127,7 +127,7 @@ export function BillingExpr() {
             >
                 {showRef ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
                 <Info className="size-3.5" />
-                <span>{t('billingExpr.variables') || '变量参考'}</span>
+                <span>{t('billingExpr.variables')}</span>
             </button>
             {showRef && (
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1 rounded-lg border border-border/30 bg-muted/20 p-3 text-xs">
@@ -138,7 +138,7 @@ export function BillingExpr() {
                         </div>
                     ))}
                     <div className="col-span-2 mt-1 border-t border-border/20 pt-1 text-muted-foreground">
-                        <strong>{t('billingExpr.functions') || '函数'}：</strong>
+                        <strong>{t('billingExpr.functions')}：</strong>
                         <code className="mx-1 rounded bg-muted px-1 font-mono text-[11px]">tier(name, value)</code>
                         <code className="mx-1 rounded bg-muted px-1 font-mono text-[11px]">max(a, b)</code>
                         <code className="mx-1 rounded bg-muted px-1 font-mono text-[11px]">hour(tz)</code>
@@ -157,7 +157,7 @@ export function BillingExpr() {
                                     <Input
                                         value={e.model}
                                         onChange={(ev) => update(i, 'model', ev.target.value)}
-                                        placeholder={t('billingExpr.modelPlaceholder') || '模型名 (如 gpt-4o)'}
+                                        placeholder={t('billingExpr.modelPlaceholder')}
                                         className="h-8 w-40 rounded-lg font-mono text-xs"
                                     />
                                     <Input
@@ -177,7 +177,7 @@ export function BillingExpr() {
                                 {showPreview && e.expr.trim() && (
                                     <div className="flex items-center gap-3 pl-1 text-[11px] text-muted-foreground">
                                         <span>
-                                            {t('billingExpr.preview') || '预览'}：p={customVars.p.toLocaleString()} c={customVars.c.toLocaleString()} →{' '}
+                                            {t('billingExpr.preview')}：p={customVars.p.toLocaleString()} c={customVars.c.toLocaleString()} →{' '}
                                             <span className="font-mono font-medium text-foreground">{preview}</span>
                                         </span>
                                         <span className="text-primary font-medium">{toUSD(Number(preview))}</span>
@@ -192,7 +192,7 @@ export function BillingExpr() {
             {/* Preview sample controls */}
             {showPreview && entries.length > 0 && (
                 <div className="flex items-center gap-3 text-xs">
-                    <span className="text-muted-foreground">{t('billingExpr.sampleTokens') || '示例 token 数'}：</span>
+                    <span className="text-muted-foreground">{t('billingExpr.sampleTokens')}：</span>
                     <Input
                         type="number"
                         value={customVars.p}
@@ -214,15 +214,15 @@ export function BillingExpr() {
             <div className="flex gap-2">
                 <Button type="button" variant="outline" size="sm" onClick={add} className="rounded-lg">
                     <Plus className="mr-1 size-3.5" />
-                    {t('billingExpr.addModel') || '添加模型'}
+                    {t('billingExpr.addModel')}
                 </Button>
                 <Button type="button" variant="outline" size="sm" onClick={() => setShowPreview(!showPreview)} className="rounded-lg">
                     {showPreview ? <EyeOff className="mr-1 size-3.5" /> : <Eye className="mr-1 size-3.5" />}
-                    {showPreview ? (t('billingExpr.hidePreview') || '隐藏预览') : (t('billingExpr.showPreview') || '显示预览')}
+                    {showPreview ? t('billingExpr.hidePreview') : t('billingExpr.showPreview')}
                 </Button>
                 <div className="flex-1" />
                 <Button type="button" size="sm" onClick={save} disabled={setSetting.isPending} className="rounded-lg">
-                    {setSetting.isPending ? (t('billingExpr.saving') || '保存中...') : (t('billingExpr.save') || '保存表达式')}
+                    {setSetting.isPending ? t('billingExpr.saving') : t('billingExpr.save')}
                 </Button>
             </div>
         </div>

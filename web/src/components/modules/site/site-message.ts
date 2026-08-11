@@ -184,7 +184,12 @@ export function translateSiteMessage(
 
     if (t) {
         const translated = t(matched.key, matched.values);
-        if (translated && translated !== matched.key) {
+        // next-intl 在 key 缺失时返回*完整*键路径，带命名空间前缀：根 translator 得到
+        // "siteImport.errors.invalidJson"，而 useTranslations('setting') 得到
+        // "setting.siteImport.errors.invalidJson"。用 !== 比对短 key 时后者永不相等，
+        // miss 会被当成"翻译成功"，把键路径渲染进 toast，并且下面的三语兜底再也走不到。
+        // 因此一律用 endsWith 判定 miss（同 log/display.ts:resolveEndpointTypeLabel）。
+        if (translated && !translated.endsWith(matched.key)) {
             return translated;
         }
     }

@@ -128,7 +128,7 @@ export function User() {
                                     <button onClick={logout}
                                         className="flex items-center gap-1.5 px-3 py-1.5 sm:px-2.5 sm:py-1.5 rounded-xl text-xs font-medium text-red-500 bg-red-500/8 hover:bg-red-500/15 border border-red-500/20 transition-all active:scale-95">
                                         <LogOut className="h-3.5 w-3.5" />
-                                        {t('logout') || '退出'}
+                                        {t('logout')}
                                     </button>
                                 )}
                             </div>
