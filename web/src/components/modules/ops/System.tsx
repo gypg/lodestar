@@ -6,6 +6,7 @@ import { useOpsSystemSummary } from '@/api/endpoints/ops';
 import { useNavStore } from '@/components/modules/navbar';
 import { Button } from '@/components/ui/button';
 import { MetricCard, QueryState, StatusBadge } from '@/components/modules/analytics/shared';
+import { formatCommit, formatVersion } from './version-format';
 
 function InfoRow({ label, value }: { label: string; value: string }) {
     return (
@@ -15,6 +16,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
         </div>
     );
 }
+
 
 export function System() {
     const t = useTranslations('ops');
@@ -78,8 +80,8 @@ export function System() {
                                 <Server className="h-4 w-4" />
                                 {t('system.sections.runtime')}
                             </div>
-                            <InfoRow label={t('system.fields.version')} value={data?.version || '-'} />
-                            <InfoRow label={t('system.fields.commit')} value={data?.commit || '-'} />
+                            <InfoRow label={t('system.fields.version')} value={formatVersion(data?.version)} />
+                            <InfoRow label={t('system.fields.commit')} value={formatCommit(data?.commit)} />
                             <InfoRow label={t('system.fields.buildTime')} value={data?.build_time || '-'} />
                             <InfoRow label={t('system.fields.databaseType')} value={data?.database_type || '-'} />
                             <InfoRow label={t('system.fields.publicApiBaseUrl')} value={data?.public_api_base_url || '-'} />

@@ -471,6 +471,7 @@
         "modeLocal": "Local Model",
         "modeExternal": "External Connection",
         "autoChannelNote": "Auto-configured from channel: {name}",
+        "autoSaved": "Auto-saved",
         "noChannelFound": "No available channel found",
         "channelIncomplete": "Channel configuration is incomplete; please fill in the base URL and key",
         "switchToExternal": "Switched to external service"

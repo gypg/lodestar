@@ -471,6 +471,7 @@
         "modeLocal": "本站模型",
         "modeExternal": "外部連線",
         "autoChannelNote": "自動使用本站渠道 {name} 的配置",
+        "autoSaved": "已自動儲存",
         "noChannelFound": "找不到可用渠道",
         "channelIncomplete": "渠道設定不完整，請補齊位址與密鑰",
         "switchToExternal": "已切換為外部服務"

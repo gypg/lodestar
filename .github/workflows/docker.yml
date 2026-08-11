@@ -28,6 +28,9 @@ jobs:
         with:
           # workflow_run 时取 quality 实际校验的那个提交；手动触发时取分支 tip。
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          # 默认浅克隆不带 tag，`git describe --tags` 会退化成 "dev"。
+          # 取全历史是为了让下面的 Resolve version metadata 能算出语义化版本。
+          fetch-depth: 0
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -48,6 +51,32 @@ jobs:
             type=raw,value=latest
             type=sha,prefix=sha-,format=short
 
+      # 版本号会原样显示在运维中心的"运行时摘要"里（conf.Version）。
+      # 这里以前是 `dev-<40位sha>`，UI 上就是一长串十六进制，看不出版本。
+      #
+      # 有 tag  → git describe，得到 v2.1.4 / v2.1.4-3-gabc1234
+      # 无 tag  → 取 internal/conf/version.go 里的默认版本 + 短 sha，得到 v2.1.4+abc1234
+      #           （SemVer 2.0 的 build metadata 语法，仍是可读的版本号）
+      - name: Resolve version metadata
+        id: version
+        run: |
+          set -euo pipefail
+          sha="${{ github.event.workflow_run.head_sha || github.sha }}"
+          short_sha="${sha:0:7}"
+
+          if git describe --tags --abbrev=0 >/dev/null 2>&1; then
+            app_version="$(git describe --tags)"
+          else
+            base="$(sed -n 's/.*Version[[:space:]]*=[[:space:]]*"\(.*\)".*/\1/p' \
+                    internal/conf/version.go | head -1)"
+            app_version="${base:-dev}+${short_sha}"
+          fi
+
+          echo "app_version=${app_version}" >> "$GITHUB_OUTPUT"
+          echo "git_commit=${short_sha}" >> "$GITHUB_OUTPUT"
+          echo "build_time=$(date -u '+%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_OUTPUT"
+          echo "resolved version=${app_version} commit=${short_sha}"
+
       - name: Build and push image
         uses: docker/build-push-action@v6
         with:
@@ -61,8 +90,9 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
-            APP_VERSION=dev-${{ github.event.workflow_run.head_sha || github.sha }}
-            GIT_COMMIT=${{ github.event.workflow_run.head_sha || github.sha }}
+            APP_VERSION=${{ steps.version.outputs.app_version }}
+            GIT_COMMIT=${{ steps.version.outputs.git_commit }}
+            BUILD_TIME=${{ steps.version.outputs.build_time }}
 
       - name: Image digest
         run: |

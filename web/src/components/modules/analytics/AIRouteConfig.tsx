@@ -330,9 +330,15 @@ export function AIRouteConfig({ compact }: { compact?: boolean }) {
                         </Select>
                     </div>
                     {autoChannelName && (
-                        <p className={cn('text-muted-foreground', compact ? 'text-[10px]' : 'text-xs')}>
-                            {t('aiRoute.config.autoChannelNote', { name: autoChannelName })}
-                        </p>
+                        <div className={cn(
+                            'flex items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2',
+                            compact ? 'text-[10px]' : 'text-xs'
+                        )}>
+                            <Check className={cn('shrink-0 text-emerald-600', compact ? 'h-3 w-3' : 'h-3.5 w-3.5')} />
+                            <span className="text-emerald-700 dark:text-emerald-300">
+                                {t('aiRoute.config.autoSaved') || '已自动保存'} · {t('aiRoute.config.autoChannelNote', { name: autoChannelName })}
+                            </span>
+                        </div>
                     )}
                     {channelLookupFailed && (
                         <p className={cn('text-amber-600 dark:text-amber-400', compact ? 'text-[10px]' : 'text-xs')}>
