@@ -363,13 +363,6 @@ func createSiteAccount(c *gin.Context) {
 		return
 	}
 	accountID := account.ID
-	safe.Go("site-account-create-project", func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-		defer cancel()
-		if _, err := sitesvc.ProjectAccount(ctx, accountID); err != nil {
-			log.Warnf("background ProjectAccount failed (account=%d): %v", accountID, err)
-		}
-	})
 	if account.Enabled && account.AutoSync {
 		safe.Go("site-account-create-sync", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
