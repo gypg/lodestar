@@ -77,6 +77,7 @@ import {
   type CheckinFilterStatus,
 } from "./checkin-status";
 import { translateSiteMessage } from "./site-message";
+import { nextSiteCardHeights } from "./card-measure";
 import { useSiteUIStore } from "./ui-store";
 import { SettingSiteAutomation } from "@/components/modules/setting/SiteAutomation";
 import {
@@ -674,48 +675,69 @@ export function Site() {
       : null;
   const forcedSiteId = pendingSiteJump?.target.siteId ?? null;
 
-  const setSiteCardMeasureRef = useCallback(
-    (siteID: number, node: HTMLElement | null) => {
-      const observers = cardObserversRef.current;
-      const elements = cardElementsRef.current;
-      const currentNode = elements.get(siteID);
+  // 高度测量只服务于桌面双列 masonry 的分栏估算。
+  //
+  // 两个坑（React error #185 的成因，别回退）：
+  // 1. ref 回调必须是每个 siteID 稳定的同一个函数引用。内联 `ref={(node) => ...}`
+  //    每次渲染都是新函数，React 会先用 null 卸载再重新挂载，于是每渲染一次就重测
+  //    一次并可能 setState，构成 measure → render → measure 死循环。
+  // 2. 移动端(`md:hidden`)与桌面(`hidden md:grid`)两套 DOM 同时挂载，隐藏那套
+  //    测出来恒为 0。若两者写同一个 siteID，会在 0 与真实高度之间反复互相覆盖。
+  //    故只有桌面列表注册测量，且 0 高度（display:none）一律不写入。
+  const measureRefsRef = useRef<Map<number, (node: HTMLElement | null) => void>>(
+    new Map(),
+  );
 
-      if (currentNode === node) {
-        return;
-      }
+  const applySiteCardHeight = useCallback((siteID: number, rawHeight: number) => {
+    // 0/负/非有限高度丢弃 + 同高返回同一引用，两条不变量都在 card-measure.ts
+    // 里有测试守卫（node:test 无法渲染 React，故抽成纯函数）。
+    setSiteCardHeights((current) =>
+      nextSiteCardHeights(current, siteID, rawHeight),
+    );
+  }, []);
 
-      if (currentNode) {
-        observers.get(siteID)?.disconnect();
-        observers.delete(siteID);
-        elements.delete(siteID);
-      }
+  const getSiteCardMeasureRef = useCallback(
+    (siteID: number) => {
+      const cache = measureRefsRef.current;
+      const cached = cache.get(siteID);
+      if (cached) return cached;
 
-      if (!node) {
-        return;
-      }
+      const ref = (node: HTMLElement | null) => {
+        const observers = cardObserversRef.current;
+        const elements = cardElementsRef.current;
+        const currentNode = elements.get(siteID);
 
-      elements.set(siteID, node);
-      const observer = new ResizeObserver((entries) => {
-        const nextHeight = Math.round(
-          entries[0]?.contentRect.height ?? node.getBoundingClientRect().height,
-        );
-        setSiteCardHeights((current) =>
-          current[siteID] === nextHeight
-            ? current
-            : { ...current, [siteID]: nextHeight },
-        );
-      });
-      observer.observe(node);
-      observers.set(siteID, observer);
+        if (currentNode === node) {
+          return;
+        }
 
-      const initialHeight = Math.round(node.getBoundingClientRect().height);
-      setSiteCardHeights((current) =>
-        current[siteID] === initialHeight
-          ? current
-          : { ...current, [siteID]: initialHeight },
-      );
+        if (currentNode) {
+          observers.get(siteID)?.disconnect();
+          observers.delete(siteID);
+          elements.delete(siteID);
+        }
+
+        if (!node) {
+          return;
+        }
+
+        elements.set(siteID, node);
+        const observer = new ResizeObserver((entries) => {
+          applySiteCardHeight(
+            siteID,
+            entries[0]?.contentRect.height ?? node.getBoundingClientRect().height,
+          );
+        });
+        observer.observe(node);
+        observers.set(siteID, observer);
+
+        applySiteCardHeight(siteID, node.getBoundingClientRect().height);
+      };
+
+      cache.set(siteID, ref);
+      return ref;
     },
-    [],
+    [applySiteCardHeight],
   );
 
   const setAccountElementRef = useCallback(
@@ -1978,14 +2000,11 @@ export function Site() {
 
         {visibleSites.length > 0 ? (
           <>
+            {/* 移动端单列不需要高度估算；且它与桌面列表同时挂载，
+                若在此注册测量会与桌面测量互相覆盖（见 getSiteCardMeasureRef 注释）。 */}
             <div className="space-y-4 md:hidden">
               {visibleSites.map((item) => (
-                <div
-                  key={item.site.id}
-                  ref={(node) => setSiteCardMeasureRef(item.site.id, node)}
-                >
-                  {renderSiteCard(item)}
-                </div>
+                <div key={item.site.id}>{renderSiteCard(item)}</div>
               ))}
             </div>
             <div className="hidden items-start gap-4 md:grid md:grid-cols-2">
@@ -1993,7 +2012,7 @@ export function Site() {
                 {masonryColumns[0].map((item) => (
                   <div
                     key={item.site.id}
-                    ref={(node) => setSiteCardMeasureRef(item.site.id, node)}
+                    ref={getSiteCardMeasureRef(item.site.id)}
                   >
                     {renderSiteCard(item)}
                   </div>
@@ -2003,7 +2022,7 @@ export function Site() {
                 {masonryColumns[1].map((item) => (
                   <div
                     key={item.site.id}
-                    ref={(node) => setSiteCardMeasureRef(item.site.id, node)}
+                    ref={getSiteCardMeasureRef(item.site.id)}
                   >
                     {renderSiteCard(item)}
                   </div>
