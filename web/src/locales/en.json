@@ -2033,7 +2033,7 @@
     },
     "actions": {
       "autoGroup": "Auto Group",
-      "aiRoute": "AI Route",
+      "aiRoute": "AI Route Table (All Groups)",
       "aiRouteGroup": "AI Sync Current Group",
       "aiRouteProgress": "View Progress",
       "forceRegroup": "Force Regroup"

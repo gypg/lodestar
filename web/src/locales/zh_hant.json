@@ -2033,7 +2033,7 @@
     },
     "actions": {
       "autoGroup": "自動分組",
-      "aiRoute": "AI路由",
+      "aiRoute": "AI 路由表（全部分組）",
       "aiRouteGroup": "AI同步當前分組",
       "aiRouteProgress": "查看進度",
       "forceRegroup": "強制重新分組"
