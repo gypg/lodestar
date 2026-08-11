@@ -310,7 +310,7 @@ func resolveManagedAccessToken(ctx context.Context, siteRecord *model.Site, acco
 		return "", fmt.Errorf("managed access token is not available for credential type %s", account.CredentialType)
 	}
 
-	payload, err := requestJSON(ctx, siteRecord, http.MethodPost, buildSiteURL(siteRecord.BaseURL, "/api/user/login"), map[string]any{"username": account.Username, "password": account.Password}, nil, account)
+	payload, cookieHeader, err := requestJSONWithLoginHeaders(ctx, siteRecord, http.MethodPost, buildSiteURL(siteRecord.BaseURL, "/api/user/login"), map[string]any{"username": account.Username, "password": account.Password}, nil, "", account)
 	if err != nil {
 		return "", err
 	}
@@ -326,6 +326,17 @@ func resolveManagedAccessToken(ctx context.Context, siteRecord *model.Site, acco
 	}
 	if token == "" {
 		token = firstNonEmptyString(jsonString(payload["token"]), jsonString(payload["access_token"]), jsonString(payload["accessToken"]))
+	}
+	// NewAPI / OneAPI / OneHub 的 /api/user/login 成功时 data 是**用户对象**，
+	// 里面根本没有 token 字段：会话凭据在 Set-Cookie（session=...）里，后续请求
+	// 靠 Cookie + new-api-user 头认证。此前这里只看 body，于是用户名密码账号
+	// 永远走到 newSiteLoginTokenMissingError，同步与签到全部不可用（用户报告 #2）。
+	//
+	// 回落到 cookie 后，buildManagedAuthHeaders 的 looksLikeCookieToken 会认出
+	// "k=v" 形状并以 Cookie 头发送，无需改动下游；用户 ID 由 discoverManagedUserID
+	// 通过 /api/user/self 探测补齐。
+	if token == "" && cookieHeader != "" {
+		token = cookieHeader
 	}
 	if token == "" {
 		return "", newSiteLoginTokenMissingError()

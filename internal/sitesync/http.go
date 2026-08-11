@@ -52,6 +52,73 @@ func resolveSiteAccountProxy(siteRecord *model.Site, accounts ...*model.SiteAcco
 	return siteRecord.ProxyMode, siteRecord.ProxyConfigID
 }
 
+// requestJSONWithLoginHeaders 发送请求，并把响应中的 Set-Cookie 合并进
+// cookieHeader（与 anyrouter.go 的登录循环同构）。
+func requestJSONWithLoginHeaders(ctx context.Context, siteRecord *model.Site, method string, requestURL string, body any, headers map[string]string, cookieHeader string, accounts ...*model.SiteAccount) (map[string]any, string, error) {
+	mergedHeaders := map[string]string{}
+	for k, v := range headers {
+		mergedHeaders[k] = v
+	}
+	if cookieHeader != "" {
+		mergedHeaders["Cookie"] = cookieHeader
+	}
+
+	httpClient, err := siteHTTPClient(ctx, siteRecord, accounts...)
+	if err != nil {
+		return nil, cookieHeader, err
+	}
+
+	var bodyReader io.Reader
+	if body != nil {
+		payload, marshalErr := json.Marshal(body)
+		if marshalErr != nil {
+			return nil, cookieHeader, marshalErr
+		}
+		bodyReader = bytes.NewReader(payload)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, method, requestURL, bodyReader)
+	if err != nil {
+		return nil, cookieHeader, err
+	}
+	applyDefaultSiteRequestHeaders(req, body != nil)
+	for _, item := range siteRecord.CustomHeader {
+		if strings.TrimSpace(item.HeaderKey) != "" {
+			req.Header.Set(strings.TrimSpace(item.HeaderKey), item.HeaderValue)
+		}
+	}
+	for key, value := range mergedHeaders {
+		if strings.TrimSpace(key) != "" && strings.TrimSpace(value) != "" {
+			req.Header.Set(key, value)
+		}
+	}
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return nil, cookieHeader, err
+	}
+	defer resp.Body.Close()
+
+	newCookie := anyRouterMergeSetCookiePairs(cookieHeader, resp.Header.Values("Set-Cookie"))
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, newCookie, err
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, newCookie, formatSiteHTTPError(resp.StatusCode, resp.Header, bodyBytes)
+	}
+	if len(bodyBytes) == 0 {
+		return map[string]any{}, newCookie, nil
+	}
+
+	var payload map[string]any
+	if err := json.Unmarshal(bodyBytes, &payload); err != nil {
+		return nil, newCookie, formatSiteDecodeError(resp.Header.Get("Content-Type"), bodyBytes, err)
+	}
+	return payload, newCookie, nil
+}
+
 func requestJSON(ctx context.Context, siteRecord *model.Site, method string, requestURL string, body any, headers map[string]string, accounts ...*model.SiteAccount) (map[string]any, error) {
 	httpClient, err := siteHTTPClient(ctx, siteRecord, accounts...)
 	if err != nil {
