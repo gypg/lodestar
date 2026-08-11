@@ -5,12 +5,12 @@
 | 问题 | 优先级 | 状态 | Commit | 说明 |
 |------|--------|------|--------|------|
 | #1 站点管理重复添加 | P0 | ✅ 已修复 | 2bebc38 | 添加了持久的"新增站点"按钮 |
-| #2 用户名密码验证 | P1 | ⏳ 待分析 | - | Agent 调查无果：后端无密码登录端点 |
+| #2 用户名密码验证 | P1 | ❓ 待复现 | - | **原判断有误**：密码登录后端已实现，需用户提供平台+报错 |
 | #3 密钥显示不一致 | P1 | ✅ 已修复 | 185c390 | **根因**：createSiteAccount 从未调用 ProjectAccount |
 | #4 AI路由分组 | P1 | ⏳ 待修复 | - | Agent 已诊断 6 个根因（详见下方） |
 | #5 AI路由配置保存 | P1 | ✅ 已修复 | 3a7faf8 | 非缺陷，本站模式本来就自动保存；补了"已自动保存"绿色确认行 |
 | #6 分组测试假成功 | P0 | ✅ 已修复 | 65496ef | **已复现并修好**：any-passed 折叠错误 |
-| #7 使用日志缺失 | P2 | ⏳ 待排查 | - | Agent 调查无果：日志持久化逻辑正常 |
+| #7 使用日志缺失 | P2 | ❓ 待复现 | - | 探测日志确实会写（IsTest=true），过滤器默认"全部"，需现场复现 |
 | #8 版本信息显示 | P3 | ✅ 已修复 | 3a7faf8 | 根因在构建，不在 UI：docker.yml 把 40 位 sha 当版本号 |
 
 ## 已确认根因（有代码证据）
@@ -96,6 +96,38 @@ progress.Results len = 0, want 1
 变异测试 3 个变异全杀。其中「还原增量累积」这个变异在我第一版测试下**存活**
 （只观察终态看不到它），补了直接测 `appendGroupTestResult` 的用例才杀掉。
 
+### #2 用户名密码无法同步 — 原判断有误，功能已实现
+
+工单里写的「需后端支持」不成立。密码登录**早就实现了**：
+
+`internal/sitesync/sync.go:302-333` `resolveManagedAccessToken`：
+
+```go
+if account.CredentialType != model.SiteCredentialTypeUsernamePassword {
+    return "", fmt.Errorf("managed access token is not available for credential type %s", ...)
+}
+payload, err := requestJSON(ctx, siteRecord, http.MethodPost,
+    buildSiteURL(siteRecord.BaseURL, "/api/user/login"),
+    map[string]any{"username": account.Username, "password": account.Password}, nil, account)
+```
+
+调用点：`sync.go:57`（签到）、`sync.go:85`（`syncManagementPlatform` 同步）、
+`create_key.go:54`（建 Key）。AnyRouter 另有一套带 cookie 的登录
+（`anyrouter.go:169-181`）。前端也给了用户名/密码输入框
+（`AccountEditDialog.tsx:495-535`）。
+
+**唯一确认的限制**（且是有意为之，不是 bug）：
+
+| 平台 | 允许的凭据类型 | 依据 |
+|------|--------------|------|
+| Sub2API | access_token / api_key | `AccountEditDialog.tsx:119`、后端 `sync.go:174` 显式报错 |
+| OpenAI / Claude / Gemini | access_token / api_key | `AccountEditDialog.tsx:121-124` |
+| NewAPI / OneAPI / OneHub / DoneHub / AnyRouter | 三种都行（含密码） | `AccountEditDialog.tsx:125-130` |
+
+所以如果用户是在 Sub2API 站点上找密码选项，那是设计如此；如果是在 NewAPI 类
+站点上失败，那是另一个还没定位的 bug。**需要用户提供：站点平台 + 同步时的
+具体报错**，否则无法进一步定位。也没做数据库核查（无法访问生产库）。
+
 ### #4 AI 路由分组不可用 — 6 个独立根因（待修）
 
 配置键**全部对得上**（`ai_route_base_url` / `_api_key` / `_model` 写读一致），
@@ -138,6 +170,27 @@ progress.Results len = 0, want 1
 **待办**：需要用户确认点的是哪个按钮（工具栏=表作用域 / 弹窗内=分组作用域），
 以及目标分组的 `endpoint_type`。查 `/api/v1/route/ai-generate/history` 的
 `error_reason` 能直接区分根因 3、4 和「配置不完整」。
+
+### #7 使用日志缺失 — 写入链路是通的，未能复现
+
+用户把这条和「分组测试假成功」绑在一起说。#6 已确认并修复，但**日志缺失这半
+没能复现**。已核查的每一环都是正常的：
+
+- 探测确实写日志：`group_probe.go:430-471` `recordTestLog`，六个调用点（含五个
+  提前返回分支）全都写，标记 `IsTest: true`、`RequestAPIKeyName: "[test]"`。
+- 持久化默认开启：`relay_log_keep_enabled` 默认 `"true"`
+  （`internal/model/setting.go:141`）。关掉时日志只留在内存环形缓冲里并会被裁掉
+  （`relaylog.go:236-260`），这是唯一会「丢日志」的配置。
+- 日志页有测试过滤器且默认「全部」：`log/index.tsx:155-177`，`__all__` 时
+  `delete next.is_test`，即不传该参数 → 后端 `filter.IsTest = nil` → 不过滤
+  （`handlers/log.go:153-165`、`relaylog.go:645`）。
+- 列表查询同时合并内存缓存和数据库：`relaylog.go:653-680`。
+
+所以按代码读，测试日志应该能在使用日志里看到（带 `[test]` 标记）。**未核实**：
+生产库里到底有没有行、以及 `loadExcludedGroupSet`（`relaylog.go:590-594`）是否
+把用户的模型名排除掉了 —— 后者是我唯一还没排除的嫌疑点，需要看实际配置。
+
+需要用户确认：使用日志页面把过滤器切到「仅测试」后，能否看到 `[test]` 记录。
 
 ### #8 版本号显示成一长串英文 — 根因在 CI，不在前端
 
