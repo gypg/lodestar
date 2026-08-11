@@ -29,11 +29,27 @@ func maskURLDomainForViewer(raw string) string {
 	return viewerMaskedDomain
 }
 
+// redactChannelBaseURLsForViewer masks the upstream host of every base URL.
+//
+// It must REPLACE each BaseUrls slice instead of rewriting its elements.
+// chCache stores model.Channel by value (op/channel/channel.go:15), so the
+// copies handed out by ch.Get / ch.List still carry slice headers pointing at
+// the cache's backing array. An in-place rewrite therefore edited the live
+// cache entry the relay routes on, and a single viewer-role /channel/list call
+// permanently repointed every channel at "https://***" until the next restart
+// or cache refresh — for all roles, not just viewers.
 func redactChannelBaseURLsForViewer(channels []model.Channel) {
 	for channelIndex := range channels {
-		for baseURLIndex := range channels[channelIndex].BaseUrls {
-			channels[channelIndex].BaseUrls[baseURLIndex].URL = maskURLDomainForViewer(channels[channelIndex].BaseUrls[baseURLIndex].URL)
+		original := channels[channelIndex].BaseUrls
+		if len(original) == 0 {
+			continue
 		}
+		redacted := make([]model.BaseUrl, len(original))
+		for baseURLIndex, baseURL := range original {
+			baseURL.URL = maskURLDomainForViewer(baseURL.URL)
+			redacted[baseURLIndex] = baseURL
+		}
+		channels[channelIndex].BaseUrls = redacted
 	}
 }
 

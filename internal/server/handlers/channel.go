@@ -84,6 +84,14 @@ func init() {
 			router.NewRoute("/group/delete/:id", http.MethodDelete).
 				Use(middleware.RequirePermission(auth.PermChannelsWrite)).
 				Handle(deleteChannelGroup),
+		).
+		// Registered last on purpose: a bare /:id sits at the same level as the
+		// static /list and /group/list routes above. gin resolves static
+		// segments first so they still win, but keeping the wildcard at the
+		// bottom makes that precedence obvious to the next reader.
+		AddRoute(
+			router.NewRoute("/:id", http.MethodGet).
+				Handle(getChannel),
 		)
 	router.NewGroupRouter("/api/v1/channel").
 		Use(middleware.Auth()).
@@ -119,6 +127,40 @@ func listChannel(c *gin.Context) {
 		channels[i].Stats = &stats
 	}
 	resp.Success(c, channels)
+}
+
+// getChannel returns a single channel with full detail. This backs
+// AIRouteConfig's fallback: when the cached /channel/list entry for the model's
+// channel carries no usable base_urls/keys, the config dialog refetches the
+// channel by id so it can still auto-fill the AI route settings. Parity with
+// listChannel: viewers get masked keys and redacted base URLs, so this
+// endpoint cannot be used to bypass the list's redaction.
+func getChannel(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		resp.InvalidParam(c)
+		return
+	}
+	channel, err := ch.Get(id, c.Request.Context())
+	if err != nil {
+		resp.Error(c, http.StatusNotFound, resp.ErrResourceNotFound)
+		return
+	}
+	role := c.GetString("user_role")
+	// Redact through a one-element slice and read the result back out: the
+	// redactor now REPLACES each BaseUrls slice (it must not write through to
+	// the shared cache backing array), so passing a throwaway literal would
+	// silently drop the masking.
+	if isViewerRole(role) {
+		wrapped := []model.Channel{*channel}
+		redactChannelBaseURLsForViewer(wrapped)
+		channel = &wrapped[0]
+	}
+	if !auth.HasPermission(role, auth.PermChannelsWrite) {
+		channel.Keys = maskChannelKeys(channel.Keys)
+	}
+	normalizeChannelListSlices(channel)
+	resp.Success(c, channel)
 }
 
 func createChannel(c *gin.Context) {
