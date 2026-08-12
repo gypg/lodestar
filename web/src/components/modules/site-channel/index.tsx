@@ -148,7 +148,23 @@ type ToolbarSortField = 'default' | 'name' | 'created' | 'balance';
 type ToolbarSortOrder = 'asc' | 'desc';
 type SiteChannelPendingJump = PendingJump & { target: SiteChannelJumpTarget };
 type UnifiedCompletionInputState = Record<number, string>;
-type UnifiedCompletionErrorState = Record<string, string>;
+
+/**
+ * Why a descriptor instead of a translated string: these errors live in state
+ * until the user fixes the input, so storing copy would freeze it in whichever
+ * language was active when the save failed and a locale switch would not reach
+ * it. Rendering resolves the descriptor instead.
+ *
+ * `saveFailed.serverMessage` carries the raw backend text (empty when the error
+ * had no message) so translateSiteMessage can still match it at render time.
+ */
+type UnifiedCompletionError =
+    | { kind: 'noSubmittableKeys' }
+    | { kind: 'groupKeyStillMasked'; groupName: string }
+    | { kind: 'groupKeyMismatch'; groupName: string }
+    | { kind: 'saveFailed'; accountName: string; serverMessage: string };
+
+type UnifiedCompletionErrorState = Record<string, UnifiedCompletionError | null>;
 
 const SITE_PANEL_INITIAL_DISPLAY_LIMIT = 50;
 const SITE_PANEL_DISPLAY_PAGE_SIZE = 30;
@@ -276,7 +292,7 @@ function UnifiedCompletionDialog({
         if (itemsToSave.length === 0) {
             setAccountErrors((current) => ({
                 ...current,
-                [accountKey]: '当前账号没有可提交的待补全 Key',
+                [accountKey]: { kind: 'noSubmittableKeys' },
             }));
             return;
         }
@@ -284,17 +300,18 @@ function UnifiedCompletionDialog({
         for (const item of itemsToSave) {
             const value = inputValues[item.key_id]?.trim() ?? '';
             if (!value) continue;
+            const groupName = item.group_name || item.group_key;
             if (isMaskedTokenValue(value)) {
                 setAccountErrors((current) => ({
                     ...current,
-                    [accountKey]: `分组「${item.group_name || item.group_key}」仍是脱敏值，必须填写完整 Key`,
+                    [accountKey]: { kind: 'groupKeyStillMasked', groupName },
                 }));
                 return;
             }
             if (!matchesMaskedToken(value, item.token)) {
                 setAccountErrors((current) => ({
                     ...current,
-                    [accountKey]: `分组「${item.group_name || item.group_key}」的 Key 与已同步的脱敏值不匹配，请核对输入`,
+                    [accountKey]: { kind: 'groupKeyMismatch', groupName },
                 }));
                 return;
             }
@@ -308,7 +325,7 @@ function UnifiedCompletionDialog({
         }
 
         setSavingAccounts((current) => ({ ...current, [accountKey]: true }));
-        setAccountErrors((current) => ({ ...current, [accountKey]: '' }));
+        setAccountErrors((current) => ({ ...current, [accountKey]: null }));
 
         try {
             for (const [groupKey, groupItems] of groupedByGroupKey.entries()) {
@@ -339,12 +356,18 @@ function UnifiedCompletionDialog({
         } catch (error) {
             setAccountErrors((current) => ({
                 ...current,
-                [accountKey]: translateSiteMessage(locale, getErrorMessage(error, `账号「${account.account_name}」保存失败`), t),
+                [accountKey]: {
+                    kind: 'saveFailed',
+                    accountName: account.account_name,
+                    // Empty string means "no backend text", so the renderer falls back
+                    // to the generic saveFailed copy rather than showing a blank error.
+                    serverMessage: getErrorMessage(error, ''),
+                },
             }));
         } finally {
             setSavingAccounts((current) => ({ ...current, [accountKey]: false }));
         }
-    }, [inputValues, locale, t, updateSourceKeys]);
+    }, [inputValues, t, updateSourceKeys]);
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -406,7 +429,29 @@ function UnifiedCompletionDialog({
                                                     return value.length > 0;
                                                 }).length;
                                                 const isSaving = Boolean(savingAccounts[accountKey]);
-                                                const accountError = accountErrors[accountKey];
+                                                const storedError = accountErrors[accountKey];
+                                                // Resolved here rather than in a helper: the missing-key gate only
+                                                // qualifies keys when `t` is bound by useTranslations() in an
+                                                // enclosing scope, so a helper taking `t` as a parameter would put
+                                                // these keys in a bucket nothing asserts on.
+                                                let accountError = '';
+                                                switch (storedError?.kind) {
+                                                    case 'noSubmittableKeys':
+                                                        accountError = t('siteChannel.completion.noSubmittableKeys');
+                                                        break;
+                                                    case 'groupKeyStillMasked':
+                                                        accountError = t('siteChannel.completion.groupKeyStillMasked', { groupName: storedError.groupName });
+                                                        break;
+                                                    case 'groupKeyMismatch':
+                                                        accountError = t('siteChannel.completion.groupKeyMismatch', { groupName: storedError.groupName });
+                                                        break;
+                                                    case 'saveFailed':
+                                                        accountError = translateSiteMessage(locale, storedError.serverMessage, t)
+                                                            || t('siteChannel.completion.saveFailed', { accountName: storedError.accountName });
+                                                        break;
+                                                    default:
+                                                        break;
+                                                }
 
                                                 return (
                                                     <div key={account.account_id} className="rounded-2xl border border-border/60 bg-background/70 p-4">

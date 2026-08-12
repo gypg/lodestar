@@ -2949,7 +2949,11 @@
       "currentValue": "当前值：{masked}",
       "inputLabel": "输入完整 Key",
       "inputPlaceholder": "填写完整明文 Key，保存后自动启用",
-      "saveSuccess": "账号「{accountName}」的待补全 Key 已保存并恢复启用"
+      "saveSuccess": "账号「{accountName}」的待补全 Key 已保存并恢复启用",
+      "noSubmittableKeys": "当前账号没有可提交的待补全 Key",
+      "groupKeyStillMasked": "分组「{groupName}」仍是脱敏值，必须填写完整 Key",
+      "groupKeyMismatch": "分组「{groupName}」的 Key 与已同步的脱敏值不匹配，请核对输入",
+      "saveFailed": "账号「{accountName}」保存失败"
     },
     "section": {
       "loadFailed": "站点渠道加载失败：{message}"

@@ -2949,7 +2949,11 @@
       "currentValue": "Current value: {masked}",
       "inputLabel": "Enter the full key",
       "inputPlaceholder": "Enter the full plaintext key — enabled automatically after saving",
-      "saveSuccess": "Pending keys for account \"{accountName}\" saved and re-enabled"
+      "saveSuccess": "Pending keys for account \"{accountName}\" saved and re-enabled",
+      "noSubmittableKeys": "This account has no pending key to submit",
+      "groupKeyStillMasked": "Group \"{groupName}\" is still a masked value — enter the full key",
+      "groupKeyMismatch": "The key for group \"{groupName}\" does not match the synced masked value — check your input",
+      "saveFailed": "Could not save account \"{accountName}\""
     },
     "section": {
       "loadFailed": "Failed to load site channels: {message}"
