@@ -2861,6 +2861,195 @@
       "saved": "進階設定已儲存",
       "invalidParamOverride": "參數覆蓋必須是有效的 JSON 物件",
       "saveFailed": "儲存進階設定失敗"
+    },
+    "routeReason": {
+      "detectedEndpoints": "偵測到端點: {types}",
+      "heuristicEndpoints": "啟發式推斷: {types}"
+    },
+    "quickFilter": {
+      "attention": "僅未正確設定",
+      "withHistory": "僅有請求歷史",
+      "disabled": "僅停用"
+    },
+    "history": {
+      "lastRequest": "· 最近請求",
+      "successRate": "成功率",
+      "empty": "暫無請求歷史"
+    },
+    "movePopover": {
+      "title": "移動至..."
+    },
+    "mobileCard": {
+      "manualSource": "自訂",
+      "attention": "待處理",
+      "source": "來源",
+      "missingKeySuffix": " · 缺少 Key",
+      "lastRequest": "最近請求",
+      "historyCount": "{count, plural, =0 {無記錄} other {# 次記錄}}",
+      "channel": "渠道",
+      "deleteManualModel": "刪除自訂模型"
+    },
+    "dialog": {
+      "srDescription": "站點渠道管理面板",
+      "siteEnabled": "站點啟用",
+      "siteDisabled": "站點停用",
+      "noManageableAccount": "當前站點沒有可管理的帳號",
+      "keyCreate": {
+        "title": "快捷建立站點 Key",
+        "description": "為分組 {groupName} 在帳號 {accountName} 下建立新 Key，並在建立後立即同步當前卡片。",
+        "groupKeyLabel": "分組 Key：",
+        "nameLabel": "Key 名稱（可選）",
+        "namePlaceholder": "留空時自動生成",
+        "submit": "建立並同步 Key",
+        "submitting": "建立並同步中..."
+      },
+      "modelAdd": {
+        "title": "新增自訂模型",
+        "description": "批次新增到分組 {groupName}。同組已存在的模型不能重複新增。",
+        "namesLabel": "模型名稱（支援換行或逗號分隔）",
+        "routeTypeLabel": "端點格式",
+        "submit": "新增",
+        "submitting": "新增中..."
+      },
+      "keyManage": {
+        "title": "管理站點 Key",
+        "description": "分組 {groupName} 的站點 Key 真源會在儲存後更新，並重新投影到所有託管渠道。",
+        "projectedChannels": "投影渠道：{channels}",
+        "existingKeyLabel": "站點 Key #{keyId}",
+        "newKeyLabel": "新站點 Key",
+        "pendingSuffix": " · 待補全",
+        "enabledLabel": "啟用",
+        "existingKeyPlaceholder": "點擊眼睛查看或直接修改完整 Key",
+        "newKeyPlaceholder": "輸入新的站點 Key",
+        "currentValue": "當前值：{masked}",
+        "nameLabel": "名稱",
+        "namePlaceholder": "Key 名稱",
+        "lastSync": "上次同步：{time}",
+        "addKeyRow": "新增 Key",
+        "submit": "儲存站點 Key",
+        "submitting": "儲存中..."
+      }
+    },
+    "completion": {
+      "trigger": "統一補全 Key",
+      "title": "統一補全 Key",
+      "pendingTotal": "{count, plural, other {# 項}}",
+      "description": "同步到的脫敏 Key 不能直接繼續投影，必須補全明文 Key 才能恢復可用狀態。",
+      "hint": "建議一個站點下每個分組只保留一個 Key，只建立自己需要分組的 Key，這樣同步和投影會更乾淨。",
+      "sitePendingCount": "待補全 {count}",
+      "siteJumpHint": "站點級跳轉用於直接開啟該站點的權杖管理頁，處理更複雜的 Key 清理或分組治理。",
+      "openTokenManagement": "開啟權杖管理",
+      "accountPendingCount": "待補全 {count}",
+      "accountFilledCount": "已填寫 {count}",
+      "accountHint": "僅提交當前帳號內已填寫完整值的待補全 Key；儲存後會自動啟用並重新參與投影。",
+      "saveAccount": "儲存本帳號",
+      "saving": "儲存中...",
+      "groupLabel": "分組",
+      "keyFallbackName": "站點 Key #{keyId}",
+      "currentValue": "當前值：{masked}",
+      "inputLabel": "輸入完整 Key",
+      "inputPlaceholder": "填寫完整明文 Key，儲存後自動啟用",
+      "saveSuccess": "帳號「{accountName}」的待補全 Key 已儲存並恢復啟用"
+    },
+    "section": {
+      "loadFailed": "站點渠道載入失敗：{message}"
+    },
+    "table": {
+      "selectVisibleModels": "選擇當前可見模型",
+      "selectModel": "選擇模型 {modelName}",
+      "columnModel": "模型",
+      "columnGroup": "分組",
+      "columnRouteType": "端點格式",
+      "columnSource": "來源",
+      "columnStatus": "狀態",
+      "columnLastRequest": "最近請求",
+      "columnChannel": "渠道",
+      "columnActions": "操作",
+      "manualSource": "自訂",
+      "manualOverride": "手動覆蓋",
+      "autoMapped": "自動映射",
+      "needsManualRoute": "待人工指定",
+      "missingKey": "缺少 Key",
+      "attention": "待處理",
+      "historyCount": "{count, plural, =0 {無記錄} other {# 次記錄}}",
+      "deleteManualModel": "刪除自訂模型"
+    },
+    "panel": {
+      "toolbar": {
+        "groupLabel": "分組",
+        "allGroups": "全部分組",
+        "groupCount": "{count, plural, other {# 組}}",
+        "modelKeySummary": "{modelCount} 模型 · Key {enabledKeyCount}/{keyCount}",
+        "notProjectedSuffix": " · 不投影",
+        "pendingCompletionSuffix": " · 待補全 {count}",
+        "projectedSuffix": " · 投影 {count}",
+        "groupNeedsKey": "待建",
+        "groupNeedsCompletion": "待補全",
+        "searchPlaceholder": "搜尋模型名稱、分組...",
+        "addModel": "新增",
+        "selectGroupFirst": "請先選擇具體分組",
+        "resumeProjectionHint": "恢復生成投影渠道並顯示到分組編輯",
+        "stopProjectionHint": "停止生成投影渠道並從分組編輯中移除",
+        "notProjected": "不投影",
+        "projected": "投影",
+        "filter": "篩選",
+        "filterWithCount": "篩選({count})",
+        "noProjectedChannelInGroup": "當前分組暫無投影渠道",
+        "advanced": "進階",
+        "compactMode": "緊湊模式",
+        "compactModeHint": "壓縮模型卡片和表格行高",
+        "resetRoutes": "重設模型端點格式",
+        "resetting": "重設中...",
+        "unsupportedRouteCount": "未識別端點 {count}",
+        "selectedCount": "{count, plural, other {已選 # 個}}",
+        "targetEndpoint": "目標端點",
+        "bulkMove": "移動",
+        "bulkEnable": "啟用",
+        "bulkDisable": "停用",
+        "clearSelection": "清空"
+      },
+      "quickFilter": {
+        "title": "快速篩選",
+        "clear": "清空篩選"
+      },
+      "keyCreate": {
+        "pendingGroupCount": "{count, plural, other {待建 Key # 組}}",
+        "pendingGroupsTitle": "未建立 Key 的分組",
+        "creating": "建立中...",
+        "quickCreate": "快捷建立",
+        "completePlaintextKeys": "待補全明文 Key"
+      },
+      "keyManage": {
+        "projectedGroupCount": "{count, plural, other {投影 Key # 組}}",
+        "projectedGroupsTitle": "投影渠道 Key 管理"
+      },
+      "noMatchingModels": "當前篩選和搜尋條件下沒有匹配模型",
+      "loadMoreHint": "顯示 {shown} / 共 {total} 個模型，向下滾動載入更多"
+    },
+    "toast": {
+      "routeUpdated": "{count, plural, =1 {模型請求端點格式已更新} other {已更新 # 個模型的請求端點格式}}",
+      "routeUpdateFailed": "更新模型請求端點格式失敗",
+      "modelsDisabled": "{count, plural, =1 {模型已停用} other {# 個模型已停用}}",
+      "modelsEnabled": "{count, plural, =1 {模型已啟用} other {# 個模型已啟用}}",
+      "disabledUpdateFailed": "更新模型停用狀態失敗",
+      "projectionStopped": "已停止生成該分組的投影渠道",
+      "projectionResumed": "已恢復生成該分組的投影渠道",
+      "projectionUpdateFailed": "更新分組投影狀態失敗",
+      "keyCreated": "分組「{groupName}」已建立 Key 並完成同步",
+      "keyCreateFailed": "快捷建立 Key 失敗",
+      "modelNameRequired": "請填寫模型名稱",
+      "modelsAlreadyExist": "模型已存在：{names}",
+      "manualModelsAdded": "{count, plural, other {已新增 # 個自訂模型}}",
+      "manualModelsAddFailed": "新增自訂模型失敗",
+      "manualModelDeleted": "自訂模型已刪除",
+      "manualModelDeleteFailed": "刪除自訂模型失敗",
+      "sourceKeyStillMasked": "Key #{keyId} 仍是脫敏值，必須填寫完整 Key",
+      "sourceKeyMismatch": "Key #{keyId} 與已同步的脫敏值不匹配，請核對輸入",
+      "noKeyChanges": "沒有需要儲存的 Key 變更",
+      "sourceKeysUpdated": "分組「{groupName}」的站點 Key 已更新",
+      "sourceKeysUpdateFailed": "更新站點 Key 失敗",
+      "routesReset": "模型請求端點格式已重設",
+      "routesResetFailed": "重設模型端點格式失敗"
     }
   },
   "system": {

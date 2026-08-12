@@ -335,7 +335,7 @@ function UnifiedCompletionDialog({
                 }
                 return next;
             });
-            toast.success(`账号「${account.account_name}」的待补全 Key 已保存并恢复启用`);
+            toast.success(t('siteChannel.completion.saveSuccess', { accountName: account.account_name }));
         } catch (error) {
             setAccountErrors((current) => ({
                 ...current,
@@ -353,14 +353,14 @@ function UnifiedCompletionDialog({
                     <DialogHeader className="gap-3 border-b border-border/70 px-5 py-4 text-left sm:px-6">
                         <DialogTitle className="flex items-center gap-2 text-xl">
                             <KeyRound className="size-5 text-primary" />
-                            统一补全 Key
-                            <Badge variant="outline" className="h-6 px-2 text-[11px]">{totalPendingCount} 项</Badge>
+                            {t('siteChannel.completion.title')}
+                            <Badge variant="outline" className="h-6 px-2 text-[11px]">{t('siteChannel.completion.pendingTotal', { count: totalPendingCount })}</Badge>
                         </DialogTitle>
                         <DialogDescription>
-                            同步到的脱敏 Key 不能直接继续投影，必须补全文明文 Key 才能恢复可用状态。
+                            {t('siteChannel.completion.description')}
                         </DialogDescription>
                         <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-100">
-                            建议一个站点下每个分组只保留一个 Key，只创建自己需要分组的 Key，这样同步和投影会更干净。
+                            {t('siteChannel.completion.hint')}
                         </div>
                     </DialogHeader>
 
@@ -379,11 +379,11 @@ function UnifiedCompletionDialog({
                                                         {platformLabel(site.platform)}
                                                     </Badge>
                                                     <Badge variant="outline" className="h-6 px-2 text-[11px] border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-200">
-                                                        待补全 {site.pending_count}
+                                                        {t('siteChannel.completion.sitePendingCount', { count: site.pending_count })}
                                                     </Badge>
                                                 </div>
                                                 <div className="text-xs text-muted-foreground">
-                                                    站点级跳转用于直接打开该站点的令牌管理页，处理更复杂的 Key 清理或分组治理。
+                                                    {t('siteChannel.completion.siteJumpHint')}
                                                 </div>
                                             </div>
                                             <Button
@@ -394,7 +394,7 @@ function UnifiedCompletionDialog({
                                                 disabled={!targetUrl}
                                             >
                                                 <ExternalLink className="size-4" />
-                                                打开令牌管理
+                                                {t('siteChannel.completion.openTokenManagement')}
                                             </Button>
                                         </div>
 
@@ -415,16 +415,16 @@ function UnifiedCompletionDialog({
                                                                 <div className="flex flex-wrap items-center gap-2">
                                                                     <div className="text-sm font-semibold text-foreground">{account.account_name}</div>
                                                                     <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
-                                                                        待补全 {account.items.length}
+                                                                        {t('siteChannel.completion.accountPendingCount', { count: account.items.length })}
                                                                     </Badge>
                                                                     {enteredCount > 0 ? (
                                                                         <Badge variant="outline" className="h-5 px-1.5 text-[10px] border-primary/30 bg-primary/10 text-primary">
-                                                                            已填写 {enteredCount}
+                                                                            {t('siteChannel.completion.accountFilledCount', { count: enteredCount })}
                                                                         </Badge>
                                                                     ) : null}
                                                                 </div>
                                                                 <div className="mt-1 text-xs text-muted-foreground">
-                                                                    仅提交当前账号内已填写完整值的待补全 Key；保存后会自动启用并重新参与投影。
+                                                                    {t('siteChannel.completion.accountHint')}
                                                                 </div>
                                                             </div>
                                                             <Button
@@ -434,7 +434,7 @@ function UnifiedCompletionDialog({
                                                                 disabled={isSaving || enteredCount === 0}
                                                             >
                                                                 <RefreshCw className={cn('size-4', isSaving && 'animate-spin')} />
-                                                                {isSaving ? '保存中...' : '保存本账号'}
+                                                                {isSaving ? t('siteChannel.completion.saving') : t('siteChannel.completion.saveAccount')}
                                                             </Button>
                                                         </div>
 
@@ -449,21 +449,21 @@ function UnifiedCompletionDialog({
                                                                 <div key={item.key_id} className="rounded-2xl border border-border/60 bg-card/80 p-3">
                                                                     <div className="grid gap-3 lg:grid-cols-[minmax(0,15rem)_minmax(0,14rem)_1fr]">
                                                                         <div className="space-y-1">
-                                                                            <div className="text-xs text-muted-foreground">分组</div>
+                                                                            <div className="text-xs text-muted-foreground">{t('siteChannel.completion.groupLabel')}</div>
                                                                             <div className="truncate text-sm font-medium text-foreground">{item.group_name || item.group_key}</div>
                                                                             <div className="text-[11px] text-muted-foreground">{item.group_key}</div>
                                                                         </div>
                                                                         <div className="space-y-1">
                                                                             <div className="text-xs text-muted-foreground">Key</div>
-                                                                            <div className="truncate text-sm font-medium text-foreground">{item.key_name || `站点 Key #${item.key_id}`}</div>
-                                                                            <div className="text-[11px] text-muted-foreground">当前值：{item.token_masked || item.token}</div>
+                                                                            <div className="truncate text-sm font-medium text-foreground">{item.key_name || t('siteChannel.completion.keyFallbackName', { keyId: item.key_id })}</div>
+                                                                            <div className="text-[11px] text-muted-foreground">{t('siteChannel.completion.currentValue', { masked: item.token_masked || item.token })}</div>
                                                                         </div>
                                                                         <label className="grid gap-1.5 text-xs text-muted-foreground">
-                                                                            输入完整 Key
+                                                                            {t('siteChannel.completion.inputLabel')}
                                                                             <Input
                                                                                 value={inputValues[item.key_id] ?? ''}
                                                                                 onChange={(event) => handleInputChange(item.key_id, event.target.value)}
-                                                                                placeholder="填写完整明文 Key，保存后自动启用"
+                                                                                placeholder={t('siteChannel.completion.inputPlaceholder')}
                                                                                 disabled={isSaving}
                                                                                 className="h-10 rounded-2xl"
                                                                             />
@@ -484,7 +484,7 @@ function UnifiedCompletionDialog({
 
                     <DialogFooter className="border-t border-border/70 px-5 py-4 sm:px-6">
                         <Button type="button" variant="outline" className="rounded-2xl" onClick={() => onOpenChange(false)}>
-                            关闭
+                            {t('common.close')}
                         </Button>
                     </DialogFooter>
                 </div>
@@ -605,19 +605,24 @@ const SHORT_ROUTE_LABEL: Partial<Record<SiteModelRouteType, string>> = {
     openai_embedding: 'Embedding',
 };
 
-function getUnknownRouteReason(model: SiteModelView) {
+// Returns the raw pieces of an unsupported-route explanation; the caller turns
+// them into copy. Deliberately free of t(): tests/i18n-keys.cjs can only resolve
+// a key's namespace when `t` is bound from useTranslations() in an enclosing
+// scope, so keys passed through a `t` *parameter* land in its unchecked
+// "unresolved" bucket and escape the missing-key gate entirely.
+function getUnknownRouteParts(model: SiteModelView) {
     const metadata = model.route_metadata;
     if (!metadata || metadata.route_supported) return null;
 
-    const details = [metadata.unsupported_reason];
-    if (metadata.supported_endpoint_types?.length) {
-        details.push(`检测到端点: ${metadata.supported_endpoint_types.join(', ')}`);
-    }
-    if (metadata.heuristic_endpoint_types?.length) {
-        details.push(`启发式推断: ${metadata.heuristic_endpoint_types.join(', ')}`);
-    }
-
-    return details.filter((item): item is string => Boolean(item && item.trim())).join(' · ') || null;
+    return {
+        reason: metadata.unsupported_reason ?? null,
+        detected: metadata.supported_endpoint_types?.length
+            ? metadata.supported_endpoint_types.join(', ')
+            : null,
+        heuristic: metadata.heuristic_endpoint_types?.length
+            ? metadata.heuristic_endpoint_types.join(', ')
+            : null,
+    };
 }
 
 function getModelLastRequestAt(model: SiteModelView) {
@@ -681,18 +686,12 @@ function sortModels(models: SiteModelView[], tableSort: SiteChannelTableSort) {
     });
 }
 
-const QUICK_FILTER_OPTIONS: Array<{
-    key: SiteChannelQuickFilter;
-    label: string;
-}> = [
-    { key: 'attention', label: '仅未正确配置' },
-    { key: 'with_history', label: '仅有请求历史' },
-    { key: 'disabled', label: '仅禁用' },
-];
+const QUICK_FILTER_ORDER: SiteChannelQuickFilter[] = ['attention', 'with_history', 'disabled'];
 
 const SITE_GROUP_FILTER_ALL_VALUE = '__site-group-all__';
 
 function HistorySummary({ model }: { model: SiteModelView }) {
+    const t = useTranslations();
     const summary = summarizeHistory(model.history);
     const buckets = model.history?.buckets ?? [];
     const bucketSpan = model.history?.bucket_span ?? 0;
@@ -727,21 +726,21 @@ function HistorySummary({ model }: { model: SiteModelView }) {
                     </Badge>
                 </div>
                 <div className="text-[11px] text-muted-foreground">
-                    {model.group_name || model.group_key} · 最近请求 {formatHistoryTime(model.history?.last_request_at ?? null)}
+                    {model.group_name || model.group_key} {t('siteChannel.history.lastRequest')} {formatHistoryTime(model.history?.last_request_at ?? null)}
                 </div>
             </div>
 
             <div className="grid grid-cols-3 gap-2 text-xs">
                 <div className="rounded-xl border border-border/60 bg-background/70 px-2 py-2">
-                    <div className="text-muted-foreground">成功</div>
+                    <div className="text-muted-foreground">{t('siteChannel.card.metrics.successRequests')}</div>
                     <div className="mt-1 font-semibold text-emerald-600 dark:text-emerald-300">{summary.successCount}</div>
                 </div>
                 <div className="rounded-xl border border-border/60 bg-background/70 px-2 py-2">
-                    <div className="text-muted-foreground">失败</div>
+                    <div className="text-muted-foreground">{t('siteChannel.card.metrics.failedRequests')}</div>
                     <div className="mt-1 font-semibold text-destructive">{summary.failureCount}</div>
                 </div>
                 <div className="rounded-xl border border-border/60 bg-background/70 px-2 py-2">
-                    <div className="text-muted-foreground">成功率</div>
+                    <div className="text-muted-foreground">{t('siteChannel.history.successRate')}</div>
                     <div className="mt-1 font-semibold text-foreground">{(summary.successRate * 100).toFixed(0)}%</div>
                 </div>
             </div>
@@ -799,11 +798,11 @@ function HistorySummary({ model }: { model: SiteModelView }) {
                                             <div className="rounded-lg border border-border/70 bg-popover/95 px-3 py-2 text-[11px] shadow-md backdrop-blur">
                                                 <div className="font-medium text-foreground">{formatBucketTime(point.time)}</div>
                                                 <div className="mt-1 flex items-center gap-3 text-muted-foreground">
-                                                    <span className="text-emerald-600 dark:text-emerald-300">成功 {point.success}</span>
-                                                    <span className="text-destructive">失败 {point.failure}</span>
+                                                    <span className="text-emerald-600 dark:text-emerald-300">{t('siteChannel.card.metrics.successRequests')} {point.success}</span>
+                                                    <span className="text-destructive">{t('siteChannel.card.metrics.failedRequests')} {point.failure}</span>
                                                 </div>
                                                 <div className="text-muted-foreground">
-                                                    成功率 {point.successRate === null ? '—' : `${point.successRate}%`}
+                                                    {t('siteChannel.history.successRate')} {point.successRate === null ? '—' : `${point.successRate}%`}
                                                 </div>
                                             </div>
                                         );
@@ -812,7 +811,7 @@ function HistorySummary({ model }: { model: SiteModelView }) {
                                 <Bar
                                     yAxisId="count"
                                     dataKey="total"
-                                    name="请求数"
+                                    name={t('siteChannel.card.metrics.totalRequests')}
                                     fill="url(#fillSiteChannelBar)"
                                     radius={[2, 2, 0, 0]}
                                     isAnimationActive={false}
@@ -821,7 +820,7 @@ function HistorySummary({ model }: { model: SiteModelView }) {
                                     yAxisId="rate"
                                     type="monotone"
                                     dataKey="successRate"
-                                    name="成功率"
+                                    name={t('siteChannel.history.successRate')}
                                     stroke="var(--chart-1)"
                                     strokeWidth={2}
                                     dot={{ r: 2, fill: 'var(--chart-1)', stroke: 'var(--chart-1)' }}
@@ -835,7 +834,7 @@ function HistorySummary({ model }: { model: SiteModelView }) {
                 </div>
             ) : (
                 <div className="rounded-xl border border-dashed border-border/70 bg-background/50 px-3 py-4 text-center text-xs text-muted-foreground">
-                    暂无请求历史
+                    {t('siteChannel.history.empty')}
                 </div>
             )}
         </div>
@@ -881,6 +880,7 @@ function MoveRoutePopover({
     buttonClassName?: string;
     onMove: (routeType: SiteModelRouteType) => void;
 }) {
+    const t = useTranslations();
     const [open, setOpen] = useState(false);
 
     return (
@@ -899,7 +899,7 @@ function MoveRoutePopover({
             </PopoverTrigger>
             <PopoverContent align="end" className="w-56 rounded-2xl border border-border/70 bg-card p-2 shadow-xl">
                 <div className="space-y-2">
-                    <div className="px-2 pt-1 text-xs font-medium text-muted-foreground">移动至...</div>
+                    <div className="px-2 pt-1 text-xs font-medium text-muted-foreground">{t('siteChannel.movePopover.title')}</div>
                     <div className="grid gap-1">
                         {SITE_ROUTE_COLUMN_ORDER.map((routeType) => (
                             <button
@@ -952,6 +952,7 @@ function SiteChannelMobileCard({
     onNavigateToChannel: (channelId: number) => void;
     registerModelRef: (modelKey: string, node: HTMLElement | null) => void;
 }) {
+    const t = useTranslations();
     const [expanded, setExpanded] = useState(false);
     const modelKey = makeModelKey(model.group_key, model.model_name);
     const { Avatar: ModelAvatar } = getModelIcon(model.model_name);
@@ -981,7 +982,7 @@ function SiteChannelMobileCard({
                     <div className="flex items-center gap-2">
                         <span className="min-w-0 flex-1 truncate text-sm font-semibold leading-tight">{model.model_name}</span>
                         {model.source === 'manual' ? (
-                            <Badge variant="outline" className="h-5 shrink-0 px-1.5 text-[10px] border-primary/30 bg-primary/10 text-primary">自定义</Badge>
+                            <Badge variant="outline" className="h-5 shrink-0 px-1.5 text-[10px] border-primary/30 bg-primary/10 text-primary">{t('siteChannel.mobileCard.manualSource')}</Badge>
                         ) : null}
                         <ChevronDown className={cn('size-4 shrink-0 text-muted-foreground transition-transform duration-200', expanded && 'rotate-180')} />
                     </div>
@@ -991,10 +992,10 @@ function SiteChannelMobileCard({
                         </Badge>
                         <span className="shrink-0 truncate text-[11px] text-muted-foreground">{model.group_name || model.group_key}</span>
                         {model.disabled ? (
-                            <Badge variant="outline" className="h-5 shrink-0 px-1.5 text-[10px] border-destructive/30 bg-destructive/10 text-destructive">已禁用</Badge>
+                            <Badge variant="outline" className="h-5 shrink-0 px-1.5 text-[10px] border-destructive/30 bg-destructive/10 text-destructive">{t('siteChannel.card.statusDisabled')}</Badge>
                         ) : null}
                         {modelNeedsAttention(model) ? (
-                            <Badge variant="outline" className="h-5 shrink-0 px-1.5 text-[10px] border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300">待处理</Badge>
+                            <Badge variant="outline" className="h-5 shrink-0 px-1.5 text-[10px] border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300">{t('siteChannel.mobileCard.attention')}</Badge>
                         ) : null}
                     </div>
                 </div>
@@ -1012,23 +1013,23 @@ function SiteChannelMobileCard({
                         <div className="space-y-3 border-t border-border/20 px-3 pt-3 pb-3">
                             <div className="grid grid-cols-2 gap-2 text-xs">
                                 <div className="rounded-lg border border-border/25 bg-background/60 px-2 py-1.5">
-                                    <div className="text-muted-foreground">来源</div>
+                                    <div className="text-muted-foreground">{t('siteChannel.mobileCard.source')}</div>
                                     <div className="mt-0.5 font-medium text-foreground">{routeSourceLabel(model.route_source)}</div>
                                 </div>
                                 <div className="rounded-lg border border-border/25 bg-background/60 px-2 py-1.5">
                                     <div className="text-muted-foreground">Key</div>
                                     <div className={cn('mt-0.5 font-medium', model.has_keys ? 'text-foreground' : 'text-amber-700 dark:text-amber-300')}>
                                         {model.enabled_key_count}/{model.key_count}
-                                        {!model.has_keys ? ' · 缺少 Key' : ''}
+                                        {!model.has_keys ? t('siteChannel.mobileCard.missingKeySuffix') : ''}
                                     </div>
                                 </div>
                                 <div className="rounded-lg border border-border/25 bg-background/60 px-2 py-1.5">
-                                    <div className="text-muted-foreground">最近请求</div>
+                                    <div className="text-muted-foreground">{t('siteChannel.mobileCard.lastRequest')}</div>
                                     <div className="mt-0.5 font-medium text-foreground">{formatHistoryTime(getModelLastRequestAt(model))}</div>
-                                    <div className="text-[11px] text-muted-foreground">{historyCount} 次记录</div>
+                                    <div className="text-[11px] text-muted-foreground">{t('siteChannel.mobileCard.historyCount', { count: historyCount })}</div>
                                 </div>
                                 <div className="rounded-lg border border-border/25 bg-background/60 px-2 py-1.5">
-                                    <div className="text-muted-foreground">渠道</div>
+                                    <div className="text-muted-foreground">{t('siteChannel.mobileCard.channel')}</div>
                                     <div className="mt-0.5 font-medium text-foreground">
                                         {model.projected_channel_id ? (
                                             <button
@@ -1075,7 +1076,7 @@ function SiteChannelMobileCard({
                                         onClick={() => onDeleteManualModel(model)}
                                         disabled={isPending}
                                         className="rounded-lg border border-border/25 p-1 text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
-                                        title="删除自定义模型"
+                                        title={t('siteChannel.mobileCard.deleteManualModel')}
                                     >
                                         <Trash2 className="size-4" />
                                     </button>
@@ -1208,6 +1209,7 @@ function SiteChannelTableView({
     onNavigateToChannel: (channelId: number) => void;
     registerModelRef: (modelKey: string, node: HTMLElement | null) => void;
 }) {
+    const t = useTranslations();
     const sentinelRef = useRef<HTMLDivElement | null>(null);
 
     useEffect(() => {
@@ -1228,6 +1230,19 @@ function SiteChannelTableView({
         observer.observe(node);
         return () => observer.disconnect();
     }, [hasMore, onReachEnd]);
+
+    // Built here rather than in a module-level helper so the keys sit in a scope
+    // where `t` comes from useTranslations() — see getUnknownRouteParts.
+    const unknownRouteTitle = (model: SiteModelView) => {
+        const parts = getUnknownRouteParts(model);
+        if (!parts) return null;
+        const details = [
+            parts.reason,
+            parts.detected ? t('siteChannel.routeReason.detectedEndpoints', { types: parts.detected }) : null,
+            parts.heuristic ? t('siteChannel.routeReason.heuristicEndpoints', { types: parts.heuristic }) : null,
+        ];
+        return details.filter((item): item is string => Boolean(item && item.trim())).join(' · ') || null;
+    };
 
     const renderSortHead = (field: SiteChannelTableSortField, label: string) => (
         <button
@@ -1252,19 +1267,19 @@ function SiteChannelTableView({
                             <SelectionCheckbox
                                 checked={allVisibleSelected}
                                 disabled={models.length === 0}
-                                ariaLabel="选择当前可见模型"
+                                ariaLabel={t('siteChannel.table.selectVisibleModels')}
                                 onCheckedChange={onToggleAllVisible}
                             />
                         </TableHead>
-                        <TableHead className={cn(STICKY_HEAD_CELL, 'w-[24%]')}>{renderSortHead('model_name', '模型')}</TableHead>
-                        <TableHead className={cn(STICKY_HEAD_CELL, 'w-[13%]')}>{renderSortHead('group_name', '分组')}</TableHead>
-                        <TableHead className={cn(STICKY_HEAD_CELL, 'w-[13%]')}>{renderSortHead('route_type', '端点格式')}</TableHead>
-                        <TableHead className={cn(STICKY_HEAD_CELL, 'w-[9%]')}>来源</TableHead>
+                        <TableHead className={cn(STICKY_HEAD_CELL, 'w-[24%]')}>{renderSortHead('model_name', t('siteChannel.table.columnModel'))}</TableHead>
+                        <TableHead className={cn(STICKY_HEAD_CELL, 'w-[13%]')}>{renderSortHead('group_name', t('siteChannel.table.columnGroup'))}</TableHead>
+                        <TableHead className={cn(STICKY_HEAD_CELL, 'w-[13%]')}>{renderSortHead('route_type', t('siteChannel.table.columnRouteType'))}</TableHead>
+                        <TableHead className={cn(STICKY_HEAD_CELL, 'w-[9%]')}>{t('siteChannel.table.columnSource')}</TableHead>
                         <TableHead className={cn(STICKY_HEAD_CELL, 'w-[8%]')}>Key</TableHead>
-                        <TableHead className={cn(STICKY_HEAD_CELL, 'w-[10%]')}>状态</TableHead>
-                        <TableHead className={cn(STICKY_HEAD_CELL, 'w-[12%]')}>{renderSortHead('last_request_at', '最近请求')}</TableHead>
-                        <TableHead className={cn(STICKY_HEAD_CELL, 'w-[7%]')}>渠道</TableHead>
-                        <TableHead className={cn(STICKY_HEAD_CELL, 'w-[8%] text-right')}>操作</TableHead>
+                        <TableHead className={cn(STICKY_HEAD_CELL, 'w-[10%]')}>{t('siteChannel.table.columnStatus')}</TableHead>
+                        <TableHead className={cn(STICKY_HEAD_CELL, 'w-[12%]')}>{renderSortHead('last_request_at', t('siteChannel.table.columnLastRequest'))}</TableHead>
+                        <TableHead className={cn(STICKY_HEAD_CELL, 'w-[7%]')}>{t('siteChannel.table.columnChannel')}</TableHead>
+                        <TableHead className={cn(STICKY_HEAD_CELL, 'w-[8%] text-right')}>{t('siteChannel.table.columnActions')}</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1290,7 +1305,7 @@ function SiteChannelTableView({
                                     <SelectionCheckbox
                                         checked={isSelected}
                                         disabled={isPending}
-                                        ariaLabel={`选择模型 ${model.model_name}`}
+                                        ariaLabel={t('siteChannel.table.selectModel', { modelName: model.model_name })}
                                         onCheckedChange={(checked) => onToggleModelSelection(modelKey, checked)}
                                     />
                                 </TableCell>
@@ -1301,12 +1316,12 @@ function SiteChannelTableView({
                                             <div className="flex min-w-0 items-center gap-1.5">
                                                 <span className="truncate text-sm font-medium">{model.model_name}</span>
                                                 {model.source === 'manual' ? (
-                                                    <Badge variant="outline" className="h-5 px-1.5 text-[10px] border-primary/30 bg-primary/10 text-primary">自定义</Badge>
+                                                    <Badge variant="outline" className="h-5 px-1.5 text-[10px] border-primary/30 bg-primary/10 text-primary">{t('siteChannel.table.manualSource')}</Badge>
                                                 ) : null}
                                             </div>
                                             {!compactMode ? (
                                                 <div className="text-[11px] text-muted-foreground">
-                                                    {model.manual_override ? '手动覆盖' : '自动映射'}
+                                                    {model.manual_override ? t('siteChannel.table.manualOverride') : t('siteChannel.table.autoMapped')}
                                                 </div>
                                             ) : null}
                                         </div>
@@ -1324,9 +1339,9 @@ function SiteChannelTableView({
                                             <Badge
                                                 variant="outline"
                                                 className="h-6 px-2 text-[11px] border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300"
-                                                title={getUnknownRouteReason(model) ?? undefined}
+                                                title={unknownRouteTitle(model) ?? undefined}
                                             >
-                                                待人工指定
+                                                {t('siteChannel.table.needsManualRoute')}
                                             </Badge>
                                         ) : null}
                                     </div>
@@ -1341,30 +1356,30 @@ function SiteChannelTableView({
                                         {model.enabled_key_count}/{model.key_count}
                                     </div>
                                     {!model.has_keys ? (
-                                        <div className="text-[11px] text-amber-700 dark:text-amber-300">缺少 Key</div>
+                                        <div className="text-[11px] text-amber-700 dark:text-amber-300">{t('siteChannel.table.missingKey')}</div>
                                     ) : null}
                                 </TableCell>
                                 <TableCell className={cn('min-w-0', compactMode ? 'py-2' : undefined)}>
                                     <div className="flex flex-wrap gap-1.5">
                                         {model.disabled ? (
                                             <Badge variant="outline" className="h-6 px-2 text-[11px] border-destructive/30 bg-destructive/10 text-destructive">
-                                                已禁用
+                                                {t('siteChannel.card.statusDisabled')}
                                             </Badge>
                                         ) : (
                                             <Badge variant="outline" className="h-6 px-2 text-[11px] border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
-                                                已启用
+                                                {t('siteChannel.card.statusEnabled')}
                                             </Badge>
                                         )}
                                         {modelNeedsAttention(model) ? (
                                             <Badge variant="outline" className="h-6 px-2 text-[11px] border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300">
-                                                待处理
+                                                {t('siteChannel.table.attention')}
                                             </Badge>
                                         ) : null}
                                     </div>
                                 </TableCell>
                                 <TableCell className={cn('min-w-0', compactMode ? 'py-2' : undefined)}>
                                     <div className="text-sm">{formatHistoryTime(getModelLastRequestAt(model))}</div>
-                                    <div className="text-[11px] text-muted-foreground">{historyCount} 次记录</div>
+                                    <div className="text-[11px] text-muted-foreground">{t('siteChannel.table.historyCount', { count: historyCount })}</div>
                                 </TableCell>
                                 <TableCell className={cn('min-w-0', compactMode ? 'py-2' : undefined)}>
                                     {model.projected_channel_id ? (
@@ -1409,7 +1424,7 @@ function SiteChannelTableView({
                                                 onClick={() => onDeleteManualModel(model)}
                                                 disabled={isPending}
                                                 className="rounded-lg p-1 text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
-                                                title="删除自定义模型"
+                                                title={t('siteChannel.table.deleteManualModel')}
                                             >
                                                 <Trash2 className="size-4" />
                                             </button>
@@ -1696,17 +1711,17 @@ function SiteAccountPanel({
         routeMutation.mutate(payload, {
             onSuccess: () => {
                 setPendingRouteOverrides((current) => removeKeys(current, modelKeys));
-                toast.success(payload.length === 1 ? '模型请求端点格式已更新' : `已更新 ${payload.length} 个模型的请求端点格式`);
+                toast.success(t('siteChannel.toast.routeUpdated', { count: payload.length }));
             },
             onError: (error) => {
                 setPendingRouteOverrides((current) => removeKeys(current, modelKeys));
-                toast.error(translateSiteError(error, '更新模型请求端点格式失败'));
+                toast.error(translateSiteError(error, t('siteChannel.toast.routeUpdateFailed')));
             },
             onSettled: () => {
                 setPendingModelKeys((current) => removePendingKeys(current, modelKeys));
             },
         });
-    }, [pendingModelKeys, routeMutation, translateSiteError]);
+    }, [pendingModelKeys, routeMutation, translateSiteError, t]);
 
     const applyDisabledChange = useCallback((models: SiteModelView[], nextDisabled: boolean) => {
         const eligibleModels = models.filter((model) => {
@@ -1735,17 +1750,19 @@ function SiteAccountPanel({
         disabledMutation.mutate({ siteId, accountId: account.account_id, payload }, {
             onSuccess: () => {
                 setPendingDisabledOverrides((current) => removeKeys(current, modelKeys));
-                toast.success(payload.length === 1 ? (nextDisabled ? '模型已禁用' : '模型已启用') : `${payload.length} 个模型已${nextDisabled ? '禁用' : '启用'}`);
+                toast.success(nextDisabled
+                    ? t('siteChannel.toast.modelsDisabled', { count: payload.length })
+                    : t('siteChannel.toast.modelsEnabled', { count: payload.length }));
             },
             onError: (error) => {
                 setPendingDisabledOverrides((current) => removeKeys(current, modelKeys));
-                toast.error(translateSiteError(error, '更新模型禁用状态失败'));
+                toast.error(translateSiteError(error, t('siteChannel.toast.disabledUpdateFailed')));
             },
             onSettled: () => {
                 setPendingModelKeys((current) => removePendingKeys(current, modelKeys));
             },
         });
-    }, [pendingModelKeys, disabledMutation, siteId, account.account_id, translateSiteError]);
+    }, [pendingModelKeys, disabledMutation, siteId, account.account_id, translateSiteError, t]);
 
     const handleOpenCreateKey = (group: SiteChannelGroup) => {
         setCreatingGroup(group);
@@ -1759,10 +1776,10 @@ function SiteAccountPanel({
             projection_disabled: nextDisabled,
         }, {
             onSuccess: () => {
-                toast.success(nextDisabled ? '已停止生成该分组的投影渠道' : '已恢复生成该分组的投影渠道');
+                toast.success(nextDisabled ? t('siteChannel.toast.projectionStopped') : t('siteChannel.toast.projectionResumed'));
             },
             onError: (error) => {
-                toast.error(translateSiteError(error, '更新分组投影状态失败'));
+                toast.error(translateSiteError(error, t('siteChannel.toast.projectionUpdateFailed')));
             },
         });
     };
@@ -1783,12 +1800,12 @@ function SiteAccountPanel({
             },
             {
                 onSuccess: () => {
-                    toast.success(`分组「${creatingGroup.group_name || creatingGroup.group_key}」已创建 Key 并完成同步`);
+                    toast.success(t('siteChannel.toast.keyCreated', { groupName: creatingGroup.group_name || creatingGroup.group_key }));
                     setCreatingGroup(null);
                     setQuickCreateName('');
                 },
                 onError: (error) => {
-                    toast.error(translateSiteError(error, '快捷创建 Key 失败'));
+                    toast.error(translateSiteError(error, t('siteChannel.toast.keyCreateFailed')));
                 },
             },
         );
@@ -1848,13 +1865,13 @@ function SiteAccountPanel({
         if (!addingManualGroup) return;
         const names = parseManualModelNames();
         if (names.length === 0) {
-            toast.error('请填写模型名称');
+            toast.error(t('siteChannel.toast.modelNameRequired'));
             return;
         }
         const existing = new Set(addingManualGroup.models.map((model) => model.model_name));
         const duplicated = names.filter((name) => existing.has(name));
         if (duplicated.length > 0) {
-            toast.error(`模型已存在：${duplicated.join(', ')}`);
+            toast.error(t('siteChannel.toast.modelsAlreadyExist', { names: duplicated.join(', ') }));
             return;
         }
         addManualModelsMutation.mutate({
@@ -1862,11 +1879,11 @@ function SiteAccountPanel({
             models: names.map((name) => ({ model_name: name, route_type: manualModelRouteType })),
         }, {
             onSuccess: () => {
-                toast.success(`已添加 ${names.length} 个自定义模型`);
+                toast.success(t('siteChannel.toast.manualModelsAdded', { count: names.length }));
                 handleCloseAddManualModels();
             },
             onError: (error) => {
-                toast.error(translateSiteError(error, '添加自定义模型失败'));
+                toast.error(translateSiteError(error, t('siteChannel.toast.manualModelsAddFailed')));
             },
         });
     };
@@ -1877,8 +1894,8 @@ function SiteAccountPanel({
         if (deletingManualModelKey === modelKey) return;
         setDeletingManualModelKey(modelKey);
         deleteManualModelMutation.mutate({ group_key: model.group_key, model_name: model.model_name }, {
-            onSuccess: () => toast.success('自定义模型已删除'),
-            onError: (error) => toast.error(translateSiteError(error, '删除自定义模型失败')),
+            onSuccess: () => toast.success(t('siteChannel.toast.manualModelDeleted')),
+            onError: (error) => toast.error(translateSiteError(error, t('siteChannel.toast.manualModelDeleteFailed'))),
             onSettled: () => setDeletingManualModelKey((current) => (current === modelKey ? null : current)),
         });
     };
@@ -1975,28 +1992,28 @@ function SiteAccountPanel({
             if (trimmed === (original.token ?? '').trim()) continue;
             if (!trimmed) continue;
             if (isMaskedTokenValue(trimmed)) {
-                toast.error(`Key #${item.id} 仍是脱敏值，必须填写完整 Key`);
+                toast.error(t('siteChannel.toast.sourceKeyStillMasked', { keyId: item.id }));
                 return;
             }
             if (!matchesMaskedToken(trimmed, original.token)) {
-                toast.error(`Key #${item.id} 与已同步的脱敏值不匹配，请核对输入`);
+                toast.error(t('siteChannel.toast.sourceKeyMismatch', { keyId: item.id }));
                 return;
             }
         }
         const payload = buildSourceKeyUpdatePayload(editingProjectedGroup.group_key, editingProjectedGroup.source_keys, sourceKeyForm);
         if (!payload.keys_to_add?.length && !payload.keys_to_update?.length && !payload.keys_to_delete?.length) {
-            toast.error('没有需要保存的 Key 变更');
+            toast.error(t('siteChannel.toast.noKeyChanges'));
             return;
         }
         sourceKeyMutation.mutate(payload, {
             onSuccess: () => {
-                toast.success(`分组「${editingProjectedGroup.group_name || editingProjectedGroup.group_key}」的站点 Key 已更新`);
+                toast.success(t('siteChannel.toast.sourceKeysUpdated', { groupName: editingProjectedGroup.group_name || editingProjectedGroup.group_key }));
                 setEditingProjectedGroup(null);
                 setSourceKeyForm([]);
                 setVisibleSourceKeyRows({});
             },
             onError: (error) => {
-                toast.error(translateSiteError(error, '更新站点 Key 失败'));
+                toast.error(translateSiteError(error, t('siteChannel.toast.sourceKeysUpdateFailed')));
             },
         });
     };
@@ -2009,10 +2026,10 @@ function SiteAccountPanel({
         resetMutation.mutate(undefined, {
             onSuccess: () => {
                 setPendingRouteOverrides({});
-                toast.success('模型请求端点格式已重置');
+                toast.success(t('siteChannel.toast.routesReset'));
             },
             onError: (error) => {
-                toast.error(translateSiteError(error, '重置模型端点格式失败'));
+                toast.error(translateSiteError(error, t('siteChannel.toast.routesResetFailed')));
             },
         });
     };
@@ -2020,7 +2037,7 @@ function SiteAccountPanel({
     const toggleQuickFilter = (filter: SiteChannelQuickFilter) => {
         const next = panelPreferences.quickFilters.includes(filter)
             ? panelPreferences.quickFilters.filter((item) => item !== filter)
-            : QUICK_FILTER_OPTIONS.map((item) => item.key).filter((key) => key === filter || panelPreferences.quickFilters.includes(key));
+            : QUICK_FILTER_ORDER.filter((key) => key === filter || panelPreferences.quickFilters.includes(key));
 
         setQuickFilters(panelKey, next);
     };
@@ -2041,7 +2058,7 @@ function SiteAccountPanel({
     const activeGroup = activeFilter.kind === 'group'
         ? account.groups.find((group) => group.group_key === activeFilter.groupKey) ?? null
         : null;
-    const activeGroupLabel = activeGroup ? (activeGroup.group_name || activeGroup.group_key) : '全部分组';
+    const activeGroupLabel = activeGroup ? (activeGroup.group_name || activeGroup.group_key) : t('siteChannel.panel.toolbar.allGroups');
     const activeQuickFilterCount = panelPreferences.quickFilters.length;
     const pendingKeyGroups = useMemo(
         () => visibleGroups.filter((group) => group.enabled_key_count === 0),
@@ -2066,8 +2083,7 @@ function SiteAccountPanel({
 
     const handleFocusAttention = useCallback(() => {
         if (panelPreferences.quickFilters.includes('attention')) return;
-        const next = QUICK_FILTER_OPTIONS
-            .map((item) => item.key)
+        const next = QUICK_FILTER_ORDER
             .filter((key) => key === 'attention' || panelPreferences.quickFilters.includes(key));
         setQuickFilters(panelKey, next);
     }, [panelKey, panelPreferences.quickFilters, setQuickFilters]);
@@ -2134,7 +2150,7 @@ function SiteAccountPanel({
                             )}
                         >
                             <Power className={cn('size-3', enableSiteAccount.isPending && 'animate-spin')} />
-                            {account.enabled ? '账号启用' : '账号停用'}
+                            {account.enabled ? t('site.accountEnabled') : t('site.accountDisabled')}
                         </button>
                     </div>
                 ) : null}
@@ -2144,15 +2160,15 @@ function SiteAccountPanel({
                         <Select value={activeGroupValue} onValueChange={handleGroupFilterChange}>
                             <SelectTrigger className="h-8 w-full rounded-2xl border-border/70 bg-background/80 sm:w-[18rem]">
                                 <div className="flex min-w-0 items-center gap-2">
-                                    <span className="text-xs text-muted-foreground">分组</span>
+                                    <span className="text-xs text-muted-foreground">{t('siteChannel.panel.toolbar.groupLabel')}</span>
                                     <span className="truncate text-sm font-medium">{activeGroupLabel}</span>
                                 </div>
                             </SelectTrigger>
                             <SelectContent align="start" className="rounded-2xl border border-border/70 bg-card">
                                 <SelectItem value={SITE_GROUP_FILTER_ALL_VALUE} className="rounded-xl py-2">
                                     <div className="flex w-full min-w-0 items-center justify-between gap-3">
-                                        <span className="truncate">全部分组</span>
-                                        <span className="text-[11px] text-muted-foreground">{account.groups.length} 组</span>
+                                        <span className="truncate">{t('siteChannel.panel.toolbar.allGroups')}</span>
+                                        <span className="text-[11px] text-muted-foreground">{t('siteChannel.panel.toolbar.groupCount', { count: account.groups.length })}</span>
                                     </div>
                                 </SelectItem>
                                 {account.groups.map((group) => (
@@ -2161,19 +2177,23 @@ function SiteAccountPanel({
                                             <div className="min-w-0">
                                                 <div className="truncate">{group.group_name || group.group_key}</div>
                                                 <div className="text-[11px] text-muted-foreground">
-                                                    {group.models.length} 模型 · Key {group.enabled_key_count}/{group.key_count}
-                                                    {group.projection_disabled ? ' · 不投影' : ''}
-                                                    {group.masked_pending_key_count > 0 ? ` · 待补全 ${group.masked_pending_key_count}` : ''}
-                                                    {group.has_projected_channel ? ` · 投影 ${group.projected_keys.length}` : ''}
+                                                    {t('siteChannel.panel.toolbar.modelKeySummary', {
+                                                        modelCount: group.models.length,
+                                                        enabledKeyCount: group.enabled_key_count,
+                                                        keyCount: group.key_count,
+                                                    })}
+                                                    {group.projection_disabled ? t('siteChannel.panel.toolbar.notProjectedSuffix') : ''}
+                                                    {group.masked_pending_key_count > 0 ? t('siteChannel.panel.toolbar.pendingCompletionSuffix', { count: group.masked_pending_key_count }) : ''}
+                                                    {group.has_projected_channel ? t('siteChannel.panel.toolbar.projectedSuffix', { count: group.projected_keys.length }) : ''}
                                                 </div>
                                             </div>
                                             {!group.has_keys ? (
                                                 <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] text-amber-700 dark:text-amber-300">
-                                                    待建
+                                                    {t('siteChannel.panel.toolbar.groupNeedsKey')}
                                                 </span>
                                             ) : group.masked_pending_key_count > 0 && group.enabled_key_count === 0 ? (
                                                 <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] text-amber-700 dark:text-amber-300">
-                                                    待补全
+                                                    {t('siteChannel.panel.toolbar.groupNeedsCompletion')}
                                                 </span>
                                             ) : null}
                                         </div>
@@ -2187,7 +2207,7 @@ function SiteAccountPanel({
                             <Input
                                 value={modelSearchTerm}
                                 onChange={(event) => setModelSearchTerm(event.target.value)}
-                                placeholder="搜索模型名称、分组..."
+                                placeholder={t('siteChannel.panel.toolbar.searchPlaceholder')}
                                 className="h-8 rounded-2xl pl-9"
                             />
                         </div>
@@ -2200,10 +2220,10 @@ function SiteAccountPanel({
                             className="h-8 rounded-2xl px-3"
                             onClick={() => activeGroup && handleOpenAddManualModels(activeGroup)}
                             disabled={!activeGroup}
-                            title={activeGroup ? undefined : '请先选择具体分组'}
+                            title={activeGroup ? undefined : t('siteChannel.panel.toolbar.selectGroupFirst')}
                         >
                             <Plus className="size-4" />
-                            添加
+                            {t('siteChannel.panel.toolbar.addModel')}
                         </Button>
 
                         <Button
@@ -2215,30 +2235,30 @@ function SiteAccountPanel({
                             )}
                             onClick={() => activeGroup && handleToggleGroupProjection(activeGroup)}
                             disabled={!activeGroup || groupProjectionMutation.isPending}
-                            title={!activeGroup ? '请先选择具体分组' : activeGroup.projection_disabled ? '恢复生成投影渠道并显示到分组编辑' : '停止生成投影渠道并从分组编辑中移除'}
+                            title={!activeGroup ? t('siteChannel.panel.toolbar.selectGroupFirst') : activeGroup.projection_disabled ? t('siteChannel.panel.toolbar.resumeProjectionHint') : t('siteChannel.panel.toolbar.stopProjectionHint')}
                         >
                             <Waypoints className={cn('size-4', groupProjectionMutation.isPending && 'animate-spin')} />
-                            {activeGroup?.projection_disabled ? '不投影' : '投影'}
+                            {activeGroup?.projection_disabled ? t('siteChannel.panel.toolbar.notProjected') : t('siteChannel.panel.toolbar.projected')}
                         </Button>
 
                         <Popover>
                             <PopoverTrigger asChild>
                                 <Button type="button" variant="outline" className="h-8 rounded-2xl px-3">
                                     <SlidersHorizontal className="size-4" />
-                                    {activeQuickFilterCount > 0 ? `筛选(${activeQuickFilterCount})` : '筛选'}
+                                    {activeQuickFilterCount > 0 ? t('siteChannel.panel.toolbar.filterWithCount', { count: activeQuickFilterCount }) : t('siteChannel.panel.toolbar.filter')}
                                 </Button>
                             </PopoverTrigger>
                             <PopoverContent align="end" className="w-60 rounded-2xl border border-border/70 bg-card p-3 shadow-xl">
                                 <div className="space-y-3">
-                                    <div className="text-xs font-medium text-muted-foreground">快速筛选</div>
+                                    <div className="text-xs font-medium text-muted-foreground">{t('siteChannel.panel.quickFilter.title')}</div>
                                     <div className="grid gap-2">
-                                        {QUICK_FILTER_OPTIONS.map((option) => {
-                                            const active = panelPreferences.quickFilters.includes(option.key);
+                                        {QUICK_FILTER_ORDER.map((filterKey) => {
+                                            const active = panelPreferences.quickFilters.includes(filterKey);
                                             return (
                                                 <button
-                                                    key={option.key}
+                                                    key={filterKey}
                                                     type="button"
-                                                    onClick={() => toggleQuickFilter(option.key)}
+                                                    onClick={() => toggleQuickFilter(filterKey)}
                                                     className={cn(
                                                         'flex items-center justify-between rounded-xl border px-3 py-2 text-left text-sm transition',
                                                         active
@@ -2246,7 +2266,13 @@ function SiteAccountPanel({
                                                             : 'border-border bg-background hover:bg-muted/60',
                                                     )}
                                                 >
-                                                    <span>{option.label}</span>
+                                                    <span>
+                                                        {filterKey === 'attention'
+                                                            ? t('siteChannel.quickFilter.attention')
+                                                            : filterKey === 'with_history'
+                                                                ? t('siteChannel.quickFilter.withHistory')
+                                                                : t('siteChannel.quickFilter.disabled')}
+                                                    </span>
                                                     {active ? <Check className="size-4 text-primary" /> : null}
                                                 </button>
                                             );
@@ -2260,7 +2286,7 @@ function SiteAccountPanel({
                                             className="h-8 rounded-xl px-2"
                                             onClick={handleClearQuickFilters}
                                         >
-                                            清空筛选
+                                            {t('siteChannel.panel.quickFilter.clear')}
                                         </Button>
                                     ) : null}
                                 </div>
@@ -2273,17 +2299,17 @@ function SiteAccountPanel({
                             className="h-8 rounded-2xl px-3"
                             onClick={() => activeGroup && handleOpenAdvancedSettings(activeGroup)}
                             disabled={!activeGroup || activeGroup.projected_channels.length === 0}
-                            title={!activeGroup ? '请先选择具体分组' : activeGroup.projected_channels.length === 0 ? '当前分组暂无投影渠道' : undefined}
+                            title={!activeGroup ? t('siteChannel.panel.toolbar.selectGroupFirst') : activeGroup.projected_channels.length === 0 ? t('siteChannel.panel.toolbar.noProjectedChannelInGroup') : undefined}
                         >
                             <Settings className="size-4" />
-                            高级
+                            {t('siteChannel.panel.toolbar.advanced')}
                         </Button>
 
                         <Popover>
                             <PopoverTrigger asChild>
                                 <Button type="button" variant="outline" className="h-8 rounded-2xl px-3">
                                     <MoreHorizontal className="size-4" />
-                                    更多
+                                    {t('common.more')}
                                 </Button>
                             </PopoverTrigger>
                             <PopoverContent align="end" className="w-64 rounded-2xl border border-border/70 bg-card p-2 shadow-xl">
@@ -2294,8 +2320,8 @@ function SiteAccountPanel({
                                         className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left transition hover:bg-muted/60"
                                     >
                                         <div>
-                                            <div className="text-sm font-medium text-foreground">紧凑模式</div>
-                                            <div className="text-[11px] text-muted-foreground">压缩模型卡片和表格行高</div>
+                                            <div className="text-sm font-medium text-foreground">{t('siteChannel.panel.toolbar.compactMode')}</div>
+                                            <div className="text-[11px] text-muted-foreground">{t('siteChannel.panel.toolbar.compactModeHint')}</div>
                                         </div>
                                         {panelPreferences.compactMode ? <Check className="size-4 text-primary" /> : null}
                                     </button>
@@ -2308,7 +2334,7 @@ function SiteAccountPanel({
                                     disabled={resetMutation.isPending || hasPendingChanges}
                                 >
                                     <RefreshCw className={cn('size-4', resetMutation.isPending && 'animate-spin')} />
-                                    {resetMutation.isPending ? '重置中...' : '重置模型端点格式'}
+                                    {resetMutation.isPending ? t('siteChannel.panel.toolbar.resetting') : t('siteChannel.panel.toolbar.resetRoutes')}
                                 </Button>
                             </PopoverContent>
                         </Popover>
@@ -2325,12 +2351,12 @@ function SiteAccountPanel({
                                         className="inline-flex h-8 items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 text-xs font-medium text-amber-800 transition hover:bg-amber-500/15 dark:text-amber-200"
                                     >
                                         <CircleAlert className="size-3.5" />
-                                        待建 Key {pendingKeyGroups.length} 组
+                                        {t('siteChannel.panel.keyCreate.pendingGroupCount', { count: pendingKeyGroups.length })}
                                     </button>
                                 </PopoverTrigger>
                                 <PopoverContent align="start" className="w-72 rounded-2xl border border-amber-500/30 bg-card p-3 shadow-xl">
                                     <div className="space-y-2">
-                                        <div className="text-xs font-medium text-muted-foreground">未创建 Key 的分组</div>
+                                        <div className="text-xs font-medium text-muted-foreground">{t('siteChannel.panel.keyCreate.pendingGroupsTitle')}</div>
                                         <div className="flex flex-wrap gap-2">
                                             {pendingKeyGroups.map((group) => (
                                                 <Button
@@ -2344,7 +2370,7 @@ function SiteAccountPanel({
                                                 >
                                                     {group.group_name || group.group_key}
                                                     <span className="text-[10px] text-amber-700/80 dark:text-amber-200/80">
-                                                        {createKeyMutation.isPending && creatingGroup?.group_key === group.group_key ? '创建中...' : '快捷创建'}
+                                                        {createKeyMutation.isPending && creatingGroup?.group_key === group.group_key ? t('siteChannel.panel.keyCreate.creating') : t('siteChannel.panel.keyCreate.quickCreate')}
                                                     </span>
                                                 </Button>
                                             ))}
@@ -2361,7 +2387,7 @@ function SiteAccountPanel({
                                 className="inline-flex h-8 items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 text-xs font-medium text-amber-800 transition hover:bg-amber-500/15 dark:text-amber-200"
                             >
                                 <CircleAlert className="size-3.5" />
-                                待补全文明文 Key
+                                {t('siteChannel.panel.keyCreate.completePlaintextKeys')}
                             </button>
                         ) : null}
 
@@ -2373,12 +2399,12 @@ function SiteAccountPanel({
                                         className="inline-flex h-8 items-center gap-2 rounded-full border border-border/70 bg-background/70 px-3 text-xs font-medium text-foreground transition hover:bg-muted/60"
                                     >
                                         <KeyRound className="size-3.5 text-primary" />
-                                        投影 Key {projectedGroups.length} 组
+                                        {t('siteChannel.panel.keyManage.projectedGroupCount', { count: projectedGroups.length })}
                                     </button>
                                 </PopoverTrigger>
                                 <PopoverContent align="start" className="w-72 rounded-2xl border border-border/70 bg-card p-3 shadow-xl">
                                     <div className="space-y-2">
-                                        <div className="text-xs font-medium text-muted-foreground">投影渠道 Key 管理</div>
+                                        <div className="text-xs font-medium text-muted-foreground">{t('siteChannel.panel.keyManage.projectedGroupsTitle')}</div>
                                         <div className="flex flex-wrap gap-2">
                                             {projectedGroups.map((group) => (
                                                 <Button
@@ -2406,16 +2432,16 @@ function SiteAccountPanel({
                                 className="inline-flex h-8 items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 text-xs font-medium text-amber-800 transition hover:bg-amber-500/15 dark:text-amber-200"
                             >
                                 <CircleAlert className="size-3.5" />
-                                未识别端点 {unsupportedRouteCount}
+                                {t('siteChannel.panel.toolbar.unsupportedRouteCount', { count: unsupportedRouteCount })}
                             </button>
                         ) : null}
 
                         {selectedVisibleCount > 0 ? (
                             <div className="ml-auto flex flex-wrap items-center gap-2">
-                                <span className="text-xs font-medium text-foreground">已选 {selectedVisibleCount} 个</span>
+                                <span className="text-xs font-medium text-foreground">{t('siteChannel.panel.toolbar.selectedCount', { count: selectedVisibleCount })}</span>
                                 <Select value={bulkMoveTarget} onValueChange={(value) => setBulkMoveTarget(value as SiteModelRouteType)}>
                                     <SelectTrigger className="h-7 w-[10rem] rounded-xl text-xs">
-                                        <SelectValue placeholder="目标端点" />
+                                        <SelectValue placeholder={t('siteChannel.panel.toolbar.targetEndpoint')} />
                                     </SelectTrigger>
                                     <SelectContent className="rounded-xl">
                                         {SITE_ROUTE_COLUMN_ORDER.map((routeType) => (
@@ -2426,16 +2452,16 @@ function SiteAccountPanel({
                                     </SelectContent>
                                 </Select>
                                 <Button type="button" size="sm" className="h-7 rounded-xl px-2 text-xs" onClick={() => applyRouteChange(selectedModels, bulkMoveTarget)} disabled={hasPendingChanges}>
-                                    移动
+                                    {t('siteChannel.panel.toolbar.bulkMove')}
                                 </Button>
                                 <Button type="button" variant="outline" size="sm" className="h-7 rounded-xl px-2 text-xs" onClick={() => applyDisabledChange(selectedModels, false)} disabled={hasPendingChanges}>
-                                    启用
+                                    {t('siteChannel.panel.toolbar.bulkEnable')}
                                 </Button>
                                 <Button type="button" variant="outline" size="sm" className="h-7 rounded-xl px-2 text-xs" onClick={() => applyDisabledChange(selectedModels, true)} disabled={hasPendingChanges}>
-                                    停用
+                                    {t('siteChannel.panel.toolbar.bulkDisable')}
                                 </Button>
                                 <Button type="button" variant="ghost" size="sm" className="h-7 rounded-xl px-2 text-xs" onClick={() => setSelectedModelKeys(new Set())}>
-                                    清空
+                                    {t('siteChannel.panel.toolbar.clearSelection')}
                                 </Button>
                             </div>
                         ) : null}
@@ -2446,23 +2472,26 @@ function SiteAccountPanel({
             <Dialog open={!!creatingGroup} onOpenChange={(open) => !open && handleCloseCreateKey()}>
                 <DialogContent className="rounded-3xl sm:max-w-md">
                     <DialogHeader>
-                        <DialogTitle className="text-lg font-semibold">快捷创建站点 Key</DialogTitle>
+                        <DialogTitle className="text-lg font-semibold">{t('siteChannel.dialog.keyCreate.title')}</DialogTitle>
                         <DialogDescription>
-                            为分组 {creatingGroup?.group_name || creatingGroup?.group_key || '-'} 在账号 {account.account_name} 下创建新 Key，并在创建后立即同步当前卡片。
+                            {t('siteChannel.dialog.keyCreate.description', {
+                                groupName: creatingGroup?.group_name || creatingGroup?.group_key || '-',
+                                accountName: account.account_name,
+                            })}
                         </DialogDescription>
                     </DialogHeader>
 
                     <div className="space-y-3">
                         <div className="rounded-2xl border border-border/70 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-                            分组 Key：<span className="font-medium text-foreground">{creatingGroup?.group_key || '-'}</span>
+                            {t('siteChannel.dialog.keyCreate.groupKeyLabel')}<span className="font-medium text-foreground">{creatingGroup?.group_key || '-'}</span>
                         </div>
 
                         <label className="grid gap-1.5 text-xs text-muted-foreground">
-                            Key 名称（可选）
+                            {t('siteChannel.dialog.keyCreate.nameLabel')}
                             <Input
                                 value={quickCreateName}
                                 onChange={(event) => setQuickCreateName(event.target.value)}
-                                placeholder="留空时自动生成"
+                                placeholder={t('siteChannel.dialog.keyCreate.namePlaceholder')}
                                 disabled={createKeyMutation.isPending}
                                 className="h-10 rounded-2xl"
                             />
@@ -2477,7 +2506,7 @@ function SiteAccountPanel({
                             onClick={handleCloseCreateKey}
                             disabled={createKeyMutation.isPending}
                         >
-                            取消
+                            {t('common.cancel')}
                         </Button>
                         <Button
                             type="button"
@@ -2486,7 +2515,7 @@ function SiteAccountPanel({
                             disabled={createKeyMutation.isPending || !creatingGroup}
                         >
                             <RefreshCw className={cn('size-4', createKeyMutation.isPending && 'animate-spin')} />
-                            {createKeyMutation.isPending ? '创建并同步中...' : '创建并同步 Key'}
+                            {createKeyMutation.isPending ? t('siteChannel.dialog.keyCreate.submitting') : t('siteChannel.dialog.keyCreate.submit')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -2574,15 +2603,15 @@ function SiteAccountPanel({
                 <DialogContent className="max-h-[85vh] overflow-y-auto rounded-3xl sm:max-w-2xl">
                     <DialogHeader>
                         <DialogTitle className="text-lg font-semibold">
-                            添加自定义模型
+                            {t('siteChannel.dialog.modelAdd.title')}
                         </DialogTitle>
                         <DialogDescription>
-                            批量添加到分组 {addingManualGroup?.group_name || addingManualGroup?.group_key || '-'}。同组已存在的模型不能重复添加。
+                            {t('siteChannel.dialog.modelAdd.description', { groupName: addingManualGroup?.group_name || addingManualGroup?.group_key || '-' })}
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
                         <label className="grid gap-1.5 text-xs text-muted-foreground">
-                            模型名称（支持换行或逗号分隔）
+                            {t('siteChannel.dialog.modelAdd.namesLabel')}
                             <textarea
                                 value={manualModelsInput}
                                 onChange={(event) => setManualModelsInput(event.target.value)}
@@ -2591,7 +2620,7 @@ function SiteAccountPanel({
                             />
                         </label>
                         <label className="grid gap-1.5 text-xs text-muted-foreground">
-                            端点格式
+                            {t('siteChannel.dialog.modelAdd.routeTypeLabel')}
                             <Select value={manualModelRouteType} onValueChange={(value) => setManualModelRouteType(value as SiteModelRouteType)}>
                                 <SelectTrigger className="h-10 rounded-xl bg-background"><SelectValue /></SelectTrigger>
                                 <SelectContent className="rounded-xl">
@@ -2603,9 +2632,9 @@ function SiteAccountPanel({
                         </label>
                     </div>
                     <DialogFooter>
-                        <Button type="button" variant="outline" className="rounded-xl" onClick={handleCloseAddManualModels} disabled={addManualModelsMutation.isPending}>取消</Button>
+                        <Button type="button" variant="outline" className="rounded-xl" onClick={handleCloseAddManualModels} disabled={addManualModelsMutation.isPending}>{t('common.cancel')}</Button>
                         <Button type="button" className="rounded-xl" onClick={handleAddManualModels} disabled={addManualModelsMutation.isPending || !addingManualGroup}>
-                            {addManualModelsMutation.isPending ? '添加中...' : '添加'}
+                            {addManualModelsMutation.isPending ? t('siteChannel.dialog.modelAdd.submitting') : t('siteChannel.dialog.modelAdd.submit')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -2614,15 +2643,15 @@ function SiteAccountPanel({
             <Dialog open={!!editingProjectedGroup} onOpenChange={(open) => !open && handleCloseProjectedKeys()}>
                 <DialogContent className="flex h-[min(85vh,42rem)] max-w-3xl flex-col overflow-hidden rounded-3xl border-border/70 p-0 sm:max-w-3xl">
                     <DialogHeader className="shrink-0 border-b border-border/60 px-6 py-4">
-                        <DialogTitle className="text-lg font-semibold">管理站点 Key</DialogTitle>
+                        <DialogTitle className="text-lg font-semibold">{t('siteChannel.dialog.keyManage.title')}</DialogTitle>
                         <DialogDescription>
-                            分组 {editingProjectedGroup?.group_name || editingProjectedGroup?.group_key || '-'} 的站点 Key 真源会在保存后更新，并重新投影到所有托管渠道。
+                            {t('siteChannel.dialog.keyManage.description', { groupName: editingProjectedGroup?.group_name || editingProjectedGroup?.group_key || '-' })}
                         </DialogDescription>
                     </DialogHeader>
 
                     <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden px-6 py-4">
                         <div className="rounded-2xl border border-border/70 bg-muted/30 px-3 py-2 text-xs text-muted-foreground shrink-0">
-                            投影渠道：{editingProjectedGroup?.projected_channel_ids.join(', ') || '-'}
+                            {t('siteChannel.dialog.keyManage.projectedChannels', { channels: editingProjectedGroup?.projected_channel_ids.join(', ') || '-' })}
                         </div>
 
                         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
@@ -2636,8 +2665,8 @@ function SiteAccountPanel({
                                             <>
                                     <div className="flex items-center justify-between gap-2">
                                         <div className="text-xs text-muted-foreground">
-                                            {item.id ? `站点 Key #${item.id}` : '新站点 Key'}
-                                            {item.value_status === 'masked_pending' ? ' · 待补全' : ''}
+                                            {item.id ? t('siteChannel.dialog.keyManage.existingKeyLabel', { keyId: item.id }) : t('siteChannel.dialog.keyManage.newKeyLabel')}
+                                            {item.value_status === 'masked_pending' ? t('siteChannel.dialog.keyManage.pendingSuffix') : ''}
                                         </div>
                                         <Button
                                             type="button"
@@ -2647,7 +2676,7 @@ function SiteAccountPanel({
                                             onClick={() => handleRemoveProjectedKeyRow(index)}
                                             disabled={sourceKeyMutation.isPending}
                                         >
-                                            删除
+                                            {t('common.delete')}
                                         </Button>
                                     </div>
                                     <div className="mt-3 grid gap-3 md:grid-cols-[auto,1fr,12rem]">
@@ -2659,7 +2688,7 @@ function SiteAccountPanel({
                                                 onChange={(event) => handleProjectedKeyFieldChange(index, { enabled: event.target.checked })}
                                                 className="size-4 rounded border-border bg-background align-middle accent-primary"
                                             />
-                                            启用
+                                            {t('siteChannel.dialog.keyManage.enabledLabel')}
                                         </label>
                                         <label className="grid gap-1.5 text-xs text-muted-foreground">
                                             Key
@@ -2668,7 +2697,7 @@ function SiteAccountPanel({
                                                     type={isVisible ? 'text' : 'password'}
                                                     value={item.token}
                                                     onChange={(event) => handleProjectedKeyFieldChange(index, { token: event.target.value })}
-                                                    placeholder={item.id ? '点击眼睛查看或直接修改完整 Key' : '输入新的站点 Key'}
+                                                    placeholder={item.id ? t('siteChannel.dialog.keyManage.existingKeyPlaceholder') : t('siteChannel.dialog.keyManage.newKeyPlaceholder')}
                                                     disabled={sourceKeyMutation.isPending}
                                                     className="h-10 rounded-2xl"
                                                 />
@@ -2686,15 +2715,15 @@ function SiteAccountPanel({
                                                 </Button>
                                             </div>
                                             {!isVisible && item.token_masked ? (
-                                                <span className="text-[11px] text-muted-foreground">当前值：{item.token_masked}</span>
+                                                <span className="text-[11px] text-muted-foreground">{t('siteChannel.dialog.keyManage.currentValue', { masked: item.token_masked })}</span>
                                             ) : null}
                                         </label>
                                         <label className="grid gap-1.5 text-xs text-muted-foreground">
-                                            名称
+                                            {t('siteChannel.dialog.keyManage.nameLabel')}
                                             <Input
                                                 value={item.name}
                                                 onChange={(event) => handleProjectedKeyFieldChange(index, { name: event.target.value })}
-                                                placeholder="Key 名称"
+                                                placeholder={t('siteChannel.dialog.keyManage.namePlaceholder')}
                                                 disabled={sourceKeyMutation.isPending}
                                                 className="h-10 rounded-2xl"
                                             />
@@ -2702,7 +2731,7 @@ function SiteAccountPanel({
                                     </div>
                                     {item.last_sync_at ? (
                                         <div className="mt-2 text-[11px] text-muted-foreground">
-                                            上次同步：{new Date(item.last_sync_at).toLocaleString()}
+                                            {t('siteChannel.dialog.keyManage.lastSync', { time: new Date(item.last_sync_at).toLocaleString() })}
                                         </div>
                                     ) : null}
                                             </>
@@ -2719,7 +2748,7 @@ function SiteAccountPanel({
                             onClick={handleAddProjectedKeyRow}
                             disabled={sourceKeyMutation.isPending}
                         >
-                            新增 Key
+                            {t('siteChannel.dialog.keyManage.addKeyRow')}
                         </Button>
                     </div>
 
@@ -2731,7 +2760,7 @@ function SiteAccountPanel({
                             onClick={handleCloseProjectedKeys}
                             disabled={sourceKeyMutation.isPending}
                         >
-                            取消
+                            {t('common.cancel')}
                         </Button>
                         <Button
                             type="button"
@@ -2740,7 +2769,7 @@ function SiteAccountPanel({
                             disabled={sourceKeyMutation.isPending || !editingProjectedGroup || !hasSourceKeyChanges(editingProjectedGroup.source_keys, sourceKeyForm)}
                         >
                             <RefreshCw className={cn('size-4', sourceKeyMutation.isPending && 'animate-spin')} />
-                            {sourceKeyMutation.isPending ? '保存中...' : '保存站点 Key'}
+                            {sourceKeyMutation.isPending ? t('siteChannel.dialog.keyManage.submitting') : t('siteChannel.dialog.keyManage.submit')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -2748,7 +2777,7 @@ function SiteAccountPanel({
 
             {visibleModels.length === 0 ? (
                 <div className="flex min-h-[18rem] flex-1 items-center justify-center rounded-3xl border border-dashed border-border/70 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
-                    当前筛选和搜索条件下没有匹配模型
+                    {t('siteChannel.panel.noMatchingModels')}
                 </div>
             ) : useCardLayout ? (
                 <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden">
@@ -2790,7 +2819,7 @@ function SiteAccountPanel({
             )}
             {displayedModels.length < visibleModels.length && (
                 <div className="shrink-0 py-2 text-center text-xs text-muted-foreground">
-                    显示 {displayedModels.length} / 共 {visibleModels.length} 个模型，向下滚动加载更多
+                    {t('siteChannel.panel.loadMoreHint', { shown: displayedModels.length, total: visibleModels.length })}
                 </div>
             )}
         </div>
@@ -2904,7 +2933,7 @@ function SiteChannelDialog({
         <div className="flex h-[88vh] flex-col overflow-hidden">
             <header className="flex flex-none items-center gap-2 border-b border-border/70 px-5 py-3 text-left sm:px-6">
                 <MorphingDialogDescription className="sr-only">
-                    站点渠道管理面板
+                    {t('siteChannel.dialog.srDescription')}
                 </MorphingDialogDescription>
 
                 <MorphingDialogTitle className="flex min-w-0 flex-1 flex-wrap items-center gap-2 text-lg font-semibold sm:text-xl">
@@ -2921,7 +2950,7 @@ function SiteChannelDialog({
                                 : 'border-destructive/30 bg-destructive/10 text-destructive',
                         )}
                     >
-                        {card.enabled ? '站点启用' : '站点停用'}
+                        {card.enabled ? t('siteChannel.dialog.siteEnabled') : t('siteChannel.dialog.siteDisabled')}
                     </Badge>
                     {resolvedAccount && card.accounts.length <= 1 ? (
                         <>
@@ -3014,7 +3043,7 @@ function SiteChannelDialog({
                     )
                 ) : (
                     <div className="flex min-h-[16rem] flex-1 items-center justify-center rounded-3xl border border-dashed border-border/70 bg-muted/20 text-sm text-muted-foreground">
-                        当前站点没有可管理的账号
+                        {t('siteChannel.dialog.noManageableAccount')}
                     </div>
                 )}
             </div>
@@ -3291,6 +3320,7 @@ function SiteCardJumpWatcher({
 }
 
 export function SiteChannelCompletionAction() {
+    const t = useTranslations();
     const { data } = useSiteChannelList();
     const [completionDialogOpen, setCompletionDialogOpen] = useState(false);
 
@@ -3315,7 +3345,7 @@ export function SiteChannelCompletionAction() {
                 onClick={() => setCompletionDialogOpen(true)}
             >
                 <KeyRound className="size-4 text-primary" />
-                统一补全 Key
+                {t('siteChannel.completion.trigger')}
                 <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
                     {totalPendingCompletionCount}
                 </Badge>
@@ -3437,7 +3467,7 @@ export function SiteChannelSection({
     if (error) {
         return (
             <section className="rounded-3xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                站点渠道加载失败：{translateSiteMessage(locale, error.message, t)}
+                {t('siteChannel.section.loadFailed', { message: translateSiteMessage(locale, error.message, t) })}
             </section>
         );
     }

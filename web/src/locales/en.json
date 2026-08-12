@@ -2861,6 +2861,195 @@
       "saved": "Advanced settings saved",
       "invalidParamOverride": "Parameter override must be a valid JSON object",
       "saveFailed": "Failed to save advanced settings"
+    },
+    "routeReason": {
+      "detectedEndpoints": "Detected endpoints: {types}",
+      "heuristicEndpoints": "Heuristic inference: {types}"
+    },
+    "quickFilter": {
+      "attention": "Needs attention only",
+      "withHistory": "With request history only",
+      "disabled": "Disabled only"
+    },
+    "history": {
+      "lastRequest": "· Last request",
+      "successRate": "Success rate",
+      "empty": "No request history yet"
+    },
+    "movePopover": {
+      "title": "Move to…"
+    },
+    "mobileCard": {
+      "manualSource": "Custom",
+      "attention": "Needs attention",
+      "source": "Source",
+      "missingKeySuffix": " · No key",
+      "lastRequest": "Last request",
+      "historyCount": "{count, plural, =0 {no records} one {# record} other {# records}}",
+      "channel": "Channel",
+      "deleteManualModel": "Delete custom model"
+    },
+    "dialog": {
+      "srDescription": "Site channel management panel",
+      "siteEnabled": "Site enabled",
+      "siteDisabled": "Site disabled",
+      "noManageableAccount": "This site has no manageable account",
+      "keyCreate": {
+        "title": "Quick create site key",
+        "description": "Create a key for group {groupName} under account {accountName}, then sync this card immediately.",
+        "groupKeyLabel": "Group key:",
+        "nameLabel": "Key name (optional)",
+        "namePlaceholder": "Generated automatically when left empty",
+        "submit": "Create and sync key",
+        "submitting": "Creating and syncing…"
+      },
+      "modelAdd": {
+        "title": "Add custom models",
+        "description": "Add in bulk to group {groupName}. Models already in the group cannot be added again.",
+        "namesLabel": "Model names (newline or comma separated)",
+        "routeTypeLabel": "Endpoint format",
+        "submit": "Add",
+        "submitting": "Adding…"
+      },
+      "keyManage": {
+        "title": "Manage site keys",
+        "description": "The site key source of truth for group {groupName} updates on save and is re-projected to every managed channel.",
+        "projectedChannels": "Projected channels: {channels}",
+        "existingKeyLabel": "Site key #{keyId}",
+        "newKeyLabel": "New site key",
+        "pendingSuffix": " · to complete",
+        "enabledLabel": "Enabled",
+        "existingKeyPlaceholder": "Click the eye to reveal, or overwrite with a full key",
+        "newKeyPlaceholder": "Enter the new site key",
+        "currentValue": "Current value: {masked}",
+        "nameLabel": "Name",
+        "namePlaceholder": "Key name",
+        "lastSync": "Last sync: {time}",
+        "addKeyRow": "Add key",
+        "submit": "Save site keys",
+        "submitting": "Saving…"
+      }
+    },
+    "completion": {
+      "trigger": "Complete keys",
+      "title": "Complete site keys",
+      "pendingTotal": "{count, plural, one {# item} other {# items}}",
+      "description": "Synced masked keys cannot be projected as-is. Enter the full plaintext key to make them usable again.",
+      "hint": "Keeping one key per group per site — and only for the groups you actually need — keeps syncing and projection clean.",
+      "sitePendingCount": "{count} to complete",
+      "siteJumpHint": "Use the site-level jump to open that site's token management page for more involved key cleanup or group governance.",
+      "openTokenManagement": "Open token management",
+      "accountPendingCount": "{count} to complete",
+      "accountFilledCount": "{count} filled",
+      "accountHint": "Only pending keys with a complete value in this account are submitted. They are enabled and re-enter projection after saving.",
+      "saveAccount": "Save this account",
+      "saving": "Saving…",
+      "groupLabel": "Group",
+      "keyFallbackName": "Site key #{keyId}",
+      "currentValue": "Current value: {masked}",
+      "inputLabel": "Enter the full key",
+      "inputPlaceholder": "Enter the full plaintext key — enabled automatically after saving",
+      "saveSuccess": "Pending keys for account \"{accountName}\" saved and re-enabled"
+    },
+    "section": {
+      "loadFailed": "Failed to load site channels: {message}"
+    },
+    "table": {
+      "selectVisibleModels": "Select visible models",
+      "selectModel": "Select model {modelName}",
+      "columnModel": "Model",
+      "columnGroup": "Group",
+      "columnRouteType": "Endpoint format",
+      "columnSource": "Source",
+      "columnStatus": "Status",
+      "columnLastRequest": "Last request",
+      "columnChannel": "Channel",
+      "columnActions": "Actions",
+      "manualSource": "Custom",
+      "manualOverride": "Manual override",
+      "autoMapped": "Auto mapped",
+      "needsManualRoute": "Needs manual routing",
+      "missingKey": "No key",
+      "attention": "Needs attention",
+      "historyCount": "{count, plural, =0 {no records} one {# record} other {# records}}",
+      "deleteManualModel": "Delete custom model"
+    },
+    "panel": {
+      "toolbar": {
+        "groupLabel": "Group",
+        "allGroups": "All groups",
+        "groupCount": "{count, plural, one {# group} other {# groups}}",
+        "modelKeySummary": "{modelCount} models · Key {enabledKeyCount}/{keyCount}",
+        "notProjectedSuffix": " · not projected",
+        "pendingCompletionSuffix": " · {count} to complete",
+        "projectedSuffix": " · {count} projected",
+        "groupNeedsKey": "No key",
+        "groupNeedsCompletion": "To complete",
+        "searchPlaceholder": "Search model name or group…",
+        "addModel": "Add",
+        "selectGroupFirst": "Select a specific group first",
+        "resumeProjectionHint": "Resume generating projected channels and show them in the group editor",
+        "stopProjectionHint": "Stop generating projected channels and remove them from the group editor",
+        "notProjected": "Not projected",
+        "projected": "Projected",
+        "filter": "Filter",
+        "filterWithCount": "Filter ({count})",
+        "noProjectedChannelInGroup": "This group has no projected channel yet",
+        "advanced": "Advanced",
+        "compactMode": "Compact mode",
+        "compactModeHint": "Reduce the height of model cards and table rows",
+        "resetRoutes": "Reset endpoint formats",
+        "resetting": "Resetting…",
+        "unsupportedRouteCount": "{count} unrecognized endpoints",
+        "selectedCount": "{count, plural, one {# selected} other {# selected}}",
+        "targetEndpoint": "Target endpoint",
+        "bulkMove": "Move",
+        "bulkEnable": "Enable",
+        "bulkDisable": "Disable",
+        "clearSelection": "Clear"
+      },
+      "quickFilter": {
+        "title": "Quick filters",
+        "clear": "Clear filters"
+      },
+      "keyCreate": {
+        "pendingGroupCount": "{count, plural, one {# group needs a key} other {# groups need keys}}",
+        "pendingGroupsTitle": "Groups without a key",
+        "creating": "Creating…",
+        "quickCreate": "Quick create",
+        "completePlaintextKeys": "Complete plaintext keys"
+      },
+      "keyManage": {
+        "projectedGroupCount": "{count, plural, one {# group with projected keys} other {# groups with projected keys}}",
+        "projectedGroupsTitle": "Projected channel key management"
+      },
+      "noMatchingModels": "No models match the current filters and search",
+      "loadMoreHint": "Showing {shown} of {total} models — scroll down to load more"
+    },
+    "toast": {
+      "routeUpdated": "{count, plural, one {Model endpoint format updated} other {Endpoint format updated for # models}}",
+      "routeUpdateFailed": "Failed to update the model endpoint format",
+      "modelsDisabled": "{count, plural, one {Model disabled} other {# models disabled}}",
+      "modelsEnabled": "{count, plural, one {Model enabled} other {# models enabled}}",
+      "disabledUpdateFailed": "Failed to update the model disabled state",
+      "projectionStopped": "Stopped generating projected channels for this group",
+      "projectionResumed": "Resumed generating projected channels for this group",
+      "projectionUpdateFailed": "Failed to update the group projection state",
+      "keyCreated": "Created a key for group \"{groupName}\" and finished syncing",
+      "keyCreateFailed": "Quick key creation failed",
+      "modelNameRequired": "Enter a model name",
+      "modelsAlreadyExist": "Models already exist: {names}",
+      "manualModelsAdded": "{count, plural, one {Added # custom model} other {Added # custom models}}",
+      "manualModelsAddFailed": "Failed to add custom models",
+      "manualModelDeleted": "Custom model deleted",
+      "manualModelDeleteFailed": "Failed to delete the custom model",
+      "sourceKeyStillMasked": "Key #{keyId} is still a masked value — enter the full key",
+      "sourceKeyMismatch": "Key #{keyId} does not match the synced masked value — check your input",
+      "noKeyChanges": "No key changes to save",
+      "sourceKeysUpdated": "Site keys for group \"{groupName}\" updated",
+      "sourceKeysUpdateFailed": "Failed to update the site keys",
+      "routesReset": "Model endpoint formats reset",
+      "routesResetFailed": "Failed to reset the model endpoint formats"
     }
   },
   "system": {
