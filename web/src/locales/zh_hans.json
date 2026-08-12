@@ -1100,7 +1100,7 @@
       "reloadPage": "重新加载页面"
     },
     "unknown": "未知",
-    "routeNotFound": "页面不存在",
+    "routeNotFound": "页面不存在：{route}",
     "copy": {
       "button": "复制",
       "success": "已复制",
@@ -1806,7 +1806,7 @@
       "reset": "重置顺序",
       "visible": "可见",
       "fixed": "固定",
-      "minimumVisibleHint": "至少需要保留一个可见项",
+      "minimumVisibleHint": "至少需要保留 {count} 个可见项",
       "hidden": "隐藏",
       "minimumVisibleError": "至少需要保留 {count} 个可见项",
       "resetSuccess": "导航顺序已重置",
@@ -1858,7 +1858,7 @@
       "title": "路由分组",
       "description": "管理渠道路由分组配置",
       "count": "{count, plural, =0 {暂无分组} other {# 个分组}}",
-      "success": "分组已全部删除",
+      "success": "{count, plural, =0 {没有分组被删除} other {已删除 # 个分组}}",
       "failed": "删除失败",
       "button": "删除全部分组",
       "deleting": "删除中…",
@@ -1992,7 +1992,7 @@
       "label": "CORS 跨域白名单",
       "hint": "允许跨域访问的来源，留空表示不限制",
       "example": "如 https://example.com",
-      "removeAriaLabel": "移除此来源"
+      "removeAriaLabel": "移除来源 {origin}"
     },
     "stripe": {
       "title": "Stripe 支付",

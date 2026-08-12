@@ -1100,7 +1100,7 @@
       "reloadPage": "Reload page"
     },
     "unknown": "Unknown",
-    "routeNotFound": "Page not found",
+    "routeNotFound": "Page not found: {route}",
     "copy": {
       "button": "Copy",
       "success": "Copied",
@@ -1806,7 +1806,7 @@
       "reset": "Reset Order",
       "visible": "Visible",
       "fixed": "Fixed",
-      "minimumVisibleHint": "At least one visible item must be kept",
+      "minimumVisibleHint": "At least {count} visible items must be kept",
       "hidden": "Hidden",
       "minimumVisibleError": "At least {count} item(s) must stay visible",
       "resetSuccess": "Navigation order reset",
@@ -1858,7 +1858,7 @@
       "title": "Route Groups",
       "description": "Manage channel routing group configuration",
       "count": "{count, plural, =0 {No groups} other {# groups}}",
-      "success": "All groups deleted",
+      "success": "{count, plural, =0 {No groups deleted} one {# group deleted} other {# groups deleted}}",
       "failed": "Delete failed",
       "button": "Delete All Groups",
       "deleting": "Deleting…",
@@ -1992,7 +1992,7 @@
       "label": "CORS Allowed Origins",
       "hint": "Origins allowed for cross-origin requests; leave empty for no restriction",
       "example": "e.g. https://example.com",
-      "removeAriaLabel": "Remove this origin"
+      "removeAriaLabel": "Remove origin {origin}"
     },
     "stripe": {
       "title": "Stripe Payments",

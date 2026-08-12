@@ -1100,7 +1100,7 @@
       "reloadPage": "重新載入頁面"
     },
     "unknown": "未知",
-    "routeNotFound": "頁面不存在",
+    "routeNotFound": "頁面不存在：{route}",
     "copy": {
       "button": "複製",
       "success": "已複製",
@@ -1806,7 +1806,7 @@
       "reset": "重設順序",
       "visible": "可見",
       "fixed": "固定",
-      "minimumVisibleHint": "至少需要保留一個可見項目",
+      "minimumVisibleHint": "至少需要保留 {count} 個可見項目",
       "hidden": "隱藏",
       "minimumVisibleError": "至少需要保留 {count} 個可見項",
       "resetSuccess": "導覽順序已重設",
@@ -1858,7 +1858,7 @@
       "title": "路由分組",
       "description": "管理渠道路由分組設定",
       "count": "{count, plural, =0 {暫無分組} other {# 個分組}}",
-      "success": "分組已全部刪除",
+      "success": "{count, plural, =0 {沒有分組被刪除} other {已刪除 # 個分組}}",
       "failed": "刪除失敗",
       "button": "刪除全部分組",
       "deleting": "刪除中…",
@@ -1992,7 +1992,7 @@
       "label": "CORS 跨域白名單",
       "hint": "允許跨域存取的來源，留空表示不限制",
       "example": "如 https://example.com",
-      "removeAriaLabel": "移除此來源"
+      "removeAriaLabel": "移除來源 {origin}"
     },
     "stripe": {
       "title": "Stripe 支付",

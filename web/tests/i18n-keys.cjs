@@ -68,6 +68,104 @@ function staticText(node) {
 }
 
 /**
+ * Argument names an ICU message expects.
+ *
+ * Only counts arguments in position, i.e. the `x` in `{x}` or `{x, plural, ...}`.
+ * Text inside a plural/select branch is a nested message, not an argument, so
+ * `{count, plural, =0 {No models} other {# models}}` needs `count` alone —
+ * naively matching `\{(\w+)` would also pick up `No` from the branch body.
+ */
+function placeholdersIn(message) {
+    const names = new Set();
+
+    // Walks a message body. Every `{` opens either an argument (`{name}`,
+    // `{name, plural, ...}`) or, when inside a complex argument, a branch body
+    // (`other {# items}`) whose contents are themselves a message.
+    const walk = (text) => {
+        for (let i = 0; i < text.length; i++) {
+            if (text[i] !== '{') continue;
+
+            // Span of this brace group.
+            let depth = 0;
+            let end = -1;
+            for (let j = i; j < text.length; j++) {
+                if (text[j] === '{') depth++;
+                else if (text[j] === '}') {
+                    depth--;
+                    if (depth === 0) { end = j; break; }
+                }
+            }
+            if (end === -1) return; // unbalanced: nothing further is parseable
+
+            const inner = text.slice(i + 1, end);
+            const header = /^\s*(\w+)\s*(?:,\s*(plural|select|selectordinal)\b)?\s*$/.exec(inner);
+
+            if (header && !header[2]) {
+                // Simple argument: `{name}`.
+                names.add(header[1]);
+            } else {
+                const complex = /^\s*(\w+)\s*,\s*(plural|select|selectordinal)\s*,/.exec(inner);
+                if (complex) {
+                    names.add(complex[1]);
+                    // Recurse only into branch bodies, so selectors (`other`, `=0`)
+                    // and branch literals are never mistaken for arguments.
+                    const rest = inner.slice(complex[0].length);
+                    for (let j = 0; j < rest.length; j++) {
+                        if (rest[j] !== '{') continue;
+                        let d = 0;
+                        for (let k = j; k < rest.length; k++) {
+                            if (rest[k] === '{') d++;
+                            else if (rest[k] === '}') {
+                                d--;
+                                if (d === 0) {
+                                    walk(rest.slice(j + 1, k));
+                                    j = k;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                // Anything else (e.g. `{"a":1}`) is literal text, not an argument.
+            }
+
+            i = end;
+        }
+    };
+
+    walk(message);
+    return names;
+}
+
+/**
+ * Interpolation values passed at a call site: `t('k', { a, b: x })` -> ['a','b'].
+ *
+ * Returns null when the argument is present but not an object literal (e.g. a
+ * spread or a variable), since the names cannot then be known statically and
+ * asserting on them would produce false failures.
+ */
+function interpolationArgs(node) {
+    const arg = node.arguments[1];
+    if (!arg) return [];
+    if (!ts.isObjectLiteralExpression(arg)) return null;
+
+    const names = [];
+    for (const prop of arg.properties) {
+        if (ts.isShorthandPropertyAssignment(prop) && ts.isIdentifier(prop.name)) {
+            names.push(prop.name.text);
+        } else if (ts.isPropertyAssignment(prop)) {
+            const name = ts.isIdentifier(prop.name) || ts.isStringLiteral(prop.name) ? prop.name.text : null;
+            if (name === null) return null;
+            names.push(name);
+        } else {
+            // Spread or accessor: cannot enumerate statically.
+            return null;
+        }
+    }
+    return names;
+}
+
+/**
  * If `init` is a translator factory call, return its namespace:
  * a string, '' for the root namespace, or NS_UNKNOWN when computed dynamically.
  */
@@ -192,7 +290,18 @@ function scanFile(filePath) {
             if (translator) {
                 const keyArg = node.arguments[0];
                 const key = staticText(keyArg);
-                const location = { file: relPath, line: lineOf(node), translator: translator.name };
+                // `rich`/`markup` take element factories as their second argument, not
+                // plain interpolation values, so their arg names are not comparable.
+                const isPlainCall =
+                    !ts.isPropertyAccessExpression(node.expression) ||
+                    !ts.isIdentifier(node.expression.name) ||
+                    !['rich', 'markup'].includes(node.expression.name.text);
+                const location = {
+                    file: relPath,
+                    line: lineOf(node),
+                    translator: translator.name,
+                    args: isPlainCall ? interpolationArgs(node) : null,
+                };
 
                 if (key === null) {
                     dynamic.push({
@@ -232,10 +341,24 @@ function scanSources() {
     return { used, dynamic, unresolved };
 }
 
+/** Flattened `key -> message` pairs for leaf (string) entries. */
+function collectMessages(value, prefix = '', out = new Map()) {
+    for (const [key, nested] of Object.entries(value)) {
+        const next = prefix ? `${prefix}.${key}` : key;
+        if (nested && typeof nested === 'object' && !Array.isArray(nested)) {
+            collectMessages(nested, next, out);
+        } else if (typeof nested === 'string') {
+            out.set(next, nested);
+        }
+    }
+    return out;
+}
+
 function loadLocales() {
     return LOCALE_FILES.map((fileName) => {
-        const { leaves, containers } = collectKeys(readJson(path.join(localeDir, fileName)));
-        return { fileName, keys: leaves, containers };
+        const data = readJson(path.join(localeDir, fileName));
+        const { leaves, containers } = collectKeys(data);
+        return { fileName, keys: leaves, containers, messages: collectMessages(data) };
     });
 }
 
@@ -271,7 +394,63 @@ function analyze() {
         }
     }
 
-    return { missing, notLeaf, dynamic, unresolved, usedKeys: new Set(usagesByKey.keys()), usagesByKey, locales };
+    const argMismatches = findArgMismatches(usagesByKey, locales);
+
+    return {
+        missing,
+        notLeaf,
+        argMismatches,
+        dynamic,
+        unresolved,
+        usedKeys: new Set(usagesByKey.keys()),
+        usagesByKey,
+        locales,
+    };
 }
 
-module.exports = { analyze, scanSources, loadLocales, collectKeys, flattenLeafKeys, LOCALE_FILES, localeDir, webRoot };
+/**
+ * Compares interpolation values at each call site against the `{placeholders}`
+ * in the resolved message, for every locale.
+ *
+ * Key existence alone does not catch this: a message needing `{count}` called
+ * without it renders the literal placeholder (or throws, depending on config),
+ * and a translation that drops a placeholder present in the others fails only
+ * in that one language. Both are invisible to parity and existence checks.
+ */
+function findArgMismatches(usagesByKey, locales) {
+    const mismatches = [];
+
+    for (const { fileName, messages } of locales) {
+        for (const [key, usages] of usagesByKey) {
+            const message = messages.get(key);
+            if (typeof message !== 'string') continue;
+            const needed = placeholdersIn(message);
+
+            for (const usage of usages) {
+                // null => argument shape not statically knowable; skip rather than
+                // report a mismatch we cannot substantiate.
+                if (usage.args === null) continue;
+                const passed = new Set(usage.args);
+                const omitted = [...needed].filter((name) => !passed.has(name));
+                const unused = [...passed].filter((name) => !needed.has(name));
+                if (omitted.length === 0 && unused.length === 0) continue;
+                mismatches.push({ locale: fileName, key, usage, message, omitted, unused });
+            }
+        }
+    }
+
+    return mismatches;
+}
+
+module.exports = {
+    analyze,
+    scanSources,
+    loadLocales,
+    collectKeys,
+    collectMessages,
+    flattenLeafKeys,
+    placeholdersIn,
+    LOCALE_FILES,
+    localeDir,
+    webRoot,
+};

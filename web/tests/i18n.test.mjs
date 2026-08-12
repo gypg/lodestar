@@ -94,9 +94,37 @@ function assertUsedKeysExist() {
     }
 }
 
+/**
+ * Checks that each call site passes exactly the interpolation values its message
+ * declares, in every locale.
+ *
+ * Neither parity nor existence catches this class of bug: a message needing
+ * `{count}` that is called without it renders the raw placeholder to the user,
+ * and a single translation that drops a placeholder the others have breaks only
+ * that one language.
+ */
+function assertInterpolationArgsMatch() {
+    const { argMismatches } = analyze();
+    if (argMismatches.length === 0) return;
+
+    const lines = argMismatches.map(({ locale, key, usage, message, omitted, unused }) => {
+        const detail = [
+            omitted.length > 0 ? `message needs but call omits: ${omitted.join(', ')}` : null,
+            unused.length > 0 ? `call passes but message ignores: ${unused.join(', ')}` : null,
+        ]
+            .filter(Boolean)
+            .map((text) => `        ${text}`)
+            .join('\n');
+        return `  ${key}  (${locale})\n      called at ${usage.file}:${usage.line}\n${detail}\n        message: ${message}`;
+    });
+
+    assert.fail(`${argMismatches.length} interpolation mismatch(es):\n${lines.join('\n')}`);
+}
+
 function run() {
     assertLocaleParity();
     assertUsedKeysExist();
+    assertInterpolationArgsMatch();
     const en = readJson(path.join(localeDir, 'en.json'));
     assert.equal(en.login?.welcome, 'Welcome back', 'en.json should define login.welcome');
     assertNoHardcodedCopy('src/components/modules/group/Editor.tsx', [
