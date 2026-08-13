@@ -2786,7 +2786,8 @@
         "fail": "Fail",
         "noRemark": "No remark",
         "hint": "Batch tests all entered endpoint and key combinations. HTTP 200 and 429 are treated as pass.",
-        "removeFailedKeys": "Remove Failed Keys"
+        "removeFailedKeys": "Remove Failed Keys",
+        "responseBody": "Upstream response"
       },
       "typeOpenAI": "OpenAI",
       "typeOpenAIChat": "OpenAI Chat",
