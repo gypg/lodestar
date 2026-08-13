@@ -83,6 +83,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   matter how often it was probed. The one-off backfill scan does not filter
   `is_test`, so probe rows already counted once a backfill ran — live probes not
   counting was an inconsistency, not a deliberate exclusion.
+- **Passing probes hid the upstream response body**: All three probe result views
+  gated the body on `!result.passed`, so a successful test showed only "Passed" with
+  no way to tell whether the upstream had actually returned a usable completion.
+  Both backends already returned the body on success, so this was purely a render
+  condition. Failures keep their expanded layout; successes collapse into a
+  one-click panel. Also adds the first tests to assert the body survives the success
+  path — nothing covered `ResponseText`/`ResponseBody` before, so returning an empty
+  body on success would have stayed green.
 
 #### AI Routing
 - Register `GET /api/v1/channel/:id`. The AI route config refetches a channel by id
@@ -103,6 +111,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Move locale files out of `public/` to enable cache busting via JS bundle hashing
 - Clear all 18 TypeScript errors and add tsc CI gate
 - Remove `console.error` from `normalizeTimeZone` (Node test runner treated as failure)
+- Repair the `group.detail.availability` block in `zh_hant.json`, where all nine
+  values were literal `?` characters rather than Traditional Chinese. Corrupt since
+  the initial commit, so Traditional Chinese users saw `?????????` for the group
+  availability check panel.
 - **Channel test hid the upstream response**: The backend has always returned the
   raw upstream body for each attempt, but the results list rendered only the Go
   error string, so diagnosing a failing channel meant querying the database for a
