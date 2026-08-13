@@ -77,6 +77,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   channel keys already owned by the first.
 - **Add Site entry point**: Add a persistent "新增站点" button. Only the empty state
   had one, so after the first site there was no way to add another.
+- **Site usage history ignored probe traffic**: Group model tests built a complete
+  attempt list but only handed it to the relay log, never to the site model hourly
+  recorder, so a site channel's usage and availability history stayed at zero no
+  matter how often it was probed. The one-off backfill scan does not filter
+  `is_test`, so probe rows already counted once a backfill ran — live probes not
+  counting was an inconsistency, not a deliberate exclusion.
 
 #### AI Routing
 - Register `GET /api/v1/channel/:id`. The AI route config refetches a channel by id
@@ -97,6 +103,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Move locale files out of `public/` to enable cache busting via JS bundle hashing
 - Clear all 18 TypeScript errors and add tsc CI gate
 - Remove `console.error` from `normalizeTimeZone` (Node test runner treated as failure)
+- **Channel test hid the upstream response**: The backend has always returned the
+  raw upstream body for each attempt, but the results list rendered only the Go
+  error string, so diagnosing a failing channel meant querying the database for a
+  payload that was already on screen's doorstep. Failed rows now expose it in a
+  collapsible panel.
 
 #### Other
 - Infer i18n message keys for plain errors in `ErrorWithAppError`
