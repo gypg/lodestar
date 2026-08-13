@@ -2005,6 +2005,43 @@
       "save": "保存",
       "saved": "保存成功",
       "saveFailed": "保存失败"
+    },
+    "wallet": {
+      "title": "钱包 · 余额",
+      "description": "商业模式开启时，每次请求按成本（USD）从余额扣减。",
+      "balance": "余额",
+      "used": "已用",
+      "requests": "请求",
+      "cost": "花费",
+      "requestsAndCost": "{requests} 次 · ${cost}",
+      "byModel": "按模型（近 14 日日志）",
+      "last14Days": "近 14 日用量",
+      "last30DaysHeatmap": "近 30 日活跃（热力图）",
+      "redeemLabel": "兑换码充值",
+      "redeemPlaceholder": "ls-...",
+      "redeemAction": "兑换",
+      "onlineTopupLabel": "在线充值 (USD)",
+      "alipay": "支付宝",
+      "wechatPay": "微信",
+      "payNow": "去支付",
+      "stripeTopupLabel": "Stripe 充值 (USD)",
+      "adminGenerateCodes": "管理员 · 生成兑换码",
+      "adminGenerateInvites": "管理员 · 生成邀请码",
+      "countLabel": "数量",
+      "codeValueLabel": "每个面值 (USD)",
+      "generate": "生成",
+      "generateInvites": "生成邀请码",
+      "inviteHint": "用于「注册需邀请码」开启时控制谁能注册。",
+      "toast": {
+        "redeemed": "充值成功，+${credited}",
+        "redeemFailed": "兑换失败",
+        "invalidAmount": "请输入有效金额",
+        "topupFailed": "发起支付失败（需管理员配置支付）",
+        "stripeFailed": "Stripe 支付发起失败（需管理员配置 Stripe）",
+        "codesGenerated": "已生成 {count} 个兑换码",
+        "invitesGenerated": "已生成 {count} 个邀请码",
+        "generateFailed": "生成失败（需管理员权限）"
+      }
     }
   },
   "group": {

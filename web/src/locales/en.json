@@ -2005,6 +2005,43 @@
       "save": "Save",
       "saved": "Saved successfully",
       "saveFailed": "Save failed"
+    },
+    "wallet": {
+      "title": "Wallet · Balance",
+      "description": "While commercial mode is on, every request is deducted from your balance at cost (USD).",
+      "balance": "Balance",
+      "used": "Used",
+      "requests": "Requests",
+      "cost": "Spend",
+      "requestsAndCost": "{requests} requests · ${cost}",
+      "byModel": "By model (last 14 days of logs)",
+      "last14Days": "Usage, last 14 days",
+      "last30DaysHeatmap": "Activity, last 30 days (heatmap)",
+      "redeemLabel": "Top up with a code",
+      "redeemPlaceholder": "ls-...",
+      "redeemAction": "Redeem",
+      "onlineTopupLabel": "Online top-up (USD)",
+      "alipay": "Alipay",
+      "wechatPay": "WeChat Pay",
+      "payNow": "Pay now",
+      "stripeTopupLabel": "Stripe top-up (USD)",
+      "adminGenerateCodes": "Admin · Generate top-up codes",
+      "adminGenerateInvites": "Admin · Generate invite codes",
+      "countLabel": "Count",
+      "codeValueLabel": "Value each (USD)",
+      "generate": "Generate",
+      "generateInvites": "Generate invite codes",
+      "inviteHint": "Controls who can register while \"invite code required\" is enabled.",
+      "toast": {
+        "redeemed": "Topped up, +${credited}",
+        "redeemFailed": "Redemption failed",
+        "invalidAmount": "Enter a valid amount",
+        "topupFailed": "Could not start payment (an admin must configure it first)",
+        "stripeFailed": "Could not start the Stripe payment (an admin must configure Stripe first)",
+        "codesGenerated": "Generated {count} top-up codes",
+        "invitesGenerated": "Generated {count} invite codes",
+        "generateFailed": "Generation failed (admin only)"
+      }
     }
   },
   "group": {

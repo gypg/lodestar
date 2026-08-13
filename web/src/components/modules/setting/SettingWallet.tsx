@@ -10,6 +10,7 @@ Balance is USD; consumed per-request when commercial_mode is on.
 */
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Wallet } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,7 @@ import { WalletUsageChart } from './WalletUsageChart';
 import { UsageHeatmap } from './UsageHeatmap';
 
 export function SettingWallet() {
+    const t = useTranslations();
     const { data: balance } = useWallet();
     const { data: usage } = useUsage();
     const redeem = useRedeemCode();
@@ -43,17 +45,18 @@ export function SettingWallet() {
         if (!c) return;
         redeem.mutate(c, {
             onSuccess: (d) => {
-                toast.success(`充值成功，+$${d.credited}`);
+                toast.success(t('setting.wallet.toast.redeemed', { credited: d.credited }));
                 setCode('');
             },
-            onError: (e) => toast.error(e instanceof Error ? e.message : '兑换失败'),
+            onError: (e) =>
+                toast.error(e instanceof Error ? e.message : t('setting.wallet.toast.redeemFailed')),
         });
     };
 
     const onTopup = () => {
         const amt = parseFloat(amount);
         if (!amt || amt <= 0) {
-            toast.error('请输入有效金额');
+            toast.error(t('setting.wallet.toast.invalidAmount'));
             return;
         }
         topup.mutate(
@@ -74,7 +77,8 @@ export function SettingWallet() {
                     document.body.appendChild(form);
                     form.submit();
                 },
-                onError: (e) => toast.error(e instanceof Error ? e.message : '发起支付失败（需管理员配置支付）'),
+                onError: (e) =>
+                    toast.error(e instanceof Error ? e.message : t('setting.wallet.toast.topupFailed')),
             }
         );
     };
@@ -82,13 +86,14 @@ export function SettingWallet() {
     const onStripeTopup = () => {
         const amt = parseFloat(stripeAmount);
         if (!amt || amt <= 0) {
-            toast.error('请输入有效金额');
+            toast.error(t('setting.wallet.toast.invalidAmount'));
             return;
         }
         stripeTopup.mutate(
             { amount: amt },
             {
-                onError: (e) => toast.error(e instanceof Error ? e.message : 'Stripe 支付发起失败（需管理员配置 Stripe）'),
+                onError: (e) =>
+                    toast.error(e instanceof Error ? e.message : t('setting.wallet.toast.stripeFailed')),
             }
         );
     };
@@ -99,9 +104,10 @@ export function SettingWallet() {
             {
                 onSuccess: (codes) => {
                     setGenerated(codes.map((c) => c.code));
-                    toast.success(`已生成 ${codes.length} 个兑换码`);
+                    toast.success(t('setting.wallet.toast.codesGenerated', { count: codes.length }));
                 },
-                onError: (e) => toast.error(e instanceof Error ? e.message : '生成失败（需管理员权限）'),
+                onError: (e) =>
+                    toast.error(e instanceof Error ? e.message : t('setting.wallet.toast.generateFailed')),
             }
         );
     };
@@ -110,9 +116,10 @@ export function SettingWallet() {
         genInvites.mutate(parseInt(inviteCount, 10) || 0, {
             onSuccess: (codes) => {
                 setInvites(codes.map((c) => c.code));
-                toast.success(`已生成 ${codes.length} 个邀请码`);
+                toast.success(t('setting.wallet.toast.invitesGenerated', { count: codes.length }));
             },
-            onError: (e) => toast.error(e instanceof Error ? e.message : '生成失败（需管理员权限）'),
+            onError: (e) =>
+                toast.error(e instanceof Error ? e.message : t('setting.wallet.toast.generateFailed')),
         });
     };
 
@@ -123,19 +130,19 @@ export function SettingWallet() {
                     <Wallet className="h-5 w-5 text-primary" />
                 </div>
                 <div className="space-y-0.5">
-                    <span className="text-sm font-semibold text-card-foreground">钱包 · 余额</span>
-                    <p className="text-xs text-muted-foreground">商业模式开启时，每次请求按成本（USD）从余额扣减。</p>
+                    <span className="text-sm font-semibold text-card-foreground">{t('setting.wallet.title')}</span>
+                    <p className="text-xs text-muted-foreground">{t('setting.wallet.description')}</p>
                 </div>
             </div>
 
             <div className="flex items-center gap-4 rounded-lg border border-border/30 bg-card p-3">
                 <div>
                     <div className="text-lg font-semibold tabular-nums text-primary">${(balance?.quota ?? 0).toFixed(4)}</div>
-                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">余额</div>
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('setting.wallet.balance')}</div>
                 </div>
                 <div>
                     <div className="text-lg font-semibold tabular-nums text-muted-foreground">${(balance?.used_quota ?? 0).toFixed(4)}</div>
-                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">已用</div>
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('setting.wallet.used')}</div>
                 </div>
             </div>
 
@@ -144,7 +151,7 @@ export function SettingWallet() {
                 <div className="grid grid-cols-3 gap-2 text-center">
                     <div>
                         <div className="text-base font-semibold tabular-nums text-card-foreground">{(usage?.total_requests ?? 0).toLocaleString('en-US')}</div>
-                        <div className="text-[10px] uppercase tracking-wider text-muted-foreground">请求</div>
+                        <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('setting.wallet.requests')}</div>
                     </div>
                     <div>
                         <div className="text-base font-semibold tabular-nums text-card-foreground">{(usage?.total_tokens ?? 0).toLocaleString('en-US')}</div>
@@ -152,7 +159,7 @@ export function SettingWallet() {
                     </div>
                     <div>
                         <div className="text-base font-semibold tabular-nums text-card-foreground">${(usage?.total_cost ?? 0).toFixed(4)}</div>
-                        <div className="text-[10px] uppercase tracking-wider text-muted-foreground">花费</div>
+                        <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{t('setting.wallet.cost')}</div>
                     </div>
                 </div>
                 {usage && usage.per_key.length > 0 && (
@@ -160,46 +167,54 @@ export function SettingWallet() {
                         {usage.per_key.map((k) => (
                             <div key={k.name} className="flex items-baseline justify-between text-xs">
                                 <span className="mr-3 truncate text-card-foreground">{k.name}</span>
-                                <span className="shrink-0 tabular-nums text-muted-foreground">{k.requests.toLocaleString('en-US')} 次 · ${k.cost.toFixed(4)}</span>
+                                <span className="shrink-0 tabular-nums text-muted-foreground">
+                                    {t('setting.wallet.requestsAndCost', {
+                                        requests: k.requests.toLocaleString('en-US'),
+                                        cost: k.cost.toFixed(4),
+                                    })}
+                                </span>
                             </div>
                         ))}
                     </div>
                 )}
                 {usage && (usage.per_model?.length ?? 0) > 0 && (
                     <div className="mt-1 flex flex-col gap-1 border-t border-border/40 pt-2">
-                        <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">按模型（近 14 日日志）</div>
+                        <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{t('setting.wallet.byModel')}</div>
                         {usage.per_model!.map((m) => (
                             <div key={m.model} className="flex items-baseline justify-between text-xs">
                                 <span className="mr-3 truncate font-mono text-card-foreground">{m.model}</span>
                                 <span className="shrink-0 tabular-nums text-muted-foreground">
-                                    {m.requests.toLocaleString('en-US')} 次 · ${m.cost.toFixed(4)}
+                                    {t('setting.wallet.requestsAndCost', {
+                                        requests: m.requests.toLocaleString('en-US'),
+                                        cost: m.cost.toFixed(4),
+                                    })}
                                 </span>
                             </div>
                         ))}
                     </div>
                 )}
                 <div className="mt-2 border-t border-border/40 pt-2">
-                    <div className="mb-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">近 14 日用量</div>
+                    <div className="mb-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{t('setting.wallet.last14Days')}</div>
                     <WalletUsageChart series={usage?.daily_series} available={usage?.usage_chart_available} />
                 </div>
                 <div className="mt-2 border-t border-border/40 pt-2">
-                    <div className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">近 30 日活跃（热力图）</div>
+                    <div className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{t('setting.wallet.last30DaysHeatmap')}</div>
                     <UsageHeatmap data={usage?.heatmap_by_day} days={30} />
                 </div>
             </div>
 
             <div className="flex items-end gap-2">
                 <div className="flex flex-1 flex-col gap-1.5">
-                    <label className="ml-1 text-xs font-medium text-muted-foreground">兑换码充值</label>
-                    <Input value={code} onChange={(e) => setCode(e.target.value)} placeholder="gz-..." className="rounded-lg" />
+                    <label className="ml-1 text-xs font-medium text-muted-foreground">{t('setting.wallet.redeemLabel')}</label>
+                    <Input value={code} onChange={(e) => setCode(e.target.value)} placeholder={t('setting.wallet.redeemPlaceholder')} className="rounded-lg" />
                 </div>
-                <Button type="button" size="sm" onClick={onRedeem} disabled={redeem.isPending || !code.trim()}>兑换</Button>
+                <Button type="button" size="sm" onClick={onRedeem} disabled={redeem.isPending || !code.trim()}>{t('setting.wallet.redeemAction')}</Button>
             </div>
 
             {balance?.epay_configured && (
                 <div className="flex items-end gap-2">
                     <div className="flex flex-1 flex-col gap-1.5">
-                        <label className="ml-1 text-xs font-medium text-muted-foreground">在线充值 (USD)</label>
+                        <label className="ml-1 text-xs font-medium text-muted-foreground">{t('setting.wallet.onlineTopupLabel')}</label>
                         <Input value={amount} onChange={(e) => setAmount(e.target.value)} type="number" step="0.01" min="0" className="rounded-lg" />
                     </div>
                     <select
@@ -207,17 +222,17 @@ export function SettingWallet() {
                         onChange={(e) => setMethod(e.target.value)}
                         className="h-9 rounded-lg border border-border/40 bg-background px-2 text-sm"
                     >
-                        <option value="alipay">支付宝</option>
-                        <option value="wxpay">微信</option>
+                        <option value="alipay">{t('setting.wallet.alipay')}</option>
+                        <option value="wxpay">{t('setting.wallet.wechatPay')}</option>
                     </select>
-                    <Button type="button" size="sm" onClick={onTopup} disabled={topup.isPending}>去支付</Button>
+                    <Button type="button" size="sm" onClick={onTopup} disabled={topup.isPending}>{t('setting.wallet.payNow')}</Button>
                 </div>
             )}
 
             {settings?.find((s) => s.key === SettingKey.StripeEnabled)?.value === 'true' && (
                 <div className="flex items-end gap-2">
                     <div className="flex flex-1 flex-col gap-1.5">
-                        <label className="ml-1 text-xs font-medium text-muted-foreground">Stripe 充值 (USD)</label>
+                        <label className="ml-1 text-xs font-medium text-muted-foreground">{t('setting.wallet.stripeTopupLabel')}</label>
                         <Input value={stripeAmount} onChange={(e) => setStripeAmount(e.target.value)} type="number" step="0.01" min="0" className="rounded-lg" />
                     </div>
                     <Button type="button" size="sm" onClick={onStripeTopup} disabled={stripeTopup.isPending}>Pay with Stripe</Button>
@@ -225,18 +240,18 @@ export function SettingWallet() {
             )}
 
             <details className="rounded-lg border border-border/30 bg-card p-3">
-                <summary className="cursor-pointer text-sm font-medium text-card-foreground">管理员 · 生成兑换码</summary>
+                <summary className="cursor-pointer text-sm font-medium text-card-foreground">{t('setting.wallet.adminGenerateCodes')}</summary>
                 <div className="mt-3 flex flex-col gap-3">
                     <div className="flex items-end gap-2">
                         <div className="flex flex-col gap-1">
-                            <label className="ml-1 text-xs text-muted-foreground">数量</label>
+                            <label className="ml-1 text-xs text-muted-foreground">{t('setting.wallet.countLabel')}</label>
                             <Input value={count} onChange={(e) => setCount(e.target.value)} type="number" min="1" className="w-24 rounded-lg" />
                         </div>
                         <div className="flex flex-col gap-1">
-                            <label className="ml-1 text-xs text-muted-foreground">每个面值 (USD)</label>
+                            <label className="ml-1 text-xs text-muted-foreground">{t('setting.wallet.codeValueLabel')}</label>
                             <Input value={quota} onChange={(e) => setQuota(e.target.value)} type="number" step="0.01" min="0" className="w-32 rounded-lg" />
                         </div>
-                        <Button type="button" size="sm" onClick={onGenerate} disabled={genCodes.isPending}>生成</Button>
+                        <Button type="button" size="sm" onClick={onGenerate} disabled={genCodes.isPending}>{t('setting.wallet.generate')}</Button>
                     </div>
                     {generated.length > 0 && (
                         <textarea
@@ -251,15 +266,15 @@ export function SettingWallet() {
             </details>
 
             <details className="rounded-lg border border-border/30 bg-card p-3">
-                <summary className="cursor-pointer text-sm font-medium text-card-foreground">管理员 · 生成邀请码</summary>
+                <summary className="cursor-pointer text-sm font-medium text-card-foreground">{t('setting.wallet.adminGenerateInvites')}</summary>
                 <div className="mt-3 flex flex-col gap-3">
                     <div className="flex items-end gap-2">
                         <div className="flex flex-col gap-1">
-                            <label className="ml-1 text-xs text-muted-foreground">数量</label>
+                            <label className="ml-1 text-xs text-muted-foreground">{t('setting.wallet.countLabel')}</label>
                             <Input value={inviteCount} onChange={(e) => setInviteCount(e.target.value)} type="number" min="1" className="w-24 rounded-lg" />
                         </div>
-                        <Button type="button" size="sm" onClick={onGenInvites} disabled={genInvites.isPending}>生成邀请码</Button>
-                        <p className="text-xs text-muted-foreground">用于「注册需邀请码」开启时控制谁能注册。</p>
+                        <Button type="button" size="sm" onClick={onGenInvites} disabled={genInvites.isPending}>{t('setting.wallet.generateInvites')}</Button>
+                        <p className="text-xs text-muted-foreground">{t('setting.wallet.inviteHint')}</p>
                     </div>
                     {invites.length > 0 && (
                         <textarea
