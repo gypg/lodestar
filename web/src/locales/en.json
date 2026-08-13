@@ -2242,7 +2242,8 @@
         "resultTitle": "Check details",
         "resultPassed": "Passed",
         "resultFailed": "Failed",
-        "resultAttempts": "Retried {count} times"
+        "resultAttempts": "Retried {count} times",
+        "resultResponseBody": "Upstream response"
       },
       "actions": {
         "edit": "Edit",

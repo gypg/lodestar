@@ -1041,8 +1041,8 @@ export function ChannelForm({
                                         <span>{result.latency_ms}ms · {result.passed ? t('test.pass') : t('test.fail')}</span>
                                     </div>
                                     {result.message && <p className="break-all text-muted-foreground">{result.message}</p>}
-                                    {!result.passed && result.response_body && (
-                                        <details className="rounded-lg border border-border/30 bg-card p-2">
+                                    {result.response_body && (
+                                        <details className="rounded-lg border border-border/30 bg-card p-2" open={!result.passed}>
                                             <summary className="cursor-pointer text-muted-foreground">{t('test.responseBody')}</summary>
                                             <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap break-all text-muted-foreground">
                                                 {result.response_body}

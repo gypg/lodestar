@@ -285,10 +285,17 @@ function EditDialogContent({
                                                             {result.message}
                                                         </div>
                                                     ) : null}
-                                                    {!result.passed && result.response_text ? (
-                                                        <div className="mt-1 break-all text-muted-foreground/90">
-                                                            {result.response_text}
-                                                        </div>
+                                                    {result.response_text ? (
+                                                        <details className="mt-1" open={!result.passed}>
+                                                            <summary className="cursor-pointer text-muted-foreground">
+                                                                {t(
+                                                                    'detail.availability.resultResponseBody',
+                                                                )}
+                                                            </summary>
+                                                            <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap break-all text-muted-foreground/90">
+                                                                {result.response_text}
+                                                            </pre>
+                                                        </details>
                                                     ) : null}
                                                 </div>
                                             ))}

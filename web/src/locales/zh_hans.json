@@ -2242,7 +2242,8 @@
         "resultTitle": "检测明细",
         "resultPassed": "通过",
         "resultFailed": "失败",
-        "resultAttempts": "重试 {count} 次"
+        "resultAttempts": "重试 {count} 次",
+        "resultResponseBody": "上游响应"
       },
       "actions": {
         "edit": "编辑",

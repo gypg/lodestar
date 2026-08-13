@@ -2234,15 +2234,16 @@
     },
     "detail": {
       "availability": {
-        "title": "?????????",
-        "description": "???????????????????",
-        "testAll": "??????",
-        "unavailableBadge": "???",
-        "unavailableCount": "{count} ??????",
-        "resultTitle": "????",
-        "resultPassed": "??",
-        "resultFailed": "??",
-        "resultAttempts": "?? {count} ?"
+        "title": "分組全量可用性檢測",
+        "description": "檢測該分組內全部模型，並標出不可用項。",
+        "testAll": "檢測全部模型",
+        "unavailableBadge": "不可用",
+        "unavailableCount": "{count} 個模型不可用",
+        "resultTitle": "檢測明細",
+        "resultPassed": "通過",
+        "resultFailed": "失敗",
+        "resultAttempts": "重試 {count} 次",
+        "resultResponseBody": "上游回應"
       },
       "actions": {
         "edit": "編輯",
