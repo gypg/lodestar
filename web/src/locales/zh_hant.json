@@ -3260,7 +3260,175 @@
     "accountDisabled": "帳號停用",
     "hideFullKey": "隱藏完整 Key",
     "showFullKey": "顯示完整 Key",
-    "closeDialog": "關閉"
+    "closeDialog": "關閉",
+    "toast": {
+      "actionFailed": "操作失敗",
+      "siteEnabled": "站點已啟用",
+      "siteDisabled": "站點已停用",
+      "siteRestored": "站點「{name}」已恢復，請在列表中啟用",
+      "accountEnabled": "站點帳號已啟用",
+      "accountDisabled": "站點帳號已停用",
+      "siteDeleted": "站點已刪除",
+      "siteArchived": "站點已歸檔，可在『歸檔站點』中恢復",
+      "accountDeleted": "站點帳號已刪除",
+      "selectSiteFirst": "請先選擇站點",
+      "importInputRequired": "請選擇 JSON 檔案或貼上匯出內容",
+      "batchDone": "操作完成：成功 {success}，失敗 {failed}",
+      "pinned": "已置頂",
+      "unpinned": "已取消置頂",
+      "syncAllTriggered": "已觸發後台全量同步，頁面會自動刷新",
+      "checkinAllTriggered": "已觸發後台全量簽到，頁面會自動刷新",
+      "syncAccountSummary": "{message}（{groups} 個分組，{keys} 個 Key，{models} 個模型）",
+      "checkinResult": "{status}：{message}",
+      "checkinWithReward": "{status}：{message}，獎勵：{reward}",
+      "importDone": "匯入完成：新增 {createdSites} 個站點，新增 {createdAccounts} 個帳號，更新 {updatedAccounts} 個帳號"
+    },
+    "health": {
+      "siteDisabled": "站點停用",
+      "failed": "{count} 異常",
+      "disabled": "{count} 已停用",
+      "partial": "{count} 部分同步",
+      "unconfigured": "待配置",
+      "idle": "未執行",
+      "ok": "正常"
+    },
+    "executionStatus": {
+      "partial": "部分成功",
+      "success": "成功",
+      "failed": "失敗",
+      "skipped": "跳過",
+      "idle": "未執行"
+    },
+    "execution": {
+      "lastSyncAt": "上次同步 {at}",
+      "lastSyncNever": "上次同步 從未執行",
+      "lastCheckinAt": "上次簽到 {at}",
+      "lastCheckinNever": "上次簽到 從未執行",
+      "awaitingFirstSync": "等待首次同步",
+      "awaitingFirstCheckin": "等待首次簽到",
+      "checkinDisabled": "簽到未啟用",
+      "checkinUnsupported": "目前平台不支援簽到"
+    },
+    "cloudflareProtected": "Cloudflare 保護",
+    "nextAutoCheckin": "下次自動簽到 {at} · 最小間隔 {hours} 小時 · 隨機延遲 0-{minutes} 分鐘",
+    "checkinPendingSchedule": "待排程",
+    "metrics": {
+      "accounts": "帳號",
+      "models": "模型",
+      "groups": "分組",
+      "balance": "餘額",
+      "todayIncome": "今日收入"
+    },
+    "customHeaderCount": "{count} 個 Header",
+    "selectSite": "選擇站點",
+    "deselectSite": "取消選擇站點",
+    "selectAll": "全選",
+    "selectAllVisible": "全選目前可見站點",
+    "deselectAll": "取消全選",
+    "selectedCount": "已選 {count} 個站點",
+    "showAutomation": "自動化設定",
+    "hideAutomation": "隱藏自動化設定",
+    "actions": {
+      "pin": "置頂",
+      "unpin": "取消置頂",
+      "enableSite": "啟用站點",
+      "disableSite": "停用站點",
+      "archiveSite": "歸檔站點",
+      "deleteSite": "刪除站點",
+      "enableAccount": "啟用帳號",
+      "disableAccount": "停用帳號",
+      "deleteAccount": "刪除帳號",
+      "checkinNow": "立即簽到",
+      "syncAccount": "同步帳號"
+    },
+    "accountStatus": {
+      "enabled": "啟用中",
+      "disabled": "已停用"
+    },
+    "syncMode": {
+      "auto": "自動同步",
+      "manual": "手動同步"
+    },
+    "checkinMode": {
+      "auto": "自動簽到",
+      "random": "隨機簽到",
+      "manual": "手動簽到"
+    },
+    "accountsAutoExpanded": "篩選結果已自動展開",
+    "collapseAccounts": "收起帳號",
+    "expandAccounts": "展開帳號",
+    "visibleAccountCount": "顯示 {visible} / {total} 個帳號",
+    "noAccountsHint": "暫無帳號。新增帳號後即可自動同步分組、模型和渠道綁定。",
+    "batch": {
+      "enable": "批量啟用",
+      "disable": "批量停用",
+      "delete": "批量刪除",
+      "done": "完成",
+      "edit": "批量編輯"
+    },
+    "loadFailed": "站點列表載入失敗：{message}",
+    "loading": "正在載入站點資訊...",
+    "empty": {
+      "title": "還沒有站點",
+      "hint": "先新增一個站點，再為它配置帳號，後續即可自動同步分組、模型和託管渠道。",
+      "action": "新增第一個站點"
+    },
+    "noMatch": {
+      "title": "沒有符合的站點",
+      "hint": "目前搜尋和篩選條件沒有命中任何站點或帳號。",
+      "clearFilters": "清空篩選"
+    },
+    "import": {
+      "title": "匯入站點資料",
+      "description": "支援上傳或貼上 All API Hub / Metapi 匯出的 JSON。匯入會按平台和站點位址自動建立或複用站點。",
+      "sourceLabel": "匯入來源",
+      "uploadLabel": "上傳 JSON 檔案",
+      "dropHint": "放開即可上傳 JSON 檔案",
+      "pickHint": "點擊選擇或拖曳 JSON 檔案到這裡",
+      "clearFile": "清除檔案",
+      "selectedFile": "已選擇：{name}",
+      "acceptHint": "支援 {source} 匯出的 .json 檔案",
+      "pasteLabel": "或貼上匯出 JSON",
+      "pastePlaceholder": "貼上類似 {sample} 的完整匯出內容",
+      "metapiNote": "Metapi 匯入只遷移站點、帳號、Key、分組和模型；路由策略與下游 Key 會跳過。",
+      "allApiHubNote": "匯入會保留已存在站點的本地配置；同一分組下的多個 key 後續仍會聚合到同一個託管 channel。",
+      "stat": {
+        "createdSites": "新增站點",
+        "reusedSites": "複用站點",
+        "updatedAccounts": "更新帳號",
+        "skippedAccounts": "跳過帳號",
+        "scheduledSync": "後台同步",
+        "importedKeys": "匯入 Key",
+        "importedGroups": "匯入分組",
+        "importedModels": "匯入模型",
+        "disabledModels": "停用模型"
+      },
+      "warnings": "匯入警告",
+      "importing": "匯入中...",
+      "start": "開始匯入"
+    },
+    "archived": {
+      "title": "歸檔站點",
+      "description": "歸檔的站點仍保留帳號、Key 和模型配置，託管渠道會被下線。點擊恢復會還原到主列表（預設保持停用狀態，啟用後會自動重建託管渠道）。",
+      "loading": "正在載入歸檔站點...",
+      "loadFailed": "載入失敗：{message}",
+      "empty": "目前沒有歸檔的站點。",
+      "archivedAt": "歸檔於 {at}",
+      "accountsKept": "{count} 個帳號已保留",
+      "restore": "恢復"
+    },
+    "confirm": {
+      "deleteTitle": "確認刪除",
+      "archiveTitle": "確認歸檔",
+      "deleteSite": "確認刪除站點「{name}」及其所有帳號和託管渠道？此操作不可撤銷。",
+      "archiveSite": "確認歸檔站點「{name}」？歸檔後將從主列表移除，託管渠道會被下線，帳號和密鑰會保留；可在『歸檔站點』中隨時恢復。",
+      "deleteAccount": "確認刪除帳號「{name}」及其託管渠道？此操作不可撤銷。",
+      "deleting": "刪除中...",
+      "archiving": "歸檔中..."
+    },
+    "credential": {
+      "usernamePassword": "使用者名稱 / 密碼"
+    }
   },
   "form": {
     "totpLabel": "兩步驗證碼",

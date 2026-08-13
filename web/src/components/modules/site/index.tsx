@@ -125,13 +125,24 @@ const PLATFORM_LABELS: Record<SitePlatform, string> = {
   [SitePlatform.SAPI]: "SAPI",
 };
 
-const CREDENTIAL_LABELS: Record<SiteCredentialType, string> = {
-  [SiteCredentialType.UsernamePassword]: "用户名 / 密码",
+// Access Token / API Key 是专有名词不翻译；用户名 / 密码需要走 t()，故不放这张表。
+const CREDENTIAL_LABELS: Partial<Record<SiteCredentialType, string>> = {
   [SiteCredentialType.AccessToken]: "Access Token",
   [SiteCredentialType.APIKey]: "API Key",
 };
 
 type HealthTone = "default" | "danger" | "muted" | "warning";
+
+// 健康状态只描述"是哪一种 + 相关数量"，文案在渲染处用 t() 取。
+// 不在这里存 key，也不把 t 传进来——两种写法都能让 i18n 门全绿却不做检查。
+type HealthKind =
+  | "siteDisabled"
+  | "failed"
+  | "disabled"
+  | "partial"
+  | "unconfigured"
+  | "idle"
+  | "ok";
 
 type SiteSummary = {
   accountCount: number;
@@ -144,7 +155,8 @@ type SiteSummary = {
   partialAccountCount: number;
   disabledAccountCount: number;
   enabledAccountCount: number;
-  healthLabel: string;
+  healthKind: HealthKind;
+  healthCount: number;
   healthTone: HealthTone;
 };
 
@@ -175,28 +187,27 @@ type SiteImportResult = {
   disabled_models?: number;
 };
 
+// 返回 null 表示"没有可显示的时间"，由调用点决定用哪条文案。
 function formatDateTime(value?: string | null) {
-  if (!value) return "从未执行";
+  if (!value) return null;
   const date = new Date(value);
   if (Number.isNaN(date.getTime()) || date.getFullYear() <= 1) {
-    return "从未执行";
+    return null;
   }
   return date.toLocaleString();
 }
 
-function statusLabel(status: string) {
+// 归一到 locale 里 site.executionStatus.* 的分支名，文案在渲染处取。
+function statusLabelKind(status: string) {
   switch (status) {
     case "partial":
-      return "部分成功";
     case "success":
-      return "成功";
     case "failed":
-      return "失败";
     case "skipped":
-      return "跳过";
+      return status;
     case "idle":
     default:
-      return "未执行";
+      return "idle";
   }
 }
 
@@ -215,21 +226,14 @@ function SiteMetric({
   );
 }
 
+// 取不到上游 message 时返回 null，兜底文案由调用点用 t() 提供。
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) return error.message;
   if (typeof error === "object" && error !== null && "message" in error) {
     const message = (error as { message?: unknown }).message;
     if (typeof message === "string") return message;
   }
-  return "操作失败";
-}
-
-function getSiteErrorMessage(
-  locale: ReturnType<typeof useSettingStore.getState>["locale"],
-  error: unknown,
-  t?: ReturnType<typeof useTranslations>,
-) {
-  return translateSiteMessage(locale, getErrorMessage(error), t);
+  return null;
 }
 
 function formatBalance(value: number) {
@@ -353,7 +357,8 @@ function buildSiteSummary(site: SiteRecord): SiteSummary {
       partialAccountCount,
       disabledAccountCount,
       enabledAccountCount,
-      healthLabel: "站点停用",
+      healthKind: "siteDisabled",
+      healthCount: 0,
       healthTone: "muted",
     };
   }
@@ -370,7 +375,8 @@ function buildSiteSummary(site: SiteRecord): SiteSummary {
       partialAccountCount,
       disabledAccountCount,
       enabledAccountCount,
-      healthLabel: `${failedAccountCount} 异常`,
+      healthKind: "failed",
+      healthCount: failedAccountCount,
       healthTone: "danger",
     };
   }
@@ -387,7 +393,8 @@ function buildSiteSummary(site: SiteRecord): SiteSummary {
       partialAccountCount,
       disabledAccountCount,
       enabledAccountCount,
-      healthLabel: `${disabledAccountCount} 已停用`,
+      healthKind: "disabled",
+      healthCount: disabledAccountCount,
       healthTone: "muted",
     };
   }
@@ -404,7 +411,8 @@ function buildSiteSummary(site: SiteRecord): SiteSummary {
       partialAccountCount,
       disabledAccountCount,
       enabledAccountCount,
-      healthLabel: `${partialAccountCount} 部分同步`,
+      healthKind: "partial",
+      healthCount: partialAccountCount,
       healthTone: "warning",
     };
   }
@@ -421,7 +429,8 @@ function buildSiteSummary(site: SiteRecord): SiteSummary {
       partialAccountCount,
       disabledAccountCount,
       enabledAccountCount,
-      healthLabel: "待配置",
+      healthKind: "unconfigured",
+      healthCount: 0,
       healthTone: "warning",
     };
   }
@@ -445,7 +454,8 @@ function buildSiteSummary(site: SiteRecord): SiteSummary {
     partialAccountCount,
     disabledAccountCount,
     enabledAccountCount,
-    healthLabel: allIdle ? "未执行" : "正常",
+    healthKind: allIdle ? "idle" : "ok",
+    healthCount: 0,
     healthTone: allIdle ? "warning" : "default",
   };
 }
@@ -471,17 +481,37 @@ function isCloudflareProtectionMessage(message?: string | null) {
 }
 
 function ExecutionSummary({
-  label,
+  kind,
   status,
   at,
   message,
 }: {
-  label: string;
+  kind: "sync" | "checkin";
   status: string;
   at?: string | null;
   message?: string | null;
 }) {
-  const text = [`上次${label} ${formatDateTime(at)}`, statusLabel(status)];
+  const t = useTranslations();
+  const at_ = formatDateTime(at);
+  const statusKind = statusLabelKind(status);
+  const text = [
+    kind === "sync"
+      ? at_
+        ? t("site.execution.lastSyncAt", { at: at_ })
+        : t("site.execution.lastSyncNever")
+      : at_
+        ? t("site.execution.lastCheckinAt", { at: at_ })
+        : t("site.execution.lastCheckinNever"),
+    statusKind === "partial"
+      ? t("site.executionStatus.partial")
+      : statusKind === "success"
+        ? t("site.executionStatus.success")
+        : statusKind === "failed"
+          ? t("site.executionStatus.failed")
+          : statusKind === "skipped"
+            ? t("site.executionStatus.skipped")
+            : t("site.executionStatus.idle"),
+  ];
   if (message) {
     text.push(message);
   }
@@ -500,7 +530,7 @@ function ExecutionSummary({
             )}
           />
           <span className="min-w-0 truncate">
-            {cloudflareProtected ? "Cloudflare 保护 · " : ""}
+            {cloudflareProtected ? `${t("site.cloudflareProtected")} · ` : ""}
             {summary}
           </span>
         </div>
@@ -572,6 +602,15 @@ export function Site() {
   const t = useTranslations();
   const tProxy = useTranslations('proxyPool');
   const locale = useSettingStore((state) => state.locale);
+
+  // 在组件内闭合 t/locale，而不是把 t 当参数传进模块级 helper。
+  const siteErrorMessage = useCallback(
+    (error: unknown) =>
+      translateSiteMessage(locale, getErrorMessage(error), t) ||
+      t("site.toast.actionFailed"),
+    [locale, t],
+  );
+
   const { data: sites, isLoading, error } = useSiteList();
   const updateSite = useUpdateSite();
   const enableSite = useEnableSite();
@@ -941,9 +980,11 @@ export function Site() {
   async function handleToggleSite(site: SiteRecord) {
     try {
       await enableSite.mutateAsync({ id: site.id, enabled: !site.enabled });
-      toast.success(site.enabled ? "站点已停用" : "站点已启用");
+      toast.success(
+        site.enabled ? t("site.toast.siteDisabled") : t("site.toast.siteEnabled"),
+      );
     } catch (toggleError) {
-      toast.error(getSiteErrorMessage(locale, toggleError, t));
+      toast.error(siteErrorMessage(toggleError));
     }
   }
 
@@ -958,9 +999,9 @@ export function Site() {
   async function handleRestoreSite(siteId: number, siteName: string) {
     try {
       await restoreSite.mutateAsync(siteId);
-      toast.success(`站点「${siteName}」已恢复，请在列表中启用`);
+      toast.success(t("site.toast.siteRestored", { name: siteName }));
     } catch (err) {
-      toast.error(getSiteErrorMessage(locale, err, t));
+      toast.error(siteErrorMessage(err));
     }
   }
 
@@ -970,9 +1011,13 @@ export function Site() {
         id: account.id,
         enabled: !account.enabled,
       });
-      toast.success(account.enabled ? "站点账号已停用" : "站点账号已启用");
+      toast.success(
+        account.enabled
+          ? t("site.toast.accountDisabled")
+          : t("site.toast.accountEnabled"),
+      );
     } catch (toggleError) {
-      toast.error(getSiteErrorMessage(locale, toggleError, t));
+      toast.error(siteErrorMessage(toggleError));
     }
   }
 
@@ -984,14 +1029,19 @@ export function Site() {
     setSyncingAccountIds((current) => new Set(current).add(account.id));
     try {
       const result = await syncSiteAccount.mutateAsync(account.id);
-      const summary = `${result.message}（${result.group_count} 个分组，${result.token_count} 个 Key，${result.model_count} 个模型）`;
+      const summary = t("site.toast.syncAccountSummary", {
+        message: result.message,
+        groups: result.group_count,
+        keys: result.token_count,
+        models: result.model_count,
+      });
       if (result.status === "partial") {
         toast.warning(summary);
       } else {
         toast.success(summary);
       }
     } catch (syncError) {
-      toast.error(translateSiteMessage(locale, getErrorMessage(syncError), t));
+      toast.error(siteErrorMessage(syncError));
     } finally {
       setSyncingAccountIds((current) => {
         const next = new Set(current);
@@ -1005,15 +1055,34 @@ export function Site() {
     setCheckinAccountIds((current) => new Set(current).add(account.id));
     try {
       const result = await checkinSiteAccount.mutateAsync(account.id);
-      const suffix = result.reward ? `，奖励：${result.reward}` : "";
-      const message = `${statusLabel(result.status)}：${result.message}${suffix}`;
+      const checkinKind = statusLabelKind(result.status);
+      const statusText =
+        checkinKind === "partial"
+          ? t("site.executionStatus.partial")
+          : checkinKind === "success"
+            ? t("site.executionStatus.success")
+            : checkinKind === "failed"
+              ? t("site.executionStatus.failed")
+              : checkinKind === "skipped"
+                ? t("site.executionStatus.skipped")
+                : t("site.executionStatus.idle");
+      const message = result.reward
+        ? t("site.toast.checkinWithReward", {
+            status: statusText,
+            message: result.message,
+            reward: result.reward,
+          })
+        : t("site.toast.checkinResult", {
+            status: statusText,
+            message: result.message,
+          });
       if (result.status === "failed") {
         toast.error(message);
       } else {
         toast.success(message);
       }
     } catch (checkinError) {
-      toast.error(getSiteErrorMessage(locale, checkinError, t));
+      toast.error(siteErrorMessage(checkinError));
     } finally {
       setCheckinAccountIds((current) => {
         const next = new Set(current);
@@ -1027,7 +1096,7 @@ export function Site() {
     const hasFile = !!importFile;
     const hasText = !!importPayloadText.trim();
     if (!hasFile && !hasText) {
-      toast.error("请选择 JSON 文件或粘贴导出内容");
+      toast.error(t("site.toast.importInputRequired"));
       return;
     }
 
@@ -1044,10 +1113,14 @@ export function Site() {
       setImportFile(null);
       setImportPayloadText("");
       toast.success(
-        `导入完成：新增 ${result.created_sites} 个站点，新增 ${result.created_accounts} 个账号，更新 ${result.updated_accounts} 个账号`,
+        t("site.toast.importDone", {
+          createdSites: result.created_sites,
+          createdAccounts: result.created_accounts,
+          updatedAccounts: result.updated_accounts,
+        }),
       );
     } catch (importError) {
-      toast.error(getSiteErrorMessage(locale, importError, t));
+      toast.error(siteErrorMessage(importError));
     }
   }
 
@@ -1097,7 +1170,7 @@ export function Site() {
     try {
       if (deleteConfirm.type === "site") {
         await deleteSite.mutateAsync(deleteConfirm.id);
-        toast.success("站点已删除");
+        toast.success(t("site.toast.siteDeleted"));
         setSelectedSiteIds((prev) =>
           prev.filter((id) => id !== deleteConfirm.id),
         );
@@ -1108,7 +1181,7 @@ export function Site() {
         });
       } else if (deleteConfirm.type === "archive-site") {
         await archiveSite.mutateAsync(deleteConfirm.id);
-        toast.success("站点已归档，可在『归档站点』中恢复");
+        toast.success(t("site.toast.siteArchived"));
         setSelectedSiteIds((prev) =>
           prev.filter((id) => id !== deleteConfirm.id),
         );
@@ -1119,10 +1192,10 @@ export function Site() {
         });
       } else {
         await deleteSiteAccount.mutateAsync(deleteConfirm.id);
-        toast.success("站点账号已删除");
+        toast.success(t("site.toast.accountDeleted"));
       }
     } catch (deleteError) {
-      toast.error(getSiteErrorMessage(locale, deleteError, t));
+      toast.error(siteErrorMessage(deleteError));
     }
     setDeleteConfirm(null);
   }
@@ -1137,7 +1210,7 @@ export function Site() {
 
   async function handleBatchAction(action: string) {
     if (selectedSiteIds.length === 0) {
-      toast.error("请先选择站点");
+      toast.error(t("site.toast.selectSiteFirst"));
       return;
     }
     try {
@@ -1147,21 +1220,28 @@ export function Site() {
       });
       const successCount = result.success_ids.length;
       const failedCount = result.failed_items.length;
-      toast.success(`操作完成：成功 ${successCount}，失败 ${failedCount}`);
+      toast.success(
+        t("site.toast.batchDone", {
+          success: successCount,
+          failed: failedCount,
+        }),
+      );
       if (action === "delete") {
         setSelectedSiteIds([]);
       }
     } catch (batchError) {
-      toast.error(getSiteErrorMessage(locale, batchError, t));
+      toast.error(siteErrorMessage(batchError));
     }
   }
 
   async function handleTogglePin(site: SiteRecord) {
     try {
       await updateSite.mutateAsync({ id: site.id, is_pinned: !site.is_pinned });
-      toast.success(site.is_pinned ? "已取消置顶" : "已置顶");
+      toast.success(
+        site.is_pinned ? t("site.toast.unpinned") : t("site.toast.pinned"),
+      );
     } catch (pinError) {
-      toast.error(getSiteErrorMessage(locale, pinError, t));
+      toast.error(siteErrorMessage(pinError));
     }
   }
 
@@ -1211,14 +1291,14 @@ export function Site() {
       openArchivedDialog: () => setArchivedDialogOpen(true),
       syncAll: () => {
         syncAllSites.mutate(undefined, {
-          onSuccess: () => toast.success("已触发后台全量同步，页面会自动刷新"),
-          onError: (error) => toast.error(getSiteErrorMessage(locale, error, t)),
+          onSuccess: () => toast.success(t("site.toast.syncAllTriggered")),
+          onError: (error) => toast.error(siteErrorMessage(error)),
         });
       },
       checkinAll: () => {
         checkinAllSites.mutate(undefined, {
-          onSuccess: () => toast.success("已触发后台全量签到，页面会自动刷新"),
-          onError: (error) => toast.error(getSiteErrorMessage(locale, error, t)),
+          onSuccess: () => toast.success(t("site.toast.checkinAllTriggered")),
+          onError: (error) => toast.error(siteErrorMessage(error)),
         });
       },
     });
@@ -1226,7 +1306,15 @@ export function Site() {
     return () => {
       resetSiteHandlers();
     };
-  }, [setSiteHandlers, resetSiteHandlers, syncAllSites, checkinAllSites, locale, t]);
+  }, [
+    setSiteHandlers,
+    resetSiteHandlers,
+    syncAllSites,
+    checkinAllSites,
+    locale,
+    t,
+    siteErrorMessage,
+  ]);
 
   useEffect(() => {
     const updateDayKey = () => {
@@ -1336,7 +1424,9 @@ export function Site() {
               type="button"
               className="mt-1 shrink-0 text-muted-foreground transition-colors hover:text-foreground"
               title={
-                selectedSiteIds.includes(site.id) ? "取消选择站点" : "选择站点"
+                selectedSiteIds.includes(site.id)
+                  ? t("site.deselectSite")
+                  : t("site.selectSite")
               }
               onClick={() => toggleSiteSelection(site.id)}
             >
@@ -1367,7 +1457,7 @@ export function Site() {
                   {site.is_pinned ? (
                     <Badge variant="outline" className="text-amber-600">
                       <Pin className="mr-1 size-3" />
-                      置顶
+                      {t("site.actions.pin")}
                     </Badge>
                   ) : null}
                   <Badge variant="outline">
@@ -1377,7 +1467,23 @@ export function Site() {
                     variant="outline"
                     className={badgeToneClass(summary.healthTone)}
                   >
-                    {summary.healthLabel}
+                    {summary.healthKind === "failed"
+                      ? t("site.health.failed", { count: summary.healthCount })
+                      : summary.healthKind === "disabled"
+                        ? t("site.health.disabled", {
+                            count: summary.healthCount,
+                          })
+                        : summary.healthKind === "partial"
+                          ? t("site.health.partial", {
+                              count: summary.healthCount,
+                            })
+                          : summary.healthKind === "siteDisabled"
+                            ? t("site.health.siteDisabled")
+                            : summary.healthKind === "unconfigured"
+                              ? t("site.health.unconfigured")
+                              : summary.healthKind === "idle"
+                                ? t("site.health.idle")
+                                : t("site.health.ok")}
                   </Badge>
                 </div>
 
@@ -1395,12 +1501,12 @@ export function Site() {
                 </div>
 
                 <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2">
-                  <CompactMetric label="账号" value={summary.accountCount} />
+                  <CompactMetric label={t("site.metrics.accounts")} value={summary.accountCount} />
                   <CompactMetric label="Key" value={summary.keyCount} />
-                  <CompactMetric label="模型" value={summary.modelCount} />
-                  <CompactMetric label="余额" value={formatBalance(summary.balance)} />
+                  <CompactMetric label={t("site.metrics.models")} value={summary.modelCount} />
+                  <CompactMetric label={t("site.metrics.balance")} value={formatBalance(summary.balance)} />
                   <CompactMetric
-                    label="今日收入"
+                    label={t("site.metrics.todayIncome")}
                     value={formatBalance(summary.todayIncome)}
                   />
                 </div>
@@ -1414,16 +1520,16 @@ export function Site() {
                         : tProxy('mode.direct')}
                   </span>
                   {site.custom_header.length > 0 ? (
-                    <span>{site.custom_header.length} 个 Header</span>
+                    <span>{t("site.customHeaderCount", { count: site.custom_header.length })}</span>
                   ) : null}
-                  {site.external_checkin_url ? <span>手动签到</span> : null}
+                  {site.external_checkin_url ? <span>{t("site.checkinMode.manual")}</span> : null}
                 </div>
               </div>
 
               <div className="flex items-center gap-1">
                 {site.accounts.length === 0 ? (
                   <IconActionButton
-                    label="新增账号"
+                    label={t("site.addAccount")}
                     onClick={() => openCreateAccountDialog(site)}
                   >
                     <Plus className="size-4" />
@@ -1454,7 +1560,7 @@ export function Site() {
                         onClick={() => jumpToSiteChannel(site.id)}
                       >
                         <Waypoints className="size-4" />
-                        <span>查看站点渠道</span>
+                        <span>{t("site.viewSiteChannels")}</span>
                       </button>
                       {site.accounts.length > 0 ? (
                         <button
@@ -1463,7 +1569,7 @@ export function Site() {
                           onClick={() => openCreateAccountDialog(site)}
                         >
                           <Plus className="size-4" />
-                          <span>新增账号</span>
+                          <span>{t("site.addAccount")}</span>
                         </button>
                       ) : null}
                       <div className="my-1 border-t border-border/60" />
@@ -1473,7 +1579,7 @@ export function Site() {
                         onClick={() => openEditSiteDialog(site)}
                       >
                         <Pencil className="size-4" />
-                        <span>编辑站点</span>
+                        <span>{t("site.editSite")}</span>
                       </button>
                       <button
                         type="button"
@@ -1485,7 +1591,7 @@ export function Site() {
                         ) : (
                           <Pin className="size-4" />
                         )}
-                        <span>{site.is_pinned ? "取消置顶" : "置顶"}</span>
+                        <span>{site.is_pinned ? t("site.actions.unpin") : t("site.actions.pin")}</span>
                       </button>
                       <button
                         type="button"
@@ -1493,7 +1599,7 @@ export function Site() {
                         onClick={() => handleToggleSite(site)}
                       >
                         <Power className="size-4" />
-                        <span>{site.enabled ? "停用站点" : "启用站点"}</span>
+                        <span>{site.enabled ? t("site.actions.disableSite") : t("site.actions.enableSite")}</span>
                       </button>
                       <button
                         type="button"
@@ -1501,7 +1607,7 @@ export function Site() {
                         onClick={() => handleArchiveSite(site)}
                       >
                         <Archive className="size-4" />
-                        <span>归档站点</span>
+                        <span>{t("site.actions.archiveSite")}</span>
                       </button>
                       <button
                         type="button"
@@ -1509,7 +1615,7 @@ export function Site() {
                         onClick={() => handleDeleteSite(site)}
                       >
                         <Trash2 className="size-4" />
-                        <span>删除站点</span>
+                        <span>{t("site.actions.deleteSite")}</span>
                       </button>
                     </div>
                   </PopoverContent>
@@ -1518,10 +1624,10 @@ export function Site() {
                 <IconActionButton
                   label={
                     forceExpanded
-                      ? "筛选结果已自动展开"
+                      ? t("site.accountsAutoExpanded")
                       : isExpanded
-                        ? "收起账号"
-                        : "展开账号"
+                        ? t("site.collapseAccounts")
+                        : t("site.expandAccounts")
                   }
                   disabled={forceExpanded || site.accounts.length === 0}
                   onClick={() => toggleSiteExpanded(site.id, forceExpanded)}
@@ -1550,13 +1656,16 @@ export function Site() {
                   <div className="mt-4 border-t border-border/60 pt-4">
                     {hasFilteredAccounts ? (
                       <div className="mb-3 text-xs text-muted-foreground">
-                        显示 {visibleAccounts.length} / {site.accounts.length} 个账号
+                        {t("site.visibleAccountCount", {
+                          visible: visibleAccounts.length,
+                          total: site.accounts.length,
+                        })}
                       </div>
                     ) : null}
 
                     {visibleAccounts.length === 0 ? (
                       <div className="rounded-2xl border border-dashed border-border/70 bg-muted/10 px-4 py-6 text-sm text-muted-foreground">
-                        暂无账号。添加账号后即可自动同步分组、模型和渠道绑定。
+                        {t("site.noAccountsHint")}
                       </div>
                     ) : (
                       <div className="space-y-2">
@@ -1593,11 +1702,9 @@ export function Site() {
                                         {account.name}
                                       </div>
                                       <Badge variant="outline">
-                                        {
-                                          CREDENTIAL_LABELS[
-                                            account.credential_type
-                                          ]
-                                        }
+                                        {CREDENTIAL_LABELS[
+                                          account.credential_type
+                                        ] ?? t("site.credential.usernamePassword")}
                                       </Badge>
                                       <Badge
                                         variant="outline"
@@ -1607,39 +1714,39 @@ export function Site() {
                                             : "text-muted-foreground"
                                         }
                                       >
-                                        {account.enabled ? "启用中" : "已停用"}
+                                        {account.enabled ? t("site.accountStatus.enabled") : t("site.accountStatus.disabled")}
                                       </Badge>
                                     </div>
 
                                     <div className="flex flex-wrap gap-x-4 gap-y-1">
                                       <CompactMetric
-                                        label="分组"
+                                        label={t("site.metrics.groups")}
                                         value={account.user_groups.length}
                                       />
                                       <CompactMetric
-                                        label="模型"
+                                        label={t("site.metrics.models")}
                                         value={account.models.length}
                                       />
                                       <CompactMetric
-                                        label="余额"
+                                        label={t("site.metrics.balance")}
                                         value={formatBalance(account.balance)}
                                       />
                                       <CompactMetric
-                                        label="今日收入"
+                                        label={t("site.metrics.todayIncome")}
                                         value={formatBalance(account.today_income)}
                                       />
                                     </div>
 
                                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                                       <span>
-                                        {account.auto_sync ? "自动同步" : "手动同步"}
+                                        {account.auto_sync ? t("site.syncMode.auto") : t("site.syncMode.manual")}
                                       </span>
                                       <span>
                                         {account.auto_checkin
                                           ? account.random_checkin
-                                            ? "随机签到"
-                                            : "自动签到"
-                                          : "手动签到"}
+                                            ? t("site.checkinMode.random")
+                                            : t("site.checkinMode.auto")
+                                          : t("site.checkinMode.manual")}
                                       </span>
                                       <span>
                                         {account.proxy_mode === "inherit"
@@ -1667,12 +1774,12 @@ export function Site() {
                                         </span>
                                       </TooltipTrigger>
                                       <TooltipContent>
-                                        {account.enabled ? "停用账号" : "启用账号"}
+                                        {account.enabled ? t("site.actions.disableAccount") : t("site.actions.enableAccount")}
                                       </TooltipContent>
                                     </Tooltip>
 
                                     <IconActionButton
-                                      label="同步账号"
+                                      label={t("site.actions.syncAccount")}
                                       disabled={syncingAccountIds.has(account.id)}
                                       onClick={() => handleSyncAccount(account)}
                                     >
@@ -1711,7 +1818,7 @@ export function Site() {
                                             }
                                           >
                                             <Waypoints className="size-4" />
-                                            <span>查看站点渠道</span>
+                                            <span>{t("site.viewSiteChannels")}</span>
                                           </button>
                                           <button
                                             type="button"
@@ -1726,7 +1833,7 @@ export function Site() {
                                             hidden={!canShowManualCheckin}
                                           >
                                             <CalendarCheck2 className="size-4" />
-                                            <span>立即签到</span>
+                                            <span>{t("site.actions.checkinNow")}</span>
                                           </button>
                                           <button
                                             type="button"
@@ -1736,7 +1843,7 @@ export function Site() {
                                             }
                                           >
                                             <Pencil className="size-4" />
-                                            <span>编辑账号</span>
+                                            <span>{t("site.editAccount")}</span>
                                           </button>
                                           <button
                                             type="button"
@@ -1749,7 +1856,7 @@ export function Site() {
                                             }
                                           >
                                             <Trash2 className="size-4" />
-                                            <span>删除账号</span>
+                                            <span>{t("site.actions.deleteAccount")}</span>
                                           </button>
                                         </div>
                                       </PopoverContent>
@@ -1759,13 +1866,13 @@ export function Site() {
 
                                 <div className="space-y-1">
                                     <ExecutionSummary
-                                      label="同步"
+                                      kind="sync"
                                       status={normalizedStatus(
                                         account.last_sync_status,
                                       )}
                                       at={account.last_sync_at}
                                       message={
-                                        translateSiteMessage(locale, account.last_sync_message, t) || "等待首次同步"
+                                        translateSiteMessage(locale, account.last_sync_message, t) || t("site.execution.awaitingFirstSync")
                                       }
                                     />
                                     {supportsCheckin ? (
@@ -1774,37 +1881,38 @@ export function Site() {
                                         site.platform,
                                       ) ? (
                                         <ExecutionSummary
-                                          label="签到"
+                                          kind="checkin"
                                           status={normalizedStatus(
                                             account.last_checkin_status,
                                           )}
                                           at={account.last_checkin_at}
                                           message={
                                             account.last_checkin_message ||
-                                            "等待首次签到"
+                                            t("site.execution.awaitingFirstCheckin")
                                           }
                                         />
                                       ) : (
-                                        <StaticSummary text="签到未启用" />
+                                        <StaticSummary text={t("site.execution.checkinDisabled")} />
                                       )
                                     ) : (
                                       <StaticSummary
                                         tone="warning"
-                                        text="当前平台不支持签到"
+                                        text={t("site.execution.checkinUnsupported")}
                                       />
                                     )}
                                     {account.auto_checkin &&
                                     account.random_checkin ? (
                                       <div className="pl-4 text-xs text-muted-foreground">
-                                        下次自动签到{" "}
-                                        {account.next_auto_checkin_at
-                                          ? formatDateTime(
+                                        {t("site.nextAutoCheckin", {
+                                          at:
+                                            formatDateTime(
                                               account.next_auto_checkin_at,
-                                            )
-                                          : "待调度"}{" "}
-                                        · 最小间隔 {account.checkin_interval_hours} 小时 ·
-                                        随机延迟 0-
-                                        {account.checkin_random_window_minutes} 分钟
+                                            ) ?? t("site.checkinPendingSchedule"),
+                                          hours:
+                                            account.checkin_interval_hours,
+                                          minutes:
+                                            account.checkin_random_window_minutes,
+                                        })}
                                       </div>
                                     ) : null}
                                 </div>
@@ -1852,7 +1960,7 @@ export function Site() {
             onClick={openCreateSiteDialog}
           >
             <Plus className="size-4" />
-            新增站点
+            {t("site.addSite")}
           </Button>
           <div className="flex items-center gap-2">
             <Button
@@ -1862,7 +1970,9 @@ export function Site() {
               onClick={() => setShowAutomation((v) => !v)}
             >
               <Settings className="size-4" />
-              {showAutomation ? '隐藏自动化设置' : '自动化设置'}
+              {showAutomation
+                ? t("site.hideAutomation")
+                : t("site.showAutomation")}
             </Button>
           </div>
         </div>
@@ -1892,7 +2002,11 @@ export function Site() {
                       }
                     }}
                     disabled={visibleIds.length === 0}
-                    title={allVisibleSelected ? "取消全选" : "全选当前可见站点"}
+                    title={
+                      allVisibleSelected
+                        ? t("site.deselectAll")
+                        : t("site.selectAllVisible")
+                    }
                     className="inline-flex items-center gap-2 text-sm font-medium text-foreground transition-colors hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {allVisibleSelected ? (
@@ -1900,12 +2014,12 @@ export function Site() {
                     ) : (
                       <Square className="size-5" />
                     )}
-                    全选
+                    {t("site.selectAll")}
                   </button>
                 );
               })()}
               <span className="text-sm font-medium">
-                已选 {selectedSiteIds.length} 个站点
+                {t("site.selectedCount", { count: selectedSiteIds.length })}
               </span>
               <Button
                 variant="outline"
@@ -1914,7 +2028,7 @@ export function Site() {
                 onClick={() => handleBatchAction("enable")}
                 disabled={batchAction.isPending || selectedSiteIds.length === 0}
               >
-                批量启用
+                {t("site.batch.enable")}
               </Button>
               <Button
                 variant="outline"
@@ -1923,7 +2037,7 @@ export function Site() {
                 onClick={() => handleBatchAction("disable")}
                 disabled={batchAction.isPending || selectedSiteIds.length === 0}
               >
-                批量禁用
+                {t("site.batch.disable")}
               </Button>
               <Button
                 variant="destructive"
@@ -1932,7 +2046,7 @@ export function Site() {
                 onClick={() => handleBatchAction("delete")}
                 disabled={batchAction.isPending || selectedSiteIds.length === 0}
               >
-                批量删除
+                {t("site.batch.delete")}
               </Button>
               <Button
                 variant="ghost"
@@ -1943,7 +2057,7 @@ export function Site() {
                   setBatchMode(false);
                 }}
               >
-                完成
+                {t("site.batch.done")}
               </Button>
             </div>
           </section>
@@ -1955,33 +2069,33 @@ export function Site() {
               className="rounded-xl"
               onClick={() => setBatchMode(true)}
             >
-              批量编辑
+              {t("site.batch.edit")}
             </Button>
           </div>
         )}
 
         {error ? (
           <section className="rounded-3xl border border-destructive/30 bg-destructive/5 p-6 text-sm text-destructive">
-            站点列表加载失败：{getSiteErrorMessage(locale, error, t)}
+            {t("site.loadFailed", { message: siteErrorMessage(error) })}
           </section>
         ) : null}
 
         {isLoading ? (
           <section className="rounded-3xl border border-border bg-card p-6 text-sm text-muted-foreground">
-            正在加载站点信息...
+            {t("site.loading")}
           </section>
         ) : null}
 
         {!isLoading && !error && (!sites || sites.length === 0) ? (
           <section className="rounded-3xl border border-dashed border-border bg-card p-10 text-center">
             <CircleAlert className="mx-auto size-8 text-muted-foreground" />
-            <div className="mt-4 text-lg font-semibold">还没有站点</div>
+            <div className="mt-4 text-lg font-semibold">{t("site.empty.title")}</div>
             <p className="mt-2 text-sm text-muted-foreground">
-              先新增一个站点，再为它配置账号，后续即可自动同步分组、模型和托管渠道。
+              {t("site.empty.hint")}
             </p>
             <Button onClick={openCreateSiteDialog} className="mt-5 rounded-xl">
               <Plus className="size-4" />
-              新增第一个站点
+              {t("site.empty.action")}
             </Button>
           </section>
         ) : null}
@@ -1993,9 +2107,9 @@ export function Site() {
         visibleSites.length === 0 ? (
           <section className="rounded-3xl border border-dashed border-border bg-card p-10 text-center">
             <CircleAlert className="mx-auto size-8 text-muted-foreground" />
-            <div className="mt-4 text-lg font-semibold">没有匹配的站点</div>
+            <div className="mt-4 text-lg font-semibold">{t("site.noMatch.title")}</div>
             <p className="mt-2 text-sm text-muted-foreground">
-              当前搜索和筛选条件没有命中任何站点或账号。
+              {t("site.noMatch.hint")}
             </p>
             <Button
               type="button"
@@ -2004,7 +2118,7 @@ export function Site() {
               onClick={clearFilters}
             >
               <FilterX className="size-4" />
-              清空筛选
+              {t("site.noMatch.clearFilters")}
             </Button>
           </section>
         ) : null}
@@ -2077,10 +2191,10 @@ export function Site() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileJson className="size-5" />
-              导入站点数据
+              {t("site.import.title")}
             </DialogTitle>
             <DialogDescription>
-              支持上传或粘贴 All API Hub / Metapi 导出的 JSON。导入会按平台和站点地址自动创建或复用站点。
+              {t("site.import.description")}
             </DialogDescription>
           </DialogHeader>
 
@@ -2092,7 +2206,7 @@ export function Site() {
             onDrop={handleImportDrop}
           >
             <div className="grid gap-2 text-sm">
-              <span className="font-medium">导入来源</span>
+              <span className="font-medium">{t("site.import.sourceLabel")}</span>
               <Select
                 value={importSource}
                 onValueChange={(value) => {
@@ -2111,7 +2225,7 @@ export function Site() {
             </div>
 
             <div className="grid gap-2 text-sm">
-              <div className="text-sm font-medium">上传 JSON 文件</div>
+              <div className="text-sm font-medium">{t("site.import.uploadLabel")}</div>
               <div className="flex items-center gap-2">
                 <Input
                   ref={importFileInputRef}
@@ -2139,12 +2253,12 @@ export function Site() {
                     )}
                   >
                     {isImportDragging
-                      ? "松开即可上传 JSON 文件"
-                      : importFile?.name ?? "点击选择或拖拽 JSON 文件到这里"}
+                      ? t("site.import.dropHint")
+                      : importFile?.name ?? t("site.import.pickHint")}
                   </span>
                 </button>
                 <IconActionButton
-                  label="清除文件"
+                  label={t("site.import.clearFile")}
                   onClick={() => {
                     setSelectedImportFile(null);
                   }}
@@ -2156,30 +2270,35 @@ export function Site() {
               </div>
               <div className="text-xs text-muted-foreground">
                 {importFile
-                  ? `已选择：${importFile.name}`
-                  : `支持 ${importSource === "metapi" ? "Metapi" : "All API Hub"} 导出的 .json 文件`}
+                  ? t("site.import.selectedFile", { name: importFile.name })
+                  : t("site.import.acceptHint", {
+                      source:
+                        importSource === "metapi" ? "Metapi" : "All API Hub",
+                    })}
               </div>
             </div>
 
             <label className="grid gap-2 text-sm">
-              <span className="font-medium">或粘贴导出 JSON</span>
+              <span className="font-medium">{t("site.import.pasteLabel")}</span>
               <textarea
                 value={importPayloadText}
                 onChange={(event) => {
                   setImportPayloadText(event.target.value);
                   setLastImportResult(null);
                 }}
-                placeholder={
-                  importSource === "metapi"
-                    ? '粘贴类似 {"version":"2.1","accounts":{"sites":[...],"accounts":[...]}} 的完整导出内容'
-                    : '粘贴类似 {"accounts":{"accounts":[...]}} 的完整导出内容'
-                }
+                placeholder={t("site.import.pastePlaceholder", {
+                  // 样例 JSON 里的花括号会被 ICU 当占位符解析，故走参数传入。
+                  sample:
+                    importSource === "metapi"
+                      ? '{"version":"2.1","accounts":{"sites":[...],"accounts":[...]}}'
+                      : '{"accounts":{"accounts":[...]}}',
+                })}
                 className="min-h-40 rounded-2xl border border-input bg-background px-4 py-3 font-mono text-xs outline-none transition focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/20"
               />
               <span className="text-xs text-muted-foreground">
                 {importSource === "metapi"
-                  ? "Metapi 导入只迁移站点、账号、Key、分组和模型；路由策略与下游 Key 会跳过。"
-                  : "导入会保留已存在站点的本地配置；同一分组下的多个 key 后续仍会聚合到同一个托管 channel。"}
+                  ? t("site.import.metapiNote")
+                  : t("site.import.allApiHubNote")}
               </span>
             </label>
 
@@ -2187,48 +2306,48 @@ export function Site() {
               <div className="space-y-4 rounded-2xl border border-border/60 bg-muted/10 p-4">
                 <div className="grid gap-3 sm:grid-cols-3">
                   <SiteMetric
-                    label="新增站点"
+                    label={t("site.import.stat.createdSites")}
                     value={lastImportResult.created_sites}
                   />
                   <SiteMetric
-                    label="复用站点"
+                    label={t("site.import.stat.reusedSites")}
                     value={lastImportResult.reused_sites}
                   />
                   <SiteMetric
-                    label="新增账号"
+                    label={t("site.addAccount")}
                     value={lastImportResult.created_accounts}
                   />
                   <SiteMetric
-                    label="更新账号"
+                    label={t("site.import.stat.updatedAccounts")}
                     value={lastImportResult.updated_accounts}
                   />
                   <SiteMetric
-                    label="跳过账号"
+                    label={t("site.import.stat.skippedAccounts")}
                     value={lastImportResult.skipped_accounts}
                   />
                   {typeof lastImportResult.scheduled_sync_accounts ===
                   "number" ? (
                     <SiteMetric
-                      label="后台同步"
+                      label={t("site.import.stat.scheduledSync")}
                       value={lastImportResult.scheduled_sync_accounts}
                     />
                   ) : null}
                   {typeof lastImportResult.imported_tokens === "number" ? (
                     <>
                       <SiteMetric
-                        label="导入 Key"
+                        label={t("site.import.stat.importedKeys")}
                         value={lastImportResult.imported_tokens}
                       />
                       <SiteMetric
-                        label="导入分组"
+                        label={t("site.import.stat.importedGroups")}
                         value={lastImportResult.imported_groups ?? 0}
                       />
                       <SiteMetric
-                        label="导入模型"
+                        label={t("site.import.stat.importedModels")}
                         value={lastImportResult.imported_models ?? 0}
                       />
                       <SiteMetric
-                        label="禁用模型"
+                        label={t("site.import.stat.disabledModels")}
                         value={lastImportResult.disabled_models ?? 0}
                       />
                     </>
@@ -2239,7 +2358,7 @@ export function Site() {
                   <div className="rounded-2xl border border-border/60 bg-background/70 p-4">
                     <div className="flex items-center gap-2 text-sm font-medium">
                       <TriangleAlert className="size-4 text-muted-foreground" />
-                      <span>导入告警</span>
+                      <span>{t("site.import.warnings")}</span>
                     </div>
                     <div className="mt-3 space-y-2 text-sm text-muted-foreground">
                       {lastImportResult.warnings.map((warning) => (
@@ -2263,7 +2382,7 @@ export function Site() {
               className="rounded-xl"
               onClick={() => setImportDialogOpen(false)}
             >
-              关闭
+              {t("common.close")}
             </Button>
             <Button
               onClick={handleImportSites}
@@ -2279,8 +2398,8 @@ export function Site() {
                 )}
               />
               {importAllAPIHub.isPending || importMetAPI.isPending
-                ? "导入中..."
-                : "开始导入"}
+                ? t("site.import.importing")
+                : t("site.import.start")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2289,23 +2408,23 @@ export function Site() {
       <Dialog open={archivedDialogOpen} onOpenChange={setArchivedDialogOpen}>
         <DialogContent className="flex h-[min(85vh,42rem)] max-w-3xl flex-col overflow-hidden rounded-3xl border-border/70 p-0 sm:max-w-3xl">
           <DialogHeader className="shrink-0 border-b border-border/60 px-6 py-4">
-            <DialogTitle>归档站点</DialogTitle>
+            <DialogTitle>{t("site.archived.title")}</DialogTitle>
             <DialogDescription>
-              归档的站点仍保留账号、Key 和模型配置，托管渠道会被下线。点击恢复会还原到主列表（默认保持禁用状态，启用后会自动重建托管渠道）。
+              {t("site.archived.description")}
             </DialogDescription>
           </DialogHeader>
           <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
             {archivedLoading ? (
               <div className="py-10 text-center text-sm text-muted-foreground">
-                正在加载归档站点...
+                {t("site.archived.loading")}
               </div>
             ) : archivedError ? (
               <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
-                加载失败：{getSiteErrorMessage(locale, archivedError, t)}
+                {t("site.archived.loadFailed", { message: siteErrorMessage(archivedError) })}
               </div>
             ) : !archivedSites || archivedSites.length === 0 ? (
               <div className="py-10 text-center text-sm text-muted-foreground">
-                当前没有归档的站点。
+                {t("site.archived.empty")}
               </div>
             ) : (
               <div className="space-y-2">
@@ -2327,12 +2446,15 @@ export function Site() {
                         </span>
                       </div>
                       <div className="mt-1 text-xs text-muted-foreground">
-                        归档于{" "}
-                        {site.archived_at
-                          ? new Date(site.archived_at).toLocaleString()
-                          : "-"}
+                        {t("site.archived.archivedAt", {
+                          at: site.archived_at
+                            ? new Date(site.archived_at).toLocaleString()
+                            : "-",
+                        })}
                         {" · "}
-                        {site.accounts.length} 个账号已保留
+                        {t("site.archived.accountsKept", {
+                          count: site.accounts.length,
+                        })}
                       </div>
                     </div>
                     <Button
@@ -2343,7 +2465,7 @@ export function Site() {
                       disabled={restoreSite.isPending}
                     >
                       <ArchiveRestore className="size-4" />
-                      恢复
+                      {t("site.archived.restore")}
                     </Button>
                   </div>
                 ))}
@@ -2356,7 +2478,7 @@ export function Site() {
               className="rounded-xl"
               onClick={() => setArchivedDialogOpen(false)}
             >
-              关闭
+              {t("common.close")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2371,14 +2493,20 @@ export function Site() {
         <DialogContent className="max-w-md rounded-3xl">
           <DialogHeader>
             <DialogTitle>
-              {deleteConfirm?.type === "archive-site" ? "确认归档" : "确认删除"}
+              {deleteConfirm?.type === "archive-site"
+                ? t("site.confirm.archiveTitle")
+                : t("site.confirm.deleteTitle")}
             </DialogTitle>
             <DialogDescription>
               {deleteConfirm?.type === "site"
-                ? `确认删除站点「${deleteConfirm?.name}」及其所有账号和托管渠道？此操作不可撤销。`
+                ? t("site.confirm.deleteSite", { name: deleteConfirm.name })
                 : deleteConfirm?.type === "archive-site"
-                  ? `确认归档站点「${deleteConfirm?.name}」？归档后将从主列表移除，托管渠道会被下线，账号和密钥会保留；可在『归档站点』中随时恢复。`
-                  : `确认删除账号「${deleteConfirm?.name}」及其托管渠道？此操作不可撤销。`}
+                  ? t("site.confirm.archiveSite", {
+                      name: deleteConfirm.name,
+                    })
+                  : t("site.confirm.deleteAccount", {
+                      name: deleteConfirm?.name ?? "",
+                    })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -2387,7 +2515,7 @@ export function Site() {
               className="rounded-xl"
               onClick={() => setDeleteConfirm(null)}
             >
-              取消
+              {t("common.cancel")}
             </Button>
             <Button
               variant="destructive"
@@ -2401,11 +2529,11 @@ export function Site() {
             >
               {deleteConfirm?.type === "archive-site"
                 ? archiveSite.isPending
-                  ? "归档中..."
-                  : "确认归档"
+                  ? t("site.confirm.archiving")
+                  : t("site.confirm.archiveTitle")
                 : deleteSite.isPending || deleteSiteAccount.isPending
-                  ? "删除中..."
-                  : "确认删除"}
+                  ? t("site.confirm.deleting")
+                  : t("site.confirm.deleteTitle")}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -3260,7 +3260,175 @@
     "accountDisabled": "Account disabled",
     "hideFullKey": "Hide full key",
     "showFullKey": "Show full key",
-    "closeDialog": "Close"
+    "closeDialog": "Close",
+    "toast": {
+      "actionFailed": "Action failed",
+      "siteEnabled": "Site enabled",
+      "siteDisabled": "Site disabled",
+      "siteRestored": "Site \"{name}\" restored. Enable it from the list.",
+      "accountEnabled": "Site account enabled",
+      "accountDisabled": "Site account disabled",
+      "siteDeleted": "Site deleted",
+      "siteArchived": "Site archived. Restore it from \"Archived sites\".",
+      "accountDeleted": "Site account deleted",
+      "selectSiteFirst": "Select a site first",
+      "importInputRequired": "Choose a JSON file or paste export content",
+      "batchDone": "Done: {success} succeeded, {failed} failed",
+      "pinned": "Pinned",
+      "unpinned": "Unpinned",
+      "syncAllTriggered": "Full background sync triggered. The page refreshes automatically.",
+      "checkinAllTriggered": "Full background check-in triggered. The page refreshes automatically.",
+      "syncAccountSummary": "{message} ({groups} groups, {keys} keys, {models} models)",
+      "checkinResult": "{status}: {message}",
+      "checkinWithReward": "{status}: {message}, reward: {reward}",
+      "importDone": "Import finished: {createdSites} sites added, {createdAccounts} accounts added, {updatedAccounts} accounts updated"
+    },
+    "health": {
+      "siteDisabled": "Site disabled",
+      "failed": "{count} failing",
+      "disabled": "{count} disabled",
+      "partial": "{count} partially synced",
+      "unconfigured": "Needs setup",
+      "idle": "Not run",
+      "ok": "Healthy"
+    },
+    "executionStatus": {
+      "partial": "Partial",
+      "success": "Success",
+      "failed": "Failed",
+      "skipped": "Skipped",
+      "idle": "Not run"
+    },
+    "execution": {
+      "lastSyncAt": "Last sync {at}",
+      "lastSyncNever": "Last sync never",
+      "lastCheckinAt": "Last check-in {at}",
+      "lastCheckinNever": "Last check-in never",
+      "awaitingFirstSync": "Awaiting first sync",
+      "awaitingFirstCheckin": "Awaiting first check-in",
+      "checkinDisabled": "Check-in disabled",
+      "checkinUnsupported": "This platform does not support check-in"
+    },
+    "cloudflareProtected": "Cloudflare protection",
+    "nextAutoCheckin": "Next auto check-in {at} · min interval {hours}h · random delay 0-{minutes}min",
+    "checkinPendingSchedule": "Pending schedule",
+    "metrics": {
+      "accounts": "Accounts",
+      "models": "Models",
+      "groups": "Groups",
+      "balance": "Balance",
+      "todayIncome": "Today's income"
+    },
+    "customHeaderCount": "{count} headers",
+    "selectSite": "Select site",
+    "deselectSite": "Deselect site",
+    "selectAll": "Select all",
+    "selectAllVisible": "Select all visible sites",
+    "deselectAll": "Deselect all",
+    "selectedCount": "{count} sites selected",
+    "showAutomation": "Automation settings",
+    "hideAutomation": "Hide automation settings",
+    "actions": {
+      "pin": "Pin",
+      "unpin": "Unpin",
+      "enableSite": "Enable site",
+      "disableSite": "Disable site",
+      "archiveSite": "Archive site",
+      "deleteSite": "Delete site",
+      "enableAccount": "Enable account",
+      "disableAccount": "Disable account",
+      "deleteAccount": "Delete account",
+      "checkinNow": "Check in now",
+      "syncAccount": "Sync account"
+    },
+    "accountStatus": {
+      "enabled": "Enabled",
+      "disabled": "Disabled"
+    },
+    "syncMode": {
+      "auto": "Auto sync",
+      "manual": "Manual sync"
+    },
+    "checkinMode": {
+      "auto": "Auto check-in",
+      "random": "Randomized check-in",
+      "manual": "Manual check-in"
+    },
+    "accountsAutoExpanded": "Expanded automatically by filter",
+    "collapseAccounts": "Collapse accounts",
+    "expandAccounts": "Expand accounts",
+    "visibleAccountCount": "Showing {visible} / {total} accounts",
+    "noAccountsHint": "No accounts yet. Add one to sync groups, models and channel bindings automatically.",
+    "batch": {
+      "enable": "Enable selected",
+      "disable": "Disable selected",
+      "delete": "Delete selected",
+      "done": "Done",
+      "edit": "Bulk edit"
+    },
+    "loadFailed": "Failed to load site list: {message}",
+    "loading": "Loading sites...",
+    "empty": {
+      "title": "No sites yet",
+      "hint": "Add a site first, then configure its accounts to sync groups, models and managed channels automatically.",
+      "action": "Add your first site"
+    },
+    "noMatch": {
+      "title": "No matching sites",
+      "hint": "The current search and filters match no sites or accounts.",
+      "clearFilters": "Clear filters"
+    },
+    "import": {
+      "title": "Import site data",
+      "description": "Upload or paste JSON exported from All API Hub / Metapi. Sites are created or reused by platform and base URL.",
+      "sourceLabel": "Import source",
+      "uploadLabel": "Upload JSON file",
+      "dropHint": "Release to upload the JSON file",
+      "pickHint": "Click to choose or drag a JSON file here",
+      "clearFile": "Clear file",
+      "selectedFile": "Selected: {name}",
+      "acceptHint": "Accepts .json files exported from {source}",
+      "pasteLabel": "Or paste exported JSON",
+      "pastePlaceholder": "Paste the full export, similar to {sample}",
+      "metapiNote": "Metapi import only migrates sites, accounts, keys, groups and models; route strategies and downstream keys are skipped.",
+      "allApiHubNote": "Import keeps local settings on existing sites; multiple keys in the same group still aggregate into one managed channel.",
+      "stat": {
+        "createdSites": "Sites added",
+        "reusedSites": "Sites reused",
+        "updatedAccounts": "Accounts updated",
+        "skippedAccounts": "Accounts skipped",
+        "scheduledSync": "Background sync",
+        "importedKeys": "Keys imported",
+        "importedGroups": "Groups imported",
+        "importedModels": "Models imported",
+        "disabledModels": "Models disabled"
+      },
+      "warnings": "Import warnings",
+      "importing": "Importing...",
+      "start": "Start import"
+    },
+    "archived": {
+      "title": "Archived sites",
+      "description": "Archived sites keep their accounts, keys and model settings while managed channels go offline. Restoring returns a site to the main list, disabled by default; enabling it rebuilds the managed channels.",
+      "loading": "Loading archived sites...",
+      "loadFailed": "Failed to load: {message}",
+      "empty": "No archived sites.",
+      "archivedAt": "Archived {at}",
+      "accountsKept": "{count} accounts kept",
+      "restore": "Restore"
+    },
+    "confirm": {
+      "deleteTitle": "Confirm deletion",
+      "archiveTitle": "Confirm archive",
+      "deleteSite": "Delete site \"{name}\" along with all its accounts and managed channels? This cannot be undone.",
+      "archiveSite": "Archive site \"{name}\"? It leaves the main list and its managed channels go offline, while accounts and keys are kept. You can restore it any time from \"Archived sites\".",
+      "deleteAccount": "Delete account \"{name}\" and its managed channels? This cannot be undone.",
+      "deleting": "Deleting...",
+      "archiving": "Archiving..."
+    },
+    "credential": {
+      "usernamePassword": "Username / password"
+    }
   },
   "form": {
     "totpLabel": "Two-Factor Code",
