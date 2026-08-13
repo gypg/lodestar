@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/gypg/lodestar/internal/conf"
 	appmodel "github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/op"
 	"github.com/gypg/lodestar/internal/op/grouptest"
 	"github.com/gypg/lodestar/internal/op/relaylog"
 	transmodel "github.com/gypg/lodestar/internal/transformer/model"
@@ -432,6 +433,9 @@ func testGroupModelItem(ctx context.Context, endpointType string, item appmodel.
 
 	useTimeMs := int(time.Since(startTime).Milliseconds())
 	recordTestLog(ctx, endpointType, item, result, channel, logAttempts, useTimeMs, requestJSON)
+	// 探测流量同样计入站点模型小时桶：回填任务（stats_site_model_backfill）扫 relay_logs
+	// 时并不过滤 is_test，若活体探测不记，站点使用历史会在"回填后突然多出数据"之间摆动。
+	op.StatsSiteModelHourlyRecordAttempts(logAttempts, item.ModelName)
 
 	return result
 }

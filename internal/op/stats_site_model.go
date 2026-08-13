@@ -110,6 +110,25 @@ func StatsSiteModelHourlyRecordAttempts(attempts []model.ChannelAttempt, fallbac
 	}
 }
 
+// StatsSiteModelHourlyPendingCountForTest 返回尚未刷盘的小时桶数量。
+// 供测试断言"某条路径完全没有建桶"——按 site account 查询或数 DB 行数都会漏掉
+// SiteAccountID=0 的错误桶（无站点绑定却仍记账时会产生）。
+func StatsSiteModelHourlyPendingCountForTest() int {
+	siteModelHourlyCacheLock.Lock()
+	defer siteModelHourlyCacheLock.Unlock()
+	return len(siteModelHourlyCache)
+}
+
+// StatsSiteModelHourlyResetForTest 清空内存桶与渠道绑定缓存。两者都是包级全局的：
+// 桶残留会让"总量为 0"的断言依赖执行顺序；绑定缓存**含负向缓存**，前序用例探测过
+// 同一个 channel_id 却没有绑定时会永久缓存"未找到"，导致后续用例即使建了绑定也读不到。
+func StatsSiteModelHourlyResetForTest() {
+	siteModelHourlyCacheLock.Lock()
+	siteModelHourlyCache = make(map[siteModelHourlyKey]*model.StatsSiteModelHourly)
+	siteModelHourlyCacheLock.Unlock()
+	invalidateSiteBindingCache()
+}
+
 // StatsSiteModelHourlySaveDB 把内存桶批量 upsert 入库。
 // 由 stats 后台任务调用。
 func StatsSiteModelHourlySaveDB(ctx context.Context) error {
