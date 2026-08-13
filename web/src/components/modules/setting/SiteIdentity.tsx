@@ -9,6 +9,7 @@ Lodestar — 站点信息设置。
 */
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Globe } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -16,7 +17,19 @@ import { SettingKey, useSetSetting, useSettingList } from '@/api/endpoints/setti
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/components/common/Toast';
 
+/** Landing cover modes, in dropdown order. Must stay in sync with the Go
+ *  SettingKeyLandingAmbientMode comment and public overview payload type. */
+const AMBIENT_MODES = ['photo', 'classic', 'color4bg', 'pretext'] as const;
+type LandingAmbientMode = (typeof AMBIENT_MODES)[number];
+
+function parseAmbientMode(value: string): LandingAmbientMode {
+    return (AMBIENT_MODES as readonly string[]).includes(value)
+        ? (value as LandingAmbientMode)
+        : 'photo';
+}
+
 export function SiteIdentity() {
+    const t = useTranslations('setting.siteIdentity');
     const queryClient = useQueryClient();
     const { data: settings } = useSettingList();
     const setSetting = useSetSetting();
@@ -24,7 +37,7 @@ export function SiteIdentity() {
     const [desc, setDesc] = useState('');
     const [announce, setAnnounce] = useState('');
     const [footer, setFooter] = useState('');
-    const [ambient, setAmbient] = useState<'photo' | 'classic' | 'color4bg'>('photo');
+    const [ambient, setAmbient] = useState<LandingAmbientMode>('photo');
     const [bannerOn, setBannerOn] = useState(false);
     const [bannerText, setBannerText] = useState('');
     const [bannerTone, setBannerTone] = useState<'info' | 'warning' | 'success'>('info');
@@ -37,8 +50,7 @@ export function SiteIdentity() {
         setDesc(get(SettingKey.SiteDescription));
         setAnnounce(get(SettingKey.SiteAnnouncement));
         setFooter(get(SettingKey.SiteFooter));
-        const am = get(SettingKey.LandingAmbientMode);
-        setAmbient(am === 'color4bg' ? 'color4bg' : am === 'classic' ? 'classic' : 'photo');
+        setAmbient(parseAmbientMode(get(SettingKey.LandingAmbientMode)));
         setBannerOn(get(SettingKey.SiteBannerEnabled) === 'true');
         setBannerText(get(SettingKey.SiteBannerText));
         const tone = get(SettingKey.SiteBannerTone);
@@ -59,11 +71,11 @@ export function SiteIdentity() {
         ];
         Promise.all(entries.map((e) => setSetting.mutateAsync(e)))
             .then(() => {
-                toast.success('站点信息已保存');
+                toast.success(t('toast.saved'));
                 void queryClient.invalidateQueries({ queryKey: ['public', 'overview'] });
                 void queryClient.invalidateQueries({ queryKey: ['bootstrap', 'status'] });
             })
-            .catch(() => toast.error('保存失败'));
+            .catch(() => toast.error(t('toast.saveFailed')));
     };
 
     const textareaCls =
@@ -76,51 +88,52 @@ export function SiteIdentity() {
                     <Globe className="h-5 w-5 text-primary" />
                 </div>
                 <div className="space-y-0.5">
-                    <span className="text-sm font-semibold text-card-foreground">站点信息</span>
-                    <p className="text-xs text-muted-foreground">对外展示的平台身份：访客在首页可见（封面刊头 / 公告 / 关于）。</p>
+                    <span className="text-sm font-semibold text-card-foreground">{t('title')}</span>
+                    <p className="text-xs text-muted-foreground">{t('description')}</p>
                 </div>
             </div>
             <div className="flex flex-col gap-3">
                 <div className="flex flex-col gap-1.5">
-                    <label className="ml-1 text-xs font-medium text-muted-foreground">站点名称</label>
+                    <label className="ml-1 text-xs font-medium text-muted-foreground">{t('nameLabel')}</label>
                     <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Lodestar" className="rounded-lg" />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                    <label className="ml-1 text-xs font-medium text-muted-foreground">站点简介（关于本站）</label>
-                    <textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={2} className={textareaCls} placeholder="一句话介绍你的站点" />
+                    <label className="ml-1 text-xs font-medium text-muted-foreground">{t('descriptionLabel')}</label>
+                    <textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={2} className={textareaCls} placeholder={t('descriptionPlaceholder')} />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                    <label className="ml-1 text-xs font-medium text-muted-foreground">站点公告（首页公开展示）</label>
-                    <textarea value={announce} onChange={(e) => setAnnounce(e.target.value)} rows={3} className={textareaCls} placeholder="留空则首页显示「暂无公告」" />
+                    <label className="ml-1 text-xs font-medium text-muted-foreground">{t('announcementLabel')}</label>
+                    <textarea value={announce} onChange={(e) => setAnnounce(e.target.value)} rows={3} className={textareaCls} placeholder={t('announcementPlaceholder')} />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                    <label className="ml-1 text-xs font-medium text-muted-foreground">页脚文案</label>
+                    <label className="ml-1 text-xs font-medium text-muted-foreground">{t('footerLabel')}</label>
                     <Input value={footer} onChange={(e) => setFooter(e.target.value)} placeholder="© 2026 ..." className="rounded-lg" />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                    <label className="ml-1 text-xs font-medium text-muted-foreground">封面氛围光</label>
+                    <label className="ml-1 text-xs font-medium text-muted-foreground">{t('ambientLabel')}</label>
                     <select
                         value={ambient}
-                        onChange={(e) => setAmbient(e.target.value === 'color4bg' ? 'color4bg' : e.target.value === 'classic' ? 'classic' : 'photo')}
+                        onChange={(e) => setAmbient(parseAmbientMode(e.target.value))}
                         className="h-9 rounded-lg border border-border/40 bg-background px-2 text-sm"
                     >
-                        <option value="photo">冬日实景照片（默认）</option>
-                        <option value="classic">经典大图（newapi 风格）</option>
-                        <option value="color4bg">动态氛围光（color4bg，失败则回退照片）</option>
+                        <option value="photo">{t('ambient.photo')}</option>
+                        <option value="classic">{t('ambient.classic')}</option>
+                        <option value="color4bg">{t('ambient.color4bg')}</option>
+                        <option value="pretext">{t('ambient.pretext')}</option>
                     </select>
                 </div>
                 <div className="flex flex-col gap-2 rounded-lg border border-border/30 bg-background/50 p-3">
                     <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-card-foreground">
                         <input type="checkbox" checked={bannerOn} onChange={(e) => setBannerOn(e.target.checked)} className="rounded border-border" />
-                        全站顶栏公告条
+                        {t('bannerToggle')}
                     </label>
-                    <p className="text-xs text-muted-foreground">登录后与访客入口顶部展示；可关闭（仅当次浏览）。</p>
+                    <p className="text-xs text-muted-foreground">{t('bannerHint')}</p>
                     <textarea
                         value={bannerText}
                         onChange={(e) => setBannerText(e.target.value)}
                         rows={2}
                         className={textareaCls}
-                        placeholder="例如：今晚 22:00–24:00 维护，期间可能短暂不可用"
+                        placeholder={t('bannerPlaceholder')}
                         disabled={!bannerOn}
                     />
                     <select
@@ -129,13 +142,13 @@ export function SiteIdentity() {
                         className="h-9 rounded-lg border border-border/40 bg-background px-2 text-sm"
                         disabled={!bannerOn}
                     >
-                        <option value="info">信息（默认）</option>
-                        <option value="warning">警告</option>
-                        <option value="success">成功/通知</option>
+                        <option value="info">{t('bannerTone.info')}</option>
+                        <option value="warning">{t('bannerTone.warning')}</option>
+                        <option value="success">{t('bannerTone.success')}</option>
                     </select>
                 </div>
                 <div>
-                    <Button type="button" size="sm" onClick={save} disabled={setSetting.isPending}>保存站点信息</Button>
+                    <Button type="button" size="sm" onClick={save} disabled={setSetting.isPending}>{t('save')}</Button>
                 </div>
             </div>
         </div>

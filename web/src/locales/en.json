@@ -2042,6 +2042,49 @@
         "invitesGenerated": "Generated {count} invite codes",
         "generateFailed": "Generation failed (admin only)"
       }
+    },
+    "siteIdentity": {
+      "title": "Site identity",
+      "description": "The public identity of your platform, visible to visitors on the landing page (masthead, announcements, about).",
+      "nameLabel": "Site name",
+      "descriptionLabel": "Site description (about this site)",
+      "descriptionPlaceholder": "Describe your site in one sentence",
+      "announcementLabel": "Site announcement (shown publicly on the landing page)",
+      "announcementPlaceholder": "Leave empty to show \"No announcements\" on the landing page",
+      "footerLabel": "Footer text",
+      "ambientLabel": "Landing ambience",
+      "ambient": {
+        "photo": "Winter photo (default)",
+        "classic": "Classic hero image (newapi style)",
+        "color4bg": "Animated ambience (color4bg, falls back to the photo on failure)",
+        "pretext": "Newsprint"
+      },
+      "bannerToggle": "Site-wide banner",
+      "bannerHint": "Shown at the top for both signed-in users and visitors; dismissible for the current session only.",
+      "bannerPlaceholder": "For example: maintenance tonight 22:00–24:00, brief downtime possible",
+      "bannerTone": {
+        "info": "Info (default)",
+        "warning": "Warning",
+        "success": "Success / notice"
+      },
+      "save": "Save site identity",
+      "toast": {
+        "saved": "Site identity saved",
+        "saveFailed": "Save failed"
+      }
+    },
+    "feedback": {
+      "title": "Feedback",
+      "description": "Run into a problem or have an idea? Tell us.",
+      "placeholder": "Write your question or suggestion...",
+      "contactLabel": "Contact (optional)",
+      "contactPlaceholder": "Email / TG / ...",
+      "submit": "Submit",
+      "thanks": "Thanks for the feedback!",
+      "submitFailed": "Submission failed",
+      "adminReceived": "Admin - feedback received ({count})",
+      "adminEmpty": "No feedback yet.",
+      "adminUser": "User #{id}"
     }
   },
   "group": {
@@ -3272,7 +3315,21 @@
   "chat": {
     "newSession": "New Chat",
     "deleteSession": "Delete session",
-    "currentSession": "Current session (unsaved)"
+    "currentSession": "Current session (unsaved)",
+    "ui": {
+      "requestFailed": "Request failed ({status}): {detail}",
+      "requestFailedFallback": "Please check your key, model, or balance",
+      "streamAborted": "Connection interrupted or errored.",
+      "newChat": "New chat",
+      "loading": "Loading...",
+      "selectModel": "Select a model",
+      "noKeys": "No keys available (create one first)",
+      "clear": "Clear",
+      "emptyHint": "Start chatting below - uses your own key and balance - sessions save automatically",
+      "inputPlaceholder": "Type a message. Enter to send, Shift+Enter for a new line",
+      "stop": "Stop",
+      "send": "Send"
+    }
   },
   "landing": {
     "announcement": "Announcements",
@@ -3281,7 +3338,61 @@
     "about": "About {name}",
     "close": "Close",
     "noAnnouncement": "No announcements.",
-    "modelCount": "{count} models"
+    "modelCount": "{count} models",
+    "toc": {
+      "title": "Contents",
+      "hub": "Hub · Sites",
+      "channel": "Channels · Upstream",
+      "group": "Groups · Routing",
+      "model": "Models · Market",
+      "analytics": "Data · Analytics",
+      "log": "Calls · Logs",
+      "alert": "Alerts · Monitoring",
+      "ops": "Ops · Health",
+      "apikey": "API · Keys",
+      "setting": "System · Settings",
+      "user": "Users · Accounts",
+      "announcement": "Site · News",
+      "usage": "Usage · Overview",
+      "about": "About · This site",
+      "console": "Enter · Console"
+    },
+    "enterLogin": "Sign in / Enter →",
+    "enterDashboard": "Open dashboard →",
+    "signIn": "Sign in",
+    "openDashboard": "Open dashboard",
+    "noPublicModels": "No public models yet.",
+    "modelPrice": "In {input} / Out {output}",
+    "stat": {
+      "requests": "Requests",
+      "models": "Models"
+    },
+    "defaultDescription": "{name} — a highly customizable, self-hosted-first, aggregating personal AI gateway.",
+    "winter": {
+      "masthead": "SNOWFALL",
+      "tocTitle": "Contents",
+      "quoteLine1": "Snow falls in silence; the heart finds its way home.",
+      "quoteLine2": "Every line of code, every request,",
+      "quoteLine3": "settles quietly, like a snowflake."
+    },
+    "pretext": {
+      "tagline": "Each entry is a window onto the digital world. Which one today’s wind reaches is up to you.",
+      "featureTitle": "Today's feature",
+      "defaultEditorial": "{name} — a highly customizable, self-hosted-first, aggregating personal AI gateway. Every token, every request, set down like type on paper.",
+      "editorialBody": "We built {name} to be as steady and dependable as movable type. Every token, every request, every invoice falls into place like a letter on the press. What matters is not how loudly it shows, but whether it lands where it should.",
+      "pullQuote": "The pen falls silent; the heart finds its way home",
+      "closing": "May you open this page today calm, focused, and a little curious. Leave the rest to time.",
+      "byline": "— The editors",
+      "numbersTitle": "Numbers right now",
+      "stat": {
+        "onlineModels": "Models online",
+        "todayRequests": "Today's requests",
+        "totalTokens": "Total tokens"
+      },
+      "numbersNote": "These numbers keep ticking, like type dropping one by one from the case. They are the quietest conversation between you and this system.",
+      "numbersColophon": "— The type keeps setting; we keep listening.",
+      "footerEdition": "· Self-hosted edition"
+    }
   },
   "site": {
     "editSite": "Edit Site",
@@ -3466,6 +3577,98 @@
     },
     "credential": {
       "usernamePassword": "Username / password"
+    },
+    "accountForm": {
+      "nameLabel": "Account name",
+      "namePlaceholder": "For example: primary account",
+      "credentialTypeLabel": "Credential type",
+      "usernameLabel": "Username",
+      "usernamePlaceholder": "Enter the username",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "Enter the password",
+      "accessTokenPlaceholder": "Enter the access token",
+      "apiKeyPlaceholder": "Enter the API key",
+      "refreshTokenPlaceholder": "Optional: enter the refresh_token",
+      "tokenExpiresAtPlaceholder": "Optional: the timestamp or date string from devtools",
+      "sub2apiHint": "For Sub2API, filling in both <code>refresh_token</code> and <code>token_expires_at</code> from devtools lets the token renew automatically when it nears expiry or returns 401.",
+      "platformUserIdPlaceholder": "For example 11494",
+      "platformUserIdHint": "New API sites need the user ID to sync tokens, groups and check-ins. Imports fill it in automatically where possible.",
+      "enabledLabel": "Account enabled",
+      "autoSyncLabel": "Auto sync",
+      "autoCheckinLabel": "Auto check-in",
+      "randomCheckinLabel": "Randomized check-in",
+      "checkinIntervalLabel": "Minimum check-in interval (hours)",
+      "checkinWindowLabel": "Random delay window (minutes)",
+      "proxyHint": "Used for this account’s syncs, check-ins and model pulls; auto-projected channels follow the proxy resolved here.",
+      "submitEdit": "Save changes",
+      "submitCreate": "Create account",
+      "submitting": "Saving...",
+      "missingSiteTitle": "Error",
+      "missingSiteBody": "No site context available.",
+      "errors": {
+        "missingSite": "No site context available",
+        "nameRequired": "Enter an account name",
+        "usernamePasswordRequired": "Username and password are both required",
+        "accessTokenRequired": "Enter the access token",
+        "apiKeyRequired": "Enter the API key",
+        "checkinIntervalRange": "The minimum check-in interval must be between 1 and 720 hours",
+        "checkinWindowRange": "The random delay window must be between 0 and 1440 minutes",
+        "platformUserIdRequired": "Enter the platform user ID",
+        "platformUserIdInvalid": "The platform user ID must be an integer greater than 0",
+        "tokenExpiresAtNotPositive": "token_expires_at must be a positive integer timestamp",
+        "tokenExpiresAtUnparsable": "token_expires_at must be a timestamp or a parsable date"
+      },
+      "toast": {
+        "updated": "Site account updated",
+        "created": "Site account created"
+      }
+    },
+    "siteForm": {
+      "nameLabel": "Site name",
+      "namePlaceholder": "e.g. Main OneAPI",
+      "platformLabel": "Platform type",
+      "platformAuto": "Auto-detect",
+      "baseUrlLabel": "Site URL",
+      "checkinUrlLabel": "Manual check-in URL",
+      "checkinUrlPlaceholder": "Optional, e.g. https://example.com/signin",
+      "checkinUrlHint": "Once set, you can open this page from the site overview to check in manually.",
+      "enabledLabel": "Enable site",
+      "enabledHint": "Managed channels are no longer projected once disabled.",
+      "advanced": "Advanced settings",
+      "customHeader": "Custom header",
+      "addHeader": "Add",
+      "cancel": "Cancel",
+      "saving": "Saving...",
+      "saveChanges": "Save changes",
+      "createSite": "Create site",
+      "nameRequired": "Please enter a site name",
+      "baseUrlRequired": "Please enter a site URL",
+      "platformRequired": "Please select a platform type",
+      "platformDetected": "Platform detected: {platform}",
+      "platformDetectFailed": "Could not auto-detect the platform type, please select it manually",
+      "headerIncomplete": "Custom header keys and values cannot be empty",
+      "updated": "Site updated",
+      "created": "Site created",
+      "actionFailed": "Action failed"
+    },
+    "checkinPanel": {
+      "overview": "Overview",
+      "currentResults": "Current results",
+      "visibleCounts": "{sites} sites / {accounts} accounts",
+      "currentBalance": "Current balance",
+      "totalSpent": "Total spent",
+      "enabledAccounts": "Enabled accounts",
+      "todayIssues": "Issues today",
+      "searchBadge": "Search: {term}",
+      "clearFilters": "Clear filters",
+      "openManualCheckin": "Open manual check-in ({count})",
+      "filter": {
+        "all": "All",
+        "success": "Success",
+        "failed": "Failed",
+        "idle": "Not run",
+        "disabled": "Disabled"
+      }
     }
   },
   "form": {

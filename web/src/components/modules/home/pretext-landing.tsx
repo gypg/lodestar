@@ -10,11 +10,12 @@ Lodestar — 报刊风落地页（Pretext Landing）
 
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { useNavStore, type NavItem } from '@/components/modules/navbar';
+import { useNavStore } from '@/components/modules/navbar';
 import { usePublicOverview } from '@/api/endpoints/public';
 import { useCurrentUser, isStaffRole } from '@/api/endpoints/user';
+import { useSettingStore } from '@/stores/setting';
+import { HomeTocLabel, type HomeTocId } from './toc-label';
 
-const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
 const SERIF = '"Songti SC","STSong","Noto Serif SC","SimSun",Georgia,serif';
 const SANS = '"Helvetica Neue",Arial,sans-serif';
 
@@ -26,27 +27,29 @@ function fmt(n: number | undefined) {
     return (n ?? 0).toLocaleString('en-US');
 }
 
-const HOME_TOC: { id: NavItem; label: string; meta: string }[] = [
-    { id: 'hub', label: '多站 · 聚合', meta: 'HUB' },
-    { id: 'channel', label: '渠道 · 上游', meta: 'CHAN' },
-    { id: 'group', label: '分组 · 路由', meta: 'GROUP' },
-    { id: 'model', label: '模型 · 广场', meta: 'MODEL' },
-    { id: 'analytics', label: '数据 · 分析', meta: 'STATS' },
-    { id: 'log', label: '调用 · 日志', meta: 'LOG' },
-    { id: 'alert', label: '告警 · 监控', meta: 'ALERT' },
-    { id: 'ops', label: '运维 · 健康', meta: 'OPS' },
-    { id: 'apikey', label: 'API · 密钥', meta: 'KEYS' },
-    { id: 'setting', label: '系统 · 设置', meta: 'SET' },
-    { id: 'user', label: '用户 · 账户', meta: 'USER' },
+// 目录表只存「顺序 + 导航 id + 栏目缩写」，标签在渲染处用字面量 key 取，
+// 与 winter-landing 共用 HomeTocLabel。见 toc-label.tsx 的说明。
+const HOME_TOC: { id: HomeTocId; meta: string }[] = [
+    { id: 'hub', meta: 'HUB' },
+    { id: 'channel', meta: 'CHAN' },
+    { id: 'group', meta: 'GROUP' },
+    { id: 'model', meta: 'MODEL' },
+    { id: 'analytics', meta: 'STATS' },
+    { id: 'log', meta: 'LOG' },
+    { id: 'alert', meta: 'ALERT' },
+    { id: 'ops', meta: 'OPS' },
+    { id: 'apikey', meta: 'KEYS' },
+    { id: 'setting', meta: 'SET' },
+    { id: 'user', meta: 'USER' },
 ];
 
 type PublicPanel = 'announcement' | 'models' | 'usage' | 'about';
-const PUBLIC_TOC: { key: PublicPanel | 'console'; label: string; meta: string }[] = [
-    { key: 'announcement', label: '站点 · 公告', meta: 'NEWS' },
-    { key: 'models', label: '模型 · 广场', meta: 'MODELS' },
-    { key: 'usage', label: '用量 · 概览', meta: 'STATS' },
-    { key: 'about', label: '关于 · 本站', meta: 'ABOUT' },
-    { key: 'console', label: '进入 · 控制台', meta: 'LOGIN' },
+const PUBLIC_TOC: { key: PublicPanel | 'console'; meta: string }[] = [
+    { key: 'announcement', meta: 'NEWS' },
+    { key: 'models', meta: 'MODELS' },
+    { key: 'usage', meta: 'STATS' },
+    { key: 'about', meta: 'ABOUT' },
+    { key: 'console', meta: 'LOGIN' },
 ];
 
 export function PretextLanding({
@@ -60,6 +63,7 @@ export function PretextLanding({
 }) {
     const setActiveItem = useNavStore((s) => s.setActiveItem);
     const t = useTranslations();
+    const locale = useSettingStore((s) => s.locale);
     const [now, setNow] = useState(() => new Date());
     const isPublic = variant === 'public';
     const [panel, setPanel] = useState<PublicPanel | null>(null);
@@ -78,11 +82,11 @@ export function PretextLanding({
 
     const dateStr = `${now.getFullYear()}.${pad2(now.getMonth() + 1)}.${pad2(now.getDate())}`;
     const clock = `${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
-    const weekday = WEEKDAYS[now.getDay()];
+    // 星期名交给 Intl：三个 locale 的输出与原硬编码简体表逐字一致，繁体/英文自动正确。
+    const weekday = new Intl.DateTimeFormat(locale, { weekday: 'short' }).format(now);
 
     const editorialText =
-        overview?.description?.trim() ||
-        `${siteName} —— 高自定义 · 自用优先 · 可聚合的个人 AI 中转站。每一个 token、每一次请求，都像铅字一样落在纸上。`;
+        overview?.description?.trim() || t('landing.pretext.defaultEditorial', { name: siteName });
 
     // 首字取第一行文本的第一个字符（用于 Drop Cap）
     const dropChar = editorialText.charAt(0);
@@ -134,7 +138,7 @@ export function PretextLanding({
                             className="mb-5 border-t border-[#1f1d1a] pt-2 text-[11px] font-medium uppercase tracking-[0.3em] text-[#6b6862]"
                             style={{ fontFamily: SANS }}
                         >
-                            章节目录
+                            {t('landing.toc.title')}
                         </h2>
                         <ul className="list-none">
                             {isPublic
@@ -160,7 +164,11 @@ export function PretextLanding({
                                                   panel === item.key ? 'border-[#1f1d1a]' : 'border-transparent'
                                               }`}
                                           >
-                                              {item.label}
+                                              {item.key === 'announcement' && t('landing.toc.announcement')}
+                                              {item.key === 'models' && t('landing.toc.model')}
+                                              {item.key === 'usage' && t('landing.toc.usage')}
+                                              {item.key === 'about' && t('landing.toc.about')}
+                                              {item.key === 'console' && t('landing.toc.console')}
                                           </button>
                                           <span
                                               className="ml-2 text-[10px] tracking-wider text-[#6b6862]"
@@ -186,7 +194,7 @@ export function PretextLanding({
                                               onClick={() => setActiveItem(item.id)}
                                               className="flex-1 border-b border-transparent text-left text-sm text-[#1f1d1a] transition-colors hover:border-[#1f1d1a]"
                                           >
-                                              {item.label}
+                                              <HomeTocLabel id={item.id} />
                                           </button>
                                           <span
                                               className="ml-2 text-[10px] tracking-wider text-[#6b6862]"
@@ -198,7 +206,7 @@ export function PretextLanding({
                                   ))}
                         </ul>
                         <p className="mt-6 text-sm italic leading-relaxed text-[#6b6862]">
-                            每一项都是通往数字世界的一扇窗。今日的风落在哪一扇窗前，由你决定。
+                            {t('landing.pretext.tagline')}
                         </p>
                     </section>
 
@@ -208,7 +216,7 @@ export function PretextLanding({
                             className="mb-5 border-t border-[#1f1d1a] pt-2 text-[11px] font-medium uppercase tracking-[0.3em] text-[#6b6862]"
                             style={{ fontFamily: SANS }}
                         >
-                            今日特写
+                            {t('landing.pretext.featureTitle')}
                         </h2>
                         <p className="text-justify text-base leading-[1.9] text-[#2a2724]">
                             <span
@@ -220,7 +228,7 @@ export function PretextLanding({
                             {editorialBody}
                         </p>
                         <p className="mt-3 text-justify text-base leading-[1.9] text-[#2a2724]">
-                            我们做 {siteName} 的初衷，是让它像铅字一样沉稳可靠。每一个 token、每一次请求、每一份账单，都像排版上的铅字，一一落位。重要的不是它有多显眼，而是它是否落在对的地方。
+                            {t('landing.pretext.editorialBody', { name: siteName })}
                         </p>
 
                         <div
@@ -228,19 +236,19 @@ export function PretextLanding({
                             style={{ fontFamily: SERIF }}
                         >
                             <span className="mr-1 text-[40px] leading-none align-[-10px]">&ldquo;</span>
-                            落笔无声，心有所归
+                            {t('landing.pretext.pullQuote')}
                             <span className="ml-1 text-[40px] leading-none align-[-10px]">&rdquo;</span>
                         </div>
 
                         <p className="text-justify text-base leading-[1.9] text-[#2a2724]">
-                            愿你今天打开这个页面的时候，也能保持安静、专注、带着一点好奇。剩下的，就交给时间。
+                            {t('landing.pretext.closing')}
                         </p>
 
                         <div
                             className="mt-8 flex justify-between text-[11px] uppercase tracking-[0.2em] text-[#6b6862]"
                             style={{ fontFamily: SANS }}
                         >
-                            <span>— 编辑部</span>
+                            <span>{t('landing.pretext.byline')}</span>
                             <span>
                                 {clock} · {weekday}
                             </span>
@@ -253,18 +261,18 @@ export function PretextLanding({
                             className="mb-5 border-t border-[#1f1d1a] pt-2 text-[11px] font-medium uppercase tracking-[0.3em] text-[#6b6862]"
                             style={{ fontFamily: SANS }}
                         >
-                            此刻的数字
+                            {t('landing.pretext.numbersTitle')}
                         </h2>
                         <ul className="list-none">
-                            <StatRow label="在线模型" value={fmt(overview?.model_count)} />
-                            <StatRow label="今日请求" value={fmt(overview?.total_requests)} />
-                            <StatRow label="总 Tokens" value={fmt(overview?.total_tokens)} />
+                            <StatRow label={t('landing.pretext.stat.onlineModels')} value={fmt(overview?.model_count)} />
+                            <StatRow label={t('landing.pretext.stat.todayRequests')} value={fmt(overview?.total_requests)} />
+                            <StatRow label={t('landing.pretext.stat.totalTokens')} value={fmt(overview?.total_tokens)} />
                         </ul>
                         <p className="mt-6 text-base leading-[1.9] text-[#2a2724]">
-                            这些数字不断跳动，像铅字从排版架上一一落下。它们构成了你与这个系统之间最安静的对话。
+                            {t('landing.pretext.numbersNote')}
                         </p>
                         <p className="mt-3 text-sm italic text-[#6b6862]">
-                            —— 铅字一直在排，我们一直在听。
+                            {t('landing.pretext.numbersColophon')}
                         </p>
 
                         {/* 公开内容面板（访客点目录项浮出） */}
@@ -306,7 +314,7 @@ export function PretextLanding({
                                             {t('landing.modelCount', { count: overview?.model_count ?? 0 })}
                                         </p>
                                         {(overview?.models ?? []).length === 0 && (
-                                            <p className="text-sm text-[#6b6862]">暂无公开模型。</p>
+                                            <p className="text-sm text-[#6b6862]">{t('landing.noPublicModels')}</p>
                                         )}
                                         {(overview?.models ?? []).map((m) => (
                                             <div
@@ -316,7 +324,7 @@ export function PretextLanding({
                                                 <span className="mr-3 truncate">{m.name}</span>
                                                 {(m.input > 0 || m.output > 0) && (
                                                     <span className="shrink-0 text-[11px] tabular-nums text-[#6b6862]">
-                                                        入 {m.input} / 出 {m.output}
+                                                        {t('landing.modelPrice', { input: m.input, output: m.output })}
                                                     </span>
                                                 )}
                                             </div>
@@ -330,7 +338,7 @@ export function PretextLanding({
                                                 {fmt(overview?.total_requests)}
                                             </div>
                                             <div className="mt-1 text-[10px] uppercase tracking-wider text-[#6b6862]">
-                                                请求
+                                                {t('landing.stat.requests')}
                                             </div>
                                         </div>
                                         <div className="rounded-lg border border-[#cdc7ba] p-3">
@@ -346,7 +354,7 @@ export function PretextLanding({
                                                 {fmt(overview?.model_count)}
                                             </div>
                                             <div className="mt-1 text-[10px] uppercase tracking-wider text-[#6b6862]">
-                                                模型
+                                                {t('landing.stat.models')}
                                             </div>
                                         </div>
                                     </div>
@@ -354,7 +362,7 @@ export function PretextLanding({
                                 {panel === 'about' && (
                                     <p className="whitespace-pre-wrap text-sm leading-relaxed">
                                         {overview?.description?.trim() ||
-                                            `${siteName} —— 高自定义 · 自用优先 · 可聚合的个人 AI 中转站。`}
+                                            t('landing.defaultDescription', { name: siteName })}
                                     </p>
                                 )}
                             </div>
@@ -367,14 +375,14 @@ export function PretextLanding({
                     className="flex items-baseline justify-between border-t border-[#1f1d1a] px-[8vw] py-4 text-[11px] uppercase tracking-[0.25em] text-[#6b6862]"
                     style={{ fontFamily: SANS }}
                 >
-                    <span>© {now.getFullYear()} {siteName} · 自用版本</span>
+                    <span>© {now.getFullYear()} {siteName} {t('landing.pretext.footerEdition')}</span>
                     <span className="flex gap-3">
                         <button
                             type="button"
                             onClick={isPublic ? onLogin : onEnterDashboard}
                             className="border-b border-transparent transition-colors hover:border-[#1f1d1a] hover:text-[#1f1d1a]"
                         >
-                            {isPublic ? '登入' : '进入数据概览'}
+                            {isPublic ? t('landing.signIn') : t('landing.openDashboard')}
                         </button>
                     </span>
                     <span>Made with ❄</span>

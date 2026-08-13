@@ -2042,6 +2042,49 @@
         "invitesGenerated": "已生成 {count} 个邀请码",
         "generateFailed": "生成失败（需管理员权限）"
       }
+    },
+    "siteIdentity": {
+      "title": "站点信息",
+      "description": "对外展示的平台身份：访客在首页可见（封面刊头 / 公告 / 关于）。",
+      "nameLabel": "站点名称",
+      "descriptionLabel": "站点简介（关于本站）",
+      "descriptionPlaceholder": "一句话介绍你的站点",
+      "announcementLabel": "站点公告（首页公开展示）",
+      "announcementPlaceholder": "留空则首页显示「暂无公告」",
+      "footerLabel": "页脚文案",
+      "ambientLabel": "封面氛围光",
+      "ambient": {
+        "photo": "冬日实景照片（默认）",
+        "classic": "经典大图（newapi 风格）",
+        "color4bg": "动态氛围光（color4bg，失败则回退照片）",
+        "pretext": "报刊"
+      },
+      "bannerToggle": "全站顶栏公告条",
+      "bannerHint": "登录后与访客入口顶部展示；可关闭（仅当次浏览）。",
+      "bannerPlaceholder": "例如：今晚 22:00–24:00 维护，期间可能短暂不可用",
+      "bannerTone": {
+        "info": "信息（默认）",
+        "warning": "警告",
+        "success": "成功/通知"
+      },
+      "save": "保存站点信息",
+      "toast": {
+        "saved": "站点信息已保存",
+        "saveFailed": "保存失败"
+      }
+    },
+    "feedback": {
+      "title": "意见反馈",
+      "description": "使用中有问题或建议？告诉我们。",
+      "placeholder": "写下你的问题或建议…",
+      "contactLabel": "联系方式（选填）",
+      "contactPlaceholder": "邮箱 / TG / …",
+      "submit": "提交",
+      "thanks": "感谢反馈！",
+      "submitFailed": "提交失败",
+      "adminReceived": "管理员 · 收到的反馈（{count}）",
+      "adminEmpty": "暂无反馈。",
+      "adminUser": "用户 #{id}"
     }
   },
   "group": {
@@ -3272,7 +3315,21 @@
   "chat": {
     "newSession": "新对话",
     "deleteSession": "删除会话",
-    "currentSession": "当前会话（未保存）"
+    "currentSession": "当前会话（未保存）",
+    "ui": {
+      "requestFailed": "请求失败（{status}）：{detail}",
+      "requestFailedFallback": "请检查密钥/模型/余额",
+      "streamAborted": "连接中断或出错。",
+      "newChat": "新对话",
+      "loading": "加载…",
+      "selectModel": "选择模型",
+      "noKeys": "无可用密钥（请先创建）",
+      "clear": "清空",
+      "emptyHint": "在下方输入开始对话 · 使用你自己的密钥与余额 · 会话自动保存",
+      "inputPlaceholder": "输入消息，Enter 发送，Shift+Enter 换行",
+      "stop": "停止",
+      "send": "发送"
+    }
   },
   "landing": {
     "announcement": "站点公告",
@@ -3281,7 +3338,61 @@
     "about": "关于 {name}",
     "close": "关闭",
     "noAnnouncement": "暂无公告。",
-    "modelCount": "共 {count} 个模型"
+    "modelCount": "共 {count} 个模型",
+    "toc": {
+      "title": "章节目录",
+      "hub": "多站 · 聚合",
+      "channel": "渠道 · 上游",
+      "group": "分组 · 路由",
+      "model": "模型 · 广场",
+      "analytics": "数据 · 分析",
+      "log": "调用 · 日志",
+      "alert": "告警 · 监控",
+      "ops": "运维 · 健康",
+      "apikey": "API · 密钥",
+      "setting": "系统 · 设置",
+      "user": "用户 · 账户",
+      "announcement": "站点 · 公告",
+      "usage": "用量 · 概览",
+      "about": "关于 · 本站",
+      "console": "进入 · 控制台"
+    },
+    "enterLogin": "登录 / 进入 →",
+    "enterDashboard": "进入数据概览 →",
+    "signIn": "登入",
+    "openDashboard": "进入数据概览",
+    "noPublicModels": "暂无公开模型。",
+    "modelPrice": "入 {input} / 出 {output}",
+    "stat": {
+      "requests": "请求",
+      "models": "模型"
+    },
+    "defaultDescription": "{name} —— 高自定义 · 自用优先 · 可聚合的个人 AI 中转站。",
+    "winter": {
+      "masthead": "雪 落 无 声",
+      "tocTitle": "章 节 目 录",
+      "quoteLine1": "雪落无声，心有所归。",
+      "quoteLine2": "每一行代码，每一个请求，",
+      "quoteLine3": "都像雪花一样，悄悄落下。"
+    },
+    "pretext": {
+      "tagline": "每一项都是通往数字世界的一扇窗。今日的风落在哪一扇窗前，由你决定。",
+      "featureTitle": "今日特写",
+      "defaultEditorial": "{name} —— 高自定义 · 自用优先 · 可聚合的个人 AI 中转站。每一个 token、每一次请求，都像铅字一样落在纸上。",
+      "editorialBody": "我们做 {name} 的初衷，是让它像铅字一样沉稳可靠。每一个 token、每一次请求、每一份账单，都像排版上的铅字，一一落位。重要的不是它有多显眼，而是它是否落在对的地方。",
+      "pullQuote": "落笔无声，心有所归",
+      "closing": "愿你今天打开这个页面的时候，也能保持安静、专注、带着一点好奇。剩下的，就交给时间。",
+      "byline": "— 编辑部",
+      "numbersTitle": "此刻的数字",
+      "stat": {
+        "onlineModels": "在线模型",
+        "todayRequests": "今日请求",
+        "totalTokens": "总 Tokens"
+      },
+      "numbersNote": "这些数字不断跳动，像铅字从排版架上一一落下。它们构成了你与这个系统之间最安静的对话。",
+      "numbersColophon": "—— 铅字一直在排，我们一直在听。",
+      "footerEdition": "· 自用版本"
+    }
   },
   "site": {
     "editSite": "编辑站点",
@@ -3466,6 +3577,98 @@
     },
     "credential": {
       "usernamePassword": "用户名 / 密码"
+    },
+    "accountForm": {
+      "nameLabel": "账号名称",
+      "namePlaceholder": "例如：主账号",
+      "credentialTypeLabel": "凭据类型",
+      "usernameLabel": "用户名",
+      "usernamePlaceholder": "请输入用户名",
+      "passwordLabel": "密码",
+      "passwordPlaceholder": "请输入密码",
+      "accessTokenPlaceholder": "请输入 Access Token",
+      "apiKeyPlaceholder": "请输入 API Key",
+      "refreshTokenPlaceholder": "可选：请输入 refresh_token",
+      "tokenExpiresAtPlaceholder": "可选：F12 中的时间戳或时间字符串",
+      "sub2apiHint": "Sub2API 推荐同时填写 F12 里的 <code>refresh_token</code> 与 <code>token_expires_at</code>，会在快过期或 401 时自动续期。",
+      "platformUserIdPlaceholder": "例如 11494",
+      "platformUserIdHint": "New API 站点同步 token、分组和签到时需要用户 ID。导入数据会尽量自动填充该值。",
+      "enabledLabel": "启用账号",
+      "autoSyncLabel": "自动同步",
+      "autoCheckinLabel": "自动签到",
+      "randomCheckinLabel": "随机签到",
+      "checkinIntervalLabel": "最小签到间隔（小时）",
+      "checkinWindowLabel": "随机延迟窗口（分钟）",
+      "proxyHint": "用于该账号的同步、签到和模型拉取；自动投影的渠道会跟随这里解析后的代理。",
+      "submitEdit": "保存修改",
+      "submitCreate": "创建账号",
+      "submitting": "保存中...",
+      "missingSiteTitle": "错误",
+      "missingSiteBody": "站点上下文不存在。",
+      "errors": {
+        "missingSite": "站点上下文不存在",
+        "nameRequired": "请输入账号名称",
+        "usernamePasswordRequired": "用户名和密码不能为空",
+        "accessTokenRequired": "请输入 Access Token",
+        "apiKeyRequired": "请输入 API Key",
+        "checkinIntervalRange": "最小签到间隔必须在 1 到 720 小时之间",
+        "checkinWindowRange": "随机延迟窗口必须在 0 到 1440 分钟之间",
+        "platformUserIdRequired": "请输入 Platform User ID",
+        "platformUserIdInvalid": "Platform User ID 必须是大于 0 的整数",
+        "tokenExpiresAtNotPositive": "token_expires_at 必须是正整数时间戳",
+        "tokenExpiresAtUnparsable": "token_expires_at 必须是时间戳或可解析时间"
+      },
+      "toast": {
+        "updated": "站点账号已更新",
+        "created": "站点账号已创建"
+      }
+    },
+    "siteForm": {
+      "nameLabel": "站点名称",
+      "namePlaceholder": "例如：主站 OneAPI",
+      "platformLabel": "平台类型",
+      "platformAuto": "自动检测",
+      "baseUrlLabel": "站点地址",
+      "checkinUrlLabel": "手动签到 URL",
+      "checkinUrlPlaceholder": "可选：例如 https://example.com/signin",
+      "checkinUrlHint": "配置后可在站点总览中一键打开此页面进行手动签到。",
+      "enabledLabel": "启用站点",
+      "enabledHint": "停用后不再投影托管渠道",
+      "advanced": "高级设置",
+      "customHeader": "自定义 Header",
+      "addHeader": "添加",
+      "cancel": "取消",
+      "saving": "保存中...",
+      "saveChanges": "保存修改",
+      "createSite": "创建站点",
+      "nameRequired": "请输入站点名称",
+      "baseUrlRequired": "请输入站点地址",
+      "platformRequired": "请选择平台类型",
+      "platformDetected": "自动检测到平台：{platform}",
+      "platformDetectFailed": "无法自动检测平台类型，请手动选择",
+      "headerIncomplete": "自定义 Header 的键和值都不能为空",
+      "updated": "站点已更新",
+      "created": "站点已创建",
+      "actionFailed": "操作失败"
+    },
+    "checkinPanel": {
+      "overview": "总览",
+      "currentResults": "当前结果",
+      "visibleCounts": "{sites} 站点 / {accounts} 账号",
+      "currentBalance": "当前余额",
+      "totalSpent": "累计消耗",
+      "enabledAccounts": "启用账号",
+      "todayIssues": "今日异常",
+      "searchBadge": "搜索：{term}",
+      "clearFilters": "清空筛选",
+      "openManualCheckin": "打开手动签到 ({count})",
+      "filter": {
+        "all": "全部",
+        "success": "成功",
+        "failed": "失败",
+        "idle": "未执行",
+        "disabled": "禁用"
+      }
     }
   },
   "form": {

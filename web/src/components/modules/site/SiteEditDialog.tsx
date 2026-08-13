@@ -131,13 +131,18 @@ function trimHeaders(items: CustomHeader[]) {
         .filter((item) => item.header_key || item.header_value);
 }
 
-function getErrorMessage(error: unknown) {
+/**
+ * Extracts an upstream error message. Returns null when the error carries no
+ * usable text, so the caller can supply the localized fallback — a module-level
+ * helper must not hold copy of its own (the i18n gate cannot see it there).
+ */
+function getErrorMessage(error: unknown): string | null {
     if (error instanceof Error) return error.message;
     if (typeof error === 'object' && error !== null && 'message' in error) {
         const message = (error as { message?: unknown }).message;
         if (typeof message === 'string') return message;
     }
-    return '操作失败';
+    return null;
 }
 
 interface SiteEditDialogProps {
@@ -154,6 +159,7 @@ interface SiteEditDialogProps {
  */
 export function SiteEditDialog({ open, onOpenChange, site, onCreated }: SiteEditDialogProps) {
     const t = useTranslations();
+    const tForm = useTranslations('site.siteForm');
     const tProxy = useTranslations('proxyPool');
     const locale = useSettingStore((state) => state.locale);
     const createSite = useCreateSite();
@@ -168,11 +174,11 @@ export function SiteEditDialog({ open, onOpenChange, site, onCreated }: SiteEdit
             event.preventDefault();
 
             if (!siteForm.name.trim()) {
-                toast.error('请输入站点名称');
+                toast.error(tForm('nameRequired'));
                 return;
             }
             if (!siteForm.base_url.trim()) {
-                toast.error('请输入站点地址');
+                toast.error(tForm('baseUrlRequired'));
                 return;
             }
 
@@ -184,15 +190,17 @@ export function SiteEditDialog({ open, onOpenChange, site, onCreated }: SiteEdit
                     );
                     platform = detected.platform as SitePlatform;
                     toast.success(
-                        `自动检测到平台：${PLATFORM_LABELS[platform] ?? platform}`,
+                        tForm('platformDetected', {
+                            platform: PLATFORM_LABELS[platform] ?? platform,
+                        }),
                     );
                 } catch (e) { console.error(e);
-                    toast.error('无法自动检测平台类型，请手动选择');
+                    toast.error(tForm('platformDetectFailed'));
                     return;
                 }
             }
             if (!platform) {
-                toast.error('请选择平台类型');
+                toast.error(tForm('platformRequired'));
                 return;
             }
 
@@ -201,7 +209,7 @@ export function SiteEditDialog({ open, onOpenChange, site, onCreated }: SiteEdit
                 (item) => !item.header_key || !item.header_value,
             );
             if (invalidHeader) {
-                toast.error('自定义 Header 的键和值都不能为空');
+                toast.error(tForm('headerIncomplete'));
                 return;
             }
 
@@ -228,26 +236,26 @@ export function SiteEditDialog({ open, onOpenChange, site, onCreated }: SiteEdit
             try {
                 if (site) {
                     await updateSite.mutateAsync({ id: site.id, ...payload });
-                    toast.success('站点已更新');
+                    toast.success(tForm('updated'));
                     onOpenChange(false);
                 } else {
                     const createdSite = normalizeSiteRecord(
                         await createSite.mutateAsync(payload),
                     );
-                    toast.success('站点已创建');
+                    toast.success(tForm('created'));
                     onOpenChange(false);
                     onCreated?.(createdSite);
                 }
             } catch (submitError) {
-                toast.error(
-                    translateSiteMessage(locale, getErrorMessage(submitError), t),
-                );
+                const raw = getErrorMessage(submitError) ?? tForm('actionFailed');
+                toast.error(translateSiteMessage(locale, raw, t));
             }
         },
         [
             siteForm,
             site,
             detectPlatform,
+            tForm,
             tProxy,
             updateSite,
             createSite,
@@ -287,7 +295,7 @@ export function SiteEditDialog({ open, onOpenChange, site, onCreated }: SiteEdit
                     <div className="flex-1 min-h-0 space-y-5 overflow-y-auto px-1">
                         <div className="grid gap-4 md:grid-cols-2">
                             <label className="grid gap-2 text-sm">
-                                <span className="font-medium">站点名称</span>
+                                <span className="font-medium">{tForm('nameLabel')}</span>
                                 <Input
                                     value={siteForm.name}
                                     onChange={(event) =>
@@ -296,13 +304,13 @@ export function SiteEditDialog({ open, onOpenChange, site, onCreated }: SiteEdit
                                             name: event.target.value,
                                         }))
                                     }
-                                    placeholder="例如：主站 OneAPI"
+                                    placeholder={tForm('namePlaceholder')}
                                     className="rounded-xl"
                                 />
                             </label>
 
                             <label className="grid gap-2 text-sm">
-                                <span className="font-medium">平台类型</span>
+                                <span className="font-medium">{tForm('platformLabel')}</span>
                                 <Select
                                     value={siteForm.platform || AUTO_DETECT_VALUE}
                                     onValueChange={(value) =>
@@ -316,11 +324,11 @@ export function SiteEditDialog({ open, onOpenChange, site, onCreated }: SiteEdit
                                     }
                                 >
                                     <SelectTrigger className="w-full rounded-xl">
-                                        <SelectValue placeholder="自动检测" />
+                                        <SelectValue placeholder={tForm('platformAuto')} />
                                     </SelectTrigger>
                                     <SelectContent className="rounded-xl">
                                         {!site && (
-                                            <SelectItem className="rounded-xl" value={AUTO_DETECT_VALUE}>自动检测</SelectItem>
+                                            <SelectItem className="rounded-xl" value={AUTO_DETECT_VALUE}>{tForm('platformAuto')}</SelectItem>
                                         )}
                                         {Object.entries(PLATFORM_LABELS).map(([value, label]) => (
                                             <SelectItem className="rounded-xl" key={value} value={value}>
@@ -333,7 +341,7 @@ export function SiteEditDialog({ open, onOpenChange, site, onCreated }: SiteEdit
                         </div>
 
                         <label className="grid gap-2 text-sm">
-                            <span className="font-medium">站点地址</span>
+                            <span className="font-medium">{tForm('baseUrlLabel')}</span>
                             <Input
                                 value={siteForm.base_url}
                                 onChange={(event) =>
@@ -348,7 +356,7 @@ export function SiteEditDialog({ open, onOpenChange, site, onCreated }: SiteEdit
                         </label>
 
                         <label className="grid gap-2 text-sm">
-                            <span className="font-medium">手动签到 URL</span>
+                            <span className="font-medium">{tForm('checkinUrlLabel')}</span>
                             <Input
                                 value={siteForm.external_checkin_url}
                                 onChange={(event) =>
@@ -357,11 +365,11 @@ export function SiteEditDialog({ open, onOpenChange, site, onCreated }: SiteEdit
                                         external_checkin_url: event.target.value,
                                     }))
                                 }
-                                placeholder="可选：例如 https://example.com/signin"
+                                placeholder={tForm('checkinUrlPlaceholder')}
                                 className="rounded-xl"
                             />
                             <span className="text-xs text-muted-foreground">
-                                配置后可在站点总览中一键打开此页面进行手动签到。
+                                {tForm('checkinUrlHint')}
                             </span>
                         </label>
 
@@ -376,9 +384,9 @@ export function SiteEditDialog({ open, onOpenChange, site, onCreated }: SiteEdit
 
                         <div className="flex items-center justify-between rounded-xl border border-border/60 bg-muted/20 px-4 py-3">
                             <div>
-                                <div className="text-sm font-medium">启用站点</div>
+                                <div className="text-sm font-medium">{tForm('enabledLabel')}</div>
                                 <div className="text-xs text-muted-foreground">
-                                    停用后不再投影托管渠道
+                                    {tForm('enabledHint')}
                                 </div>
                             </div>
                             <Switch
@@ -392,13 +400,13 @@ export function SiteEditDialog({ open, onOpenChange, site, onCreated }: SiteEdit
                         <Accordion type="single" collapsible className="w-full rounded-xl border bg-card">
                             <AccordionItem value="advanced" className="border-none">
                                 <AccordionTrigger className="rounded-xl px-4 py-3 text-sm font-medium text-card-foreground transition-colors hover:bg-muted/30 hover:no-underline">
-                                    高级设置
+                                    {tForm('advanced')}
                                 </AccordionTrigger>
                                 <AccordionContent className="space-y-4 border-t px-4 pb-4 pt-4">
                                     <div className="space-y-2">
                                         <div className="flex items-center justify-between">
                                             <label className="text-sm font-medium text-card-foreground">
-                                                自定义 Header {siteForm.custom_header.length > 0 ? `(${siteForm.custom_header.length})` : ''}
+                                                {tForm('customHeader')} {siteForm.custom_header.length > 0 ? `(${siteForm.custom_header.length})` : ''}
                                             </label>
                                             <Button
                                                 type="button"
@@ -416,7 +424,7 @@ export function SiteEditDialog({ open, onOpenChange, site, onCreated }: SiteEdit
                                                 className="h-6 px-2 text-xs text-muted-foreground/70 hover:bg-transparent hover:text-muted-foreground"
                                             >
                                                 <Plus className="mr-1 h-3 w-3" />
-                                                添加
+                                                {tForm('addHeader')}
                                             </Button>
                                         </div>
                                         <div className="space-y-2">
@@ -491,14 +499,14 @@ export function SiteEditDialog({ open, onOpenChange, site, onCreated }: SiteEdit
                             className="h-12 w-full rounded-2xl sm:flex-1"
                             onClick={() => onOpenChange(false)}
                         >
-                            取消
+                            {tForm('cancel')}
                         </Button>
                         <Button
                             type="submit"
                             className="h-12 w-full rounded-2xl sm:flex-1"
                             disabled={isPending}
                         >
-                            {isPending ? '保存中...' : site ? '保存修改' : '创建站点'}
+                            {isPending ? tForm('saving') : site ? tForm('saveChanges') : tForm('createSite')}
                         </Button>
                     </footer>
                 </form>

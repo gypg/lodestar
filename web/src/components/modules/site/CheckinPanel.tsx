@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { useTranslations } from "next-intl";
 import {
   AlertTriangle,
   CalendarCheck2,
@@ -21,12 +22,31 @@ import {
   type CheckinFilterStatus,
 } from "./checkin-status";
 
-const FILTERS: Array<{ key: CheckinFilterStatus; label: string }> = [
-  { key: "all", label: "全部" },
-  { key: "success", label: "成功" },
-  { key: "failed", label: "失败" },
-  { key: "idle", label: "未执行" },
-  { key: "disabled", label: "禁用" },
+function FilterLabel({ status }: { status: CheckinFilterStatus }) {
+  const t = useTranslations("site.checkinPanel.filter");
+
+  switch (status) {
+    case "all":
+      return <>{t("all")}</>;
+    case "success":
+      return <>{t("success")}</>;
+    case "failed":
+      return <>{t("failed")}</>;
+    case "idle":
+      return <>{t("idle")}</>;
+    case "disabled":
+      return <>{t("disabled")}</>;
+  }
+}
+
+// Enum order only — labels are resolved at the render site with literal keys, so
+// the i18n gate can see them (a table of copy or of key strings is invisible to it).
+const FILTER_ORDER: CheckinFilterStatus[] = [
+  "all",
+  "success",
+  "failed",
+  "idle",
+  "disabled",
 ];
 
 function filterTone(status: CheckinFilterStatus, active: boolean) {
@@ -125,6 +145,7 @@ export function CheckinPanel({
   activeFilterStatuses: CheckinActiveFilterStatus[];
   onFilterChange: (status: CheckinFilterStatus) => void;
 }) {
+  const t = useTranslations("site.checkinPanel");
   const summaryNow = useMemo(() => {
     const [year = "", month = "", day = ""] = statusDayKey.split("-");
     const parsed = new Date(Number(year), Number(month), Number(day));
@@ -163,7 +184,7 @@ export function CheckinPanel({
         >
           <div className="flex flex-wrap items-center gap-2 text-base font-semibold">
             <CalendarCheck2 className="size-5 text-primary" />
-            <span>总览</span>
+            <span>{t("overview")}</span>
             <ChevronDown
               className={cn(
                 "size-4 text-muted-foreground transition-transform duration-200",
@@ -173,9 +194,12 @@ export function CheckinPanel({
           </div>
 
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            <span>当前结果</span>
+            <span>{t("currentResults")}</span>
             <span className="font-medium text-foreground">
-              {visibleSiteCount} 站点 / {visibleAccountCount} 账号
+              {t("visibleCounts", {
+                sites: visibleSiteCount,
+                accounts: visibleAccountCount,
+              })}
             </span>
           </div>
         </button>
@@ -184,22 +208,22 @@ export function CheckinPanel({
           <div className="mt-4 grid grid-cols-2 gap-2.5 sm:gap-3 xl:grid-cols-4">
             <OverviewMetric
               icon={<Wallet className="size-4" />}
-              label="当前余额"
+              label={t("currentBalance")}
               value={formatCurrency(inventory.totalBalance)}
             />
             <OverviewMetric
               icon={<TrendingUp className="size-4" />}
-              label="累计消耗"
+              label={t("totalSpent")}
               value={formatCurrency(inventory.totalBalanceUsed)}
             />
             <OverviewMetric
               icon={<Layers3 className="size-4" />}
-              label="启用账号"
+              label={t("enabledAccounts")}
               value={`${inventory.enabledAccounts} / ${inventory.totalAccounts}`}
             />
             <OverviewMetric
               icon={<AlertTriangle className="size-4" />}
-              label="今日异常"
+              label={t("todayIssues")}
               value={`${summary.failed}`}
               tone={summary.failed > 0 ? "warning" : "default"}
             />
@@ -208,7 +232,9 @@ export function CheckinPanel({
 
         {hasActiveFilters && hasContextBadges ? (
           <div className="mt-4 flex flex-wrap gap-2">
-            {searchTerm ? <Badge variant="outline">搜索：{searchTerm}</Badge> : null}
+            {searchTerm ? (
+              <Badge variant="outline">{t("searchBadge", { term: searchTerm })}</Badge>
+            ) : null}
           </div>
         ) : null}
       </div>
@@ -216,25 +242,26 @@ export function CheckinPanel({
       <div className="px-5 py-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap gap-2">
-            {FILTERS.map((filter) => {
-              const count =
-                filter.key === "all" ? summary.total : summary[filter.key];
+            {FILTER_ORDER.map((status) => {
+              const count = status === "all" ? summary.total : summary[status];
               const active =
-                filter.key === "all"
+                status === "all"
                   ? activeFilterStatuses.length === 0
-                  : activeFilterStatuses.includes(filter.key);
+                  : activeFilterStatuses.includes(status);
               return (
                 <button
-                  key={filter.key}
+                  key={status}
                   type="button"
-                  onClick={() => onFilterChange(filter.key)}
+                  onClick={() => onFilterChange(status)}
                   className={cn(
                     "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-                    filterTone(filter.key, active),
+                    filterTone(status, active),
                   )}
                 >
                   <span>{count}</span>
-                  <span>{filter.label}</span>
+                  <span>
+                    <FilterLabel status={status} />
+                  </span>
                 </button>
               );
             })}
@@ -249,7 +276,7 @@ export function CheckinPanel({
                 onClick={onClearFilters}
               >
                 <FilterX className="size-4" />
-                清空筛选
+                {t("clearFilters")}
               </Button>
             ) : null}
             {manualCheckinUrls.length > 0 ? (
@@ -261,7 +288,7 @@ export function CheckinPanel({
                 onClick={openAllManualCheckin}
               >
                 <ExternalLink className="size-4" />
-                打开手动签到 ({manualCheckinUrls.length})
+                {t("openManualCheckin", { count: manualCheckinUrls.length })}
               </Button>
             ) : null}
           </div>

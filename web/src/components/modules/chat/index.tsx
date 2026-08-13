@@ -29,6 +29,7 @@ const SAVE_DEBOUNCE_MS = 800;
 
 export function Chat() {
     const t = useTranslations('chat');
+    const tUi = useTranslations('chat.ui');
     const { data: keys } = useAPIKeyList();
     const enabledKeys = useMemo(() => (keys ?? []).filter((k) => k.enabled && k.api_key), [keys]);
     const { data: overview } = usePublicOverview();
@@ -176,7 +177,10 @@ export function Chat() {
                     ...next.slice(0, -1),
                     {
                         role: 'assistant',
-                        content: `请求失败（${resp.status}）：${errText.slice(0, 300) || '请检查密钥/模型/余额'}`,
+                        content: tUi('requestFailed', {
+                            status: resp.status,
+                            detail: errText.slice(0, 300) || tUi('requestFailedFallback'),
+                        }),
                     },
                 ];
                 setMessages(failed);
@@ -219,7 +223,7 @@ export function Chat() {
             if (!(e instanceof DOMException && e.name === 'AbortError')) {
                 setMessages((m) => {
                     const c = [...m];
-                    c[c.length - 1] = { role: 'assistant', content: '连接中断或出错。' };
+                    c[c.length - 1] = { role: 'assistant', content: tUi('streamAborted') };
                     return c;
                 });
             }
@@ -242,10 +246,10 @@ export function Chat() {
         <div className="flex h-full min-h-0 gap-3">
             <aside className="hidden w-52 shrink-0 flex-col gap-2 rounded-xl border border-border bg-card p-2 md:flex">
                 <Button type="button" variant="outline" size="sm" className="w-full justify-start gap-2" onClick={onNewChat} disabled={createSession.isPending || enabledKeys.length === 0}>
-                    <MessageSquarePlus className="size-4" /> 新对话
+                    <MessageSquarePlus className="size-4" /> {tUi('newChat')}
                 </Button>
                 <div className="min-h-0 flex-1 space-y-1 overflow-y-auto">
-                    {sessionsLoading && <p className="px-2 text-xs text-muted-foreground">加载…</p>}
+                    {sessionsLoading && <p className="px-2 text-xs text-muted-foreground">{tUi('loading')}</p>}
                     {(sessions ?? []).map((s) => (
                         <div key={s.id} className="group flex items-center gap-1">
                             <button
@@ -299,7 +303,7 @@ export function Chat() {
                         models={modelNames}
                         value={model}
                         onChange={setModel}
-                        placeholder="选择模型"
+                        placeholder={tUi('selectModel')}
                         className="h-9 w-48 rounded-lg"
                     />
                     <select
@@ -307,7 +311,7 @@ export function Chat() {
                         onChange={(e) => setKeyId(Number(e.target.value))}
                         className="h-9 rounded-lg border border-border/40 bg-background px-2 text-sm"
                     >
-                        {enabledKeys.length === 0 && <option value="">无可用密钥（请先创建）</option>}
+                        {enabledKeys.length === 0 && <option value="">{tUi('noKeys')}</option>}
                         {enabledKeys.map((k) => (
                             <option key={k.id} value={k.id}>
                                 {k.name}
@@ -325,14 +329,14 @@ export function Chat() {
                         }}
                         className="ml-auto"
                     >
-                        <Trash2 className="size-4" /> 清空
+                        <Trash2 className="size-4" /> {tUi('clear')}
                     </Button>
                 </div>
 
                 <div ref={scrollRef} className="flex-1 min-h-0 space-y-3 overflow-y-auto rounded-lg bg-background/40 p-3">
                     {messages.length === 0 && (
                         <div className="grid h-full place-items-center text-sm text-muted-foreground">
-                            在下方输入开始对话 · 使用你自己的密钥与余额 · 会话自动保存
+                            {tUi('emptyHint')}
                         </div>
                     )}
                     {messages.map((m, i) => (
@@ -365,16 +369,16 @@ export function Chat() {
                             }
                         }}
                         rows={2}
-                        placeholder="输入消息，Enter 发送，Shift+Enter 换行"
+                        placeholder={tUi('inputPlaceholder')}
                         className="flex-1 resize-none rounded-lg border border-border/40 bg-background p-2.5 text-sm outline-none focus:border-primary/50"
                     />
                     {streaming ? (
                         <Button type="button" variant="outline" onClick={stop} className="h-11">
-                            <Square className="size-4" /> 停止
+                            <Square className="size-4" /> {tUi('stop')}
                         </Button>
                     ) : (
                         <Button type="button" onClick={() => void send()} disabled={!input.trim() || !selectedKey} className="h-11">
-                            <Send className="size-4" /> 发送
+                            <Send className="size-4" /> {tUi('send')}
                         </Button>
                     )}
                 </div>
