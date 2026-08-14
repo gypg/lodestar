@@ -104,18 +104,5 @@ func TestMediaRelayWiring_ccBillingOffStillReachesCallSite(t *testing.T) {
 	}
 }
 
-// TestMediaRelayWiring_failedRequestStillCharges is a guard: a failed media request
-// must still reach the charge call site (even though it will be a $0 charge today).
-func TestMediaRelayWiring_failedRequestStillCharges(t *testing.T) {
-	initMediaRelayTestEnv(t)
-
-	called := false
-	billing.CallRecorder = func(int, string, int, int, float64) { called = true }
-	t.Cleanup(func() { billing.CallRecorder = nil })
-
-	recordMediaRelayLog(77012, "images/generate", "images", nil, 5, "c", "gpt-image-1", time.Millisecond, nil, fmt.Errorf("upstream failed"), "127.0.0.1", mediaUsage{})
-
-	if !called {
-		t.Fatalf("failed media request did not reach ChargeKey — media wiring removed")
-	}
-}
+// TestMediaRelayWiring_failedRequestStillCharges removed: it was testing the P2 bug itself
+// (charging for failed requests). With P2 guard in place, failed requests must NOT charge.
