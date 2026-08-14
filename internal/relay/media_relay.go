@@ -384,7 +384,11 @@ func recordMediaRelayLog(apiKeyID int, requestModel string, endpointType string,
 	// would re-run ComputeExprCost WITHOUT the request body and overwrite mediaCost
 	// with a body-less value; media cost is already final here, so call ChargeKey
 	// directly — exactly one charge, for exactly mediaCost.
-	billing.ChargeKey(apiKeyID, mediaCost, ctx)
+	// P2 guard: do NOT charge if relay failed — prevents charging for 502 responses
+	// when OnExhausted returns error after all retries exhausted.
+	if relayErr == nil {
+		billing.ChargeKey(apiKeyID, mediaCost, ctx)
+	}
 	opMain.StatsSiteModelHourlyRecordAttempts(attempts, resolvedModel)
 	telemetry.Global().RecordRequest(duration.Milliseconds(), relayErr == nil)
 }
