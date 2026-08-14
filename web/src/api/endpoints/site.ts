@@ -467,7 +467,7 @@ export function useImportAllAPIHub() {
       const hasFile = !!payload.file;
       const hasText = !!payload.text?.trim();
       if (!hasFile && !hasText) {
-        throw new Error("请选择 JSON 文件或粘贴导出内容");
+        throw new Error("No file or text provided");
       }
 
       const headers: HeadersInit = {
@@ -526,7 +526,7 @@ export function useImportMetAPI() {
       const hasFile = !!payload.file;
       const hasText = !!payload.text?.trim();
       if (!hasFile && !hasText) {
-        throw new Error("请选择 JSON 文件或粘贴导出内容");
+        throw new Error("No file or text provided");
       }
 
       const headers: HeadersInit = {

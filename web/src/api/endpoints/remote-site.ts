@@ -86,22 +86,6 @@ export const SITE_TYPES = [
     'lodestar', 'sapi', 'anyrouter', 'aihubmix', 'axonhub', 'claude-code-hub', 'unknown',
 ] as const;
 
-/** Display names for site types (backend values stay unchanged for DB compatibility). */
-export const SITE_TYPE_LABELS: Record<string, string> = {
-    'new-api': 'New API',
-    'veloera': 'Veloera',
-    'done-hub': 'Done Hub',
-    'one-hub': 'One Hub',
-    'sub2api': 'Sub2API',
-    'lodestar': 'JWT 认证',
-    'sapi': 'SAPI',
-    'anyrouter': 'AnyRouter',
-    'aihubmix': 'AIHubMix',
-    'axonhub': 'AxonHub',
-    'claude-code-hub': 'Claude Code Hub',
-    'unknown': 'Unknown',
-};
-
 export type SiteType = (typeof SITE_TYPES)[number];
 
 const REMOTE_SITE_KEYS = {

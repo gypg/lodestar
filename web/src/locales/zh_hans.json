@@ -159,7 +159,21 @@
       "password": "密码",
       "exchangeRate": "汇率（USD）",
       "enabled": "启用",
-      "unchanged": "留空表示不修改"
+      "unchanged": "留空表示不修改",
+      "siteTypeLabels": {
+        "new-api": "New API",
+        "veloera": "Veloera",
+        "done-hub": "Done Hub",
+        "one-hub": "One Hub",
+        "sub2api": "Sub2API",
+        "lodestar": "JWT 认证",
+        "sapi": "SAPI",
+        "anyrouter": "AnyRouter",
+        "aihubmix": "AIHubMix",
+        "axonhub": "AxonHub",
+        "claude-code-hub": "Claude Code Hub",
+        "unknown": "未知"
+      }
     },
     "chart": {
       "loading": "加载图表数据中...",

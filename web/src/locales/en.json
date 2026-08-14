@@ -159,7 +159,21 @@
       "password": "Password",
       "exchangeRate": "Exchange Rate (USD)",
       "enabled": "Enabled",
-      "unchanged": "Leave empty to keep unchanged"
+      "unchanged": "Leave empty to keep unchanged",
+      "siteTypeLabels": {
+        "new-api": "New API",
+        "veloera": "Veloera",
+        "done-hub": "Done Hub",
+        "one-hub": "One Hub",
+        "sub2api": "Sub2API",
+        "lodestar": "JWT Auth",
+        "sapi": "SAPI",
+        "anyrouter": "AnyRouter",
+        "aihubmix": "AIHubMix",
+        "axonhub": "AxonHub",
+        "claude-code-hub": "Claude Code Hub",
+        "unknown": "Unknown"
+      }
     },
     "chart": {
       "loading": "Loading chart data...",

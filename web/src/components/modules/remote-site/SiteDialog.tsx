@@ -20,9 +20,9 @@ import {
     useUpdateRemoteSite,
     useDetectSiteType,
     SITE_TYPES,
-    SITE_TYPE_LABELS,
     type RemoteSite,
     type RemoteSiteUpdateRequest,
+    type SiteType,
 } from '@/api/endpoints/remote-site';
 import { Search } from 'lucide-react';
 
@@ -38,6 +38,24 @@ export function SiteDialog({ open, onOpenChange, editingSite }: SiteDialogProps)
     const updateSite = useUpdateRemoteSite();
     const detectType = useDetectSiteType();
     const isEditing = !!editingSite;
+
+    // Keys are spelled out one per entry, not built with `form.siteTypeLabels.${type}`:
+    // the i18n gate only resolves literal t() keys, so a template literal would let a
+    // typo'd key path ship silently and render the raw slug in every dropdown row.
+    const siteTypeLabels: Record<SiteType, string> = {
+        'new-api': t('form.siteTypeLabels.new-api'),
+        veloera: t('form.siteTypeLabels.veloera'),
+        'done-hub': t('form.siteTypeLabels.done-hub'),
+        'one-hub': t('form.siteTypeLabels.one-hub'),
+        sub2api: t('form.siteTypeLabels.sub2api'),
+        lodestar: t('form.siteTypeLabels.lodestar'),
+        sapi: t('form.siteTypeLabels.sapi'),
+        anyrouter: t('form.siteTypeLabels.anyrouter'),
+        aihubmix: t('form.siteTypeLabels.aihubmix'),
+        axonhub: t('form.siteTypeLabels.axonhub'),
+        'claude-code-hub': t('form.siteTypeLabels.claude-code-hub'),
+        unknown: t('form.siteTypeLabels.unknown'),
+    };
 
     const [name, setName] = useState('');
     const [baseUrl, setBaseUrl] = useState('');
@@ -174,7 +192,7 @@ export function SiteDialog({ open, onOpenChange, editingSite }: SiteDialogProps)
                             </SelectTrigger>
                             <SelectContent>
                                 {SITE_TYPES.map(type => (
-                                    <SelectItem key={type} value={type}>{SITE_TYPE_LABELS[type] || type}</SelectItem>
+                                    <SelectItem key={type} value={type}>{siteTypeLabels[type]}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
