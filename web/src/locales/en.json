@@ -1888,7 +1888,19 @@
       "save": "Save",
       "saving": "Saving…",
       "toastSaved": "Saved successfully",
-      "toastFailed": "Save failed"
+      "toastFailed": "Save failed",
+      "var": {
+        "p": "Input tokens",
+        "c": "Output tokens",
+        "len": "Total context length",
+        "cr": "Cache read tokens",
+        "cc": "Cache write tokens",
+        "cc1h": "Cache 1h TTL",
+        "img": "Image input tokens",
+        "img_o": "Image output tokens",
+        "ai": "Audio input tokens",
+        "ao": "Audio output tokens"
+      }
     },
     "llmPrice": {
       "updateInterval": {

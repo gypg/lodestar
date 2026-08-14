@@ -1888,7 +1888,19 @@
       "save": "保存",
       "saving": "保存中…",
       "toastSaved": "保存成功",
-      "toastFailed": "保存失败"
+      "toastFailed": "保存失败",
+      "var": {
+        "p": "输入 token",
+        "c": "输出 token",
+        "len": "上下文总长度",
+        "cr": "缓存读 token",
+        "cc": "缓存写 token",
+        "cc1h": "缓存 1h TTL",
+        "img": "图片输入 token",
+        "img_o": "图片输出 token",
+        "ai": "音频输入 token",
+        "ao": "音频输出 token"
+      }
     },
     "llmPrice": {
       "updateInterval": {

@@ -1888,7 +1888,19 @@
       "save": "儲存",
       "saving": "儲存中…",
       "toastSaved": "儲存成功",
-      "toastFailed": "儲存失敗"
+      "toastFailed": "儲存失敗",
+      "var": {
+        "p": "輸入 token",
+        "c": "輸出 token",
+        "len": "上下文總長度",
+        "cr": "快取讀取 token",
+        "cc": "快取寫入 token",
+        "cc1h": "快取 1h TTL",
+        "img": "圖片輸入 token",
+        "img_o": "圖片輸出 token",
+        "ai": "音訊輸入 token",
+        "ao": "音訊輸出 token"
+      }
     },
     "llmPrice": {
       "updateInterval": {

@@ -48,18 +48,7 @@ function toUSD(exprOutput: number, quotaPerUnit = 0.002, groupRatio = 1): string
 
 const SAMPLE_VARS = { p: 1000, c: 500, len: 1500, cr: 0, cc: 0, cc1h: 0, img: 0, img_o: 0, ai: 0, ao: 0 };
 
-const VAR_REFERENCE = [
-    { name: 'p', desc: '输入 token' },
-    { name: 'c', desc: '输出 token' },
-    { name: 'len', desc: '上下文总长度' },
-    { name: 'cr', desc: '缓存读 token' },
-    { name: 'cc', desc: '缓存写 token' },
-    { name: 'cc1h', desc: '缓存 1h TTL' },
-    { name: 'img', desc: '图片输入 token' },
-    { name: 'img_o', desc: '图片输出 token' },
-    { name: 'ai', desc: '音频输入 token' },
-    { name: 'ao', desc: '音频输出 token' },
-];
+const VAR_NAMES = ['p', 'c', 'len', 'cr', 'cc', 'cc1h', 'img', 'img_o', 'ai', 'ao'] as const;
 
 export function BillingExpr() {
     const t = useTranslations('setting');
@@ -131,10 +120,10 @@ export function BillingExpr() {
             </button>
             {showRef && (
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1 rounded-lg border border-border/30 bg-muted/20 p-3 text-xs">
-                    {VAR_REFERENCE.map((v) => (
-                        <div key={v.name} className="flex items-center gap-2">
-                            <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px]">{v.name}</code>
-                            <span className="text-muted-foreground">{v.desc}</span>
+                    {VAR_NAMES.map((name) => (
+                        <div key={name} className="flex items-center gap-2">
+                            <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px]">{name}</code>
+                            <span className="text-muted-foreground">{t(`billingExpr.var.${name}`)}</span>
                         </div>
                     ))}
                     <div className="col-span-2 mt-1 border-t border-border/20 pt-1 text-muted-foreground">

@@ -475,9 +475,9 @@ function CompactMetric({
   );
 }
 
-function isCloudflareProtectionMessage(message?: string | null) {
+function isCloudflareProtectionMessage(message?: string | null, cfProtectedText?: string) {
   const lowered = (message ?? "").toLowerCase();
-  return lowered.includes("cloudflare") || message?.includes("Cloudflare 保护") === true;
+  return lowered.includes("cloudflare") || (cfProtectedText && message?.includes(cfProtectedText)) === true;
 }
 
 function ExecutionSummary({
@@ -516,7 +516,7 @@ function ExecutionSummary({
     text.push(message);
   }
 
-  const cloudflareProtected = isCloudflareProtectionMessage(message);
+  const cloudflareProtected = isCloudflareProtectionMessage(message, t("site.cloudflareProtected"));
   const summary = text.join(" · ");
 
   return (
