@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🌍 Internationalization
+- **Batch 7** (2026-08-14): Internationalize winter-landing, site/index, and BillingExpr components (139 remaining hardcoded strings, down from 817 - 83% complete)
+
 ### 🚀 Features
 - **Hub/Sub2API integration**: Real redemption code exchange via `/api/v1/redeem` (P1 #10)
 - **Media endpoints**: Capture upstream usage metrics for images/audio/video endpoints (P1 #11)
