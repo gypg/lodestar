@@ -2837,6 +2837,9 @@
       "requestRewriteEnabled": "啟用重寫",
       "requestRewriteProfile": "重寫設定",
       "requestRewriteProfileOpenAIChatCompat": "OpenAI Chat 相容",
+      "requestRewriteProfilePreserve": "保留",
+      "requestRewriteHeaderProfile": "Headers 請求重寫",
+      "requestRewriteHeaderProfileNone": "無",
       "requestRewriteToolRoleStrategy": "Tool 角色策略",
       "requestRewriteSystemMessageStrategy": "System 訊息策略",
       "requestRewriteStrategyKeep": "保留",
@@ -3049,7 +3052,17 @@
     "history": {
       "lastRequest": "· 最近請求",
       "successRate": "成功率",
-      "empty": "暫無請求歷史"
+      "empty": "暫無請求歷史",
+      "neverRequested": "從未請求"
+    },
+    "routeType": {
+      "unknown": "未識別端點"
+    },
+    "routeSource": {
+      "manual_override": "手動",
+      "runtime_learned": "執行時",
+      "default_assigned": "預設",
+      "sync_inferred": "同步推斷"
     },
     "movePopover": {
       "title": "移動至..."
@@ -3336,6 +3349,7 @@
     "noPlan": "暫無可用方案",
     "mySubscription": "我的訂閱",
     "noSubscription": "暫無訂閱",
+    "selfHostedNoPurchase": "自用模式下不可購買",
     "expiresAt": "到期時間",
     "unavailable": "不可用",
     "status": {

@@ -2837,6 +2837,9 @@
       "requestRewriteEnabled": "Enable rewrite",
       "requestRewriteProfile": "Rewrite Profile",
       "requestRewriteProfileOpenAIChatCompat": "OpenAI Chat Compatibility",
+      "requestRewriteProfilePreserve": "Preserve",
+      "requestRewriteHeaderProfile": "Header Rewrite",
+      "requestRewriteHeaderProfileNone": "None",
       "requestRewriteToolRoleStrategy": "Tool Role Strategy",
       "requestRewriteSystemMessageStrategy": "System Message Strategy",
       "requestRewriteStrategyKeep": "Keep",
@@ -3049,7 +3052,17 @@
     "history": {
       "lastRequest": "· Last request",
       "successRate": "Success rate",
-      "empty": "No request history yet"
+      "empty": "No request history yet",
+      "neverRequested": "Never requested"
+    },
+    "routeType": {
+      "unknown": "Unrecognized endpoint"
+    },
+    "routeSource": {
+      "manual_override": "Manual",
+      "runtime_learned": "Runtime",
+      "default_assigned": "Default",
+      "sync_inferred": "Sync inferred"
     },
     "movePopover": {
       "title": "Move to…"
@@ -3336,6 +3349,7 @@
     "noPlan": "No plans available",
     "mySubscription": "My Subscription",
     "noSubscription": "No active subscription",
+  "selfHostedNoPurchase": "Purchasing is disabled in self-hosted mode",
     "expiresAt": "Expires At",
     "unavailable": "Unavailable",
     "status": {

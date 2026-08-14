@@ -1353,7 +1353,7 @@ export function ChannelForm({
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent className="rounded-lg">
-                                            <SelectItem className="rounded-xl" value={RequestRewriteProfile.Preserve}>保留</SelectItem>
+                                            <SelectItem className="rounded-xl" value={RequestRewriteProfile.Preserve}>{t('requestRewriteProfilePreserve')}</SelectItem>
                                             <SelectItem className="rounded-xl" value={RequestRewriteProfile.OpenAIChatCompat}>{t('requestRewriteProfileOpenAIChatCompat')}</SelectItem>
                                         </SelectContent>
                                     </Select>
@@ -1386,7 +1386,7 @@ export function ChannelForm({
 
                                 <div className={fieldGroupClassName}>
                                     <label htmlFor={`${idPrefix}-request-rewrite-header-profile`} className={labelClassName}>
-                                        Headers 请求重写
+                                        {t('requestRewriteHeaderProfile')}
                                     </label>
                                     <Select
                                         value={formData.request_rewrite.header_profile || '__none__'}
@@ -1403,7 +1403,7 @@ export function ChannelForm({
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent className="rounded-lg">
-                                            <SelectItem className="rounded-xl" value="__none__">无</SelectItem>
+                                            <SelectItem className="rounded-xl" value="__none__">{t('requestRewriteHeaderProfileNone')}</SelectItem>
                                             <SelectItem className="rounded-xl" value={RequestRewriteHeaderProfile.Codex}>Codex</SelectItem>
                                         </SelectContent>
                                     </Select>

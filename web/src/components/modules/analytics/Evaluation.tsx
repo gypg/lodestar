@@ -2,7 +2,7 @@
 
 import { useMemo, useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Activity, AlertTriangle, Clock, Orbit, Radar, Route, Settings } from 'lucide-react';
+import { Activity, Clock, Orbit, Radar, Route, Settings } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { apiClient } from '@/api/client';
 import { useAnalyticsEvaluationRuntime } from '@/api/endpoints/analytics';
@@ -40,19 +40,6 @@ function SummaryStat({ label, value }: { label: string; value: string }) {
     );
 }
 
-function ConfigWarning({ message, onNavigate }: { message: string; onNavigate: () => void }) {
-    return (
-        <div className="mt-3 flex items-center gap-2 rounded-lg border border-amber-500/25 bg-amber-500/5 px-3 py-2">
-            <AlertTriangle className="size-4 shrink-0 text-amber-500" />
-            <span className="min-w-0 flex-1 text-xs text-amber-700 dark:text-amber-300">{message}</span>
-            <Button variant="ghost" size="sm" className="shrink-0 text-xs" onClick={onNavigate}>
-                <Settings className="size-3" />
-                设置
-            </Button>
-        </div>
-    );
-}
-
 function EntryCard({
     icon: Icon,
     title,
@@ -60,7 +47,6 @@ function EntryCard({
     hint,
     status,
     stats,
-    warning,
     action,
 }: {
     icon: typeof Activity;
@@ -69,7 +55,6 @@ function EntryCard({
     hint: string;
     status?: { label: string; tone: 'success' | 'warning' | 'danger' | 'neutral' };
     stats?: Array<{ label: string; value: string }>;
-    warning?: { message: string; onNavigate: () => void };
     action: ReactNode;
 }) {
     return (
@@ -94,7 +79,6 @@ function EntryCard({
                     ))}
                 </div>
             ) : null}
-            {warning ? <ConfigWarning message={warning.message} onNavigate={warning.onNavigate} /> : null}
             <div className="mt-4">{action}</div>
         </article>
     );

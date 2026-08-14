@@ -97,7 +97,7 @@ function PlanCard({
                         </Button>
                     ) : (
                         <div className="rounded-xl border border-dashed border-muted-foreground/30 bg-muted/30 px-3 py-2 text-center text-xs text-muted-foreground">
-                            自用模式下不可购买
+                            {t('selfHostedNoPurchase')}
                         </div>
                     )}
                 </div>

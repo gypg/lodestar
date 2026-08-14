@@ -2837,6 +2837,9 @@
       "requestRewriteEnabled": "启用重写",
       "requestRewriteProfile": "重写配置",
       "requestRewriteProfileOpenAIChatCompat": "OpenAI Chat 兼容",
+      "requestRewriteProfilePreserve": "保留",
+      "requestRewriteHeaderProfile": "Headers 请求重写",
+      "requestRewriteHeaderProfileNone": "无",
       "requestRewriteToolRoleStrategy": "Tool 角色策略",
       "requestRewriteSystemMessageStrategy": "System 消息策略",
       "requestRewriteStrategyKeep": "保留",
@@ -3049,7 +3052,17 @@
     "history": {
       "lastRequest": "· 最近请求",
       "successRate": "成功率",
-      "empty": "暂无请求历史"
+      "empty": "暂无请求历史",
+      "neverRequested": "从未请求"
+    },
+    "routeType": {
+      "unknown": "未识别端点"
+    },
+    "routeSource": {
+      "manual_override": "手动",
+      "runtime_learned": "运行时",
+      "default_assigned": "默认",
+      "sync_inferred": "同步推断"
     },
     "movePopover": {
       "title": "移动至..."
@@ -3336,6 +3349,7 @@
     "noPlan": "暂无可用方案",
     "mySubscription": "我的订阅",
     "noSubscription": "暂无订阅",
+    "selfHostedNoPurchase": "自用模式下不可购买",
     "expiresAt": "到期时间",
     "unavailable": "不可用",
     "status": {

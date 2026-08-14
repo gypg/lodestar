@@ -129,7 +129,7 @@ import {
     matchesMaskedToken,
     isSameGroupFilter,
     platformLabel,
-    routeSourceLabel,
+    routeSourceKey,
     routeTypeLabel,
     summarizeHistory,
 } from './utils';
@@ -715,13 +715,13 @@ function matchesQuickFilters(model: SiteModelView, quickFilters: SiteChannelQuic
     });
 }
 
-function sortModels(models: SiteModelView[], tableSort: SiteChannelTableSort) {
+function sortModels(models: SiteModelView[], tableSort: SiteChannelTableSort, unknownRouteLabel: string) {
     return [...models].sort((left, right) => {
         switch (tableSort.field) {
             case 'group_name':
                 return compareText(left.group_name || left.group_key, right.group_name || right.group_key, tableSort.order);
             case 'route_type':
-                return compareText(routeTypeLabel(left.route_type), routeTypeLabel(right.route_type), tableSort.order);
+                return compareText(routeTypeLabel(left.route_type, unknownRouteLabel), routeTypeLabel(right.route_type, unknownRouteLabel), tableSort.order);
             case 'last_request_at':
                 return compareNullableNumber(getModelLastRequestAt(left), getModelLastRequestAt(right), tableSort.order);
             case 'model_name':
@@ -767,11 +767,11 @@ function HistorySummary({ model }: { model: SiteModelView }) {
                 <div className="flex items-center justify-between gap-2">
                     <div className="truncate text-sm font-semibold text-foreground">{model.model_name}</div>
                     <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
-                        {routeTypeLabel(model.route_type)}
+                        {routeTypeLabel(model.route_type, t('siteChannel.routeType.unknown'))}
                     </Badge>
                 </div>
                 <div className="text-[11px] text-muted-foreground">
-                    {model.group_name || model.group_key} {t('siteChannel.history.lastRequest')} {formatHistoryTime(model.history?.last_request_at ?? null)}
+                    {model.group_name || model.group_key} {t('siteChannel.history.lastRequest')} {formatHistoryTime(model.history?.last_request_at ?? null, t('siteChannel.history.neverRequested'))}
                 </div>
             </div>
 
@@ -962,7 +962,7 @@ function MoveRoutePopover({
                                         : 'hover:bg-muted',
                                 )}
                             >
-                                <span>{routeTypeLabel(routeType)}</span>
+                                <span>{routeTypeLabel(routeType, t('siteChannel.routeType.unknown'))}</span>
                                 {routeType === currentRouteType ? <Check className="size-4" /> : null}
                             </button>
                         ))}
@@ -1033,7 +1033,7 @@ function SiteChannelMobileCard({
                     </div>
                     <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
                         <Badge variant="outline" className={cn('h-5 shrink-0 px-1.5 text-[10px]', getRouteTypeTone(model.route_type))}>
-                            {routeTypeLabel(model.route_type)}
+                            {routeTypeLabel(model.route_type, t('siteChannel.routeType.unknown'))}
                         </Badge>
                         <span className="shrink-0 truncate text-[11px] text-muted-foreground">{model.group_name || model.group_key}</span>
                         {model.disabled ? (
@@ -1059,7 +1059,7 @@ function SiteChannelMobileCard({
                             <div className="grid grid-cols-2 gap-2 text-xs">
                                 <div className="rounded-lg border border-border/25 bg-background/60 px-2 py-1.5">
                                     <div className="text-muted-foreground">{t('siteChannel.mobileCard.source')}</div>
-                                    <div className="mt-0.5 font-medium text-foreground">{routeSourceLabel(model.route_source)}</div>
+                                    <div className="mt-0.5 font-medium text-foreground">{t(`siteChannel.routeSource.${routeSourceKey(model.route_source)}`)}</div>
                                 </div>
                                 <div className="rounded-lg border border-border/25 bg-background/60 px-2 py-1.5">
                                     <div className="text-muted-foreground">Key</div>
@@ -1070,7 +1070,7 @@ function SiteChannelMobileCard({
                                 </div>
                                 <div className="rounded-lg border border-border/25 bg-background/60 px-2 py-1.5">
                                     <div className="text-muted-foreground">{t('siteChannel.mobileCard.lastRequest')}</div>
-                                    <div className="mt-0.5 font-medium text-foreground">{formatHistoryTime(getModelLastRequestAt(model))}</div>
+                                    <div className="mt-0.5 font-medium text-foreground">{formatHistoryTime(getModelLastRequestAt(model), t('siteChannel.history.neverRequested'))}</div>
                                     <div className="text-[11px] text-muted-foreground">{t('siteChannel.mobileCard.historyCount', { count: historyCount })}</div>
                                 </div>
                                 <div className="rounded-lg border border-border/25 bg-background/60 px-2 py-1.5">
@@ -1378,7 +1378,7 @@ function SiteChannelTableView({
                                 <TableCell className={cn('min-w-0', compactMode ? 'py-2' : undefined)}>
                                     <div className="flex flex-wrap gap-1.5">
                                         <Badge variant="outline" className={cn('h-6 px-2 text-[11px]', getRouteTypeTone(model.route_type))}>
-                                            {routeTypeLabel(model.route_type)}
+                                            {routeTypeLabel(model.route_type, t('siteChannel.routeType.unknown'))}
                                         </Badge>
                                         {!isSupportedRouteType(model.route_type) ? (
                                             <Badge
@@ -1393,7 +1393,7 @@ function SiteChannelTableView({
                                 </TableCell>
                                 <TableCell className={cn('min-w-0', compactMode ? 'py-2' : undefined)}>
                                     <Badge variant="outline" className={cn('h-6 px-2 text-[11px]', getRouteSourceTone(model.route_source))}>
-                                        {routeSourceLabel(model.route_source)}
+                                        {t(`siteChannel.routeSource.${routeSourceKey(model.route_source)}`)}
                                     </Badge>
                                 </TableCell>
                                 <TableCell className={cn('min-w-0', compactMode ? 'py-2' : undefined)}>
@@ -1423,7 +1423,7 @@ function SiteChannelTableView({
                                     </div>
                                 </TableCell>
                                 <TableCell className={cn('min-w-0', compactMode ? 'py-2' : undefined)}>
-                                    <div className="text-sm">{formatHistoryTime(getModelLastRequestAt(model))}</div>
+                                    <div className="text-sm">{formatHistoryTime(getModelLastRequestAt(model), t('siteChannel.history.neverRequested'))}</div>
                                     <div className="text-[11px] text-muted-foreground">{t('siteChannel.table.historyCount', { count: historyCount })}</div>
                                 </TableCell>
                                 <TableCell className={cn('min-w-0', compactMode ? 'py-2' : undefined)}>
@@ -1628,9 +1628,10 @@ function SiteAccountPanel({
         });
     }, [scopedModels, modelSearchTerm, panelPreferences.quickFilters, forcedModelKey]);
 
+    const unknownRouteLabel = t('siteChannel.routeType.unknown');
     const visibleModels = useMemo(
-        () => sortModels(filteredModels, panelPreferences.tableSort),
-        [filteredModels, panelPreferences.tableSort],
+        () => sortModels(filteredModels, panelPreferences.tableSort, unknownRouteLabel),
+        [filteredModels, panelPreferences.tableSort, unknownRouteLabel],
     );
 
     const visibleModelMap = useMemo(
@@ -2491,7 +2492,7 @@ function SiteAccountPanel({
                                     <SelectContent className="rounded-xl">
                                         {SITE_ROUTE_COLUMN_ORDER.map((routeType) => (
                                             <SelectItem key={routeType} value={routeType}>
-                                                {routeTypeLabel(routeType)}
+                                                {routeTypeLabel(routeType, t('siteChannel.routeType.unknown'))}
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
@@ -2594,7 +2595,7 @@ function SiteAccountPanel({
                                                 )}
                                             >
                                                 <div className="min-w-0">
-                                                    <div className="truncate text-sm font-medium">{routeTypeLabel(channel.route_type)}</div>
+                                                    <div className="truncate text-sm font-medium">{routeTypeLabel(channel.route_type, t('siteChannel.routeType.unknown'))}</div>
                                                     <div className="mt-0.5 truncate text-xs text-muted-foreground">#{channel.channel_id}</div>
                                                 </div>
                                             </button>
@@ -2610,7 +2611,7 @@ function SiteAccountPanel({
                                     <div className="space-y-4 rounded-2xl border border-border/60 bg-muted/10 p-4">
                                         <div className="flex flex-wrap items-start justify-between gap-3">
                                             <div className="min-w-0">
-                                                <div className="text-sm font-medium text-foreground">{routeTypeLabel(channel.route_type)}</div>
+                                                <div className="text-sm font-medium text-foreground">{routeTypeLabel(channel.route_type, t('siteChannel.routeType.unknown'))}</div>
                                                 <div className="mt-1 truncate text-xs text-muted-foreground">#{channel.channel_id} · {channel.channel_name}</div>
                                             </div>
                                         </div>
@@ -2670,7 +2671,7 @@ function SiteAccountPanel({
                                 <SelectTrigger className="h-10 rounded-xl bg-background"><SelectValue /></SelectTrigger>
                                 <SelectContent className="rounded-xl">
                                     {SITE_ROUTE_COLUMN_ORDER.map((routeType) => (
-                                        <SelectItem key={routeType} value={routeType}>{routeTypeLabel(routeType)}</SelectItem>
+                                        <SelectItem key={routeType} value={routeType}>{routeTypeLabel(routeType, t('siteChannel.routeType.unknown'))}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
@@ -3139,6 +3140,8 @@ function SiteCardImpl({
     const runtime = useMemo(() => collectSiteRuntimeSummary(card), [card]);
     const tCard = useTranslations('siteChannel.card');
     const tMetrics = useTranslations('siteChannel.card.metrics');
+    // Root-scoped translator: the route-type label lives outside siteChannel.card.
+    const t = useTranslations();
     const locale = useSettingStore((s) => s.locale);
     const lastUsedText = runtime.lastRequestAt
         ? dayjs(runtime.lastRequestAt * 1000).locale(DAYJS_LOCALE_MAP[locale]).fromNow()
@@ -3269,7 +3272,7 @@ function SiteCardImpl({
                             <div className="flex flex-1 flex-wrap content-center gap-2">
                                 {SITE_ROUTE_DISPLAY_ORDER.filter((routeType) => (summary.routeCounts.get(routeType) ?? 0) > 0).map((routeType) => (
                                     <Badge key={routeType} variant="outline" className={cn('h-6 shrink-0 px-2 text-[11px]', getRouteTypeTone(routeType))}>
-                                        {SHORT_ROUTE_LABEL[routeType] ?? routeTypeLabel(routeType)}
+                                        {SHORT_ROUTE_LABEL[routeType] ?? routeTypeLabel(routeType, t('siteChannel.routeType.unknown'))}
                                         <span className="ml-1">{summary.routeCounts.get(routeType)}</span>
                                     </Badge>
                                 ))}

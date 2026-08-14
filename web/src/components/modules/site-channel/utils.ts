@@ -81,10 +81,15 @@ export function isSameGroupFilter(
     return true;
 }
 
-export function routeTypeLabel(routeType: SiteModelRouteType) {
+// `unknownLabel` is passed in rather than resolved here: tests/i18n-keys.cjs only
+// resolves a key's namespace when `t` is bound by useTranslations() in an enclosing
+// scope, so calling t() in this module (or taking `t` as a parameter) would drop the
+// key into the unchecked "unresolved" bucket and bypass the missing-key gate.
+// Same reasoning as getUnknownRouteParts() in ./index.tsx.
+export function routeTypeLabel(routeType: SiteModelRouteType, unknownLabel: string) {
     switch (routeType) {
         case 'unknown':
-            return '未识别端点';
+            return unknownLabel;
         case 'openai_response':
             return 'OpenAI Response';
         case 'anthropic':
@@ -100,16 +105,15 @@ export function routeTypeLabel(routeType: SiteModelRouteType) {
     }
 }
 
-export function routeSourceLabel(routeSource: SiteModelRouteSource) {
+/** Maps a route source to its i18n key suffix under `siteChannel.routeSource`. */
+export function routeSourceKey(routeSource: SiteModelRouteSource): SiteModelRouteSource {
     switch (routeSource) {
         case 'manual_override':
-            return '\u624b\u52a8';
         case 'runtime_learned':
-            return '\u8fd0\u884c\u65f6';
         case 'default_assigned':
-            return '\u9ed8\u8ba4';
+            return routeSource;
         default:
-            return '\u540c\u6b65\u63a8\u65ad';
+            return 'sync_inferred';
     }
 }
 
@@ -367,10 +371,11 @@ export function hasSourceKeyChanges(
     return Boolean(payload.keys_to_add?.length || payload.keys_to_update?.length || payload.keys_to_delete?.length);
 }
 
-export function formatHistoryTime(value?: number | null) {
-    if (!value) return '\u4ece\u672a\u8bf7\u6c42';
+/** `neverLabel` is supplied by the caller; see routeTypeLabel() for why. */
+export function formatHistoryTime(value: number | null | undefined, neverLabel: string) {
+    if (!value) return neverLabel;
     const date = new Date(value * 1000);
-    if (Number.isNaN(date.getTime())) return '\u4ece\u672a\u8bf7\u6c42';
+    if (Number.isNaN(date.getTime())) return neverLabel;
     return date.toLocaleString();
 }
 
