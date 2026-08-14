@@ -1301,6 +1301,13 @@
         "deleteError": "刪除失敗"
       }
     },
+    "apiUsageGuide": {
+      "title": "API 使用指南",
+      "description": "相容 OpenAI 介面。請在「API 金鑰」中建立金鑰，然後參考以下範例使用。",
+      "baseUrl": "基礎位址（OpenAI 相容）",
+      "curlExample": "curl 範例",
+      "pythonExample": "Python（openai SDK）範例"
+    },
     "appearance": {
       "title": "外觀",
       "description": "自訂介面外觀和主題"

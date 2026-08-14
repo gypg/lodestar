@@ -1301,6 +1301,13 @@
         "deleteError": "Delete failed"
       }
     },
+    "apiUsageGuide": {
+      "title": "API Usage Guide",
+      "description": "OpenAI-compatible API. Create an API key in \"API Keys\" and use the examples below.",
+      "baseUrl": "Base URL (OpenAI-compatible)",
+      "curlExample": "curl example",
+      "pythonExample": "Python (openai SDK) example"
+    },
     "appearance": {
       "title": "Appearance",
       "description": "Customize interface appearance and theme"

@@ -1301,6 +1301,13 @@
         "deleteError": "删除失败"
       }
     },
+    "apiUsageGuide": {
+      "title": "API 使用指南",
+      "description": "兼容 OpenAI 接口。请在「API 密钥」中创建密钥，然后参考以下示例使用。",
+      "baseUrl": "基础地址（OpenAI 兼容）",
+      "curlExample": "curl 示例",
+      "pythonExample": "Python（openai SDK）示例"
+    },
     "appearance": {
       "title": "外观",
       "description": "自定义界面外观和主题"
