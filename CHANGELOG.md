@@ -106,6 +106,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ldflags. Also fixes `BUILD_TIME`, a Dockerfile ARG that was never given a value,
   so every image reported its container start time as its build time.
 - Add 385 missing translation keys and enable i18n reconciliation gate
+- Internationalize BillingExpr variable descriptions (10 keys: p, c, len, cr, cc, cc1h, img, img_o, ai, ao) and Cloudflare protection text in site probe results
 - Fix endpoint type column showing internal key paths instead of labels
 - Fix `SiteChannelDialog` crash due to missing `useTranslations` hook
 - Move locale files out of `public/` to enable cache busting via JS bundle hashing
