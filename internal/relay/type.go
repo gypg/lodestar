@@ -86,12 +86,25 @@ func isRetryEmptyOutputEnabled() bool {
 	return v
 }
 
-// isEmptyOutputResponse 判断非流式响应是否为"空输出"：
-// CompletionTokens=0 且所有 Choices 的内容均为空（无文本、无工具调用、无多模态内容）。
+// isEmptyOutputResponse 判断非流式响应是否为"空输出"或"假 200"：
+// 1. 假 200：EmbeddingData 和 Choices 都为空（上游返回 HTTP 200 但响应体无效）
+// 2. 空输出：CompletionTokens=0 且所有 Choices 的内容均为空（无文本、无工具调用、无多模态内容）
+//
+// 豁免逻辑：
+// - embedding 响应合法地零 Choices（填的是 EmbeddingData），不会被误判
+// - 即使 retry_empty_output=false，假 200 判断仍然生效，确保计费不变式
 func isEmptyOutputResponse(resp *model.InternalLLMResponse) bool {
 	if resp == nil {
 		return false
 	}
+
+	// 假 200 守卫：EmbeddingData 和 Choices 都为空
+	// 这是无法解析的响应，必须标记为空（影响计费、熔断器、auto 打分、sticky）
+	if len(resp.EmbeddingData) == 0 && len(resp.Choices) == 0 {
+		return true
+	}
+
+	// 以下是原有的"空输出"逻辑（仅针对 LLM 响应）
 	if len(resp.Choices) == 0 {
 		return false
 	}
