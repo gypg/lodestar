@@ -1795,11 +1795,57 @@
       "ariaLabel": "Usage heatmap",
       "tooltip": "{date}: {count} requests"
     },
+    "walletUsageChart": {
+      "metrics": {
+        "tokens": "Tokens",
+        "cost": "Cost (USD)",
+        "requests": "Requests"
+      },
+      "tabs": {
+        "tokens": "Tokens",
+        "cost": "Cost",
+        "requests": "Requests"
+      },
+      "noHistoryLog": "Daily chart requires enabling <strong>Keep History Logs</strong> in System → Logs to have data.",
+      "noData": "No records in the last 14 days (new requests will appear here after enabling log retention)."
+    },
     "theme": {
       "label": "Theme",
       "light": "Light",
       "dark": "Dark",
       "system": "Follow System"
+    },
+    "themePreset": {
+      "title": "Theme Preset",
+      "description": "Choose a color preset for site-wide live theme switching (per browser/account)",
+      "upload": "Upload / Custom Theme (paste JSON)",
+      "placeholder": "{\n  \"id\": \"mytheme\",\n  \"name\": \"My Theme\",\n  \"swatch\": \"oklch(0.6 0.15 320)\",\n  \"light\": { \"primary\": \"oklch(0.6 0.15 320)\", \"accent\": \"oklch(0.7 0.1 320)\", \"ring\": \"oklch(0.6 0.15 320)\" },\n  \"dark\": { \"primary\": \"oklch(0.68 0.15 320)\" }\n}",
+      "addButton": "Add Theme",
+      "hint": "Supports single object or array; use OKLCH or any CSS color for tokens. Equivalent to PUT /api/v1/setting key=custom_themes.",
+      "parseError": "JSON parse failed",
+      "formatError": "Invalid theme format: must include id, name, and light/dark color tokens",
+      "addSuccess": "Added {count} theme(s)"
+    },
+    "maintenanceMode": {
+      "title": "Maintenance Mode",
+      "description": "When enabled, non-admin users see 'Site Under Maintenance'; admins can still use and disable it."
+    },
+    "paymentGateway": {
+      "title": "Payment Gateway"
+    },
+    "subscriptionManagement": {
+      "title": "Subscription Management"
+    },
+    "inviteRequired": {
+      "title": "Registration Requires Invite Code",
+      "description": "When enabled, new users need a valid invite code to register"
+    },
+    "emailRequired": {
+      "title": "Registration Requires Email Verification",
+      "description": "When enabled, new users need email verification code to register (requires SMTP configuration)"
+    },
+    "emailSettings": {
+      "title": "Email Settings (SMTP)"
     },
     "language": {
       "label": "Language",

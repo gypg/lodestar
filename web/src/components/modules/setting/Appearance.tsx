@@ -292,12 +292,12 @@ export function SettingAppearance() {
         try {
             parsed = JSON.parse(themeUploadText);
         } catch (e) { console.error(e);
-            toast.error('JSON 解析失败');
+            toast.error(t('themePreset.parseError'));
             return;
         }
         const incoming = parseCustomThemes(JSON.stringify(Array.isArray(parsed) ? parsed : [parsed]));
         if (incoming.length === 0) {
-            toast.error('主题格式无效：需包含 id、name 以及 light/dark 颜色 token');
+            toast.error(t('themePreset.formatError'));
             return;
         }
         const byId = new Map(customThemes.map((th) => [th.id, th]));
@@ -310,7 +310,7 @@ export function SettingAppearance() {
                     setCustomThemes(merged);
                     setThemeUploadText('');
                     setThemeUploadOpen(false);
-                    toast.success(`已添加 ${incoming.length} 个主题`);
+                    toast.success(t('themePreset.addSuccess', { count: incoming.length }));
                 },
                 onError: () => toast.error(t('saveFailed')),
             }
@@ -396,8 +396,8 @@ export function SettingAppearance() {
                                 <Palette className="h-5 w-5 text-primary" />
                             </div>
                             <div className="space-y-0.5">
-                                <span className="text-sm font-semibold text-card-foreground">主题配色 · Theme</span>
-                                <p className="text-xs text-muted-foreground">选择配色预设，整站实时换肤（每个浏览器/账户独立）</p>
+                                <span className="text-sm font-semibold text-card-foreground">{t('themePreset.title')}</span>
+                                <p className="text-xs text-muted-foreground">{t('themePreset.description')}</p>
                             </div>
                         </div>
                         <div className="flex flex-wrap gap-2">
@@ -432,7 +432,7 @@ export function SettingAppearance() {
                             className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition hover:text-foreground"
                         >
                             <Palette className="h-4 w-4" />
-                            上传 / 自定义主题（粘贴 JSON）
+                            {t('themePreset.upload')}
                         </button>
                         {themeUploadOpen && (
                             <div className="flex flex-col gap-3">
@@ -441,7 +441,7 @@ export function SettingAppearance() {
                                     onChange={(e) => setThemeUploadText(e.target.value)}
                                     rows={8}
                                     spellCheck={false}
-                                    placeholder={'{\n  "id": "mytheme",\n  "name": "我的主题",\n  "swatch": "oklch(0.6 0.15 320)",\n  "light": { "primary": "oklch(0.6 0.15 320)", "accent": "oklch(0.7 0.1 320)", "ring": "oklch(0.6 0.15 320)" },\n  "dark": { "primary": "oklch(0.68 0.15 320)" }\n}'}
+                                    placeholder={t('themePreset.placeholder')}
                                     className="w-full rounded-lg border border-border/40 bg-background p-3 font-mono text-xs leading-5 outline-none focus:border-primary/50"
                                 />
                                 <div className="flex items-center gap-2">
@@ -451,10 +451,10 @@ export function SettingAppearance() {
                                         onClick={handleAddTheme}
                                         disabled={setSetting.isPending || !themeUploadText.trim()}
                                     >
-                                        添加主题
+                                        {t('themePreset.addButton')}
                                     </Button>
                                     <p className="text-xs text-muted-foreground">
-                                        支持单个对象或数组；颜色 token 用 OKLCH 或任意 CSS 颜色。等价于 PUT /api/v1/setting key=custom_themes。
+                                        {t('themePreset.hint')}
                                     </p>
                                 </div>
                             </div>

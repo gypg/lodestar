@@ -213,8 +213,8 @@ export function Commercial() {
             {/* Always-visible operational controls */}
             <ToggleCard
                 icon={<Wrench className="h-4 w-4" />}
-                title="维护模式"
-                description="开启后对非管理员显示「站点维护中」；管理员仍可正常使用并关闭。"
+                title={t('maintenanceMode.title')}
+                description={t('maintenanceMode.description')}
                 checked={maintenanceMode}
                 onToggle={(v) => setSetting.mutate({ key: SettingKey.MaintenanceMode, value: v ? 'true' : 'false' })}
             />
@@ -223,12 +223,12 @@ export function Commercial() {
             {/* Commercial-only features */}
             {isCommercial && (
                 <>
-                    <Section icon={<CreditCard className="h-4 w-4" />} title="支付网关">
+                    <Section icon={<CreditCard className="h-4 w-4" />} title={t('paymentGateway.title')}>
                         <PaymentSettings />
                     </Section>
                     <StripeSection />
 
-                    <Section icon={<Package className="size-4" />} title="订阅管理">
+                    <Section icon={<Package className="size-4" />} title={t('subscriptionManagement.title')}>
                         <Suspense fallback={<Loader className="size-6 animate-spin mx-auto" />}>
                             <Subscription />
                         </Suspense>
@@ -240,19 +240,19 @@ export function Commercial() {
 
                     <ToggleCard
                         icon={<Users className="h-4 w-4" />}
-                        title="注册需邀请码"
-                        description="开启后新用户注册需要有效邀请码"
+                        title={t('inviteRequired.title')}
+                        description={t('inviteRequired.description')}
                         checked={inviteRequired}
                         onToggle={(v) => setSetting.mutate({ key: SettingKey.RegisterInviteRequired, value: v ? 'true' : 'false' })}
                     />
                     <ToggleCard
                         icon={<Mail className="h-4 w-4" />}
-                        title="注册需邮箱验证"
-                        description="开启后新用户注册需要邮箱验证码（需配置 SMTP）"
+                        title={t('emailRequired.title')}
+                        description={t('emailRequired.description')}
                         checked={emailRequired}
                         onToggle={(v) => setSetting.mutate({ key: SettingKey.RegisterEmailRequired, value: v ? 'true' : 'false' })}
                     />
-                    <Section icon={<Mail className="h-4 w-4" />} title="邮件设置（SMTP）">
+                    <Section icon={<Mail className="h-4 w-4" />} title={t('emailSettings.title')}>
                         <EmailSettings />
                     </Section>
                 </>

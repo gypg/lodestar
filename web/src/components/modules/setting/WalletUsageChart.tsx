@@ -2,6 +2,7 @@
 
 import { useId, useMemo, useState } from 'react';
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts';
+import { useTranslations } from 'next-intl';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { Tabs, TabsList, TabsTrigger } from '@/components/animate-ui/components/animate/tabs';
 import { formatCount, formatMoney } from '@/lib/utils';
@@ -18,12 +19,6 @@ function metricValue(p: UsageDailyPoint, metric: WalletChartMetric): number {
     if (metric === 'tokens') return p.tokens;
     if (metric === 'cost') return p.cost;
     return p.requests;
-}
-
-function metricLabel(metric: WalletChartMetric): string {
-    if (metric === 'tokens') return 'Tokens';
-    if (metric === 'cost') return '花费 (USD)';
-    return '请求';
 }
 
 function formatAxis(metric: WalletChartMetric, value: number): string {
@@ -45,6 +40,7 @@ export function WalletUsageChart({
     series?: UsageDailyPoint[];
     available?: boolean;
 }) {
+    const t = useTranslations('setting.walletUsageChart');
     const [metric, setMetric] = useState<WalletChartMetric>('tokens');
     const gradientId = useId().replace(/:/g, '');
 
@@ -59,24 +55,20 @@ export function WalletUsageChart({
 
     const chartConfig = useMemo(
         () => ({
-            value: { label: metricLabel(metric), color: metric === 'cost' ? 'var(--chart-1)' : 'var(--chart-3)' },
+            value: { label: t(`metrics.${metric}`), color: metric === 'cost' ? 'var(--chart-1)' : 'var(--chart-3)' },
         }),
-        [metric],
+        [metric, t],
     );
 
     const hasData = data.some((d) => d.value > 0);
 
     if (!available) {
         return (
-            <p className="text-xs text-muted-foreground">
-                按日曲线需在「系统 → 日志」中开启<strong>保留历史日志</strong>后才有数据。
-            </p>
+            <p className="text-xs text-muted-foreground" dangerouslySetInnerHTML={{ __html: t.raw('noHistoryLog') }} />
         );
     }
     if (!hasData) {
-        return (
-            <p className="text-xs text-muted-foreground">近 14 日暂无记录（开启日志保留后新请求会出现在此）。</p>
-        );
+        return <p className="text-xs text-muted-foreground">{t('noData')}</p>;
     }
 
     const stroke = metric === 'cost' ? 'var(--chart-1)' : 'var(--chart-3)';
@@ -86,13 +78,13 @@ export function WalletUsageChart({
             <Tabs value={metric} onValueChange={(v) => setMetric(v as WalletChartMetric)}>
                 <TabsList className="inline-flex h-8 w-full justify-start rounded-lg border border-border/40 bg-background p-0.5 sm:w-auto">
                     <TabsTrigger value="tokens" className="h-7 px-2.5 text-xs">
-                        Tokens
+                        {t('tabs.tokens')}
                     </TabsTrigger>
                     <TabsTrigger value="cost" className="h-7 px-2.5 text-xs">
-                        花费
+                        {t('tabs.cost')}
                     </TabsTrigger>
                     <TabsTrigger value="requests" className="h-7 px-2.5 text-xs">
-                        请求
+                        {t('tabs.requests')}
                     </TabsTrigger>
                 </TabsList>
             </Tabs>

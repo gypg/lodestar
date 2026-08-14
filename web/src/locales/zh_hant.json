@@ -1795,11 +1795,57 @@
       "ariaLabel": "用量熱力圖",
       "tooltip": "{date}: {count} 次"
     },
+    "walletUsageChart": {
+      "metrics": {
+        "tokens": "Tokens",
+        "cost": "花費 (USD)",
+        "requests": "請求"
+      },
+      "tabs": {
+        "tokens": "Tokens",
+        "cost": "花費",
+        "requests": "請求"
+      },
+      "noHistoryLog": "按日曲線需在「系統 → 日誌」中開啟<strong>保留歷史日誌</strong>後才有資料。",
+      "noData": "近 14 日暫無記錄（開啟日誌保留後新請求會出現在此）。"
+    },
     "theme": {
       "label": "主題",
       "light": "淺色",
       "dark": "深色",
       "system": "跟隨系統"
+    },
+    "themePreset": {
+      "title": "主題配色 · Theme",
+      "description": "選擇配色預設，整站即時換膚（每個瀏覽器/帳戶獨立）",
+      "upload": "上傳 / 自訂主題（貼上 JSON）",
+      "placeholder": "{\n  \"id\": \"mytheme\",\n  \"name\": \"我的主題\",\n  \"swatch\": \"oklch(0.6 0.15 320)\",\n  \"light\": { \"primary\": \"oklch(0.6 0.15 320)\", \"accent\": \"oklch(0.7 0.1 320)\", \"ring\": \"oklch(0.6 0.15 320)\" },\n  \"dark\": { \"primary\": \"oklch(0.68 0.15 320)\" }\n}",
+      "addButton": "新增主題",
+      "hint": "支援單個物件或陣列；顏色 token 用 OKLCH 或任意 CSS 顏色。等價於 PUT /api/v1/setting key=custom_themes。",
+      "parseError": "JSON 解析失敗",
+      "formatError": "主題格式無效：需包含 id、name 以及 light/dark 顏色 token",
+      "addSuccess": "已新增 {count} 個主題"
+    },
+    "maintenanceMode": {
+      "title": "維護模式",
+      "description": "開啟後對非管理員顯示「站點維護中」；管理員仍可正常使用並關閉。"
+    },
+    "paymentGateway": {
+      "title": "支付閘道"
+    },
+    "subscriptionManagement": {
+      "title": "訂閱管理"
+    },
+    "inviteRequired": {
+      "title": "註冊需邀請碼",
+      "description": "開啟後新使用者註冊需要有效邀請碼"
+    },
+    "emailRequired": {
+      "title": "註冊需郵箱驗證",
+      "description": "開啟後新使用者註冊需要郵箱驗證碼（需配置 SMTP）"
+    },
+    "emailSettings": {
+      "title": "郵件設定（SMTP）"
     },
     "language": {
       "label": "語言",
