@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### 🌍 Internationalization
+- **Batch 8** (2026-08-14): Internationalize model-selector, PortalHealthStrip, SuccessSparkline, and base-url-latency components (206 remaining hardcoded strings, down from 817 - 75% complete)
 - **Batch 7** (2026-08-14): Internationalize winter-landing, site/index, and BillingExpr components (139 remaining hardcoded strings, down from 817 - 83% complete)
 
 ### 🚀 Features
