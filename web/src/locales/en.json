@@ -1122,7 +1122,10 @@
     "dialog": {
       "open": "Open",
       "close": "Close"
-    }
+    },
+    "selectModel": "Select model",
+    "searchModels": "Search models...",
+    "noMatchingModels": "No matching models"
   },
   "home": {
     "activity": {
@@ -1788,7 +1791,9 @@
       "best": "Best",
       "average": "Average",
       "recent": "Recent",
-      "failed": "Failed"
+      "failed": "Failed",
+      "testTimeout": "Test Timeout",
+      "networkError": "Network Error"
     },
     "usageHeatmap": {
       "noDailyData": "No daily data available (enable history logs and have request records).",
@@ -2150,6 +2155,15 @@
       "adminReceived": "Admin - feedback received ({count})",
       "adminEmpty": "No feedback yet.",
       "adminUser": "User #{id}"
+    },
+    "portalHealth": {
+      "title": "Platform Health",
+      "statusNormal": "Normal",
+      "statusNeedsAttention": "Needs Attention",
+      "groupIssues": "Group Issues {count}",
+      "recentErrors": "Recent 24h Errors {count}",
+      "opsDetails": "Ops Details",
+      "failures": "Failures {count}"
     }
   },
   "group": {

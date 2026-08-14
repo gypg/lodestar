@@ -11,6 +11,8 @@ export interface LatencySample {
     status: number;
     ms: number;
     error: string;
+    /** Set on failure so callers can render a localized message instead of `error`. */
+    errorKind?: 'timeout' | 'network';
 }
 
 export function publicPingURL(origin?: string): string {
@@ -46,11 +48,13 @@ export async function measureLatency(url: string): Promise<LatencySample> {
     } catch (err) {
         const ms = Math.max(1, Math.round(performance.now() - started));
         const e = err as Error & { name?: string };
+        const isTimeout = e?.name === 'AbortError';
         return {
             ok: false,
             status: 0,
             ms,
-            error: e?.name === 'AbortError' ? '测速超时' : e?.message || '网络错误',
+            error: isTimeout ? '' : e?.message || '',
+            errorKind: isTimeout ? 'timeout' : (e?.message ? undefined : 'network'),
         };
     } finally {
         window.clearTimeout(timeout);

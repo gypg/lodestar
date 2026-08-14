@@ -1,22 +1,25 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 
 /** Mini 7-day success-rate bars (0–100), SAPI-inspired. */
 export function SuccessSparkline({
     values,
     className,
-    title = '近 7 日成功率',
+    title,
 }: {
     values?: number[];
     className?: string;
     title?: string;
 }) {
+    const t = useTranslations('ops.health.portal');
+    const resolvedTitle = title ?? t('sparkline7d');
     const pts = values?.length ? values : [];
     if (pts.length === 0) return null;
     const max = 100;
     return (
-        <div className={cn('flex items-end gap-0.5', className)} role="img" aria-label={title}>
+        <div className={cn('flex items-end gap-0.5', className)} role="img" aria-label={resolvedTitle}>
             {pts.map((v, i) => {
                 const h = Math.max(2, Math.round((Math.min(max, Math.max(0, v)) / max) * 100));
                 const tone =

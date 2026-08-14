@@ -1122,7 +1122,10 @@
     "dialog": {
       "open": "開啟",
       "close": "關閉"
-    }
+    },
+    "selectModel": "選擇模型",
+    "searchModels": "搜索模型...",
+    "noMatchingModels": "無匹配模型"
   },
   "home": {
     "activity": {
@@ -1788,7 +1791,9 @@
       "best": "最佳",
       "average": "平均",
       "recent": "最近",
-      "failed": "失敗"
+      "failed": "失敗",
+      "networkError": "網路錯誤",
+      "testTimeout": "測速超時"
     },
     "usageHeatmap": {
       "noDailyData": "暫無按日資料（需開啟歷史日誌並有請求記錄）。",
@@ -2150,6 +2155,15 @@
       "adminReceived": "管理員 · 收到的回饋（{count}）",
       "adminEmpty": "暫無回饋。",
       "adminUser": "使用者 #{id}"
+    },
+    "portalHealth": {
+      "title": "平台健康",
+      "statusNormal": "正常",
+      "statusNeedsAttention": "需關注",
+      "groupIssues": "分組異常 {count}",
+      "recentErrors": "近 24h 錯誤 {count}",
+      "opsDetails": "運維詳情",
+      "failures": "失敗 {count}"
     }
   },
   "group": {

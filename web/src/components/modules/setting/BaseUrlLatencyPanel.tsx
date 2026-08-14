@@ -44,7 +44,15 @@ export function BaseUrlLatencyPanel() {
             const sample = await measureLatency(target);
             next.push(sample);
             setSamples([...next]);
-            if (!sample.ok) setLastError(sample.error || t('failed'));
+            if (!sample.ok) {
+                const message =
+                    sample.errorKind === 'timeout'
+                        ? t('testTimeout')
+                        : sample.errorKind === 'network'
+                          ? t('networkError')
+                          : sample.error || t('failed');
+                setLastError(message);
+            }
         }
         setTesting(false);
     }, [origin, t]);

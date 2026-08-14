@@ -10,6 +10,7 @@
 
 import { useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import {
     Select,
     SelectContent,
@@ -88,9 +89,10 @@ export function ModelSelector({
     models,
     value,
     onChange,
-    placeholder = '选择模型',
+    placeholder,
     className,
 }: ModelSelectorProps) {
+    const t = useTranslations('common');
     const [filter, setFilter] = useState('');
     const showFilter = models.length > FILTER_THRESHOLD;
 
@@ -110,7 +112,7 @@ export function ModelSelector({
     return (
         <Select value={value} onValueChange={onChange}>
             <SelectTrigger className={cn('h-9 w-48 rounded-lg', className)}>
-                <SelectValue placeholder={placeholder} />
+                <SelectValue placeholder={placeholder || t('selectModel')} />
             </SelectTrigger>
             <SelectContent>
                 {showFilter && (
@@ -120,7 +122,7 @@ export function ModelSelector({
                             <input
                                 value={filter}
                                 onChange={(e) => setFilter(e.target.value)}
-                                placeholder="搜索模型…"
+                                placeholder={t('searchModels')}
                                 className="w-full bg-transparent text-xs outline-none placeholder:text-muted-foreground/50"
                                 // Prevent Radix Select from stealing focus
                                 onKeyDown={(e) => e.stopPropagation()}
@@ -141,7 +143,7 @@ export function ModelSelector({
                 ))}
                 {filteredGroups.length === 0 && (
                     <p className="px-3 py-2 text-center text-xs text-muted-foreground">
-                        无匹配模型
+                        {t('noMatchingModels')}
                     </p>
                 )}
             </SelectContent>

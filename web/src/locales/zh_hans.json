@@ -1122,7 +1122,10 @@
     "dialog": {
       "open": "打开",
       "close": "关闭"
-    }
+    },
+    "selectModel": "选择模型",
+    "searchModels": "搜索模型...",
+    "noMatchingModels": "无匹配模型"
   },
   "home": {
     "activity": {
@@ -1788,7 +1791,9 @@
       "best": "最佳",
       "average": "平均",
       "recent": "最近",
-      "failed": "失败"
+      "failed": "失败",
+      "testTimeout": "测速超时",
+      "networkError": "网络错误"
     },
     "usageHeatmap": {
       "noDailyData": "暂无按日数据（需开启历史日志并有请求记录）。",
@@ -2150,6 +2155,15 @@
       "adminReceived": "管理员 · 收到的反馈（{count}）",
       "adminEmpty": "暂无反馈。",
       "adminUser": "用户 #{id}"
+    },
+    "portalHealth": {
+      "title": "平台健康",
+      "statusNormal": "正常",
+      "statusNeedsAttention": "需关注",
+      "groupIssues": "分组异常 {count}",
+      "recentErrors": "近 24h 错误 {count}",
+      "opsDetails": "运维详情",
+      "failures": "失败 {count}"
     }
   },
   "group": {
