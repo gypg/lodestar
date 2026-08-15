@@ -12,6 +12,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### 🌍 Internationalization
+- **Batch 10 — completion** (2026-08-14): Internationalize the remaining user-facing
+  labels in site-channel views, request-rewrite controls, and the self-hosted
+  subscription notice. Route labels and request-history placeholders are now resolved
+  at UI call sites, so their locale keys remain visible to the i18n validation gate.
+  Removes an unreachable evaluation warning component. The hardcoded-CJK cleanup is
+  complete: the 196 AST findings left are intentionally retained developer console
+  logs, product/brand data, test expectations, theme presets, or China-mode numeric
+  notation—not user-facing copy.
+- **Batch 9** (2026-08-14): Internationalize remote-site type labels in the site
+  dialog and remove the static label map. Import validation keeps the localized UI
+  message while using an English defensive error outside the normal UI path.
 - **Batch 8** (2026-08-14): Internationalize model-selector, PortalHealthStrip, SuccessSparkline, and base-url-latency components (206 remaining hardcoded strings, down from 817 - 75% complete)
 - **Batch 7** (2026-08-14): Internationalize winter-landing, site/index, and BillingExpr components (139 remaining hardcoded strings, down from 817 - 83% complete)
 

@@ -94,7 +94,7 @@ The top-level `Dockerfile` already builds this frontend and copies the export in
 - `src/route/config.tsx`: UI route registration (lazy-loaded top-level modules: home, hub, channel, group, model, analytics, log, alert, ops, apikey, setting, user)
 - `src/stores/`: Zustand state stores
 - `src/lib/`: Utilities, i18n, logger, time zone helpers (10 time zones), service worker management
-- `public/locale/`: Localized text resources (en, zh_hans, zh_hant)
+- `src/locales/`: Localized text resources (en, zh_hans, zh_hant), bundled with the frontend for cache busting
 
 ## Notes
 
