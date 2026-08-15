@@ -157,6 +157,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   binary reads the `LODESTAR_*` prefix.
 
 ### 🔧 CI & Testing
+- Add CJK regression gate (`web/tests/cjk-scan.cjs`): scans `web/src` for hardcoded
+  CJK and compares against a frozen baseline (196 findings / 19 files). Blocks new
+  files with CJK and non-allowlist files whose count increased; allowlist files
+  (logger / tests / comments / brand data / chinaMode number format) warn instead
+  of fail. Prevents the i18n hardcoded-CJK cleanup from silently regressing
+- Clear 27 ESLint warnings and gate `lint` at `--max-warnings=0` (also fixed a real
+  `Cache.tsx` perf issue: `trend` recreated each render invalidated `chartData`'s
+  `useMemo`)
+- Document the auto-deploy chain in `docker.yml` summary (quality → GHCR push →
+  server cron poller ~10 min lag) so readers don't conclude there is no auto-deploy
 - Add gofmt gate (fails at 12s if format issues, before tests run)
 - Add tsc gate (TypeScript type checking)
 - Add i18n reconciliation gate (catches missing translation keys)
