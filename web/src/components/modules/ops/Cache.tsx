@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import { Activity, Coins, Database, Gauge, HardDrive, Layers3, SlidersHorizontal } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { OpsCacheStatus, OpsProviderPromptCacheProviderItem, OpsProviderPromptCacheSummary } from '@/api/endpoints/ops';
@@ -9,7 +9,7 @@ import { useNavStore } from '@/components/modules/navbar';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { MetricCard, QueryState, StatusBadge, formatPercent, formatUnixTime } from '@/components/modules/analytics/shared';
-import { formatProviderPromptCacheCount, getProviderPromptCacheTrendTokens } from './cache-format';
+import { formatProviderPromptCacheCount } from './cache-format';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 
@@ -212,7 +212,9 @@ function ProviderPromptCacheView({
     data: OpsProviderPromptCacheSummary;
     t: CacheTranslations;
 }) {
-    const trend = data.trend ?? [];
+    // Wrap in useMemo so the `?? []` fallback doesn't create a new array
+    // reference on every render, which would invalidate chartData's memo.
+    const trend = useMemo(() => data.trend ?? [], [data.trend]);
     const readTokens = formatProviderPromptCacheCount(data.cache_read_tokens);
     const writeTokens = formatProviderPromptCacheCount(data.cache_write_tokens);
     const hasTrendActivity = trend.some((item) => item.request_count > 0 || item.cache_read_tokens > 0 || item.cache_write_tokens > 0);

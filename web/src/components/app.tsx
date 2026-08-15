@@ -422,7 +422,10 @@ export function AppContainer() {
         return () => {
             cancelled = true;
         };
-        // dependencies intentionally exclude activeItem; bootstrap should only run when auth state changes
+        // dependencies intentionally exclude activeItem; bootstrap should only run
+        // when auth state changes (not on every activeItem change, to avoid
+        // re-prefetching). queryClient is a stable useQueryClient() instance.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [authLoading, isAPIKeyAuth, isAuthenticated]);
 
     useEffect(() => {

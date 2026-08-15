@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { AnimatePresence, motion } from 'motion/react';
 import { ChevronDown, Search, Waypoints } from 'lucide-react';
-import { useModelCapabilities, type ModelCapability } from '@/api/endpoints/model';
+import { useModelCapabilities } from '@/api/endpoints/model';
 import { LoadingState } from '@/components/common/LoadingState';
 import { ErrorState } from '@/components/common/ErrorState';
 import { Input } from '@/components/ui/input';

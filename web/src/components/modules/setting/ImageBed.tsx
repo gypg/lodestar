@@ -171,7 +171,7 @@ export function SettingImageBed() {
                     disabled={testConnection.isPending || !endpoint}
                     onClick={() => {
                         testConnection.mutate(undefined, {
-                            onSuccess: (data) => {
+                            onSuccess: () => {
                                 toast.success(t('imageBed.testSuccess'));
                             },
                             onError: (error: Error) => {

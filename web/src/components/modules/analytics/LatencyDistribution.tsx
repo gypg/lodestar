@@ -56,7 +56,6 @@ function SortableHeader({
     label,
     field,
     currentField,
-    currentOrder,
     onSort,
 }: {
     label: string;

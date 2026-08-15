@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { Plus } from 'lucide-react';
 import { PageWrapper } from '@/components/common/PageWrapper';

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ShieldCheck, KeyRound, Eye, EyeOff, Copy, RefreshCw, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { ShieldCheck, Eye, EyeOff, Copy, RefreshCw, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -143,6 +143,8 @@ export function SettingTwoFA() {
                             {/* QR code image */}
                             {setupData.qr_code && (
                                 <div className="flex justify-center">
+                                    {/* QR code is a dynamic data URI; next/image adds no benefit here. */}
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
                                     <img
                                         src={setupData.qr_code}
                                         alt={t('twofa.qrCode')}

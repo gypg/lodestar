@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import {
     Sun, User, Database, RotateCcw, Zap,
     ScrollText, Monitor, RefreshCw, ChevronsUpDown,
-    Info, Sparkles, FolderX, Cloud, ShieldAlert, Eraser, Fingerprint, Globe2,
+    Info, Sparkles, FolderX, Cloud, ShieldAlert, Eraser, Fingerprint,
     Shield, Bot,
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
@@ -26,7 +26,6 @@ import { SettingWebAuthn } from './WebAuthn';
 import { SettingRouteGroupDanger } from './RouteGroupDanger';
 import { SettingPurgeUnavailableModels } from './PurgeUnavailableModels';
 import { SettingResponseFilter } from './ResponseFilter';
-import { SettingSiteAutomation } from './SiteAutomation';
 import { SettingTwoFA } from './TwoFA';
 import { SettingAIRoute } from './AIRoute';
 import { DEFAULT_SETTING_ORDER } from './SettingOrder';

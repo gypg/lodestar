@@ -44,7 +44,6 @@ import {
     buildChannelNameByModelKey,
     modelChannelKey,
     MODE_LABELS,
-    endpointTypeLabelKey,
     normalizeEndpointType,
 } from './utils';
 import { getModelIcon } from '@/lib/model-icons';
@@ -829,23 +828,6 @@ export function GroupListItem({ group }: { group: Group }) {
         t,
         testProgress?.results,
     ]);
-
-    // ---- Test progress derived state ----
-    const failedTestResults = useMemo(
-        () =>
-            testProgress?.done
-                ? (testProgress.results ?? []).filter((r) => !r.passed)
-                : [],
-        [testProgress],
-    );
-
-    const resultByItemId = useMemo(() => {
-        const map = new Map<number, GroupTestResult>();
-        (testProgress?.results ?? []).forEach((r) =>
-            map.set(r.item_id, r),
-        );
-        return map;
-    }, [testProgress]);
 
     const isTesting =
         testDraftGroup.isPending ||

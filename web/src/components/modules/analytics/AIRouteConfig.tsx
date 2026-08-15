@@ -58,17 +58,6 @@ export function AIRouteConfig({ compact }: { compact?: boolean }) {
         return buckets;
     }, [models]);
 
-    // Build a lookup: model name -> channel id
-    const modelToChannel = useMemo(() => {
-        const map = new Map<number, string>();
-        for (const mc of modelChannels ?? []) {
-            if (mc.enabled && mc.channel_id) {
-                map.set(mc.channel_id, mc.name);
-            }
-        }
-        return map;
-    }, [modelChannels]);
-
     // Load saved settings on mount
     useEffect(() => {
         if (!settings) return;

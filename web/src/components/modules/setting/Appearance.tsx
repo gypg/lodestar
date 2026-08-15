@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTheme } from 'next-themes';
 import { SettingOrder } from './SettingOrder';
 import { useTranslations } from 'next-intl';
-import { Bell, Clock3, GripVertical, Languages, ListOrdered, Monitor, Moon, RotateCcw, Sun, Landmark, Palette, Store } from 'lucide-react';
+import { Bell, Clock3, GripVertical, Languages, ListOrdered, Monitor, Moon, RotateCcw, Sun, Palette } from 'lucide-react';
 import {
     DragDropContext,
     Draggable,
@@ -15,7 +15,6 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import {
     DEFAULT_NAV_ORDER,
@@ -261,13 +260,11 @@ export function SettingAppearance() {
     const { themes: customThemes, setThemes: setCustomThemes } = useCustomThemesStore();
     const [themeUploadOpen, setThemeUploadOpen] = useState(false);
     const [themeUploadText, setThemeUploadText] = useState('');
-    const { locale, setLocale, timeZone, setTimeZone, chinaMode, setChinaMode, exchangeRate, setExchangeRate } = useSettingStore();
+    const { locale, setLocale, timeZone, setTimeZone } = useSettingStore();
     const { data: settings } = useSettingList();
     const setSetting = useSetSetting();
     const [alertNotifyLanguage, setAlertNotifyLanguage] = useState<AlertNotifyLanguage>('en');
     const initialAlertNotifyLanguage = useRef<AlertNotifyLanguage>('en');
-    const [localExchangeRate, setLocalExchangeRate] = useState(exchangeRate.toString());
-    const initialExchangeRate = useRef(exchangeRate);
 
     useEffect(() => {
         if (!settings) return;

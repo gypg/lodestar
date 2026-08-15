@@ -34,7 +34,6 @@ import {
     type ModelFilter,
     type ModelSortMode,
     type ModelLatencyUnit,
-    type ModelProviderFilter,
     type ToolbarSortField,
     type ToolbarSortOrder,
 } from './view-options-store';
