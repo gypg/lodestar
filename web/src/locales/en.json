@@ -3349,7 +3349,7 @@
     "noPlan": "No plans available",
     "mySubscription": "My Subscription",
     "noSubscription": "No active subscription",
-  "selfHostedNoPurchase": "Purchasing is disabled in self-hosted mode",
+    "selfHostedNoPurchase": "Purchasing is disabled in self-hosted mode",
     "expiresAt": "Expires At",
     "unavailable": "Unavailable",
     "status": {
