@@ -15,15 +15,15 @@
 - 在 maintenance 模式下仍然可达（白名单硬编码，见 `internal/server/middleware/maintenance.go`）
 - 前端用它判断站点 banner、初始化状态等
 
-验证：
+验证（宿主机执行；容器内健康检查走 8080，宿主机端口映射为 8081，见 `docker-compose.yml` 的 `LODESTAR_HOST_PORT`）：
 
 ```bash
-curl -sS http://localhost:8080/api/v1/bootstrap/status | head -c 500
+curl -sS http://localhost:8081/api/v1/bootstrap/status | head -c 500
 ```
 
 ### Docker 内置健康检查
 
-Dockerfile 和 docker-compose.yml 均已配置：
+Dockerfile 和 docker-compose.yml 均已配置（容器内端口 8080）：
 
 ```dockerfile
 # Dockerfile
@@ -75,33 +75,49 @@ docker inspect --format='{{.State.Health.Status}}' lodestar
 
 ### Relay 专项
 
-Relay 是 Lodestar 的核心业务，建议重点关注：
+Relay 是 Lodestar 的核心业务，建议重点关注。
 
 | 指标 | 计算方式 |
 |------|---------|
-| 成功率 | `COUNT(status=success) / COUNT(*) * 100` |
-| 平均延迟 | `AVG(response_time)` 按渠道分组 |
-| Token 用量 | `SUM(prompt_tokens + completion_tokens)` 按日 |
-| 渠道错误分布 | `GROUP BY channel_id, error_code` |
+| 成功率 | `COUNT(*) FILTER (WHERE error = '') / COUNT(*) * 100`（主表 `relay_logs`） |
+| 平均延迟 | `AVG(use_time)` 按渠道分组（毫秒，主表 `relay_logs.use_time`） |
+| Token 用量 | `SUM(input_tokens + output_tokens)` 按日 |
+| 渠道错误分布 | `GROUP BY channel_id, error`（错误原文整段存于 `error` 列，无独立 `error_code`） |
+
+> **表结构要点**（核实自生产 `information_schema.columns`，勿用 `status` / `response_time_ms` / `created_at` / `error_code`，这些列不存在）：
+> - 主表 `relay_logs`：`time bigint`（Unix 秒）、`error text`（空串 `''` = 成功，非空 = 错误原文）、`use_time bigint`（毫秒）、`channel_id bigint`、`input_tokens`/`output_tokens bigint`、`cost numeric`、`total_attempts bigint`。
+> - 关联表 `relay_log_attempts`：单次渠道尝试明细，含 `status text`（`success`/`failed`/`circuit_break`/`skipped`）、`channel_id`、`model_name`、`duration`、`time`。按渠道维度聚合成功率建议用此表（可区分「渠道A 失败→重试到渠道B 成功」中渠道A 的失败）。
+> - 成功判断代码（`internal/op/analytics/analytics_query.go`）统一用 `error = ''` 判成功、`error <> ''` 判失败，与 GORM 对 Go `string` 零值写入空串而非 NULL 一致——故 SQL 用 `error = ''`，不要用 `error IS NULL`。
 
 可用 SQL（PostgreSQL）：
 
 ```sql
--- 最近 1 小时 relay 成功率
+-- 最近 1 小时 relay 成功率（主表，按完成请求计）
 SELECT
-  COUNT(*) FILTER (WHERE status = 'success') * 100.0 / NULLIF(COUNT(*), 0) AS success_rate,
+  COUNT(*) FILTER (WHERE error = '') * 100.0 / NULLIF(COUNT(*), 0) AS success_rate,
   COUNT(*) AS total,
-  AVG(response_time_ms) AS avg_latency_ms
+  AVG(use_time) AS avg_latency_ms
 FROM relay_logs
-WHERE created_at > NOW() - INTERVAL '1 hour';
+WHERE time >= EXTRACT(EPOCH FROM NOW() - INTERVAL '1 hour')::bigint;
 
--- 最近 24 小时各渠道错误 Top 5
-SELECT channel_id, error_code, COUNT(*) AS cnt
+-- 最近 24 小时各渠道错误 Top 5（主表，error 原文聚合）
+SELECT channel_id, left(error, 80) AS error_preview, COUNT(*) AS cnt
 FROM relay_logs
-WHERE status != 'success' AND created_at > NOW() - INTERVAL '24 hours'
-GROUP BY channel_id, error_code
+WHERE error <> '' AND time >= EXTRACT(EPOCH FROM NOW() - INTERVAL '24 hours')::bigint
+GROUP BY channel_id, error_preview
 ORDER BY cnt DESC
 LIMIT 5;
+
+-- 按渠道维度的尝试级成功率（关联表 relay_log_attempts，区分重试）
+SELECT
+  a.channel_id,
+  COUNT(*) FILTER (WHERE a.status = 'success') AS success,
+  COUNT(*) FILTER (WHERE a.status = 'failed') AS failed,
+  AVG(a.duration) AS avg_attempt_ms
+FROM relay_log_attempts a
+WHERE a.time >= EXTRACT(EPOCH FROM NOW() - INTERVAL '24 hours')::bigint
+GROUP BY a.channel_id
+ORDER BY failed DESC;
 ```
 
 ---
@@ -172,6 +188,8 @@ services:
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
     ports:
+      # 注意：宿主 8081 已被 Lodestar 占用（见 docker-compose.yml LODESTAR_HOST_PORT），
+      # 全栈监控部署时需改为未占用端口，如 "8082:8080"。
       - "8081:8080"
     restart: unless-stopped
 
@@ -211,7 +229,7 @@ scrape_configs:
 # /opt/lodestar/scripts/health-alert.sh
 # crontab: */5 * * * * /opt/lodestar/scripts/health-alert.sh
 
-URL="http://localhost:8080/api/v1/bootstrap/status"
+URL="http://localhost:8081/api/v1/bootstrap/status"
 MAX_RETRIES=3
 FAIL_COUNT_FILE="/tmp/lodestar_health_fail_count"
 
