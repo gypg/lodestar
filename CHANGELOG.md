@@ -59,6 +59,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **R-4**: Pass attempts to media relay callbacks; failure-then-success chains now visible in logs and stats
 - **R-5**: Fix total attempts quota (was always 0, allowing unlimited retries)
 - **Race condition**: Fix relay metrics worker init order race detected by race detector
+- **Fake-200 routing pollution** (`ad71355`): `isEmptyOutputResponse` now rejects
+  responses with both `EmbeddingData` and `Choices` empty (valid embeddings
+  exempted), so a fake 200 no longer resets the circuit breaker, boosts bad
+  channels in auto-scoring/sticky routing, or suppresses the error rate. Billing
+  invariant holds even when `retry_empty_output=false`.
+- **Media billing on relay failure** (`dd8f26d`): wrap `billing.ChargeKey` in
+  `if relayErr == nil` at the media relay path so requests that fail the relay
+  (e.g. `OnExhausted` returns 502 after all retries, or a fake-200 body) are not
+  charged.
 
 #### Security
 - **S-1**: Never delete users unless backup can restore logins
