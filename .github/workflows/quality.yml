@@ -128,6 +128,13 @@ jobs:
       - name: Frontend tests
         run: pnpm test:i18n && pnpm test:unit
 
+      # CJK 回归门：扫描 web/src 下中文硬编码，与 tests/cjk-baseline.json 对比。
+      # 防止新增中文 UI 文案绕过 i18n 直接写进组件。allowlist 文件见 tests/cjk-allowlist.json。
+      # 新文件/非 allowlist 文件 count 增加 → FAIL；allowlist 文件增加 → WARN。
+      # 基线 196/19/0（2026-08-15）。详情见 web/tests/cjk-scan.cjs 头注释。
+      - name: CJK regression gate
+        run: pnpm test:cjk
+
       - name: Static build
         env:
           NEXT_PUBLIC_APP_VERSION: ci

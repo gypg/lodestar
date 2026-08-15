@@ -1,0 +1,25 @@
+{
+  "total": 196,
+  "files": {
+    "api/endpoints/apikey.ts": 7,
+    "api/endpoints/channel.ts": 15,
+    "api/endpoints/group-progress.hook.test.ts": 3,
+    "api/endpoints/group.ts": 20,
+    "api/endpoints/log.hook.test.ts": 6,
+    "api/endpoints/log.ts": 8,
+    "api/endpoints/model.ts": 8,
+    "api/endpoints/setting.ts": 6,
+    "api/endpoints/site.ts": 18,
+    "api/endpoints/update.ts": 2,
+    "api/endpoints/user.ts": 8,
+    "components/modules/apikey/endpoint-grouping.test.ts": 8,
+    "components/modules/channel/templates.ts": 20,
+    "components/modules/log/display.test.ts": 17,
+    "components/modules/site/card-measure.test.ts": 3,
+    "components/modules/site/site-message.test.ts": 8,
+    "components/modules/site/site-message.ts": 18,
+    "lib/theme-presets.ts": 17,
+    "lib/utils.ts": 4
+  },
+  "generatedAt": "2026-08-15T11:26:38.699Z"
+}

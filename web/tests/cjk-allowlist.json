@@ -1,0 +1,32 @@
+{
+  "_doc": "CJK allowlist — 这些文件被允许包含中文硬编码。每个文件的理由见 reasons。新增 allowlist 项必须在 PR 里说明：为什么这些中文不能/不该挪进 locale 文件。注意：allowlist 只是允许文件有 CJK，CI 门仍会阻止这些文件的 CJK 计数增加（防止新增）。count 减少是改进，不阻塞。",
+  "reasons": {
+    "chinaMode-number-format": "chinaMode 数字记数法（万/亿/¥万/¥亿），是数字格式化单位不是 UI 文案，三语共用一套",
+    "theme-preset-name": "主题预设的显示名与设计描述，预设是固定设计资产不是可切换文案",
+    "code-comment": "代码注释（JSDoc / S-7 说明 / 设计备注），注释不进 UI，注释里用中文是团队约定",
+    "logger-console": "logger.* / console.* 输出，只写开发者控制台不进 UI",
+    "test-assertion": "测试断言与测试用例数据，测试本身不需要 i18n",
+    "brand-channel-data": "渠道品牌名 / 厂商名 / 内置站点类型表等数据，是业务数据不是文案"
+  },
+  "files": {
+    "lib/utils.ts": "chinaMode-number-format",
+    "lib/theme-presets.ts": "theme-preset-name",
+    "components/modules/site/site-message.ts": "code-comment",
+    "components/modules/channel/templates.ts": "brand-channel-data",
+    "api/endpoints/group.ts": "code-comment",
+    "api/endpoints/site.ts": "code-comment",
+    "api/endpoints/channel.ts": "code-comment",
+    "api/endpoints/log.ts": "logger-console",
+    "api/endpoints/model.ts": "code-comment",
+    "api/endpoints/user.ts": "code-comment",
+    "api/endpoints/apikey.ts": "code-comment",
+    "api/endpoints/setting.ts": "code-comment",
+    "api/endpoints/update.ts": "code-comment",
+    "api/endpoints/group-progress.hook.test.ts": "test-assertion",
+    "api/endpoints/log.hook.test.ts": "test-assertion",
+    "components/modules/log/display.test.ts": "test-assertion",
+    "components/modules/apikey/endpoint-grouping.test.ts": "test-assertion",
+    "components/modules/site/site-message.test.ts": "test-assertion",
+    "components/modules/site/card-measure.test.ts": "test-assertion"
+  }
+}
