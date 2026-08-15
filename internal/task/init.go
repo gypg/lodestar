@@ -9,7 +9,6 @@ import (
 	"github.com/gypg/lodestar/internal/op/backup"
 	"github.com/gypg/lodestar/internal/op/ratelimitstore"
 	"github.com/gypg/lodestar/internal/op/relaylog"
-	"github.com/gypg/lodestar/internal/op/remotesite"
 	"github.com/gypg/lodestar/internal/op/setting"
 	"github.com/gypg/lodestar/internal/op/stats"
 	"github.com/gypg/lodestar/internal/price"
@@ -26,10 +25,6 @@ const (
 	TaskSyncLLM           = "sync_llm"
 	TaskCleanLLM          = "clean_llm"
 	TaskBaseUrlDelay      = "base_url_delay"
-	TaskBalanceCapture    = "hub_balance_capture"
-	TaskAutoCheckIn       = "hub_auto_checkin"
-	TaskAnnouncementFetch = "hub_announcement_fetch"
-	TaskUsageHistorySync  = "hub_usage_history_sync"
 	TaskWebDAVBackup      = "webdav_backup"
 )
 
@@ -121,38 +116,6 @@ func Init() {
 	})
 
 	Register(TaskAlertEvaluate, 60*time.Second, false, EvaluateAlertRules)
-
-	// Hub: capture balance snapshots every 6 hours
-	Register(TaskBalanceCapture, 6*time.Hour, false, func() {
-		n := remotesite.CaptureAllBalanceSnapshots(context.Background())
-		if n > 0 {
-			log.Infof("captured balance snapshots for %d remote sites", n)
-		}
-	})
-
-	// Hub: auto check-in daily at task tick (every 12 hours; the check-in logic is idempotent per day)
-	Register(TaskAutoCheckIn, 12*time.Hour, false, func() {
-		records := remotesite.ExecuteCheckInAll(context.Background())
-		if len(records) > 0 {
-			log.Infof("auto check-in completed for %d remote sites", len(records))
-		}
-	})
-
-	// Hub: fetch announcements every 4 hours
-	Register(TaskAnnouncementFetch, 4*time.Hour, false, func() {
-		n := remotesite.FetchAllAnnouncements(context.Background())
-		if n > 0 {
-			log.Infof("fetched announcements for %d remote sites", n)
-		}
-	})
-
-	// Hub: sync usage history every 6 hours
-	Register(TaskUsageHistorySync, 6*time.Hour, false, func() {
-		n := remotesite.SyncAllUsageHistory(context.Background())
-		if n > 0 {
-			log.Infof("synced %d usage history records", n)
-		}
-	})
 
 	// WebDAV cloud backup every 6 hours
 	Register(TaskWebDAVBackup, 6*time.Hour, false, func() {

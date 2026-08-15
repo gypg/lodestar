@@ -53,12 +53,6 @@ func redactChannelBaseURLsForViewer(channels []model.Channel) {
 	}
 }
 
-func redactRemoteSiteBaseURLsForViewer(sites []model.RemoteSite) {
-	for siteIndex := range sites {
-		sites[siteIndex].BaseURL = maskURLDomainForViewer(sites[siteIndex].BaseURL)
-	}
-}
-
 func redactCredentialBaseURLsForViewer(profiles []model.APICredentialProfile) {
 	for profileIndex := range profiles {
 		profiles[profileIndex].BaseURL = maskURLDomainForViewer(profiles[profileIndex].BaseURL)
@@ -107,15 +101,6 @@ func maskSensitiveSettings(settings []model.Setting) {
 		if _, ok := sensitiveSettingKeys[string(settings[i].Key)]; ok {
 			settings[i].Value = maskSecretValue(settings[i].Value)
 		}
-	}
-}
-
-// maskRemoteSiteCredentials zeroes out credential fields in a copy of the site
-// slice so the list API never returns raw tokens/passwords.
-func maskRemoteSiteCredentials(sites []model.RemoteSite) {
-	for i := range sites {
-		sites[i].AccessToken = maskSecretValue(sites[i].AccessToken)
-		sites[i].Password = maskSecretValue(sites[i].Password)
 	}
 }
 
