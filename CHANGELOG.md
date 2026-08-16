@@ -35,6 +35,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   rejected at configuration time with an actionable message, instead of silently
   producing a group that can never match a request.
 
+### 🔥 Removed
+- **Octopus-style site management (dead code)**: The octopus-style site management
+  was ported early on but never wired into any page — Lodestar rewrote site
+  management as the new-api-style sitesync module (`sites`/`site_accounts` tables,
+  `/api/v1/site/*` API, `site/` components), which fully replaced it. The octopus
+  side became dead code that repeatedly mislead sessions into chasing "missing
+  analytics data" that was never wired up. Removed across 4 batches (~10,400 lines):
+  8 dead frontend components + 6 endpoint files; 8 handler files + 4 cron tasks
+  that scanned an empty `remote_sites` table; the entire `internal/hub` adapter
+  package (7 vendor adapters, not used by relay) and `internal/op/remotesite`;
+  6 orphaned model types + AutoMigrate registrations + backup export/import wiring.
+  `HealthStatus*` constants migrated to `api_credential.go` (reused by live
+  credential code). The live sitesync module is untouched. Existing production
+  tables left in place (no destructive DROP).
+
 ### 🐛 Bug Fixes
 
 #### Critical (Production Impact)
