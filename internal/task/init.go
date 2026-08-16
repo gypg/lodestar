@@ -18,14 +18,14 @@ import (
 )
 
 const (
-	TaskPriceUpdate       = "price_update"
-	TaskStatsSave         = "stats_save"
-	TaskRuntimeState      = "runtime_state_save"
-	TaskRelayLogSave      = "relay_log_save"
-	TaskSyncLLM           = "sync_llm"
-	TaskCleanLLM          = "clean_llm"
-	TaskBaseUrlDelay      = "base_url_delay"
-	TaskWebDAVBackup      = "webdav_backup"
+	TaskPriceUpdate  = "price_update"
+	TaskStatsSave    = "stats_save"
+	TaskRuntimeState = "runtime_state_save"
+	TaskRelayLogSave = "relay_log_save"
+	TaskSyncLLM      = "sync_llm"
+	TaskCleanLLM     = "clean_llm"
+	TaskBaseUrlDelay = "base_url_delay"
+	TaskWebDAVBackup = "webdav_backup"
 )
 
 func Init() {
