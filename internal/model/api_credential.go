@@ -9,6 +9,14 @@ const (
 	APITypeGemini    = "gemini"
 )
 
+// Health status constants for credential profiles (used by APICredentialProfile.HealthStatus).
+const (
+	HealthStatusUnknown = "unknown"
+	HealthStatusHealthy = "healthy"
+	HealthStatusWarning = "warning"
+	HealthStatusError   = "error"
+)
+
 // APICredentialProfile stores a reusable Base URL + API Key pair.
 type APICredentialProfile struct {
 	ID             int        `json:"id" gorm:"primaryKey"`

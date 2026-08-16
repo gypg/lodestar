@@ -43,12 +43,7 @@ type DBDump struct {
 	RelayLogs []RelayLog `json:"relay_logs,omitempty"`
 
 	// Hub tables
-	RemoteSites           []RemoteSite           `json:"remote_sites,omitempty"`
-	BalanceSnapshots      []BalanceSnapshot      `json:"balance_snapshots,omitempty"`
-	CheckInRecords        []CheckInRecord        `json:"check_in_records,omitempty"`
 	APICredentialProfiles []APICredentialProfile `json:"api_credential_profiles,omitempty"`
-	SiteAnnouncements     []SiteAnnouncement     `json:"site_announcements,omitempty"`
-	RemoteSiteTokens      []RemoteSiteToken      `json:"remote_site_tokens,omitempty"`
 }
 
 type DBImportResult struct {

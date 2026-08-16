@@ -117,23 +117,8 @@ func ExportAll(ctx context.Context, includeLogs, includeStats bool) (*model.DBDu
 	}
 
 	// Hub tables
-	if err := conn.Find(&d.RemoteSites).Error; err != nil {
-		return nil, fmt.Errorf("export remote_sites: %w", err)
-	}
-	if err := conn.Find(&d.BalanceSnapshots).Error; err != nil {
-		return nil, fmt.Errorf("export balance_snapshots: %w", err)
-	}
-	if err := conn.Find(&d.CheckInRecords).Error; err != nil {
-		return nil, fmt.Errorf("export check_in_records: %w", err)
-	}
 	if err := conn.Find(&d.APICredentialProfiles).Error; err != nil {
 		return nil, fmt.Errorf("export api_credential_profiles: %w", err)
-	}
-	if err := conn.Find(&d.SiteAnnouncements).Error; err != nil {
-		return nil, fmt.Errorf("export site_announcements: %w", err)
-	}
-	if err := conn.Find(&d.RemoteSiteTokens).Error; err != nil {
-		return nil, fmt.Errorf("export remote_site_tokens: %w", err)
 	}
 
 	return d, nil
@@ -256,9 +241,7 @@ func ImportWithModeToDB(ctx context.Context, target *gorm.DB, dump *model.DBDump
 			deleteOrder := []string{
 				"relay_logs", "stats_api_keys", "stats_channels", "stats_models",
 				"stats_hourlies", "stats_dailies", "stats_totals",
-				"remote_site_tokens", "site_announcements",
-				"check_in_records", "balance_snapshots",
-				"api_credential_profiles", "remote_sites",
+				"api_credential_profiles",
 				"group_items", "channel_groups", "groups",
 				"alert_histories", "alert_state_records", "alert_rules", "alert_notif_channels",
 				"audit_logs", "auto_strategy_states", "circuit_breaker_states",
@@ -412,33 +395,8 @@ func ImportWithModeToDB(ctx context.Context, target *gorm.DB, dump *model.DBDump
 		}
 
 		// Hub tables — skip existing
-		if len(dump.RemoteSites) > 0 {
-			if err := cfg.doNothing("remote_sites", &dump.RemoteSites, len(dump.RemoteSites)); err != nil {
-				return err
-			}
-		}
-		if len(dump.BalanceSnapshots) > 0 {
-			if err := cfg.doNothing("balance_snapshots", &dump.BalanceSnapshots, len(dump.BalanceSnapshots)); err != nil {
-				return err
-			}
-		}
-		if len(dump.CheckInRecords) > 0 {
-			if err := cfg.doNothing("check_in_records", &dump.CheckInRecords, len(dump.CheckInRecords)); err != nil {
-				return err
-			}
-		}
 		if len(dump.APICredentialProfiles) > 0 {
 			if err := cfg.doNothing("api_credential_profiles", &dump.APICredentialProfiles, len(dump.APICredentialProfiles)); err != nil {
-				return err
-			}
-		}
-		if len(dump.SiteAnnouncements) > 0 {
-			if err := cfg.doNothing("site_announcements", &dump.SiteAnnouncements, len(dump.SiteAnnouncements)); err != nil {
-				return err
-			}
-		}
-		if len(dump.RemoteSiteTokens) > 0 {
-			if err := cfg.doNothing("remote_site_tokens", &dump.RemoteSiteTokens, len(dump.RemoteSiteTokens)); err != nil {
 				return err
 			}
 		}

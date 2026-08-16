@@ -52,19 +52,16 @@ func TestBackupIncludesCircuitBreakerStates(t *testing.T) {
 func TestBackupIncludesHubTables(t *testing.T) {
 	text := loadBackupSource(t)
 	for _, table := range []string{
-		"RemoteSites", "BalanceSnapshots", "CheckInRecords",
-		"APICredentialProfiles", "SiteAnnouncements", "RemoteSiteTokens",
+		"APICredentialProfiles",
 	} {
 		if !strings.Contains(text, "Find(&d."+table+")") {
 			t.Fatalf("ExportAll does not export %s", table)
 		}
 	}
 	for _, table := range []string{
-		"remote_sites", "balance_snapshots", "check_in_records",
-		"api_credential_profiles", "site_announcements", "remote_site_tokens",
+		"api_credential_profiles",
 	} {
-		if !strings.Contains(text, `"remote_site_tokens", "site_announcements"`) &&
-			!strings.Contains(text, table) {
+		if !strings.Contains(text, table) {
 			t.Fatalf("full import delete order does not include %s", table)
 		}
 	}
@@ -100,7 +97,6 @@ func TestImportWithModeFullClearsExistingRowsUsingActualTableNames(t *testing.T)
 		RuntimeStates: []model.AutoStrategyState{{Key: "new", ChannelID: 2, ModelName: "gpt-4.1", UpdatedAt: 2}},
 		IncludeStats:  true,
 		StatsTotal:    []model.StatsTotal{{ID: 2}},
-		RemoteSites:   []model.RemoteSite{{ID: 2, Name: "new-site", BaseURL: "https://new.example.com", SiteType: model.SiteTypeNewAPI, AuthType: model.AuthTypeAccessToken}},
 	}
 
 	if _, err := ImportWithMode(context.Background(), dump, model.ImportModeFull); err != nil {
@@ -132,7 +128,6 @@ func TestImportWithModeFullClearsExistingRowsUsingActualTableNames(t *testing.T)
 	assertCount(&model.AutoStrategyState{}, 1, "key = ?", "new")
 	assertCount(&model.StatsTotal{}, 0, "id = ?", 1)
 	assertCount(&model.StatsTotal{}, 1, "id = ?", 2)
-	assertCount(&model.RemoteSite{}, 1, "id = ?", 2)
 }
 
 func TestExportImportSeparateLogDBRoundTrip(t *testing.T) {
