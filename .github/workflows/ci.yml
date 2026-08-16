@@ -33,16 +33,15 @@ jobs:
           echo "gofmt OK"
 
       - name: Build affected packages
-        # These packages are the ones we actively maintain and test for Hub/RemoteSite functionality
+        # Sitesync is the actively-maintained site management + sync module
+        # (the octopus-style internal/hub + internal/op/remotesite were removed in WO-016)
         run: |
-          go build ./internal/hub/...
-          go build ./internal/op/remotesite/...
+          go build ./internal/sitesync/...
 
       - name: Test affected packages
         # Use -count=1 to disable test caching, matching our local verification protocol
         run: |
-          go test ./internal/hub/... -count=1
-          go test ./internal/op/remotesite/... -count=1
+          go test ./internal/sitesync/... -count=1
 
   # Optional: Attempt full binary build.
   # This job is allowed to fail because the current main build has a pre-existing
