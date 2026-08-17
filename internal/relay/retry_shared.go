@@ -3,6 +3,7 @@ package relay
 import (
 	"context"
 	"fmt"
+	"time"
 
 	dbmodel "github.com/gypg/lodestar/internal/model"
 	ch "github.com/gypg/lodestar/internal/op/channel"
@@ -33,6 +34,14 @@ type retryCallbacks struct {
 	// Ctx returns the context.Context for channel lookups (e.g. c.Request.Context()
 	// for media, req.operationCtx for LLM).
 	Ctx context.Context
+
+	// HoldCtx is the context that rate-limit holds (rate_limit_hold.go) wait
+	// on. It must be bound to the client connection so a disconnect
+	// interrupts an in-progress hold: the LLM relay passes its client request
+	// context here because Ctx (operationCtx) is not cancelled when the
+	// client goes away. Nil means waits fall back to Ctx, which for the
+	// media relay is already the request context.
+	HoldCtx context.Context
 
 	// CheckContext is called at the top of each iteration to check whether
 	// the client or operation context has been cancelled. Return a non-nil
@@ -86,7 +95,9 @@ type retryCallbacks struct {
 //
 //	for routeRound -> for channel -> for keyRound -> forward -> decision switch
 //
-// All varying behavior is delegated to callbacks.
+// All varying behavior is delegated to callbacks. The optional 429 rate-limit
+// hold (rate_limit_hold.go) also lives here so both the LLM and media relays
+// get it; it is disabled by default and leaves every other decision untouched.
 func retryWithChannels(
 	group dbmodel.Group,
 	requestModel string,
@@ -100,6 +111,12 @@ func retryWithChannels(
 ) {
 	var allAttempts []dbmodel.ChannelAttempt
 	var lastErr error
+
+	rateLimitHoldCfg := getRateLimitHoldConfig()
+	holdCtx := cbs.Ctx
+	if cbs.HoldCtx != nil {
+		holdCtx = cbs.HoldCtx
+	}
 
 	// forwardedBefore counts real upstream forwards made in *completed* route
 	// rounds. Every route round builds a fresh Iterator below, so
@@ -173,6 +190,9 @@ func retryWithChannels(
 
 			// Key-level retry within this channel
 			var failedKeyIDs []int
+			// 429 hold budget is per channel: each new channel gets a
+			// fresh MaxWait window.
+			rateLimitHoldWaited := time.Duration(0)
 			for keyRound := 1; keyRound == 1 || keyRound <= maxKeyRetriesPerRoute; keyRound++ {
 				if capReached(routeIter) {
 					lastErr = fmt.Errorf("reached relay max total attempts: %d", maxTotalAttempts)
@@ -251,7 +271,16 @@ func retryWithChannels(
 					cbs.OnFailure(channel, usedKey, resolvedModel)
 				}
 
-				recordFailureHint(channel.ID, usedKey.ID, resolvedModel, fwdResult.Decision, fwdResult.Err, ratelimitCooldown)
+				// holdingRateLimit: this 429 will be retried inside the same
+				// channel after a delay (rate_limit_hold.go). While holding,
+				// the key must stay selectable, so the failure hint — which
+				// would mark it unselectable on the next pick — is skipped
+				// now and recorded only if the wait budget later runs out.
+				holdingRateLimit := shouldHoldOnRateLimit(rateLimitHoldCfg, fwdResult.Decision) &&
+					canContinueRateLimitHold(rateLimitHoldCfg, rateLimitHoldWaited)
+				if !holdingRateLimit {
+					recordFailureHint(channel.ID, usedKey.ID, resolvedModel, fwdResult.Decision, fwdResult.Err, ratelimitCooldown)
+				}
 
 				switch fwdResult.Decision.Scope {
 				case ScopeNone, ScopeAbortAll:
@@ -264,6 +293,32 @@ func retryWithChannels(
 					return
 				case ScopeSameChannel:
 					lastErr = fwdResult.Err
+					// Optional: on 429, delay-retry within the current channel
+					// instead of switching keys/channels immediately. Disabled
+					// by default; the historical failover behavior is kept.
+					if holdingRateLimit {
+						// attempt()/ForwardRequest just recorded a per-(key,
+						// model) 429 cooldown; clear it so the re-pick below
+						// can still select this key once the wait elapses.
+						dbmodel.ClearKeyModelCooldown(usedKey.ID, resolvedModel)
+						if waitRateLimitHold(holdCtx, rateLimitHoldCfg, channel.Name, rateLimitHoldWaited) {
+							rateLimitHoldWaited += rateLimitHoldCfg.Interval
+							if rateLimitHoldWaited > rateLimitHoldCfg.MaxWait {
+								rateLimitHoldWaited = rateLimitHoldCfg.MaxWait
+							}
+							// The hold is time-dimensional persistence in the
+							// same channel, not a key switch: it must not
+							// consume a keyRound, and the wait itself is not
+							// an upstream forward (R-5 counts real forwards
+							// only, via ForwardedAttempts).
+							keyRound--
+							continue
+						}
+						// Wait interrupted (client disconnect / operation
+						// end). Fall through to the normal key failure path;
+						// the loop-top CheckContext below runs the canonical
+						// cancel exit for both relays.
+					}
 					failedKeyIDs = append(failedKeyIDs, usedKey.ID)
 				case ScopeNextChannel:
 					lastErr = fwdResult.Err

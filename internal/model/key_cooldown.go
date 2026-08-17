@@ -37,6 +37,16 @@ func IsKeyModelOnCooldown(keyID int, modelName string, cooldownSec int) bool {
 	return time.Now().Unix()-ts < int64(cooldownSec)
 }
 
+// ClearKeyModelCooldown removes the 429 cooldown for a (keyID, model) pair so
+// the key can be re-selected immediately. Used by the rate-limit hold path,
+// which retries the same channel after a delay instead of switching keys.
+func ClearKeyModelCooldown(keyID int, modelName string) {
+	if keyID == 0 || modelName == "" {
+		return
+	}
+	keyModelCooldown.Delete(fmt.Sprintf("%d:%s", keyID, modelName))
+}
+
 // CleanupKeyModelCooldown removes expired cooldown entries.
 func CleanupKeyModelCooldown(cooldownSec int) {
 	if cooldownSec <= 0 {

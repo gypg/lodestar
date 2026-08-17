@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { RotateCcw } from 'lucide-react';
+import { Hourglass, RotateCcw } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
 import { useSettingList, useSetSetting } from '@/api/endpoints/setting';
 import { toast } from '@/components/common/Toast';
 import { RETRY_FIELDS } from './runtime-settings';
@@ -15,6 +16,8 @@ export function SettingRetry() {
 
     const [values, setValues] = useState<Record<string, string>>({});
     const initialValues = useRef<Record<string, string>>({});
+    const [holdEnabled, setHoldEnabled] = useState(false);
+    const initialHoldEnabled = useRef(false);
 
     useEffect(() => {
         if (!settings) return;
@@ -26,6 +29,11 @@ export function SettingRetry() {
 
         queueMicrotask(() => setValues(nextValues));
         initialValues.current = nextValues;
+
+        const nextHoldEnabled =
+            settings.find((item) => item.key === 'rate_limit_hold_enabled')?.value === 'true';
+        queueMicrotask(() => setHoldEnabled(nextHoldEnabled));
+        initialHoldEnabled.current = nextHoldEnabled;
     }, [settings]);
 
     const handleSave = (key: string) => {
@@ -46,6 +54,21 @@ export function SettingRetry() {
         );
     };
 
+    const handleHoldEnabledChange = (checked: boolean) => {
+        setHoldEnabled(checked);
+        if (checked === initialHoldEnabled.current) return;
+
+        setSetting.mutate(
+            { key: 'rate_limit_hold_enabled', value: checked ? 'true' : 'false' },
+            {
+                onSuccess: () => {
+                    toast.success(t('saved'));
+                    initialHoldEnabled.current = checked;
+                }
+            }
+        );
+    };
+
     return (
         <div className="space-y-5 rounded-xl border-border/35 bg-card p-6 text-card-foreground shadow-md">
             <h2 className="flex items-center gap-2 text-lg font-bold text-card-foreground">
@@ -54,6 +77,17 @@ export function SettingRetry() {
             </h2>
 
             <div className="space-y-4">
+                <div className="flex min-w-0 flex-col gap-3 rounded-lg border-border/30 bg-card p-4 shadow-sm md:flex-row md:items-center md:justify-between">
+                    <div className="min-w-0 flex flex-col gap-1">
+                        <span className="flex items-center gap-2 text-sm font-medium">
+                            <Hourglass className="h-4 w-4 text-muted-foreground" />
+                            {t('retry.rateLimitHold.enabled.label')}
+                        </span>
+                        <span className="text-xs text-muted-foreground">{t('retry.rateLimitHold.enabled.hint')}</span>
+                    </div>
+                    <Switch checked={holdEnabled} onCheckedChange={handleHoldEnabledChange} />
+                </div>
+
                 {RETRY_FIELDS.map((field) => (
                     <div
                         key={field.key}

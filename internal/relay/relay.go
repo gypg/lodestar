@@ -1155,6 +1155,10 @@ func executeRelay(req *relayRequest, group dbmodel.Group, requestModel string, m
 		maxKeyRetriesPerRoute, maxRouteRetries, ratelimitCooldown, maxTotalAttempts,
 		retryCallbacks{
 			Ctx: req.operationCtx,
+			// operationCtx is not cancelled when the client goes away, so the
+			// 429 hold must wait on the client request context instead or a
+			// disconnect would leave the loop sleeping for the full interval.
+			HoldCtx: req.clientCtx,
 			CheckContext: func() error {
 				if isClientDisconnected(req.clientCtx) {
 					return handleClientDisconnect(req, nil)

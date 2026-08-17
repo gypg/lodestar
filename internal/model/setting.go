@@ -30,6 +30,9 @@ const (
 	SettingKeyAlertNotifyLanguage                  SettingKey = "alert_notify_language"                    // 告警通知发送语言
 	SettingKeyRatelimitCooldown                    SettingKey = "ratelimit_cooldown"                       // Key 错误冷却时间（秒），0=关闭
 	SettingKeyRelayMaxTotalAttempts                SettingKey = "relay_max_total_attempts"                 // 所有候选渠道的最大总尝试次数，0 表示不限制
+	SettingKeyRateLimitHoldEnabled                 SettingKey = "rate_limit_hold_enabled"                  // 429 限流时是否在当前渠道内延时重试（默认关闭，保持立即换 Key/渠道）
+	SettingKeyRateLimitHoldInterval                SettingKey = "rate_limit_hold_interval"                 // 429 渠道内延时重试间隔（秒）
+	SettingKeyRateLimitHoldMaxWait                 SettingKey = "rate_limit_hold_max_wait"                 // 429 渠道内延时重试总等待上限（秒），超过后换下一渠道
 	SettingKeyAutoStrategyMinSamples               SettingKey = "auto_strategy_min_samples"                // Auto策略最小样本数阈值
 	SettingKeyAutoStrategyTimeWindow               SettingKey = "auto_strategy_time_window"                // Auto策略时间窗口（秒）
 	SettingKeyAutoStrategySampleThreshold          SettingKey = "auto_strategy_sample_threshold"           // Auto策略滑动窗口大小
@@ -146,6 +149,9 @@ func DefaultSettings() []Setting {
 		{Key: SettingKeyCircuitBreakerMaxCooldown, Value: "600"}, // 默认最大冷却600秒（10分钟）
 		{Key: SettingKeyRatelimitCooldown, Value: "300"},         // 默认 Key 错误冷却300秒（5分钟），0=关闭
 		{Key: SettingKeyRelayMaxTotalAttempts, Value: "0"},       // 默认不限制所有候选渠道的总尝试次数
+		{Key: SettingKeyRateLimitHoldEnabled, Value: "false"},    // 默认关闭：429 仍立即换 Key/渠道
+		{Key: SettingKeyRateLimitHoldInterval, Value: "10"},      // 默认每 10 秒重试一次
+		{Key: SettingKeyRateLimitHoldMaxWait, Value: "60"},       // 默认最多坚持 60 秒
 		{Key: SettingKeyPublicAPIBaseURL, Value: ""},
 		{Key: SettingKeyAlertNotifyLanguage, Value: "en"},
 		{Key: SettingKeyAutoStrategyMinSamples, Value: "10"},       // 默认最小样本数10次
@@ -248,6 +254,7 @@ func (s *Setting) Validate() error {
 		SettingKeySiteSyncInterval, SettingKeySiteCheckinInterval,
 		SettingKeyRelayRetryCount, SettingKeyRelayRouteRetries, SettingKeyCircuitBreakerThreshold, SettingKeyCircuitBreakerCooldown,
 		SettingKeyCircuitBreakerMaxCooldown, SettingKeyRatelimitCooldown, SettingKeyRelayMaxTotalAttempts,
+		SettingKeyRateLimitHoldInterval, SettingKeyRateLimitHoldMaxWait,
 		SettingKeySemanticCacheTTL, SettingKeySemanticCacheThreshold, SettingKeySemanticCacheMaxEntries,
 		SettingKeySemanticCacheEmbeddingTimeoutSeconds,
 		SettingKeyAutoStrategyMinSamples, SettingKeyAutoStrategyTimeWindow, SettingKeyAutoStrategySampleThreshold,
@@ -271,6 +278,9 @@ func (s *Setting) Validate() error {
 		}
 		if (s.Key == SettingKeyRatelimitCooldown || s.Key == SettingKeyRelayMaxTotalAttempts) && v < 0 {
 			return fmt.Errorf("setting value must be greater than or equal to 0")
+		}
+		if (s.Key == SettingKeyRateLimitHoldInterval || s.Key == SettingKeyRateLimitHoldMaxWait) && v < 1 {
+			return fmt.Errorf("rate limit hold setting must be greater than 0")
 		}
 		if (s.Key == SettingKeyAutoStrategyMinSamples || s.Key == SettingKeyAutoStrategyTimeWindow || s.Key == SettingKeyAutoStrategySampleThreshold) && v < 1 {
 			return fmt.Errorf("auto strategy setting must be greater than 0")
@@ -313,7 +323,7 @@ func (s *Setting) Validate() error {
 			}
 		}
 		return nil
-	case SettingKeyRelayLogKeepEnabled, SettingKeySemanticCacheEnabled, SettingKeyPIIRedactionEnabled, SettingKeyTurnstileEnabled, SettingKeyGuardrailEnabled, SettingKeyImageBedEnabled:
+	case SettingKeyRelayLogKeepEnabled, SettingKeySemanticCacheEnabled, SettingKeyPIIRedactionEnabled, SettingKeyTurnstileEnabled, SettingKeyGuardrailEnabled, SettingKeyImageBedEnabled, SettingKeyRateLimitHoldEnabled:
 		if s.Value != "true" && s.Value != "false" {
 			return fmt.Errorf("setting value must be true or false")
 		}
