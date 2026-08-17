@@ -77,7 +77,7 @@ import {
   type CheckinFilterStatus,
 } from "./checkin-status";
 import { translateSiteMessage } from "./site-message";
-import { nextSiteCardHeights } from "./card-measure";
+import { useElementHeights } from "@/hooks/use-element-heights";
 import { useSiteUIStore } from "./ui-store";
 import { SettingSiteAutomation } from "@/components/modules/setting/SiteAutomation";
 import {
@@ -671,15 +671,10 @@ export function Site() {
   const [checkinAccountIds, setCheckinAccountIds] = useState<Set<number>>(
     () => new Set(),
   );
-  const [siteCardHeights, setSiteCardHeights] = useState<Record<number, number>>(
-    {},
-  );
   const [statusDayKey, setStatusDayKey] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`;
   });
-  const cardObserversRef = useRef<Map<number, ResizeObserver>>(new Map());
-  const cardElementsRef = useRef<Map<number, HTMLElement>>(new Map());
   const accountElementsRef = useRef<Map<number, HTMLElement>>(new Map());
   const [highlightedSiteId, setHighlightedSiteId] = useState<number | null>(
     null,
@@ -716,68 +711,19 @@ export function Site() {
 
   // 高度测量只服务于桌面双列 masonry 的分栏估算。
   //
-  // 两个坑（React error #185 的成因，别回退）：
-  // 1. ref 回调必须是每个 siteID 稳定的同一个函数引用。内联 `ref={(node) => ...}`
-  //    每次渲染都是新函数，React 会先用 null 卸载再重新挂载，于是每渲染一次就重测
-  //    一次并可能 setState，构成 measure → render → measure 死循环。
+  // 两条死循环防御（React error #185 成因，别回退）已收口到 useElementHeights：
+  // 1. ref 回调必须是每个 siteID 稳定的同一函数引用——hook 内部按 key 缓存 ref
+  //    函数，调用方拿不到裸 ref 构造入口，无法内联 `ref={(node) => ...}`。
   // 2. 移动端(`md:hidden`)与桌面(`hidden md:grid`)两套 DOM 同时挂载，隐藏那套
-  //    测出来恒为 0。若两者写同一个 siteID，会在 0 与真实高度之间反复互相覆盖。
-  //    故只有桌面列表注册测量，且 0 高度（display:none）一律不写入。
-  const measureRefsRef = useRef<Map<number, (node: HTMLElement | null) => void>>(
-    new Map(),
-  );
-
-  const applySiteCardHeight = useCallback((siteID: number, rawHeight: number) => {
-    // 0/负/非有限高度丢弃 + 同高返回同一引用，两条不变量都在 card-measure.ts
-    // 里有测试守卫（node:test 无法渲染 React，故抽成纯函数）。
-    setSiteCardHeights((current) =>
-      nextSiteCardHeights(current, siteID, rawHeight),
-    );
-  }, []);
-
-  const getSiteCardMeasureRef = useCallback(
-    (siteID: number) => {
-      const cache = measureRefsRef.current;
-      const cached = cache.get(siteID);
-      if (cached) return cached;
-
-      const ref = (node: HTMLElement | null) => {
-        const observers = cardObserversRef.current;
-        const elements = cardElementsRef.current;
-        const currentNode = elements.get(siteID);
-
-        if (currentNode === node) {
-          return;
-        }
-
-        if (currentNode) {
-          observers.get(siteID)?.disconnect();
-          observers.delete(siteID);
-          elements.delete(siteID);
-        }
-
-        if (!node) {
-          return;
-        }
-
-        elements.set(siteID, node);
-        const observer = new ResizeObserver((entries) => {
-          applySiteCardHeight(
-            siteID,
-            entries[0]?.contentRect.height ?? node.getBoundingClientRect().height,
-          );
-        });
-        observer.observe(node);
-        observers.set(siteID, observer);
-
-        applySiteCardHeight(siteID, node.getBoundingClientRect().height);
-      };
-
-      cache.set(siteID, ref);
-      return ref;
-    },
-    [applySiteCardHeight],
-  );
+  //    测出来恒为 0。只有桌面列表注册测量，且 0 高度（display:none）一律不写入
+  //    （默认 canRecord = shouldRecordHeight）。
+  // 纯逻辑判定与 observer 配对的测试见 element-heights-core.test.ts。无法用
+  // node:test 覆盖的「ref 稳定是否真的阻止渲染时序死循环」靠 hook 代码结构保证。
+  const {
+    heights: siteCardHeights,
+    getMeasureRef: getSiteCardMeasureRef,
+    getElement: getSiteCardElement,
+  } = useElementHeights<number>();
 
   const setAccountElementRef = useCallback(
     (accountId: number, node: HTMLElement | null) => {
@@ -1328,15 +1274,9 @@ export function Site() {
   }, []);
 
   useEffect(() => {
-    const observerMap = cardObserversRef.current;
-    const elementMap = cardElementsRef.current;
     const accountMap = accountElementsRef.current;
     return () => {
-      for (const observer of observerMap.values()) {
-        observer.disconnect();
-      }
-      observerMap.clear();
-      elementMap.clear();
+      // site card 的 observer/element 清理已收口到 useElementHeights 内部。
       accountMap.clear();
     };
   }, []);
@@ -1361,7 +1301,7 @@ export function Site() {
     const node =
       target.kind === "site-account"
         ? accountElementsRef.current.get(target.accountId)
-        : cardElementsRef.current.get(target.siteId);
+        : getSiteCardElement(target.siteId);
     if (!node) return;
 
     const timer = window.setTimeout(() => {
@@ -1374,7 +1314,7 @@ export function Site() {
     }, 80);
 
     return () => window.clearTimeout(timer);
-  }, [pendingSiteJump, visibleSites, clearPendingJump, flashTarget]);
+  }, [pendingSiteJump, visibleSites, clearPendingJump, flashTarget, getSiteCardElement]);
 
   const masonryColumns = useMemo<[VisibleSite[], VisibleSite[]]>(() => {
     const left: VisibleSite[] = [];
