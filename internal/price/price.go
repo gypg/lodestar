@@ -103,6 +103,11 @@ func GetLastUpdateTime() time.Time {
 	return lastUpdateTime
 }
 
+// GetLLMPrice 返回模型价格，兜底链按精度递减：
+//  1. DB(LLMInfo) 精确价
+//  2. 内置 presets（含手工价）精确价
+//  3. 价格分类规则（exact/prefix/contains，按 sort_order）兜底价
+//  4. 整词子串启发式兜底（matchFallbackPrice）
 func GetLLMPrice(modelName string) *model.LLMPrice {
 	modelName = strings.ToLower(modelName)
 	price, err := llm.Get(modelName)
@@ -114,6 +119,10 @@ func GetLLMPrice(modelName string) *model.LLMPrice {
 	price, ok := llmPrice[modelName]
 	if ok {
 		return &price
+	}
+	// 分类规则兜底：管理员配置的规则价优先于子串启发式兜底。
+	if p := llm.PriceCategoryMatch(modelName); p != nil {
+		return p
 	}
 	// Fallback: try matching by base model name
 	if fallback := matchFallbackPrice(modelName); fallback != nil {

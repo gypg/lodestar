@@ -64,6 +64,25 @@ func init() {
 		AddRoute(
 			router.NewRoute("/capabilities", http.MethodGet).
 				Handle(getModelCapabilities),
+		).
+		AddRoute(
+			router.NewRoute("/price-category/list", http.MethodGet).
+				Handle(listPriceCategories),
+		).
+		AddRoute(
+			router.NewRoute("/price-category/create", http.MethodPost).
+				Use(middleware.RequirePermission(auth.PermSettingsWrite)).
+				Handle(createPriceCategory),
+		).
+		AddRoute(
+			router.NewRoute("/price-category/update", http.MethodPost).
+				Use(middleware.RequirePermission(auth.PermSettingsWrite)).
+				Handle(updatePriceCategory),
+		).
+		AddRoute(
+			router.NewRoute("/price-category/delete", http.MethodPost).
+				Use(middleware.RequirePermission(auth.PermSettingsWrite)).
+				Handle(deletePriceCategory),
 		)
 	router.NewGroupRouter("/v1").
 		Use(middleware.APIKeyAuth()).
@@ -229,4 +248,56 @@ func getModelCapabilities(c *gin.Context) {
 		return
 	}
 	resp.Success(c, caps)
+}
+
+func listPriceCategories(c *gin.Context) {
+	categories, err := llm.ListPriceCategories(c.Request.Context())
+	if err != nil {
+		resp.InternalError(c)
+		return
+	}
+	resp.Success(c, categories)
+}
+
+func createPriceCategory(c *gin.Context) {
+	var cat model.ModelPriceCategory
+	if err := c.ShouldBindJSON(&cat); err != nil {
+		resp.Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	created, err := llm.CreatePriceCategory(cat, c.Request.Context())
+	if err != nil {
+		resp.Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	resp.Success(c, created)
+}
+
+func updatePriceCategory(c *gin.Context) {
+	var cat model.ModelPriceCategory
+	if err := c.ShouldBindJSON(&cat); err != nil {
+		resp.Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	updated, err := llm.UpdatePriceCategory(cat, c.Request.Context())
+	if err != nil {
+		resp.Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	resp.Success(c, updated)
+}
+
+func deletePriceCategory(c *gin.Context) {
+	var req struct {
+		ID uint `json:"id" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		resp.Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	if err := llm.DeletePriceCategory(req.ID, c.Request.Context()); err != nil {
+		resp.InternalError(c)
+		return
+	}
+	resp.Success(c, nil)
 }

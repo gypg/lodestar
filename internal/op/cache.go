@@ -127,6 +127,12 @@ func init() {
 		return nil
 	})
 	RegisterCacheInit(func(ctx context.Context) error {
+		if err := priceCategoryRefreshCache(ctx); err != nil {
+			return fmt.Errorf("price category refresh cache error: %v", err)
+		}
+		return nil
+	})
+	RegisterCacheInit(func(ctx context.Context) error {
 		if err := statsRefreshCache(ctx); err != nil {
 			return fmt.Errorf("stats refresh cache error: %v", err)
 		}

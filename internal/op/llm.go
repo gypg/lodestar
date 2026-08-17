@@ -43,3 +43,8 @@ func LLMGet(name string) (model.LLMPrice, error) { return llm.Get(name) }
 
 // llmRefreshCache is called by cache.go (same package)
 func llmRefreshCache(ctx context.Context) error { return llm.RefreshCache(ctx) }
+
+// priceCategoryRefreshCache is called by cache.go (same package)
+func priceCategoryRefreshCache(ctx context.Context) error {
+	return llm.RefreshPriceCategoryCache(ctx)
+}
