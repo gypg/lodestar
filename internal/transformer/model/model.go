@@ -219,6 +219,12 @@ type InternalLLMRequest struct {
 	// RawRequest is the raw request from the client.
 	RawRequest []byte `json:"-"`
 
+	// RawPath is the original request path from the client (c.Request.URL.Path).
+	// Used by the passthrough outbound adapter to forward the original path to the
+	// upstream, instead of reconstructing a provider-specific URL. Empty when there
+	// is no path to preserve (e.g. non-HTTP entry).
+	RawPath string `json:"-"`
+
 	// RawAPIFormat is the original format of the request.
 	// e.g. the request from the chat/completions endpoint is in the openai/chat_completion format.
 	RawAPIFormat APIFormat `json:"-"`

@@ -15,7 +15,7 @@ type Group struct {
 	Name              string      `json:"name" gorm:"unique;not null"`
 	EndpointType      string      `json:"endpoint_type" gorm:"not null;default:*;index"`
 	EndpointProvider  string      `json:"endpoint_provider,omitempty" gorm:"not null;default:''"`
-	OutboundFormat    string      `json:"outbound_format,omitempty" gorm:"not null;default:''"` // 出站格式: "" (auto), "chat", "responses"
+	OutboundFormat    string      `json:"outbound_format,omitempty" gorm:"not null;default:''"` // 出站格式: "" (auto), "chat", "responses", "passthrough"
 	Mode              GroupMode   `json:"mode" gorm:"not null"`
 	MatchRegex        string      `json:"match_regex"`
 	FirstTokenTimeOut int         `json:"first_token_time_out"` // 单个渠道首个Token响应超时时间(秒)

@@ -16,6 +16,7 @@ func populateRelayRequestSessionFields(c *gin.Context, req *transmodel.InternalL
 	}
 
 	req.RawRequest = append([]byte(nil), body...)
+	req.RawPath = c.Request.URL.Path
 	req.ConversationID = strings.TrimSpace(c.GetHeader("X-Conversation-ID"))
 	req.ResumeFromEventID = parseRelayEventSequence(c.GetHeader("Last-Event-ID"))
 

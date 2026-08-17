@@ -92,6 +92,13 @@ func detectZenPreferredChannelTypes(requestModel string, isEmbeddingRequest bool
 }
 
 func outboundAttemptTypes(channelType outbound.OutboundType, request *model.InternalLLMRequest, outboundFormat string) []outbound.OutboundType {
+	// passthrough 是客户端/分组显式选择的"原样透传"格式：无论渠道类型是什么，
+	// 都强制路由到 OutboundTypePassthrough。它不参与 chat↔responses 的 adapter
+	// fallback，也不进 isLLMRequestFormat 判定（R-6：Anthropic 仍在 isLLMRequestFormat
+	// 里，passthrough 不影响它）。
+	if strings.ToLower(strings.TrimSpace(outboundFormat)) == "passthrough" {
+		return []outbound.OutboundType{outbound.OutboundTypePassthrough}
+	}
 	// For LLM requests (both ChatCompletion and Responses API formats), provide
 	// adapter fallback with configurable priority order.
 	// When outboundFormat is "chat", prefer Chat Completions first.

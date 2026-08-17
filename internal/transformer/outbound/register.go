@@ -7,6 +7,7 @@ import (
 	"github.com/gypg/lodestar/internal/transformer/outbound/gemini"
 	"github.com/gypg/lodestar/internal/transformer/outbound/mimo"
 	"github.com/gypg/lodestar/internal/transformer/outbound/openai"
+	"github.com/gypg/lodestar/internal/transformer/outbound/passthrough"
 	"github.com/gypg/lodestar/internal/transformer/outbound/volcengine"
 )
 
@@ -21,6 +22,11 @@ const (
 	OutboundTypeOpenAIEmbedding
 	OutboundTypeMimo
 	OutboundTypeCloudflare
+	// OutboundTypePassthrough 是客户端显式选择的"原样透传"出站格式：
+	// 保留客户端原始请求体（只重写顶层 model），可选保留原始请求路径。
+	// 它不进 isLLMRequestFormat 判定（R-6 不回归），也不参与 chat↔responses
+	// 的 adapter fallback——只有分组 OutboundFormat="passthrough" 时才路由到此。
+	OutboundTypePassthrough
 )
 
 func (t OutboundType) String() string {
@@ -41,17 +47,24 @@ func (t OutboundType) String() string {
 		return "mimo"
 	case OutboundTypeCloudflare:
 		return "cloudflare"
+	case OutboundTypePassthrough:
+		return "passthrough"
 	default:
 		return "unknown"
 	}
 }
 
-// EmbeddingChannelTypes 定义支持 embedding 请求的 channel 类型集合
+// EmbeddingChannelTypes 定义支持 embedding 请求的 channel 类型集合。
+// passthrough 原样透传，与 embedding 请求兼容。
 var EmbeddingChannelTypes = map[OutboundType]bool{
 	OutboundTypeOpenAIEmbedding: true,
+	OutboundTypePassthrough:     true,
 }
 
-// ChatChannelTypes 定义支持 chat 请求的 channel 类型集合
+// ChatChannelTypes 定义支持 chat 请求的 channel 类型集合。
+// passthrough 在此集合里：它原样透传客户端请求体，对 chat/embedding 不做格式
+// 限制（IsChatChannelType / IsEmbeddingChannelType 的用途是过滤不兼容的渠道
+// 类型，passthrough 与任意请求类型都兼容）。
 var ChatChannelTypes = map[OutboundType]bool{
 	OutboundTypeOpenAIChat:     true,
 	OutboundTypeOpenAIResponse: true,
@@ -60,6 +73,7 @@ var ChatChannelTypes = map[OutboundType]bool{
 	OutboundTypeVolcengine:     true,
 	OutboundTypeMimo:           true,
 	OutboundTypeCloudflare:     true,
+	OutboundTypePassthrough:    true,
 }
 
 // IsEmbeddingChannelType 判断 channel 类型是否支持 embedding 请求
@@ -81,6 +95,7 @@ var outboundFactories = map[OutboundType]func() model.Outbound{
 	OutboundTypeVolcengine:      func() model.Outbound { return &volcengine.ResponseOutbound{} },
 	OutboundTypeMimo:            func() model.Outbound { return &mimo.ChatOutbound{} },
 	OutboundTypeCloudflare:      func() model.Outbound { return &cloudflare.ChatOutbound{} },
+	OutboundTypePassthrough:     func() model.Outbound { return &passthrough.Outbound{} },
 }
 
 func Get(outboundType OutboundType) model.Outbound {
