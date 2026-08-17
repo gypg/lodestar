@@ -24,6 +24,11 @@ import (
 var db *gorm.DB
 var currentDBType string
 
+// dbLock 保护全局 db / currentDBType 的读写，避免 InitDB/Close 写与
+// GetDB 读之间的 data race（race detector 在并发测试里曾稳定复现：
+// GroupTestResultSave 读 db 与 initGroupProbeLogTestEnv 调 InitDB 写 db 竞态）。
+var dbLock sync.RWMutex
+
 // 独立日志库（仅承载 relay_logs）。当配置了 database.log_type/log_path 时启用，
 // 否则 logDB 保持 nil，GetLogDB() 回落到主库——与旧版行为完全一致。
 //
@@ -40,6 +45,8 @@ var (
 )
 
 func IsSQLite() bool {
+	dbLock.RLock()
+	defer dbLock.RUnlock()
 	return currentDBType == "sqlite"
 }
 
@@ -63,6 +70,8 @@ func IsLogSQLite() bool {
 }
 
 func InitDB(dbType, dsn string, debug bool) error {
+	dbLock.Lock()
+	defer dbLock.Unlock()
 	currentDBType = dbType
 	var err error
 	db, err = OpenStandalone(dbType, dsn, debug)
@@ -128,10 +137,13 @@ func MigrateLogDB(conn *gorm.DB) error {
 // 自行判断（日志关闭场景下不应再写入）。共用主库模式下返回主库连接。
 func GetLogDB() *gorm.DB {
 	logDBLock.RLock()
-	defer logDBLock.RUnlock()
 	if logDBType != "" {
+		defer logDBLock.RUnlock()
 		return logDB
 	}
+	logDBLock.RUnlock()
+	dbLock.RLock()
+	defer dbLock.RUnlock()
 	return db
 }
 
@@ -387,6 +399,8 @@ func initPostgres(dsn string, config *gorm.Config) (*gorm.DB, error) {
 func Close() error {
 	// 先关闭独立日志库（共用主库模式下为空操作），再关闭主库。
 	_ = CloseLogDB()
+	dbLock.Lock()
+	defer dbLock.Unlock()
 	sqlDB, err := db.DB()
 	if err != nil {
 		return err
@@ -395,6 +409,8 @@ func Close() error {
 }
 
 func GetDB() *gorm.DB {
+	dbLock.RLock()
+	defer dbLock.RUnlock()
 	return db
 }
 
