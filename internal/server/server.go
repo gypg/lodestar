@@ -8,20 +8,54 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime/debug"
 	"syscall"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gypg/lodestar/internal/conf"
+	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/op/errorlog"
 	_ "github.com/gypg/lodestar/internal/server/handlers"
 	"github.com/gypg/lodestar/internal/server/middleware"
 	"github.com/gypg/lodestar/internal/server/resp"
 	"github.com/gypg/lodestar/internal/server/router"
 	"github.com/gypg/lodestar/internal/utils/log"
+	"github.com/gypg/lodestar/internal/utils/xstrings"
 	"github.com/gypg/lodestar/static"
 )
 
 var httpSrv http.Server
+
+// panicRecoveryHandler 记录崩溃详情（值 + 完整堆栈 + 请求信息）到错误日志
+// （落主库，重启不丢）与系统日志，便于排障"后端突然崩溃"。recovered 可能是
+// error / string / 任意值。抽成具名函数以便测试直接验证生产行为。
+func panicRecoveryHandler(c *gin.Context, recovered interface{}) {
+	stack := string(debug.Stack())
+	message := xstrings.TruncateRunes(fmt.Sprint(recovered), 8192)
+	stack = xstrings.TruncateRunes(stack, 65536)
+	entry := model.ErrorLog{
+		Source:        "backend",
+		Level:         "panic",
+		Message:       message,
+		Stack:         stack,
+		RequestMethod: c.Request.Method,
+		RequestPath:   c.Request.URL.Path,
+		ClientIP:      c.ClientIP(),
+		UserAgent:     c.Request.UserAgent(),
+		Version:       conf.Version,
+	}
+	// 不用 c.Request.Context()：客户端断连（流式请求中途断开正是最常见的
+	// panic 诱因）会取消请求 ctx，导致最需要的崩溃记录恰好写库失败。
+	writeCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := errorlog.Add(writeCtx, entry); err != nil {
+		log.Errorf("failed to record panic error log: %v", err)
+	}
+	log.Errorf("panic recovered: %v\n%s", recovered, stack)
+	resp.Error(c, http.StatusInternalServerError, resp.ErrInternalServer)
+	c.Abort()
+}
 
 func Start() error {
 	if conf.IsDebug() {
@@ -41,10 +75,7 @@ func Start() error {
 		return fmt.Errorf("invalid server.trusted_proxies: %w", err)
 	}
 
-	r.Use(gin.CustomRecovery(func(c *gin.Context, recovered interface{}) {
-		resp.Error(c, http.StatusInternalServerError, resp.ErrInternalServer)
-		c.Abort()
-	}))
+	r.Use(gin.CustomRecovery(panicRecoveryHandler))
 
 	if conf.IsDebug() {
 		r.Use(middleware.Logger())

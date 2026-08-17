@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { reportError } from '@/lib/error-report';
 import { motion } from 'motion/react';
 import { AlertTriangle, RotateCcw, Home } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -17,6 +18,12 @@ export default function ErrorBoundary({
 
     useEffect(() => {
         console.error('App Error Boundary caught:', error);
+        // 渲染错误落库（后端 error_logs，source=frontend），排障不再只靠浏览器控制台。
+        void reportError({
+            level: 'error',
+            message: error.message,
+            stack: error.stack ?? '',
+        });
     }, [error]);
 
     return (

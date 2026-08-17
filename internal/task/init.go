@@ -18,14 +18,15 @@ import (
 )
 
 const (
-	TaskPriceUpdate  = "price_update"
-	TaskStatsSave    = "stats_save"
-	TaskRuntimeState = "runtime_state_save"
-	TaskRelayLogSave = "relay_log_save"
-	TaskSyncLLM      = "sync_llm"
-	TaskCleanLLM     = "clean_llm"
-	TaskBaseUrlDelay = "base_url_delay"
-	TaskWebDAVBackup = "webdav_backup"
+	TaskPriceUpdate   = "price_update"
+	TaskStatsSave     = "stats_save"
+	TaskRuntimeState  = "runtime_state_save"
+	TaskRelayLogSave  = "relay_log_save"
+	TaskSyncLLM       = "sync_llm"
+	TaskCleanLLM      = "clean_llm"
+	TaskBaseUrlDelay  = "base_url_delay"
+	TaskWebDAVBackup  = "webdav_backup"
+	TaskErrorLogClean = "error_log_cleanup"
 )
 
 func Init() {
@@ -116,6 +117,9 @@ func Init() {
 	})
 
 	Register(TaskAlertEvaluate, 60*time.Second, false, EvaluateAlertRules)
+
+	// 错误日志保留策略：超限（5000 条）删最旧一半，每 6 小时检查一次。
+	Register(TaskErrorLogClean, 6*time.Hour, false, ErrorLogCleanup)
 
 	// WebDAV cloud backup every 6 hours
 	Register(TaskWebDAVBackup, 6*time.Hour, false, func() {

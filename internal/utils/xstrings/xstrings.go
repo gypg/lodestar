@@ -33,3 +33,18 @@ func TrimCompact(items []string) []string {
 	}
 	return out
 }
+
+// TruncateRunes truncates s to at most max runes. Truncation is rune-based,
+// not byte-based: slicing bytes can split a multi-byte UTF-8 character,
+// producing invalid sequences that MySQL/PostgreSQL reject on insert —
+// stacks containing CJK text or emoji would then never reach the database.
+func TruncateRunes(s string, max int) string {
+	if len(s) <= max {
+		return s
+	}
+	runes := []rune(s)
+	if len(runes) > max {
+		runes = runes[:max]
+	}
+	return string(runes)
+}

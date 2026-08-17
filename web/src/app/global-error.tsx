@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { reportError } from '@/lib/error-report';
 import { resolveRuntimeI18nMessage } from '@/lib/i18n-runtime';
 
 export default function GlobalError({
@@ -12,6 +13,12 @@ export default function GlobalError({
 }) {
     useEffect(() => {
         console.error('Global Error caught:', error);
+        // 根层崩溃也要上报：global-error 期间 React 已卸载，这是最后的机会。
+        void reportError({
+            level: 'error',
+            message: error.message,
+            stack: error.stack ?? '',
+        });
     }, [error]);
 
     const title = resolveRuntimeI18nMessage('common.globalErrorBoundary.title', undefined, 'Critical Error');
