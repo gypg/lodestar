@@ -1505,6 +1505,22 @@
       "maxTotalAttempts": {
         "label": "Max Total Attempts",
         "hint": "Maximum retry attempts across all channels"
+      },
+      "rateLimitHold": {
+        "enabled": {
+          "label": "In-channel 429 Hold & Retry",
+          "hint": "On 429, wait inside the current channel and retry instead of switching keys/channels immediately; useful with few or expensive keys. Off by default."
+        },
+        "interval": {
+          "label": "429 Hold Retry Interval (seconds)",
+          "hint": "Wait time between held retries",
+          "placeholder": "10"
+        },
+        "maxWait": {
+          "label": "429 Hold Max Total Wait (seconds)",
+          "hint": "After cumulatively waiting this long on one channel, give up the hold and move to the next channel",
+          "placeholder": "60"
+        }
       }
     },
     "log": {
@@ -2178,6 +2194,42 @@
       "recentErrors": "Recent 24h Errors {count}",
       "opsDetails": "Ops Details",
       "failures": "Failures {count}"
+    },
+    "strategyPresets": {
+      "title": "Strategy Presets",
+      "hint": "Pick a named preset by key count and traffic shape to batch-fill the recommended group mode and global circuit-breaker/retry knobs. A preset only writes the settings listed below; fine-tune anytime.",
+      "apply": "Apply Preset",
+      "appliedShort": "Applied",
+      "applied": "Preset \"{name}\" applied",
+      "applyFailed": "Some settings failed to save, please retry",
+      "keyCount": "Recommended keys",
+      "modeLabel": "Recommended mode",
+      "knobsLabel": "Knobs to write",
+      "name": {
+        "guardian": "Guardian",
+        "balanced": "Balanced",
+        "velocity": "Velocity",
+        "fairshare": "Fairshare",
+        "adaptive": "Adaptive"
+      },
+      "character": {
+        "guardian": "Never die, never burn, most frugal",
+        "balanced": "Fully balanced",
+        "velocity": "Low latency, high concurrency",
+        "fairshare": "Even spread, max total throughput",
+        "adaptive": "AI auto-tuning"
+      },
+      "scenario": {
+        "guardian": "Scarce keys (≤3) or a single paid key. Always try the first-ranked channel first and fall back only on failure, eliminating concurrent-loser waste; a lenient breaker (threshold 20) avoids tripping your last healthy keys; total attempts are capped to prevent meltdown.",
+        "balanced": "Default general-purpose. Enough keys to absorb randomness; weighted random spreads load while favoring healthy keys; the standard breaker cuts genuinely broken keys. Values equal factory defaults — applying this returns you to the balanced baseline.",
+        "velocity": "Keys ≥8, aggregate RPM far exceeds demand, latency dominates. Faster breaker recycling and a short rate-limit cooldown move requests to the next key quickly; retry 2 for fast failure. Note: Lodestar has no least-inflight selection or racing fan-out; this preset approximates the low-latency goal with Random mode.",
+        "fairshare": "Batch/steady-state, throughput-first. Round-robin even rotation prevents any key hitting its limit early while others idle, maximizing aggregate RPM utilization; single retry then move on — zero waste.",
+        "adaptive": "Best for variable traffic when you don't want to hand-tune: Auto mode adjusts weights by live success rate and latency. Sampling parameters live in the Auto Strategy card."
+      },
+      "approximation": {
+        "strictPriority": "Approximation note: the reference implementation's StrictPriority (always try the healthiest first) has no direct equivalent in Lodestar; Failover — priority order, fall back on failure — is the closest match.",
+        "leastInflight": "Approximation note: LeastInflight selection and racing fan-out have no equivalent in Lodestar, and racing fan-out is deliberately not introduced here; Random mode with a short cooldown approximates the low-latency goal."
+      }
     }
   },
   "group": {
@@ -2502,6 +2554,10 @@
       "missingPublicApiBaseUrl": "Set the public API base URL in system settings first.",
       "missingGroup": "Create at least one route group first.",
       "missingAPIKey": "Create and enable at least one Lodestar API key first."
+    },
+    "presets": {
+      "label": "Strategy presets:",
+      "recommended": "Recommended"
     }
   },
   "model": {

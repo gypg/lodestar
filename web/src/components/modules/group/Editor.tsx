@@ -12,6 +12,7 @@ import { Accordion, AccordionContent, AccordionItem } from '@/components/ui/acco
 import { cn } from '@/lib/utils';
 import { getModelIcon } from '@/lib/model-icons';
 import { GroupMode } from '@/api/endpoints/group';
+import { STRATEGY_PRESETS, recommendStrategyPreset } from '@/lib/strategy-presets';
 import type { SelectedMember } from './ItemList';
 import { MemberList } from './ItemList';
 import { CHAT_ENDPOINT_PROVIDER_OPTIONS, OUTBOUND_FORMAT_OPTIONS, matchesGroupName, memberKey, MODE_LABELS, MUSIC_ENDPOINT_PROVIDER_OPTIONS, VIDEO_ENDPOINT_PROVIDER_OPTIONS, AUDIO_SPEECH_ENDPOINT_PROVIDER_OPTIONS, ENDPOINT_TYPE_OPTIONS, normalizeEndpointProvider, normalizeEndpointType, normalizeOutboundFormat, normalizeKey } from './utils';
@@ -278,6 +279,7 @@ export function GroupEditor({
     className?: string;
 }) {
     const t = useTranslations('group');
+    const tRoot = useTranslations();
     const { data: modelChannels = [] } = useModelChannelList();
     const conditionPlaceholder = '[{"key":"model","op":"contains","value":"gpt-4"}]';
 
@@ -659,6 +661,38 @@ export function GroupEditor({
                                             {t(`mode.${MODE_LABELS[m]}`)}
                                         </button>
                                     ))}
+                                </div>
+                                {/* 策略预设快捷行：一键切到预设推荐的分组模式。
+                                    全局旋钮（熔断/重试）在 设置 → 策略预设 批量应用。 */}
+                                <div className="flex flex-wrap items-center gap-1.5 pt-1 md:gap-2">
+                                    <span className="text-[0.64rem] font-semibold text-muted-foreground md:text-[0.68rem]">
+                                        {t('presets.label')}
+                                    </span>
+                                    {STRATEGY_PRESETS.map((preset) => {
+                                        const recommended = recommendStrategyPreset(selectedMembers.length) === preset.id;
+                                        return (
+                                            <button
+                                                key={preset.id}
+                                                type="button"
+                                                onClick={() => setMode(preset.mode as GroupMode)}
+                                                title={tRoot(preset.scenarioKey)}
+                                                className={cn(
+                                                    'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium transition-colors md:text-[11px]',
+                                                    mode === preset.mode
+                                                        ? 'border-primary/30 bg-primary/10 text-primary'
+                                                        : 'border-border/30 bg-card text-muted-foreground hover:border-primary/16 hover:text-foreground'
+                                                )}
+                                            >
+                                                <span aria-hidden>{preset.icon}</span>
+                                                {tRoot(preset.nameKey)}
+                                                {recommended && (
+                                                    <span className="rounded-full bg-primary/15 px-1.5 py-px text-[9px] font-semibold text-primary md:text-[10px]">
+                                                        {t('presets.recommended')}
+                                                    </span>
+                                                )}
+                                            </button>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         </section>

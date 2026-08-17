@@ -17,6 +17,7 @@ import { toast } from '@/components/common/Toast';
 export type SettingItemId =
     | 'appearance'
     | 'auto-strategy'
+    | 'strategy-presets'
     | 'account'
     | 'semantic-cache'
     | 'retry'
@@ -40,6 +41,7 @@ export const DEFAULT_SETTING_ORDER: SettingItemId[] = [
     'info',
     'appearance',
     'auto-strategy',
+    'strategy-presets',
     'account',
     'semantic-cache',
     'retry',
@@ -119,6 +121,7 @@ export function SettingOrder() {
         const map: Record<SettingItemId, string> = {
             appearance: settingT('appearance.title'),
             'auto-strategy': settingT('autoStrategy.title'),
+            'strategy-presets': settingT('strategyPresets.title'),
             account: settingT('account.title'),
             'semantic-cache': settingT('semanticCache.title'),
             retry: settingT('retry.title'),

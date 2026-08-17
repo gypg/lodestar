@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import {
-    Sun, User, Database, RotateCcw, Zap,
+    Sun, User, Database, RotateCcw, Zap, Wand2,
     ScrollText, Monitor, RefreshCw, ChevronsUpDown,
     Info, Sparkles, FolderX, Cloud, ShieldAlert, Eraser, Fingerprint,
     Shield, Bot,
@@ -19,6 +19,7 @@ import { SettingLog } from './Log';
 import { SettingCircuitBreaker } from './CircuitBreaker';
 import { SettingRetry } from './Retry';
 import { SettingAutoStrategy } from './AutoStrategy';
+import { SettingStrategyPresets } from './StrategyPresets';
 import { SettingSemanticCache } from './SemanticCache';
 import { SettingWebDAV } from './WebDAV';
 import { SettingImageBed } from './ImageBed';
@@ -41,6 +42,7 @@ const SETTING_ITEM_DEFS: SettingItemDef[] = [
     { id: 'info',              icon: <Info className="h-5 w-5" />,              titleKey: 'info.title',           component: <SettingInfo /> },
     { id: 'appearance',        icon: <Sun className="h-5 w-5" />,              titleKey: 'appearance.title',     component: <SettingAppearance /> },
     { id: 'auto-strategy',     icon: <Sparkles className="h-5 w-5" />,         titleKey: 'autoStrategy.title',   component: <SettingAutoStrategy /> },
+    { id: 'strategy-presets',  icon: <Wand2 className="h-5 w-5" />,            titleKey: 'strategyPresets.title', component: <SettingStrategyPresets /> },
     { id: 'account',           icon: <User className="h-5 w-5" />,              titleKey: 'account.title',         component: <SettingAccount /> },
     { id: 'semantic-cache',    icon: <Database className="h-5 w-5" />,          titleKey: 'semanticCache.title',  component: <SettingSemanticCache /> },
     { id: 'retry',             icon: <RotateCcw className="h-5 w-5" />,        titleKey: 'retry.title',          component: <SettingRetry /> },

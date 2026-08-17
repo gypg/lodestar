@@ -1505,6 +1505,22 @@
       "maxTotalAttempts": {
         "label": "最大總重試次數",
         "hint": "跨所有渠道的最大重試次數"
+      },
+      "rateLimitHold": {
+        "enabled": {
+          "label": "429 渠道內延時重試",
+          "hint": "開啟後收到 429 限流時在當前渠道內等待後再重試，而不是立刻換 Key/渠道；適合少 Key 或貴 Key 場景。預設關閉。"
+        },
+        "interval": {
+          "label": "429 延時重試間隔（秒）",
+          "hint": "每次延時重試的等待間隔",
+          "placeholder": "10"
+        },
+        "maxWait": {
+          "label": "429 延時重試總等待上限（秒）",
+          "hint": "單個渠道累計等待超過該上限後放棄堅持，轉為換下一個渠道",
+          "placeholder": "60"
+        }
       }
     },
     "log": {
@@ -2178,6 +2194,42 @@
       "recentErrors": "近 24h 錯誤 {count}",
       "opsDetails": "運維詳情",
       "failures": "失敗 {count}"
+    },
+    "strategyPresets": {
+      "title": "策略預設",
+      "hint": "按金鑰數量與流量形態選一個命名預設，一鍵批次填入分組模式建議與全域熔斷/重試旋鈕。預設只寫入下方列出的設定項，可隨時手動微調。",
+      "apply": "套用預設",
+      "appliedShort": "已套用",
+      "applied": "已套用預設「{name}」",
+      "applyFailed": "部分設定寫入失敗，請重試",
+      "keyCount": "推薦金鑰數",
+      "modeLabel": "推薦分組模式",
+      "knobsLabel": "將寫入的旋鈕",
+      "name": {
+        "guardian": "保保守航",
+        "balanced": "均衡調度",
+        "velocity": "極速競速",
+        "fairshare": "均輪分發",
+        "adaptive": "智慧自適應"
+      },
+      "character": {
+        "guardian": "不死、不燒、最省",
+        "balanced": "全面均衡",
+        "velocity": "低延遲、高併發",
+        "fairshare": "雨露均霑、最大化總吞吐",
+        "adaptive": "AI 自動調優"
+      },
+      "scenario": {
+        "guardian": "金鑰稀缺（≤3）或單付費金鑰。永遠先打排最前的渠道、失敗才回退，消除併發落敗者的浪費；寬容熔斷（閾值 20）避免把僅剩的健康鍵也熔掉；總嘗試次數封頂防雪崩燒鍵。",
+        "balanced": "預設通用。金鑰夠多能吸收隨機性；加權隨機分散負載又偏向健康；標準熔斷切掉真壞的鍵。數值即出廠預設，套用等價於回到均衡基線。",
+        "velocity": "金鑰 ≥8、聚合 RPM 遠超需求、延遲主導。更快回圈的熔斷與短限流冷卻讓請求快速換鍵，重試 2 次快速失敗。註：Lodestar 無「最少在途優先」與多路競速，此預設用隨機模式近似其低延遲訴求。",
+        "fairshare": "批次處理/穩態、吞吐優先。輪詢均勻分發使沒有金鑰提前觸限而其他閒置，最大化聚合 RPM 利用率；單次重試即換下一家，零浪費。",
+        "adaptive": "流量多變、不想手調時最優：智慧選擇模式按即時成功率與延遲自動調整權重，AI 幫你調。取樣參數在「智慧選擇」卡片單獨設定。"
+      },
+      "approximation": {
+        "strictPriority": "近似說明：參考實作的 StrictPriority（永遠先打最健康的）在 Lodestar 無直接對應，這裡用「故障轉移」——按渠道優先級順序、失敗才回退——近似實現。",
+        "leastInflight": "近似說明：參考實作的 LeastInflight（最少在途優先）與多路併發競速在 Lodestar 無對應，且本期刻意不引入併發競速；此處用「隨機」+短冷卻近似低延遲訴求。"
+      }
     }
   },
   "group": {
@@ -2502,6 +2554,10 @@
       "missingPublicApiBaseUrl": "請先在系統設定中填寫公開 API 基礎位址。",
       "missingGroup": "請先建立至少一個路由分組。",
       "missingAPIKey": "請先建立並啟用至少一個 Lodestar API Key。"
+    },
+    "presets": {
+      "label": "策略預設：",
+      "recommended": "推薦"
     }
   },
   "model": {
