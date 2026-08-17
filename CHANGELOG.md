@@ -27,6 +27,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Batch 7** (2026-08-14): Internationalize winter-landing, site/index, and BillingExpr components (139 remaining hardcoded strings, down from 817 - 83% complete)
 
 ### 🚀 Features
+- **Passthrough outbound format** (`f1483ab`, 2026-08-17): new "raw passthrough"
+  outbound transformer that forwards the client's original JSON body unchanged,
+  rewriting only the top-level `model` field to the group-resolved upstream model
+  name, and optionally preserving the client's original request path. For omp /
+  custom clients that need byte-exact path forwarding. Routes via an explicit
+  `passthrough` group outbound format that short-circuits the chat↔responses
+  adapter fallback; does not enter `isLLMRequestFormat` (R-6 unaffected). Response
+  parsing returns an empty `InternalLLMResponse` on 200 + empty/invalid body so the
+  existing fake-200 defense (`isFake200Response` / `isUnbillableFake200Response`)
+  still catches it — passthrough cannot bypass billing.
+- **429 in-channel delay retry** (`85af664`, 2026-08-17): opt-in `rate_limit_hold`
+  policy — on 429, wait inside the current channel and retry instead of switching
+  keys/channels immediately. Cheaper with few or expensive keys. Ctx-cancellable
+  waits (`select ctx.Done()`, no bare `time.Sleep`), total-wait cap, off by default.
+  LLM and media paths share `retryWithChannels`, so hold is implemented once for
+  both. Only `Code==429 && Scope==ScopeSameChannel` is affected; 400-class terminal
+  errors keep their pass-through contract (R-3) and hold waits don't consume
+  forward budget (R-5).
+- **Strategy presets UX** (`c3cde9c`, 2026-08-17): named presets (Guardian / Balanced
+  / Velocity / Fairshare / Adaptive) that batch-fill the recommended group mode +
+  circuit-breaker/retry knobs by key count and traffic shape. Pure frontend + thin
+  config, zero backend changes. StrictPriority→Failover approximation,
+  LeastInflight omitted, racing fanout not introduced.
+- **Error log persistence** (`b3292f1`, 2026-08-17): backend panics (via
+  `panicRecoveryHandler` with `debug.Stack()`) and frontend JS errors
+  (`window.onerror` / `unhandledrejection` / existing error boundaries) are
+  persisted to a main-DB `ErrorLog` table (survives restart, separate from relay
+  logs). 5000-entry retention (oldest half deleted on overflow), 60/min per-user
+  report rate limit, 6-hour cleanup task. Uses `context.Background()` + 5s timeout
+  (not the request ctx — client disconnect is the most common panic trigger, and
+  the request ctx would be cancelled exactly when we need to record the crash).
+- **Price category fallback** (`c3cacd9`, 2026-08-17): four-tier price resolution
+  for unbilled models — DB exact → presets exact (incl. manual) → price category
+  rules (exact/prefix/contains, by `sort_order`) → whole-word substring heuristic.
+  Category hit takes priority over substring. `presets_manual.go` isolates
+  hand-maintained prices from the generated `presets.go` so re-running
+  `scripts/updatePrice.py` never loses them. `/api/v1/model/price-category/*` CRUD.
+- **Site card measuring hook** (`e08e792`, 2026-08-17): extracted the card-height
+  measuring chain from `site/index.tsx` (77 lines → 17) into a reusable
+  `useElementHeights` hook with the three React error #185 death-loop defenses
+  (stable ref cache, ResizeObserver disconnect pairing, same-reference-on-unchanged)
+  hardened inside the hook. Callers cannot inline a new ref callback.
 - **Hub/Sub2API integration**: Real redemption code exchange via `/api/v1/redeem` (P1 #10)
 - **Media endpoints**: Capture upstream usage metrics for images/audio/video endpoints (P1 #11)
 - **Proxy pool**: Channels can now use proxy pools via `proxy_mode` and `proxy_config_id` (R-10)
@@ -53,6 +95,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🐛 Bug Fixes
 
 #### Critical (Production Impact)
+- **Fake-200 billing defense-in-depth** (`92aa41d`, 2026-08-17): ad71355 / dd8f26d
+  fixed the surface, but the invariant "fake 200 is not charged even when
+  `retry_empty_output=false`" did not hold — `isEmptyOutputResponse` was only
+  called at `handleResponse` under `isRetryEmptyOutputEnabled()`, so with retry
+  off a fake 200 (200 + empty Choices/EmbeddingData) flowed through as success:
+  `RecordSuccess` reset the breaker, `RecordAutoSuccess`/`SetSticky` polluted
+  routing, `RequestSuccess` suppressed the error-rate alert, and `ChargeKeyWithExpr`
+  charged unconditionally. Two-layer defense with separated responsibilities:
+  (L1 relay) `isFake200Response` now judges at `handleResponse` **before** the
+  retry gate, returning `errFake200Response`; (L2 billing)
+  `isUnbillableFake200Response` independently guards `metrics.Save` — zero-payload
+  **and** no recorded usage (a zero-payload response with Usage is a legitimate
+  stream-aggregation shape, still charged — pinned by
+  `TestSaveNonZeroCostOnFailureIsStillCharged`). A fake 200 reaching billing as
+  success is demoted to failure (`RequestFailed`, no charge). Also fixed a real
+  new leak surfaced during e2e: the responses outbound transformer unconditionally
+  fabricated an empty-Message Choice when `Output` was empty, so an error body
+  routed through chat→responses adapter fallback had non-empty Choices and
+  bypassed both layers — now returns zero Choices (usage preserved) so defenses
+  catch it. R-3 (400 pass-through) and ad71355 (legal embedding exemption) intact.
+- **Global `db` variable data race** (`78980ee`, 2026-08-17): the main `db` /
+  `currentDBType` globals were bare variables — `InitDB`/`Close` wrote while
+  `GetDB`/`GetLogDB`/`IsSQLite` read with no synchronization. The race was latent
+  (quality CI occasionally flaky) but the new ErrorLog panic-recovery + 429-hold
+  concurrent tests increased goroutine count and made it reliably reproduce.
+  Guarded with `dbLock sync.RWMutex` (InitDB/Close write-lock, GetDB/GetLogDB/
+  IsSQLite read-lock). `logDB` already had `logDBLock`; the main `db` was
+  asymmetrically unprotected.
 - **Channel cache poisoning**: A single viewer-role `GET /api/v1/channel/list` call
   permanently rewrote every channel's base URL to `https://***` in the live channel
   cache. `chCache` stores `model.Channel` by value, so the copies returned by
