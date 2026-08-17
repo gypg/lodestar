@@ -780,6 +780,17 @@ func convertToLLMResponseFromResponses(resp *ResponsesResponse) *model.InternalL
 		}
 	}
 
+	// 假 200 防御：output 为空时不得伪造"空 Message 的 Choice"。上游回 200 但
+	// 响应体没有任何 output 项（典型：错误体被当作 200 返回）时，伪造的空
+	// Choice 会让响应绕过 relay 层的 isFake200Response 与计费层校验
+	// （Choices 非空即"看起来合法"），最终以成功身份交付并扣费。
+	// 无 output ⇒ 上面的循环没有产出任何内容，直接返回零 Choices 的响应，
+	// 让两层防御按假 200 处理；usage 仍照常带回（有真实用量时统计不丢）。
+	if len(resp.Output) == 0 {
+		result.Usage = convertResponsesUsage(resp.Usage)
+		return result
+	}
+
 	choice := model.Choice{
 		Index: 0,
 		Message: &model.Message{

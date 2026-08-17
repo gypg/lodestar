@@ -126,12 +126,49 @@ func (m *RelayMetrics) consumeRateLimitTokens() {
 	ratelimitstore.ConsumeTokens(m.APIKeyID, m.RequestModel, m.TPM, int(m.Stats.InputToken)+int(m.Stats.OutputToken))
 }
 
+// isUnbillableFake200Response 是计费层专用的假 200 判定：零载荷（Choices 与
+// EmbeddingData 全空，见 isFake200Response）**且**没有记录任何真实 token 用量。
+// 带 Usage 的零载荷响应不是假 200——那是流式聚合后只剩 usage 的合法形态，上游
+// 确实消耗了 token，必须照常计费（TestSaveNonZeroCostOnFailureIsStillCharged
+// 钉死了这条）。relay 层（handleResponse）用的是纯载荷谓词 isFake200Response，
+// 两者职责不同：relay 层决定"要不要交付/重试"，计费层决定"有没有可扣费的东西"。
+func isUnbillableFake200Response(resp *transformerModel.InternalLLMResponse) bool {
+	if !isFake200Response(resp) {
+		return false
+	}
+	return resp.Usage == nil || (resp.Usage.PromptTokens <= 0 && resp.Usage.CompletionTokens <= 0)
+}
+
 func (m *RelayMetrics) Save(success bool, err error, attempts []model.ChannelAttempt) {
 	// 同一请求只收尾一次，重复调用直接返回（见 saved 字段说明）。
 	if m.saved {
 		return
 	}
 	m.saved = true
+
+	// ── 假 200 计费层守卫（纵深防御第二层，独立于 relay 层）──
+	// relay 层已把假 200 拦为失败（handleResponse → errFake200Response），但计费
+	// 不变式不能依赖单一判定点：若一个假 200 响应以"成功"身份到达计费层，这里
+	// 独立识别并按失败入账——不扣费、记 RequestFailed 而非 RequestSuccess（否则
+	// 会压住错误率告警）。该判定与 retry_empty_output 设置无关。
+	chargeable := true
+	if isUnbillableFake200Response(m.InternalResponse) {
+		chargeable = false
+		if success {
+			log.Warnf("fake 200 response reached billing layer as success: model=%s, api_key_id=%d — demoting to failure, skipping charge",
+				m.RequestModel, m.APIKeyID)
+			success = false
+			if err == nil {
+				err = errFake200Response
+			}
+		}
+	} else if !success && m.InternalResponse == nil {
+		// 整条链没记录到任何内部响应的失败（典型：所有渠道都回假 200 后耗尽）：
+		// 没有可交付的内容，不收表达式计费的固定费，与 media 路径 dd8f26d 的
+		// relayErr 守卫对齐。记录了真实用量的失败仍照常扣费（上游确实消耗了
+		// token，见 TestSaveNonZeroCostOnFailureIsStillCharged）。
+		chargeable = false
+	}
 
 	ctx, cancel := newRelayPersistenceContext()
 	defer cancel()
@@ -192,7 +229,10 @@ func (m *RelayMetrics) Save(success bool, err error, attempts []model.ChannelAtt
 	}
 	stats.APIKeyUpdate(m.APIKeyID, globalStats)
 	// Lodestar commercial: deduct this request's USD cost from the key owner's balance (no-op unless commercial_mode on).
-	billing.ChargeKeyWithExpr(m.APIKeyID, m.RequestModel, int(m.Stats.InputToken), int(m.Stats.OutputToken), globalStats.InputCost+globalStats.OutputCost, ctx)
+	// chargeable=false 的两类场景见函数开头的假 200 计费层守卫。
+	if chargeable {
+		billing.ChargeKeyWithExpr(m.APIKeyID, m.RequestModel, int(m.Stats.InputToken), int(m.Stats.OutputToken), globalStats.InputCost+globalStats.OutputCost, ctx)
+	}
 
 	// Post-check TPM deduction: deduct the request's actual token usage from the
 	// TPM bucket. The pre-check in relay.go only admitted 1 token (usage unknown);

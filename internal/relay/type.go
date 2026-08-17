@@ -86,6 +86,22 @@ func isRetryEmptyOutputEnabled() bool {
 	return v
 }
 
+// isFake200Response 判断响应是否为"假 200"：上游返回 HTTP 200，但响应体解析不出
+// 任何有效载荷（EmbeddingData 和 Choices 都为空，典型如错误体被当作 200 返回）。
+// 两者全空不可能是合法响应：chat 响应必有 Choices，embedding 响应必有 EmbeddingData。
+//
+// 该谓词供两层独立使用（职责分离）：
+//   - relay 层（handleResponse）：不受 retry_empty_output 门控的失败定性；
+//   - 计费层（metrics.Save）：独立于 relay 层的兜底校验。
+//
+// retry_empty_output 只门控"合法空输出的重试"，不影响假 200 的判定。
+func isFake200Response(resp *model.InternalLLMResponse) bool {
+	if resp == nil {
+		return false
+	}
+	return len(resp.EmbeddingData) == 0 && len(resp.Choices) == 0
+}
+
 // isEmptyOutputResponse 判断非流式响应是否为"空输出"或"假 200"：
 // 1. 假 200：EmbeddingData 和 Choices 都为空（上游返回 HTTP 200 但响应体无效）
 // 2. 空输出：CompletionTokens=0 且所有 Choices 的内容均为空（无文本、无工具调用、无多模态内容）
@@ -100,7 +116,7 @@ func isEmptyOutputResponse(resp *model.InternalLLMResponse) bool {
 
 	// 假 200 守卫：EmbeddingData 和 Choices 都为空
 	// 这是无法解析的响应，必须标记为空（影响计费、熔断器、auto 打分、sticky）
-	if len(resp.EmbeddingData) == 0 && len(resp.Choices) == 0 {
+	if isFake200Response(resp) {
 		return true
 	}
 

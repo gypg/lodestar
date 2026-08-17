@@ -37,6 +37,7 @@ import (
 var errClientDisconnected = errors.New("client disconnected")
 var errResponseFilterBlocked = errors.New("response filter blocked by keyword")
 var errEmptyOutput = errors.New("upstream returned empty output (completion_tokens=0, no content)")
+var errFake200Response = errors.New("upstream returned HTTP 200 with an unparseable body (no choices, no embedding data)")
 
 func resolveRequestedUpstreamModel(requestModel string) (string, bool) {
 	trimmed := strings.TrimSpace(requestModel)
@@ -998,7 +999,19 @@ func (ra *relayAttempt) handleResponse(ctx context.Context, response *http.Respo
 
 	applyReasoningExhaustedHeader(ra.c, internalResponse)
 
+	// 假 200 检测：上游回 HTTP 200 但响应体解析不出任何有效载荷（Choices 与
+	// EmbeddingData 全空，如 "该接口未接入" 这类错误体）。两者全空不可能是合法
+	// 响应，与"合法空输出"有本质区别，因此不受 retry_empty_output 门控：即使
+	// 关闭空输出重试，假 200 也按渠道失败处理（换渠道重试、计入熔断器与 auto
+	// 失败、不扣费——计费层在 metrics.Save 另有一道独立校验兜底）。
+	if isFake200Response(internalResponse) {
+		log.Warnf("channel %s returned fake 200 (no choices, no embedding data), treating as channel failure", ra.channel.Name)
+		return errFake200Response
+	}
+
 	// 空输出检测：上游返回 200 但 CompletionTokens=0 且内容为空，换 Key 重试。
+	// 这里只处理"有 Choices 但无可见内容"的合法空输出——假 200 已在上面
+	// 拦截，到达这里时 isEmptyOutputResponse 的假 200 分支必为 false。
 	if isRetryEmptyOutputEnabled() && isEmptyOutputResponse(internalResponse) {
 		log.Infof("channel %s returned empty output (completion_tokens=0, no content), will retry", ra.channel.Name)
 		return errEmptyOutput
