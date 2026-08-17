@@ -1,5 +1,5 @@
 {
-  "total": 196,
+  "total": 209,
   "files": {
     "api/endpoints/apikey.ts": 7,
     "api/endpoints/channel.ts": 15,
@@ -18,8 +18,9 @@
     "components/modules/site/card-measure.test.ts": 3,
     "components/modules/site/site-message.test.ts": 8,
     "components/modules/site/site-message.ts": 18,
+    "hooks/element-heights-core.test.ts": 13,
     "lib/theme-presets.ts": 17,
     "lib/utils.ts": 4
   },
-  "generatedAt": "2026-08-15T11:26:38.699Z"
+  "generatedAt": "2026-08-17T04:33:03.288Z"
 }

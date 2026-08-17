@@ -27,6 +27,7 @@
     "components/modules/log/display.test.ts": "test-assertion",
     "components/modules/apikey/endpoint-grouping.test.ts": "test-assertion",
     "components/modules/site/site-message.test.ts": "test-assertion",
-    "components/modules/site/card-measure.test.ts": "test-assertion"
+    "components/modules/site/card-measure.test.ts": "test-assertion",
+    "hooks/element-heights-core.test.ts": "test-assertion"
   }
 }
