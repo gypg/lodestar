@@ -46,6 +46,14 @@ func (ft *FailureTracker) ShouldSkip(channelID int) bool {
 		return true
 	}
 
+	// 冷却到期：重置失败计数和冷却标记，给 channel 一次干净重新开始的机会。
+	// 不重置会导致"1 次失败即续 30m"死循环——冷却后 consecutiveFailures 仍 >= 阈值，
+	// 下一次单次失败就重新进入冷却，永远凑不够"连续 3 次"。
+	if !state.cooldownUntil.IsZero() {
+		state.consecutiveFailures = 0
+		state.cooldownUntil = time.Time{}
+	}
+
 	return false
 }
 
