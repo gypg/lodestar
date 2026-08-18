@@ -1,12 +1,15 @@
 package update
 
 import (
+	"archive/zip"
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
@@ -245,4 +248,91 @@ func TestVerifyDownloadChecksum_Sha256SumStyleWithFilename(t *testing.T) {
 	if err != nil {
 		t.Errorf("verifyDownloadChecksum(sha256sum style) = %v, want nil", err)
 	}
+}
+
+// makeZip builds an in-memory zip archive from the given entries (name → content).
+func makeZip(t *testing.T, entries map[string]string) []byte {
+	t.Helper()
+	var buf bytes.Buffer
+	w := zip.NewWriter(&buf)
+	for name, content := range entries {
+		f, err := w.Create(name)
+		if err != nil {
+			t.Fatalf("zip create %q: %v", name, err)
+		}
+		if _, err := f.Write([]byte(content)); err != nil {
+			t.Fatalf("zip write %q: %v", name, err)
+		}
+	}
+	if err := w.Close(); err != nil {
+		t.Fatalf("zip close: %v", err)
+	}
+	return buf.Bytes()
+}
+
+// TestUnzip_TooManyEntries verifies the entry-count guard rejects an archive
+// with more than maxZipEntries files.
+//
+// 变异自检（删掉条目数检查）：unzip 会尝试解压 maxZipEntries+1 个文件，
+// 断言"want error"变红（无错误返回）。**抓得到**。
+func TestUnzip_TooManyEntries(t *testing.T) {
+	entries := make(map[string]string, maxZipEntries+1)
+	for i := 0; i <= maxZipEntries; i++ {
+		entries[fmt.Sprintf("f%d.txt", i)] = "x"
+	}
+	data := makeZip(t, entries)
+
+	dir := t.TempDir()
+	if err := unzip(data, dir); err == nil {
+		t.Fatal("unzip: want error for too many entries, got nil")
+	}
+}
+
+// TestUnzip_NormalArchiveSucceeds is a baseline: a normal small archive extracts
+// cleanly, confirming the new size guards don't break legitimate updates.
+func TestUnzip_NormalArchiveSucceeds(t *testing.T) {
+	data := makeZip(t, map[string]string{
+		"normal.txt": "hello lodestar update",
+	})
+	dir := t.TempDir()
+	if err := unzip(data, dir); err != nil {
+		t.Fatalf("unzip normal archive: want success, got error: %v", err)
+	}
+	got, err := readFile(t, dir+"/normal.txt")
+	if err != nil {
+		t.Fatalf("read extracted file: %v", err)
+	}
+	if got != "hello lodestar update" {
+		t.Fatalf("extracted content: want %q, got %q", "hello lodestar update", got)
+	}
+}
+
+// TestUnzip_PathTraversalStillRejected is a baseline guard: the pre-existing
+// Zip Slip protection (isPathInDest) is not weakened by the new size guards.
+func TestUnzip_PathTraversalStillRejected(t *testing.T) {
+	// 手动构造含 ../ 的 zip 条目（archive/zip 允许任意 name）。
+	var buf bytes.Buffer
+	w := zip.NewWriter(&buf)
+	f, err := w.Create("../escape.txt")
+	if err != nil {
+		t.Fatalf("zip create: %v", err)
+	}
+	_, _ = f.Write([]byte("escape"))
+	if err := w.Close(); err != nil {
+		t.Fatalf("zip close: %v", err)
+	}
+
+	dir := t.TempDir()
+	if err := unzip(buf.Bytes(), dir); err == nil {
+		t.Fatal("unzip: want error for path traversal entry, got nil")
+	}
+}
+
+func readFile(t *testing.T, path string) (string, error) {
+	t.Helper()
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
 }

@@ -20,6 +20,15 @@ import (
 
 const maxUpdateAPIResponseBytes = 2 << 20 // 2 MiB — GitHub API release info JSON is typically < 100 KiB
 
+// 解压炸弹防护：update 包只解压自更新归档，正常发布包是单个二进制 + 少量资源，
+// 远低于这些上限。即使 SHA256 校验通过（或无校验文件时，见 verifyDownloadChecksum
+// 的 non-blocking 语义），也拒绝异常膨胀的归档，避免磁盘撑爆。
+const (
+	maxZipEntries           = 1000    // 最大文件/目录条目数
+	maxZipTotalUncompressed = 1 << 30 // 1 GiB 总解压上限（正常更新包 < 100 MiB）
+	maxZipFileUncompressed  = 1 << 30 // 1 GiB 单文件解压上限
+)
+
 func getUpdateURL() string {
 	if u := conf.AppConfig.External.UpdateURL; u != "" {
 		return u
@@ -138,6 +147,20 @@ func unzip(data []byte, dest string) error {
 		return err
 	}
 
+	// 解压炸弹防护：条目数、总解压大小、单文件解压大小三个维度。zip 头里的
+	// UncompressedSize64 可能被篡改，所以既做预检查（拒绝明显异常的归档），
+	// 也在 extractFile 里用 LimitReader 兜底（防止实际解压超过声明的上限）。
+	if len(r.File) > maxZipEntries {
+		return fmt.Errorf("zip archive has too many entries: %d (limit %d)", len(r.File), maxZipEntries)
+	}
+	var totalUncompressed uint64
+	for _, f := range r.File {
+		totalUncompressed += f.UncompressedSize64
+		if totalUncompressed > maxZipTotalUncompressed {
+			return fmt.Errorf("zip archive total uncompressed size exceeds %d bytes limit", maxZipTotalUncompressed)
+		}
+	}
+
 	for _, f := range r.File {
 		fpath := filepath.Join(dest, f.Name)
 
@@ -189,9 +212,17 @@ func extractFile(f *zip.File, fpath string) error {
 	}
 	defer rc.Close()
 
-	if _, err = io.Copy(outFile, rc); err != nil {
-		log.Debugf("copy failed: %v", err)
-		return err
+	// 深度防御：zip 头里的 UncompressedSize64 可能被篡改（已在外层预检查，
+	// 但预检查信任了头部声明）。用 LimitReader 读 maxZipFileUncompressed+1
+	// 字节，若实际写入超过上限则拒绝——防止头部声明小但实际流膨胀的炸弹，
+	// 也避免静默截断产出损坏的二进制。
+	written, copyErr := io.Copy(outFile, io.LimitReader(rc, maxZipFileUncompressed+1))
+	if copyErr != nil {
+		log.Debugf("copy failed: %v", copyErr)
+		return copyErr
+	}
+	if written > maxZipFileUncompressed {
+		return fmt.Errorf("zip entry %q uncompressed size %d exceeds %d byte limit", f.Name, written, maxZipFileUncompressed)
 	}
 	return nil
 }
