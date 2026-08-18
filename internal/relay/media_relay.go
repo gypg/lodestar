@@ -643,6 +643,7 @@ func forwardMediaRequestMultipart(
 	// Send request
 	httpClient, err := helper.ChannelHttpClient(channel)
 	if err != nil {
+		bodyReader.Close() // 关闭 pipe reader 以释放 writer goroutine
 		return 0, fmt.Errorf("failed to get http client: %w", err)
 	}
 
