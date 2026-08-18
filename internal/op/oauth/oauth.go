@@ -50,6 +50,19 @@ var (
 
 const stateTTL = 5 * time.Minute
 
+// 上限保护：GitHub /user 响应体读取量。GitHub 是可信固定上游，正常用户对象
+// 不到 2 KiB；但无上限读取会在极端情况下（上游异常返回超大体）无谓占用内存。
+// maxGitHubUserInfoBytes 限制成功路径的 JSON 解码，maxGitHubErrorBodyBytes
+// 限制错误路径的错误体读取（后者随后还会被 truncate 截到 500 字符）。
+const (
+	maxGitHubUserInfoBytes  int64 = 1 << 20 // 1 MiB
+	maxGitHubErrorBodyBytes int64 = 4 * 1024
+)
+
+// githubUserInfoURL 是 getUserInfo 请求的端点。默认指向 GitHub，测试中可
+// 替换为 httptest.Server 以便注入受控响应（超大错误体 / 超大成功体）。
+var githubUserInfoURL = "https://api.github.com/user"
+
 type stateEntry struct {
 	expiry time.Time
 }
@@ -336,7 +349,7 @@ func exchangeToken(ctx context.Context, code string) (string, error) {
 }
 
 func getUserInfo(ctx context.Context, accessToken string) (*GitHubUser, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", "https://api.github.com/user", nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", githubUserInfoURL, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -350,12 +363,12 @@ func getUserInfo(ctx context.Context, accessToken string) (*GitHubUser, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, maxGitHubErrorBodyBytes))
 		return nil, fmt.Errorf("%w: status %d, body: %s", ErrUserInfoFailed, resp.StatusCode, truncate(string(body), 500))
 	}
 
 	var u gitHubUser
-	if err := json.NewDecoder(resp.Body).Decode(&u); err != nil {
+	if err := json.NewDecoder(io.LimitReader(resp.Body, maxGitHubUserInfoBytes)).Decode(&u); err != nil {
 		return nil, fmt.Errorf("%w: decode error: %v", ErrUserInfoFailed, err)
 	}
 	if u.Id == 0 || u.Login == "" {
