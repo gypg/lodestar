@@ -30,7 +30,7 @@ const Setting_Module = lazyWithPreload(() => import('@/components/modules/settin
 const User_Module = lazyWithPreload(() => import('@/components/modules/user').then(m => ({ default: m.User })));
 const Alert_Module = lazyWithPreload(() => import('@/components/modules/alert').then(m => ({ default: m.Alert })));
 const Ops_Module = lazyWithPreload(() => import('@/components/modules/ops').then(m => ({ default: m.Ops })));
-const Site_Module = lazyWithPreload(() => import('@/components/modules/site').then(m => ({ default: m.Site })));
+const RemoteSite_Module = lazyWithPreload(() => import('@/components/modules/remote-site').then(m => ({ default: m.RemoteSite })));
 const Subscription_Module = lazyWithPreload(() => import('@/components/modules/subscription').then(m => ({ default: m.Subscription })));
 const Commercial_Module = lazyWithPreload(() => import('@/components/modules/commercial').then(m => ({ default: m.Commercial })));
 const Wallet_Module = lazyWithPreload(() => import('@/components/modules/wallet').then(m => ({ default: m.Wallet })));
@@ -39,7 +39,7 @@ export const ROUTES: RouteConfig[] = [
     { id: 'home', icon: Home, component: Home_Module },
     { id: 'chat', icon: MessageSquare, component: Chat_Module },
     { id: 'image', icon: ImagePlus, component: Image_Module },
-    { id: 'site', icon: Server, component: Site_Module },
+    { id: 'site', icon: Server, component: RemoteSite_Module },
     { id: 'channel', icon: Radio, component: Channel_Module },
     { id: 'group', icon: FolderTree, component: Group_Module },
     { id: 'model', icon: Sparkles, component: Model_Module },
