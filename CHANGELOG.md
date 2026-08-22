@@ -27,6 +27,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Batch 7** (2026-08-14): Internationalize winter-landing, site/index, and BillingExpr components (139 remaining hardcoded strings, down from 817 - 83% complete)
 
 ### 🚀 Features
+- **Site hub with reachable channel-key completion** (`c63de8d`, 2026-08-18): the
+  `site` nav entry now renders the `remote-site` tab hub instead of the bare `Site`
+  module. The hub is a thin wrapper: one tab hosts the existing live `<Site />`
+  view unchanged, a second tab exposes `<SiteChannelSection />`, which had no
+  reachable entry point before — so site-channel key completion was implemented but
+  could not be opened from the UI.
 - **Passthrough outbound format** (`f1483ab`, 2026-08-17): new "raw passthrough"
   outbound transformer that forwards the client's original JSON body unchanged,
   rewriting only the top-level `model` field to the group-resolved upstream model
@@ -92,9 +98,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   credential code). The live sitesync module is untouched. Existing production
   tables left in place (no destructive DROP).
 
+  > **Do not delete `web/src/components/modules/remote-site/`.** Despite the
+  > octopus-era name, the two files that remain there (`index.tsx`,
+  > `hub-tab-store.ts`) are live: `index.tsx` is a 53-line tab hub that renders the
+  > live `<Site />` and `<SiteChannelSection />`, and `c63de8d` wired it to the
+  > `site` nav entry. Only the other 8 components under that path were dead and
+  > removed. The name is the trap here, not the contents.
+
 ### 🐛 Bug Fixes
 
 #### Critical (Production Impact)
+- **Single-failure cooldown loop** (`5991d04`, 2026-08-18): `FailureTracker` never
+  cleared its counters when a cooldown expired, so `consecutiveFailures` stayed at
+  or above the threshold forever. After the first cooldown lapsed, the *next single*
+  failure immediately re-armed a full cooldown — a channel could never again
+  accumulate the "3 consecutive failures" the policy actually intended, and instead
+  sat in a permanent 1-failure→30m cycle. `ShouldSkip` now resets
+  `consecutiveFailures` and clears `cooldownUntil` once the cooldown has expired,
+  giving the channel a clean start.
+- **Media multipart writer goroutine leak** (`092778a`, 2026-08-18): in
+  `forwardMediaRequestMultipart`, an error from `helper.ChannelHttpClient` returned
+  without closing `bodyReader`, leaving the multipart writer goroutine blocked on
+  the pipe forever. Every media request that failed to obtain a channel HTTP client
+  leaked one goroutine (and its buffered body) for the process lifetime. Now closes
+  the pipe reader on that path.
 - **Fake-200 billing defense-in-depth** (`92aa41d`, 2026-08-17): ad71355 / dd8f26d
   fixed the surface, but the invariant "fake 200 is not charged even when
   `retry_empty_output=false`" did not hold — `isEmptyOutputResponse` was only
@@ -155,6 +182,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   charged.
 
 #### Security
+- **Self-update zip bomb guards** (`d8cbb29`, 2026-08-18): archive extraction had no
+  bounds at all. Three dimensions now capped — entry count (1000), total uncompressed
+  size (1 GiB), per-file uncompressed size (1 GiB) — with defense in depth: the
+  pre-check rejects archives whose declared `UncompressedSize64` is out of range,
+  and `extractFile` additionally wraps each entry in a `LimitReader` at
+  `limit+1` bytes, since the declared header size can itself be forged. Exceeding
+  the limit is an error rather than a silent truncation, so a partially written
+  binary is never produced. Applies even when the SHA256 checksum verifies (checksum
+  verification is non-blocking when no checksum file is published).
+- **GitHub OAuth response body caps** (`dcce24c`, 2026-08-18): the `/user` response
+  was decoded with no read limit. Success-path JSON decoding is now bounded to 1 MiB
+  and the error path to 4 KiB (already truncated to 500 chars downstream). The
+  endpoint was also extracted into a `githubUserInfoURL` variable so tests can
+  inject oversized bodies via `httptest.Server`.
 - **S-1**: Never delete users unless backup can restore logins
 - **S-2**: Refuse startup without encryption key; unlock `SetString` self-deadlock
 - **S-3**: Narrow trusted proxy list to block X-Forwarded-For spoofing
