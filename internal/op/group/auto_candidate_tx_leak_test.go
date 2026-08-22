@@ -1,4 +1,4 @@
-package op
+package group
 
 import (
 	"strings"
@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/gypg/lodestar/internal/model"
-	"github.com/gypg/lodestar/internal/op/channel"
 )
 
 // TestCreateAutoGroupCandidateDuplicateNameLeavesConnectionUsable exercises the
@@ -15,15 +14,17 @@ import (
 // _txlock=immediate, a leaked (never rolled back) transaction keeps the write
 // lock and blocks/fails every subsequent write on that connection — the next
 // write can only succeed if the failed transaction was rolled back.
+//
+// Ported from internal/op/auto_group_tx_leak_test.go when the duplicate
+// package-op copy of the auto-group implementation was removed. That copy was
+// the only one under test; this live implementation had no coverage of the
+// rollback path at all.
 func TestCreateAutoGroupCandidateDuplicateNameLeavesConnectionUsable(t *testing.T) {
-	ctx := initChannelGroupTestDB(t)
-	groupCache.Clear()
+	ctx := setupGroupTestDB(t)
 	groupMap.Clear()
-	channel.GetCache().Clear()
 	t.Cleanup(func() {
 		groupCache.Clear()
 		groupMap.Clear()
-		channel.GetCache().Clear()
 	})
 
 	candidate := model.CandidateGroup{
@@ -73,12 +74,12 @@ func TestCreateAutoGroupCandidateDuplicateNameLeavesConnectionUsable(t *testing.
 	for _, g := range groups {
 		names = append(names, g.Name)
 	}
-	if !containsString(names, "dup-candidate-name") || !containsString(names, "after-failed-candidate") {
+	if !containsFold(names, "dup-candidate-name") || !containsFold(names, "after-failed-candidate") {
 		t.Errorf("expected both groups present, got %v", names)
 	}
 }
 
-func containsString(values []string, target string) bool {
+func containsFold(values []string, target string) bool {
 	for _, v := range values {
 		if strings.EqualFold(v, target) {
 			return true

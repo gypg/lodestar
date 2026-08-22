@@ -76,8 +76,6 @@ func GroupItemList(groupID int, ctx context.Context) ([]model.GroupItem, error) 
 	return group.GroupItemList(groupID, ctx)
 }
 
-// AutoGroupModels and NormalizeModelIdentity are still defined in auto_group.go
-
 // groupRefreshCacheByID is called from within the op package
 func groupRefreshCacheByID(id int, ctx context.Context) error { return group.RefreshCacheByID(id, ctx) }
 
