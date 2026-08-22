@@ -131,7 +131,8 @@ jobs:
       # CJK 回归门：扫描 web/src 下中文硬编码，与 tests/cjk-baseline.json 对比。
       # 防止新增中文 UI 文案绕过 i18n 直接写进组件。allowlist 文件见 tests/cjk-allowlist.json。
       # 新文件/非 allowlist 文件 count 增加 → FAIL；allowlist 文件增加 → WARN。
-      # 基线 196/19/0（2026-08-15）。详情见 web/tests/cjk-scan.cjs 头注释。
+      # 基线以 web/tests/cjk-baseline.json 为准（门自动比对，不要在注释里复制数字）。
+      # 详情见 web/tests/cjk-scan.cjs 头注释。
       - name: CJK regression gate
         run: pnpm test:cjk
 
