@@ -371,8 +371,12 @@ func (s *Setting) Validate() error {
 		}
 
 		validSchemes := map[string]bool{
-			"http":   true,
-			"https":  true,
+			"http":  true,
+			"https": true,
+			// "socks" is a SOCKS5 alias, canonicalised by proxydial.Apply.
+			// It is listed here so this validator agrees with both its own
+			// error message and NormalizeProxyURL (proxy-pool entries).
+			"socks":  true,
 			"socks5": true,
 		}
 		if !validSchemes[parsedURL.Scheme] {

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -13,8 +12,8 @@ import (
 	"github.com/gypg/lodestar/internal/db"
 	"github.com/gypg/lodestar/internal/model"
 	"github.com/gypg/lodestar/internal/utils/cache"
+	"github.com/gypg/lodestar/internal/utils/proxydial"
 	"github.com/gypg/lodestar/internal/utils/xurl"
-	"golang.org/x/net/proxy"
 )
 
 const defaultProxyTestURL = "https://api.openai.com/v1/models"
@@ -329,24 +328,8 @@ func newProxyTestHTTPClient(proxyURLStr string) (*http.Client, error) {
 		return nil, fmt.Errorf("default transport is not *http.Transport")
 	}
 	cloned := transport.Clone()
-	proxyURL, err := url.Parse(proxyURLStr)
-	if err != nil {
-		return nil, fmt.Errorf("invalid proxy url: %w", err)
-	}
-	switch proxyURL.Scheme {
-	case "http", "https":
-		cloned.Proxy = http.ProxyURL(proxyURL)
-	case "socks", "socks5":
-		socksDialer, err := proxy.FromURL(proxyURL, proxy.Direct)
-		if err != nil {
-			return nil, fmt.Errorf("invalid socks proxy: %w", err)
-		}
-		cloned.Proxy = nil
-		cloned.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
-			return socksDialer.Dial(network, addr)
-		}
-	default:
-		return nil, fmt.Errorf("unsupported proxy scheme: %s", proxyURL.Scheme)
+	if err := proxydial.Apply(cloned, proxyURLStr); err != nil {
+		return nil, err
 	}
 	return &http.Client{Transport: cloned}, nil
 }

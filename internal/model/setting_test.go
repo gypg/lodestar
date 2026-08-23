@@ -121,3 +121,37 @@ func TestDefaultWebDAVConfigSeedIsValid(t *testing.T) {
 	}
 	t.Fatal("no default seed found for webdav_config")
 }
+
+// 系统代理设置与代理池条目是同一个概念的两个入口，必须接受同一组 scheme。
+// 它们曾经不一致：NormalizeProxyURL 收 socks、SettingKeyProxyURL 的验证器
+// 不收，但后者的错误消息却把 socks 列为合法——于是"哪个能填"取决于走哪个入口。
+func TestProxySchemeValidatorsAgree(t *testing.T) {
+	tests := []struct {
+		scheme  string
+		wantErr bool
+	}{
+		{scheme: "http"},
+		{scheme: "https"},
+		{scheme: "socks"},
+		{scheme: "socks5"},
+		{scheme: "socks4", wantErr: true},
+		{scheme: "ftp", wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.scheme, func(t *testing.T) {
+			raw := tt.scheme + "://proxy.example.com:1080"
+
+			_, poolErr := NormalizeProxyURL(raw)
+			proxySetting := Setting{Key: SettingKeyProxyURL, Value: raw}
+			settingErr := proxySetting.Validate()
+
+			if (poolErr != nil) != tt.wantErr {
+				t.Fatalf("NormalizeProxyURL(%q) error = %v, wantErr = %v", raw, poolErr, tt.wantErr)
+			}
+			if (settingErr != nil) != tt.wantErr {
+				t.Fatalf("SettingKeyProxyURL Validate(%q) error = %v, wantErr = %v", raw, settingErr, tt.wantErr)
+			}
+		})
+	}
+}
