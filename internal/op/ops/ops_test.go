@@ -6,6 +6,7 @@ import (
 
 	"github.com/gypg/lodestar/internal/model"
 	"github.com/gypg/lodestar/internal/op/llm"
+	"github.com/gypg/lodestar/internal/price"
 	"github.com/gypg/lodestar/internal/utils/telemetry"
 )
 
@@ -386,5 +387,39 @@ func TestBuildOpsTelemetryRuntimeSignals_FallsBackToRecentLogs(t *testing.T) {
 	}
 	if latestWithRequests.RequestDelta != 3 || latestWithRequests.FailedDelta != 1 {
 		t.Fatalf("unexpected trend point with requests: %+v", latestWithRequests)
+	}
+}
+
+// 这个面板曾经只读 llm.Get —— 即 price.GetLLMPrice 五个价格来源里的第一个
+// （model_info 缓存）。于是「靠内置预设价/管理员价表/分类规则/子串兜底」定价的模型
+// 在这里恒为 0，而同一个请求的计费是对的，面板与账单对不上且不留日志。
+//
+// 前提在本测试里天然成立：单测没有 DB，modelCache 是空的，所以 llm.Get 必然 miss。
+func TestEstimateOpsProviderPromptCacheSaved_UsesFullPriceResolverNotJustModelInfoCache(t *testing.T) {
+	// gpt-4o-mini 在 internal/price 的内置预设表里（Input 0.15 / CacheRead 0.08），
+	// 但不在 model_info 缓存里。
+	const modelName = "gpt-4o-mini"
+
+	if _, err := llm.Get(modelName); err == nil {
+		t.Skip("model_info cache unexpectedly holds " + modelName + "; this test needs the first price source to miss")
+	}
+	if resolved := price.GetLLMPrice(modelName); resolved == nil {
+		t.Fatalf("price.GetLLMPrice(%q) = nil; the preset table no longer prices it, pick another model", modelName)
+	}
+
+	saved := estimateOpsProviderPromptCacheSaved(modelName, opsProviderPromptCacheUsage{CachedTokens: 1_000_000})
+	if saved <= 0 {
+		t.Fatalf("estimated saving = %v, want > 0 — the panel is ignoring every price source except model_info", saved)
+	}
+	// 1e6 cached tokens * (0.15 - 0.08) USD/1M = 0.07
+	if diff := saved - 0.07; diff > 1e-9 || diff < -1e-9 {
+		t.Fatalf("estimated saving = %v, want 0.07", saved)
+	}
+}
+
+func TestEstimateOpsProviderPromptCacheSaved_UnknownModelStaysZero(t *testing.T) {
+	saved := estimateOpsProviderPromptCacheSaved("no-such-model-anywhere-zzz", opsProviderPromptCacheUsage{CachedTokens: 1_000_000})
+	if saved != 0 {
+		t.Fatalf("estimated saving = %v, want 0 for a model with no price at all", saved)
 	}
 }

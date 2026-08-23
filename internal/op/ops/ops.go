@@ -19,11 +19,11 @@ import (
 	"github.com/gypg/lodestar/internal/op/cacheusage"
 	"github.com/gypg/lodestar/internal/op/channel"
 	"github.com/gypg/lodestar/internal/op/group"
-	"github.com/gypg/lodestar/internal/op/llm"
 	"github.com/gypg/lodestar/internal/op/relaylog"
 	"github.com/gypg/lodestar/internal/op/setting"
 	"github.com/gypg/lodestar/internal/op/stats"
 	"github.com/gypg/lodestar/internal/op/walletusage"
+	"github.com/gypg/lodestar/internal/price"
 	"github.com/gypg/lodestar/internal/utils/cache"
 	"github.com/gypg/lodestar/internal/utils/semantic_cache"
 	"github.com/gypg/lodestar/internal/utils/telemetry"
@@ -506,15 +506,20 @@ func estimateOpsProviderPromptCacheSaved(modelName string, usage opsProviderProm
 		return 0
 	}
 
-	price, err := llm.Get(strings.ToLower(modelName))
-	if err != nil || price.Input <= 0 {
+	// 必须用完整解析器 price.GetLLMPrice，不能用 llm.Get —— 后者只读 model_info
+	// 缓存，是 GetLLMPrice 五个价格来源里的第一个。只走它会让「内置预设价 /
+	// 管理员价表 / 分类规则 / 子串兜底」定价的模型在这个面板上恒为 0，而同一个请求
+	// 的计费是正确的（relay/metrics.go 用的就是 GetLLMPrice），于是面板与账单对不上
+	// 且不留任何日志。变量不能叫 price，会遮蔽包名。
+	modelPrice := price.GetLLMPrice(modelName)
+	if modelPrice == nil || modelPrice.Input <= 0 {
 		return 0
 	}
 
-	cacheReadSavings := float64(usage.CachedTokens) * (price.Input - price.CacheRead) * 1e-6
+	cacheReadSavings := float64(usage.CachedTokens) * (modelPrice.Input - modelPrice.CacheRead) * 1e-6
 	cacheWriteCost := 0.0
-	if price.CacheWrite > 0 {
-		cacheWriteCost = float64(usage.CacheCreationInputTokens) * (price.CacheWrite - price.Input) * 1e-6
+	if modelPrice.CacheWrite > 0 {
+		cacheWriteCost = float64(usage.CacheCreationInputTokens) * (modelPrice.CacheWrite - modelPrice.Input) * 1e-6
 	}
 
 	saved := cacheReadSavings - cacheWriteCost
