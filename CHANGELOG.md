@@ -83,6 +83,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   rejected at configuration time with an actionable message, instead of silently
   producing a group that can never match a request.
 
+### ♻️ Refactoring
+- **Proxy dialler consolidated** (`4d1f600`, 2026-08-23): the scheme dispatch that
+  turns a proxy URL into a configured `*http.Transport` existed as three
+  byte-identical copies — `internal/client`, `internal/op/airoute` and
+  `internal/op` — so any fix to it had to land three times. Extracted into a new
+  leaf package `internal/utils/proxydial`. Error strings and mutation order are
+  unchanged at all three call sites, and every failure path returns before touching
+  the transport, so a failed call cannot leave a half-configured one behind.
+  `airoute` keeps its own "empty proxy URL means direct connection" early return,
+  because `Apply` deliberately treats the empty string as an unsupported scheme.
+- **Two dead delegating shims removed** (`6b7772d`, 2026-08-23):
+  `internal/op/ai_route_service_pool.go` had no callers at all, and its comment
+  claimed callers that cannot exist — the symbol is unexported in `package op`, so
+  the sibling package's tests could never reach it. `internal/op/nav_order.go`
+  forwarded to `internal/op/navorder` and was reachable only from `ops_test.go`,
+  which meant the tests were exercising a forwarding shell while `navorder` itself
+  had no test file. Those tests moved to `internal/op/navorder/navorder_test.go` and
+  now cover the real implementations, with the malformed-JSON fallback and
+  zero-denominator rate cases added. Reuse was checked scoped to `package op`'s own
+  files, not repo-wide: a repo-wide grep for these names hits same-named copies in
+  the sibling subpackages and reads as "still referenced" (the false signal WO-016
+  was burned by).
+
 ### 🔥 Removed
 - **Octopus-style site management (dead code)**: The octopus-style site management
   was ported early on but never wired into any page — Lodestar rewrote site
@@ -206,6 +229,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add 1MiB limit on anonymous Stripe webhook payloads
 
 #### Relay & Protocol
+- **`socks://` proxies never dialled** (`4d1f600`, 2026-08-23): the proxy scheme
+  switch advertised `case "socks", "socks5"` and `model.NormalizeProxyURL` accepts
+  the `socks://` spelling, but `golang.org/x/net/proxy` registers only `socks5` and
+  `socks5h`. A proxy-pool entry saved as `socks://host:1080` therefore passed
+  validation and then failed at dial time with `invalid socks proxy: proxy: unknown
+  scheme: socks`. This was not confined to the pool's test button:
+  `helper.ChannelHttpClient` → `client.GetHTTPClientCustomProxy` is the relay path,
+  so every request through such a channel failed to obtain an HTTP client at all.
+  `socks` is now canonicalised to `socks5` in the one shared dialler. The two
+  validators for the same setting also disagreed — the `SettingKeyProxyURL`
+  validator rejected `socks` while its own error message listed it as valid — so
+  `socks` was added there too, and a test now pins the two to the same scheme set.
 - **R-3**: Return 400/ScopeNone errors as-is instead of swallowing into 502
 - **R-6**: Add Anthropic to adapter fallback logic
 - **R-7**: Stop silently downgrading xhigh/max reasoning effort; clamp Anthropic thinking budget correctly
