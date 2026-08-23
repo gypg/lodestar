@@ -1,47 +1,18 @@
+// Package navorder holds the analytics summary builder that used to live
+// alongside a nav-order normaliser.
+//
+// The NormalizeNavOrder function this package is named after was removed: it had
+// no caller anywhere in Go since the initial commit, because nav order is
+// normalised in the frontend (web/src/components/modules/navbar/nav-order.ts).
+// The only Go code that touches SettingKeyNavOrder is its validator in
+// internal/model/setting.go and the default seed. The package name is kept
+// because internal/op/analytics imports it for BuildSemanticCacheEvaluationSummary.
 package navorder
 
 import (
-	"encoding/json"
-	"strings"
-
 	"github.com/gypg/lodestar/internal/model"
 	"github.com/gypg/lodestar/internal/utils/semantic_cache"
 )
-
-func NormalizeNavOrder(raw string, defaults []string) []string {
-	var input []string
-	if err := json.Unmarshal([]byte(strings.TrimSpace(raw)), &input); err != nil {
-		return append([]string(nil), defaults...)
-	}
-
-	seen := make(map[string]struct{}, len(defaults))
-	allowed := make(map[string]struct{}, len(defaults))
-	for _, id := range defaults {
-		allowed[id] = struct{}{}
-	}
-
-	out := make([]string, 0, len(defaults))
-	for _, id := range input {
-		id = strings.TrimSpace(id)
-		if _, ok := allowed[id]; !ok {
-			continue
-		}
-		if _, ok := seen[id]; ok {
-			continue
-		}
-		seen[id] = struct{}{}
-		out = append(out, id)
-	}
-
-	for _, id := range defaults {
-		if _, ok := seen[id]; ok {
-			continue
-		}
-		out = append(out, id)
-	}
-
-	return out
-}
 
 func BuildSemanticCacheEvaluationSummary(
 	enabled bool,

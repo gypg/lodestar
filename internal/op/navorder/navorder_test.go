@@ -1,32 +1,18 @@
 package navorder
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/gypg/lodestar/internal/utils/semantic_cache"
 )
 
-// 这两个测试原先住在 internal/op/ops_test.go，走的是 nav_order.go 里的转发壳
-// （op.NormalizeNavOrder / op.buildSemanticCacheEvaluationSummary）。壳已删除，
-// 测试搬到活实现所在的包，否则删壳会连带删掉这两处唯一的覆盖。
-func TestNormalizeNavOrder_AppendsMissingRoutesAndDropsUnknown(t *testing.T) {
-	defaults := []string{"home", "channel", "group", "model", "analytics", "log", "alert", "ops", "apikey", "setting", "user"}
-	got := NormalizeNavOrder(`["group","group","unknown","setting"]`, defaults)
-	want := []string{"group", "setting", "home", "channel", "model", "analytics", "log", "alert", "ops", "apikey", "user"}
-	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("NormalizeNavOrder() = %v, want %v", got, want)
-	}
-}
-
-func TestNormalizeNavOrder_FallsBackToDefaultsOnMalformedJSON(t *testing.T) {
-	defaults := []string{"home", "setting"}
-	got := NormalizeNavOrder(`["home"`, defaults)
-	if !reflect.DeepEqual(got, defaults) {
-		t.Fatalf("NormalizeNavOrder(malformed) = %v, want the defaults %v", got, defaults)
-	}
-}
-
+// 这些测试原先住在 internal/op/ops_test.go，走的是 nav_order.go 里的转发壳
+// （op.buildSemanticCacheEvaluationSummary）。壳已删除，测试搬到活实现所在的包 ——
+// 这里的 BuildSemanticCacheEvaluationSummary 有真实调用点
+// （internal/op/analytics/analytics.go:337），此前在该层零覆盖。
+//
+// ★ 同批搬过来的两个 NormalizeNavOrder 测试已随函数一并删除：那个函数全仓零调用点，
+// 把测试搬到一个死函数上并不算"覆盖真实现"。见包注释。
 func TestBuildSemanticCacheEvaluationSummary_ComputesRates(t *testing.T) {
 	stats := semantic_cache.RuntimeStats{
 		EvaluatedRequests: 12,
