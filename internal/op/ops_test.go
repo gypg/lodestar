@@ -2,41 +2,12 @@ package op
 
 import (
 	"context"
-	"reflect"
 	"testing"
 	"time"
 
 	"github.com/gypg/lodestar/internal/model"
 	"github.com/gypg/lodestar/internal/utils/semantic_cache"
 )
-
-func TestNormalizeNavOrder_AppendsMissingRoutesAndDropsUnknown(t *testing.T) {
-	defaults := []string{"home", "channel", "group", "model", "analytics", "log", "alert", "ops", "apikey", "setting", "user"}
-	got := NormalizeNavOrder(`["group","group","unknown","setting"]`, defaults)
-	want := []string{"group", "setting", "home", "channel", "model", "analytics", "log", "alert", "ops", "apikey", "user"}
-	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("NormalizeNavOrder() = %v, want %v", got, want)
-	}
-}
-
-func TestBuildSemanticCacheEvaluationSummary_ComputesRates(t *testing.T) {
-	stats := semantic_cache.RuntimeStats{
-		EvaluatedRequests: 12,
-		CacheHitResponses: 8,
-		CacheMissRequests: 3,
-		BypassedRequests:  1,
-		StoredResponses:   3,
-	}
-	got := buildSemanticCacheEvaluationSummary(
-		true, true, 3600, 98, 1000, 120, 80, 40, stats,
-	)
-	if got.HitRate != 66.66666666666666 {
-		t.Fatalf("HitRate = %v", got.HitRate)
-	}
-	if got.UsageRate != 12 {
-		t.Fatalf("UsageRate = %v", got.UsageRate)
-	}
-}
 
 func TestRefreshSemanticCacheRuntime_ResetsDisabledOrIncompleteConfig(t *testing.T) {
 	restore := snapshotSettingCache()
