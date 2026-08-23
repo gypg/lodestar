@@ -50,9 +50,14 @@ func TestApply_HTTPSchemesSetProxyAndLeaveDialContextAlone(t *testing.T) {
 // from an http.DefaultTransport clone already has a non-nil DialContext, so
 // "is set" alone would be a weak assertion there.
 func TestApply_SocksSchemesClearProxyAndInstallDialer(t *testing.T) {
-	// Nothing listens on port 1, so the dial is refused immediately and the
-	// error names the address that was dialled. No DNS, no network.
-	const proxyAddr = "127.0.0.1:1"
+	// Nothing listens on port 9 (discard), so the dial is refused immediately
+	// and the error names the address that was dialled. No DNS, no network.
+	//
+	// The assertion below matches `proxyAddr + "->"`, not proxyAddr alone: when a
+	// socks URL carries no port, x/net defaults it to 1080 (proxy/proxy.go), and
+	// a bare Contains(":1") would still match ":1080" — so dropping the port
+	// would survive as a mutation. The "->" suffix pins the whole address.
+	const proxyAddr = "127.0.0.1:9"
 
 	for _, scheme := range []string{"socks", "socks5"} {
 		t.Run(scheme, func(t *testing.T) {
@@ -72,8 +77,8 @@ func TestApply_SocksSchemesClearProxyAndInstallDialer(t *testing.T) {
 			if dialErr == nil {
 				t.Fatal("dial succeeded against a closed port, want a connection error")
 			}
-			if !strings.Contains(dialErr.Error(), proxyAddr) {
-				t.Fatalf("dial error = %v, want it to name the socks proxy %s (traffic went to the target instead)", dialErr, proxyAddr)
+			if !strings.Contains(dialErr.Error(), proxyAddr+"->") {
+				t.Fatalf("dial error = %v, want it to dial the socks proxy %s (traffic went elsewhere)", dialErr, proxyAddr)
 			}
 		})
 	}

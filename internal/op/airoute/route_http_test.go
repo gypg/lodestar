@@ -34,9 +34,13 @@ func TestNewAIRouteHTTPClient_SocksProxyDialsTheProxyNotTheTarget(t *testing.T) 
 	// 而 x/net/proxy 只认 socks5/socks5h —— 这条曾经在拨号时直接失败。
 	//
 	// 断言必须证明流量去了代理地址：DialContext != nil 在这里是弱断言，
-	// DefaultTransport 的克隆本来就带一个。127.0.0.1:1 上没人监听，
+	// DefaultTransport 的克隆本来就带一个。127.0.0.1:9（discard）上没人监听，
 	// 所以连接立刻被拒且错误里会带上代理地址，无需 DNS 也无需网络。
-	const proxyAddr = "127.0.0.1:1"
+	//
+	// ★ 比对的是 `proxyAddr + "->"` 而不是 proxyAddr 本身：socks URL 缺端口时
+	// x/net 会补默认 1080，而裸 Contains(":1") 连 ":1080" 也匹配 —— 那样「丢掉端口」
+	// 这个变异就能存活。加 "->" 才把整个地址钉死。
+	const proxyAddr = "127.0.0.1:9"
 	client, err := newAIRouteHTTPClient("socks://" + proxyAddr)
 	if err != nil {
 		t.Fatalf("newAIRouteHTTPClient(socks) error = %v, want nil", err)
@@ -56,8 +60,8 @@ func TestNewAIRouteHTTPClient_SocksProxyDialsTheProxyNotTheTarget(t *testing.T) 
 	if dialErr == nil {
 		t.Fatal("dial succeeded against a closed port, want a connection error")
 	}
-	if !strings.Contains(dialErr.Error(), proxyAddr) {
-		t.Fatalf("dial error = %v, want it to name the socks proxy %s (traffic went to the target instead)", dialErr, proxyAddr)
+	if !strings.Contains(dialErr.Error(), proxyAddr+"->") {
+		t.Fatalf("dial error = %v, want it to dial the socks proxy %s (traffic went elsewhere)", dialErr, proxyAddr)
 	}
 }
 
