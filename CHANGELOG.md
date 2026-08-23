@@ -214,6 +214,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   charged.
 
 #### Security
+- **Secrets of 8 characters or fewer were echoed verbatim** (`80bc53c`, 2026-08-23):
+  three near-identical masking helpers had drifted, and two returned the trimmed input
+  unchanged for short values — `maskSecret` (channel probe) and
+  `maskProjectedChannelKey` (projected channels) — while the channel listing's
+  `maskSecretValue` starred them. Key length is chosen at channel/API-key creation
+  time, so a short key came back in full through `ChannelTestResult.KeyMasked`
+  (`/check-keys/:id`, which loads real keys from the DB) and through the
+  projected-channel `ChannelKeyMasked` / `TokenMasked`. Consolidated into
+  `internal/utils/secretmask`; both output shapes are kept deliberately, since they
+  appear in different responses.
 - **Self-update zip bomb guards** (`d8cbb29`, 2026-08-18): archive extraction had no
   bounds at all. Three dimensions now capped — entry count (1000), total uncompressed
   size (1 GiB), per-file uncompressed size (1 GiB) — with defense in depth: the
@@ -238,6 +248,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add 1MiB limit on anonymous Stripe webhook payloads
 
 #### Relay & Protocol
+- **Media upstream URLs skipped base-URL normalization** (`1f4d949`, 2026-08-23):
+  the media relay read `channel.GetBaseUrl()` — the raw stored value — at both call
+  sites, while the LLM relay and every other consumer read
+  `GetNormalizedBaseUrl()`, which is what appends the per-channel-type version root
+  (`/v1`, `/v1beta`, `/api/v3`). It also carried its own joiner that only
+  de-duplicated `/v1`, lacking the two branches the LLM joiner has. Stacked, a
+  Volcengine channel — whose media endpoints *are* OpenAI-compatible — produced
+  `https://ark…/v1/images/generations` when stored without the root and
+  `https://ark…/api/v3/v1/images/generations` when stored with it; both 404. Now both
+  resolve correctly. OpenAI-type channels were unaffected either way, which is why
+  this went unnoticed. Gemini-type channels remain unsupported for media (their API
+  is not OpenAI-shaped), unchanged before and after.
 - **`socks://` proxies never dialled** (`4d1f600`, 2026-08-23): the proxy scheme
   switch advertised `case "socks", "socks5"` and `model.NormalizeProxyURL` accepts
   the `socks://` spelling, but `golang.org/x/net/proxy` registers only `socks5` and
@@ -318,6 +340,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   collapsible panel.
 
 #### Other
+- **Prompt-cache savings panel ignored four of five price sources** (`ef15d8f`,
+  2026-08-23): `estimateOpsProviderPromptCacheSaved` called `llm.Get` directly, which
+  reads only the `model_info` cache — the first of the five sources
+  `price.GetLLMPrice` consults (then the preset table, the admin price map,
+  `PriceCategoryMatch`, and the provider-prefix/substring fallback). Any model priced
+  by anything other than a `model_info` row therefore contributed exactly 0 to the
+  "estimated cost saved" figure while the same request billed correctly, with no log
+  and no surfaced error.
 - **Short-timeout HTTP client cached under the wrong key** (`550dba8`, 2026-08-23):
   `GetHTTPClientShortTimeout` keyed its cache on `systemProxyURL`, which only
   `GetHTTPClientSystemProxy` ever assigns — nothing wrote a key when the
