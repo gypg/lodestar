@@ -17,9 +17,16 @@ const (
 )
 
 var (
-	systemDirectClient       *http.Client
-	systemProxyClient        *http.Client
-	systemProxyURL           string
+	systemDirectClient *http.Client
+	systemProxyClient  *http.Client
+	systemProxyURL     string
+	// shortTimeoutProxyURL is the short-timeout cache's own key. It must not share
+	// systemProxyURL: that variable is only ever written by
+	// GetHTTPClientSystemProxy, so keying this cache off it meant a proxy change
+	// picked up by the long-timeout path made the short-timeout path believe its
+	// stale client was current, and background probes kept using the old proxy
+	// until restart.
+	shortTimeoutProxyURL     string
 	shortTimeoutDirectClient *http.Client
 	shortTimeoutProxyClient  *http.Client
 	clientLock               sync.RWMutex
@@ -108,7 +115,7 @@ func GetHTTPClientShortTimeout(useProxy bool) (*http.Client, error) {
 		}
 
 		clientLock.RLock()
-		if shortTimeoutProxyClient != nil && systemProxyURL == currentProxyURL {
+		if shortTimeoutProxyClient != nil && shortTimeoutProxyURL == currentProxyURL {
 			clientLock.RUnlock()
 			return shortTimeoutProxyClient, nil
 		}
@@ -117,7 +124,7 @@ func GetHTTPClientShortTimeout(useProxy bool) (*http.Client, error) {
 		clientLock.Lock()
 		defer clientLock.Unlock()
 
-		if shortTimeoutProxyClient != nil && systemProxyURL == currentProxyURL {
+		if shortTimeoutProxyClient != nil && shortTimeoutProxyURL == currentProxyURL {
 			return shortTimeoutProxyClient, nil
 		}
 
@@ -126,6 +133,7 @@ func GetHTTPClientShortTimeout(useProxy bool) (*http.Client, error) {
 			return nil, err
 		}
 		shortTimeoutProxyClient = client
+		shortTimeoutProxyURL = currentProxyURL
 		return shortTimeoutProxyClient, nil
 	}
 
