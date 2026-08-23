@@ -105,6 +105,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   files, not repo-wide: a repo-wide grep for these names hits same-named copies in
   the sibling subpackages and reads as "still referenced" (the false signal WO-016
   was burned by).
+- **`navorder.NormalizeNavOrder` removed** (`9ff7059`, 2026-08-23): follow-up to the
+  entry above. `6b7772d` moved the deleted shim's tests onto this function on the
+  grounds that they would then cover the real implementation — but the forwarding
+  target was itself dead. It has no caller repo-wide, the package's only importer
+  uses `BuildSemanticCacheEvaluationSummary` alone, and nav order is actually
+  normalised in the frontend (`web/src/components/modules/navbar/nav-order.ts`);
+  `git log -S` shows it never had a live caller since the initial commit. Removed
+  along with its two tests; the summary-builder tests stay, because those do cover a
+  live call site that had no coverage at that layer.
 
 ### 🔥 Removed
 - **Octopus-style site management (dead code)**: The octopus-style site management
@@ -233,8 +242,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   switch advertised `case "socks", "socks5"` and `model.NormalizeProxyURL` accepts
   the `socks://` spelling, but `golang.org/x/net/proxy` registers only `socks5` and
   `socks5h`. A proxy-pool entry saved as `socks://host:1080` therefore passed
-  validation and then failed at dial time with `invalid socks proxy: proxy: unknown
-  scheme: socks`. This was not confined to the pool's test button:
+  validation and then failed **when the client was constructed** — `invalid socks
+  proxy: proxy: unknown scheme: socks`, returning a nil client rather than reaching
+  a dial at all. Nor was this confined to the pool's test button:
   `helper.ChannelHttpClient` → `client.GetHTTPClientCustomProxy` is the relay path,
   so every request through such a channel failed to obtain an HTTP client at all.
   `socks` is now canonicalised to `socks5` in the one shared dialler. The two
@@ -308,6 +318,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   collapsible panel.
 
 #### Other
+- **Short-timeout HTTP client cached under the wrong key** (`550dba8`, 2026-08-23):
+  `GetHTTPClientShortTimeout` keyed its cache on `systemProxyURL`, which only
+  `GetHTTPClientSystemProxy` ever assigns — nothing wrote a key when the
+  short-timeout client itself was built. So once the long-timeout path had noticed a
+  `proxy_url` change and refreshed the shared key, the short-timeout path compared
+  the new URL against that new key, concluded its cache was current, and handed back
+  a client still bound to the *previous* proxy. Delay probing and model syncing then
+  kept using the old proxy until the process restarted, with nothing in the logs to
+  say so. The cache now has its own `shortTimeoutProxyURL`. The package had no tests
+  before this; it does now.
 - Infer i18n message keys for plain errors in `ErrorWithAppError`
 - Remove unused `const Stub = true` dead symbol from sitesync
 
