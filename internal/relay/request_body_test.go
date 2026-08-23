@@ -16,6 +16,7 @@ import (
 	"github.com/gypg/lodestar/internal/conf"
 	dbmodel "github.com/gypg/lodestar/internal/model"
 	"github.com/gypg/lodestar/internal/transformer/inbound"
+	"github.com/gypg/lodestar/internal/transformer/outbound"
 )
 
 func TestParseRequestRejectsOversizeBody(t *testing.T) {
@@ -210,41 +211,83 @@ func TestExtractModelFromJSONReturnsStreamFlag(t *testing.T) {
 	}
 }
 
-func TestBuildMediaUpstreamURLKeepsSingleV1Prefix(t *testing.T) {
+func TestMediaUpstreamURL(t *testing.T) {
+	// 媒体路径过去用 channel.GetBaseUrl()（原始值）+ 自己那个只会去重 /v1 的拼接器，
+	// 而 LLM 路径与仓库里其他所有消费者都用 GetNormalizedBaseUrl() + 共享拼接器。
+	// 下面 volcengine 两例正是那个不对称造成的 404；OpenAI 三例证明常见情况没有回归。
 	tests := []struct {
-		name    string
-		baseURL string
-		path    string
-		want    string
+		name        string
+		channelType outbound.OutboundType
+		baseURL     string
+		suffixMode  string
+		path        string
+		want        string
 	}{
 		{
-			name:    "base url already includes v1",
-			baseURL: "https://api.example.com/v1",
-			path:    "/v1/rerank",
-			want:    "https://api.example.com/v1/rerank",
+			name:        "openai base without version root",
+			channelType: outbound.OutboundTypeOpenAIChat,
+			baseURL:     "https://api.example.com",
+			path:        "/v1/images/generations",
+			want:        "https://api.example.com/v1/images/generations",
 		},
 		{
-			name:    "nested base path already includes v1",
-			baseURL: "https://api.example.com/openai/v1/",
-			path:    "/v1/images/generations",
-			want:    "https://api.example.com/openai/v1/images/generations",
+			name:        "openai base already carrying v1",
+			channelType: outbound.OutboundTypeOpenAIChat,
+			baseURL:     "https://api.example.com/v1",
+			path:        "/v1/rerank",
+			want:        "https://api.example.com/v1/rerank",
 		},
 		{
-			name:    "base url without path keeps endpoint prefix",
-			baseURL: "https://api.example.com",
-			path:    "/v1/search",
-			want:    "https://api.example.com/v1/search",
+			name:        "nested openai base already carrying v1",
+			channelType: outbound.OutboundTypeOpenAIChat,
+			baseURL:     "https://api.example.com/openai/v1/",
+			path:        "/v1/images/generations",
+			want:        "https://api.example.com/openai/v1/images/generations",
+		},
+		{
+			// 曾经产出 https://ark.example.com/v1/images/generations —— /api/v3 根本没加上。
+			name:        "volcengine base gains its version root",
+			channelType: outbound.OutboundTypeVolcengine,
+			baseURL:     "https://ark.example.com",
+			path:        "/v1/images/generations",
+			want:        "https://ark.example.com/api/v3/images/generations",
+		},
+		{
+			// 曾经产出 .../api/v3/v1/images/generations —— 两个版本段叠在一起。
+			name:        "volcengine base already carrying its version root",
+			channelType: outbound.OutboundTypeVolcengine,
+			baseURL:     "https://ark.example.com/api/v3",
+			path:        "/v1/images/generations",
+			want:        "https://ark.example.com/api/v3/images/generations",
+		},
+		{
+			// mimo 的音乐/图片改写会把 UpstreamPath 设成 /v1/chat/completions；
+			// 若 base 本身就是该端点，靠 suffix_mode=custom 先把端点段裁掉，才不会拼两遍。
+			// ★ 注意默认 suffix mode 下不是这样：归一化会给 .../chat/completions 再补一个
+			// /v1（appendBaseURLPathIfMissing 只看结尾是不是 /v1），只有 custom 模式才走
+			// trimKnownOpenAIEndpointPath。这是 LLM 路径同样具备的既有行为，不是媒体独有。
+			name:        "explicit endpoint base is trimmed in custom suffix mode",
+			channelType: outbound.OutboundTypeOpenAIChat,
+			baseURL:     "https://api.example.com/v1/chat/completions",
+			suffixMode:  "custom",
+			path:        "/v1/chat/completions",
+			want:        "https://api.example.com/v1/chat/completions",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := buildMediaUpstreamURL(tt.baseURL, tt.path)
+			channel := &dbmodel.Channel{
+				Type:     tt.channelType,
+				BaseUrls: []dbmodel.BaseUrl{{URL: tt.baseURL, SuffixMode: tt.suffixMode}},
+			}
+
+			got, err := mediaUpstreamURL(channel, tt.path)
 			if err != nil {
-				t.Fatalf("buildMediaUpstreamURL() error = %v", err)
+				t.Fatalf("mediaUpstreamURL() error = %v", err)
 			}
 			if got != tt.want {
-				t.Fatalf("buildMediaUpstreamURL() = %q, want %q", got, tt.want)
+				t.Fatalf("mediaUpstreamURL() = %q, want %q", got, tt.want)
 			}
 		})
 	}

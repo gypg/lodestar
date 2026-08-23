@@ -11,7 +11,6 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
@@ -29,6 +28,7 @@ import (
 	"github.com/gypg/lodestar/internal/relay/balancer"
 	"github.com/gypg/lodestar/internal/relay/condition"
 	"github.com/gypg/lodestar/internal/server/resp"
+	"github.com/gypg/lodestar/internal/transformer/outbound/openai"
 	"github.com/gypg/lodestar/internal/utils/log"
 	"github.com/gypg/lodestar/internal/utils/telemetry"
 )
@@ -550,7 +550,7 @@ func forwardMediaRequestJSON(
 	}
 
 	// Build upstream URL
-	upstreamURL, err := buildMediaUpstreamURL(channel.GetBaseUrl(), cfg.UpstreamPath)
+	upstreamURL, err := mediaUpstreamURL(channel, cfg.UpstreamPath)
 	if err != nil {
 		return 0, fmt.Errorf("failed to build upstream URL: %w", err)
 	}
@@ -624,7 +624,7 @@ func forwardMediaRequestMultipart(
 	ctx := operationCtx
 
 	// Build upstream URL
-	upstreamURL, err := buildMediaUpstreamURL(channel.GetBaseUrl(), cfg.UpstreamPath)
+	upstreamURL, err := mediaUpstreamURL(channel, cfg.UpstreamPath)
 	if err != nil {
 		return 0, fmt.Errorf("failed to build upstream URL: %w", err)
 	}
@@ -749,21 +749,29 @@ func replaceModelInJSON(body []byte, originalModel, resolvedModel string) ([]byt
 	return json.Marshal(raw)
 }
 
-// buildMediaUpstreamURL constructs the full upstream URL from base URL and path.
-func buildMediaUpstreamURL(baseURL, path string) (string, error) {
-	parsed, err := url.Parse(strings.TrimSuffix(baseURL, "/"))
-	if err != nil {
-		return "", fmt.Errorf("failed to parse base url: %w", err)
-	}
-
-	basePath := strings.TrimSuffix(parsed.Path, "/")
-	normalizedPath := path
-	if strings.HasSuffix(basePath, "/v1") && strings.HasPrefix(normalizedPath, "/v1/") {
-		normalizedPath = strings.TrimPrefix(normalizedPath, "/v1")
-	}
-
-	parsed.Path = basePath + normalizedPath
-	return parsed.String(), nil
+// mediaUpstreamURL builds the upstream URL for a media request.
+//
+// It is a named seam on purpose: it is the single place that decides media uses the
+// *normalized* base URL and the same joiner as the LLM path. Both media call sites
+// go through it, so a test on it catches a regression in either half.
+//
+// Two things used to differ from the LLM path, and both broke non-OpenAI channels:
+//
+//  1. media read channel.GetBaseUrl() — the raw stored value — while relay.go and
+//     every other consumer read GetNormalizedBaseUrl(). Normalization is what appends
+//     the per-type version root (/v1, /v1beta, /api/v3), and it happens at read time
+//     only, so the raw value genuinely lacks it.
+//  2. media had its own joiner that only de-duplicated /v1. It lacked
+//     shouldPreserveVersionRoot (strip the endpoint's /v1 when the base already ends
+//     in a different version root) and looksLikeExplicitEndpoint (do not append when
+//     the base URL already *is* the endpoint).
+//
+// Together those meant a Volcengine channel stored as https://ark.../ produced
+// https://ark.../v1/images/generations — the /api/v3 root never applied — and a
+// channel stored as https://ark.../api/v3 produced /api/v3/v1/images/generations.
+// Both 404. OpenAI-type channels worked either way, which is why it went unnoticed.
+func mediaUpstreamURL(channel *dbmodel.Channel, upstreamPath string) (string, error) {
+	return openai.BuildOpenAIUpstreamURL(channel.GetNormalizedBaseUrl(), upstreamPath)
 }
 
 // applyChannelHeaders applies channel custom headers to the request.
