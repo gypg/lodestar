@@ -11,6 +11,7 @@ import (
 	"github.com/gypg/lodestar/internal/conf"
 	appmodel "github.com/gypg/lodestar/internal/model"
 	"github.com/gypg/lodestar/internal/utils/log"
+	"github.com/gypg/lodestar/internal/utils/secretmask"
 )
 
 type ChannelTestResult struct {
@@ -37,7 +38,7 @@ func TestChannel(ctx context.Context, request appmodel.Channel) (*ChannelTestSum
 		}
 		keyMasked := "sk-o...0001"
 		if len(request.Keys) > 0 && strings.TrimSpace(request.Keys[0].ChannelKey) != "" {
-			keyMasked = maskSecret(request.Keys[0].ChannelKey)
+			keyMasked = secretmask.Ellipsis(request.Keys[0].ChannelKey)
 		}
 		log.Infof("dev mock channel test success: base_url=%s", baseURL)
 		return &ChannelTestSummary{
@@ -87,7 +88,7 @@ func TestChannel(ctx context.Context, request appmodel.Channel) (*ChannelTestSum
 			result := ChannelTestResult{
 				BaseURL:   baseURL,
 				KeyRemark: strings.TrimSpace(key.Remark),
-				KeyMasked: maskSecret(key.ChannelKey),
+				KeyMasked: secretmask.Ellipsis(key.ChannelKey),
 			}
 			startedAt := time.Now()
 			statusCode, bodyText, testErr := performChannelTestRequest(ctx, client, request, baseURL, key.ChannelKey)
@@ -166,15 +167,4 @@ func doChannelProbeRequest(client *http.Client, req *http.Request) (int, string,
 		bodyText = resp.Status
 	}
 	return resp.StatusCode, bodyText, fmt.Errorf("upstream error: %d", resp.StatusCode)
-}
-
-func maskSecret(secret string) string {
-	trimmed := strings.TrimSpace(secret)
-	if trimmed == "" {
-		return ""
-	}
-	if len(trimmed) <= 8 {
-		return trimmed
-	}
-	return trimmed[:4] + "..." + trimmed[len(trimmed)-4:]
 }

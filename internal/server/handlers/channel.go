@@ -20,6 +20,7 @@ import (
 	"github.com/gypg/lodestar/internal/task"
 	"github.com/gypg/lodestar/internal/transformer/outbound"
 	"github.com/gypg/lodestar/internal/utils/log"
+	"github.com/gypg/lodestar/internal/utils/secretmask"
 )
 
 func init() {
@@ -535,18 +536,7 @@ func maskChannelKeys(keys []model.ChannelKey) []model.ChannelKey {
 }
 
 func maskChannelKeyValue(raw string) string {
-	return maskSecretValue(raw)
-}
-
-func maskSecretValue(raw string) string {
-	trimmed := strings.TrimSpace(raw)
-	if trimmed == "" {
-		return ""
-	}
-	if len(trimmed) <= 8 {
-		return strings.Repeat("*", len(trimmed))
-	}
-	return trimmed[:4] + strings.Repeat("*", len(trimmed)-8) + trimmed[len(trimmed)-4:]
+	return secretmask.Stars(raw)
 }
 
 func normalizeChannelListSlices(channel *model.Channel) {

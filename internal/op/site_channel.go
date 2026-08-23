@@ -10,6 +10,7 @@ import (
 
 	"github.com/gypg/lodestar/internal/db"
 	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/utils/secretmask"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -205,7 +206,7 @@ func buildSiteChannelGroups(ctx context.Context, site model.Site, account model.
 			ID:          token.ID,
 			Enabled:     token.Enabled,
 			Token:       token.Token,
-			TokenMasked: maskProjectedChannelKey(token.Token),
+			TokenMasked: secretmask.Ellipsis(token.Token),
 			Name:        token.Name,
 			GroupKey:    key,
 			GroupName:   model.NormalizeSiteGroupName(key, token.GroupName),
@@ -251,7 +252,7 @@ func buildSiteChannelGroups(ctx context.Context, site model.Site, account model.
 				ChannelName:      channel.Name,
 				Enabled:          key.Enabled,
 				ChannelKey:       key.ChannelKey,
-				ChannelKeyMasked: maskProjectedChannelKey(key.ChannelKey),
+				ChannelKeyMasked: secretmask.Ellipsis(key.ChannelKey),
 				Remark:           key.Remark,
 				StatusCode:       key.StatusCode,
 				LastUseTimeStamp: key.LastUseTimeStamp,
@@ -319,17 +320,6 @@ func siteModelBelongsToGroup(item model.SiteModel, groupKey string) bool {
 		}
 	}
 	return false
-}
-
-func maskProjectedChannelKey(value string) string {
-	trimmed := strings.TrimSpace(value)
-	if trimmed == "" {
-		return ""
-	}
-	if len(trimmed) <= 8 {
-		return trimmed
-	}
-	return trimmed[:4] + "..." + trimmed[len(trimmed)-4:]
 }
 
 func ensureSiteChannelGroup(groups map[string]*model.SiteChannelGroup, groupKey string, groupName string) *model.SiteChannelGroup {

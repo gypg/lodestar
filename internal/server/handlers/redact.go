@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/utils/secretmask"
 )
 
 const viewerMaskedDomain = "***"
@@ -99,7 +100,7 @@ var sensitiveSettingKeys = map[string]struct{}{
 func maskSensitiveSettings(settings []model.Setting) {
 	for i := range settings {
 		if _, ok := sensitiveSettingKeys[string(settings[i].Key)]; ok {
-			settings[i].Value = maskSecretValue(settings[i].Value)
+			settings[i].Value = secretmask.Stars(settings[i].Value)
 		}
 	}
 }
@@ -107,9 +108,9 @@ func maskSensitiveSettings(settings []model.Setting) {
 // maskSiteAccountCredentials zeroes out credential fields on site accounts.
 func maskSiteAccountCredentials(accounts []model.SiteAccount) {
 	for i := range accounts {
-		accounts[i].Password = maskSecretValue(accounts[i].Password)
-		accounts[i].AccessToken = maskSecretValue(accounts[i].AccessToken)
-		accounts[i].APIKey = maskSecretValue(accounts[i].APIKey)
-		accounts[i].RefreshToken = maskSecretValue(accounts[i].RefreshToken)
+		accounts[i].Password = secretmask.Stars(accounts[i].Password)
+		accounts[i].AccessToken = secretmask.Stars(accounts[i].AccessToken)
+		accounts[i].APIKey = secretmask.Stars(accounts[i].APIKey)
+		accounts[i].RefreshToken = secretmask.Stars(accounts[i].RefreshToken)
 	}
 }

@@ -15,6 +15,7 @@ import (
 	"github.com/gypg/lodestar/internal/server/middleware"
 	"github.com/gypg/lodestar/internal/server/resp"
 	"github.com/gypg/lodestar/internal/server/router"
+	"github.com/gypg/lodestar/internal/utils/secretmask"
 	"github.com/samber/lo"
 )
 
@@ -216,7 +217,7 @@ func maskAPIKeys(keys []model.APIKey) []model.APIKey {
 }
 
 func maskAPIKeyValue(raw string) string {
-	return maskSecretValue(raw)
+	return secretmask.Stars(raw)
 }
 
 type apiKeyRequestPayload struct {
