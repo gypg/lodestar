@@ -189,6 +189,76 @@ func TestParseOpsProviderPromptCacheUsage_AnthropicStyle(t *testing.T) {
 	}
 }
 
+// TestParseOpsProviderPromptCacheUsage_AnthropicWarmReadOnlyHit 钉死暖前缀纯命中。
+// Anthropic 的 input_tokens 不含 cache_read，所以 TotalInputTokens 必须把它加回来。
+// 曾用「CacheCreationInputTokens > 0」反推是不是 Anthropic 语义 —— 纯读命中时
+// cache_creation 恰好是 0，分母就只剩 input_tokens，CacheReuseRatio 冲到 500000%。
+// 判据只能是 cache_creation_input_tokens 这个键在不在（见 cacheusage 包同名测试）。
+func TestParseOpsProviderPromptCacheUsage_AnthropicWarmReadOnlyHit(t *testing.T) {
+	usage, ok := parseOpsProviderPromptCacheUsage(`{"usage":{"input_tokens":10,"input_tokens_details":{"cached_tokens":50000},"cache_creation_input_tokens":0}}`)
+	if !ok {
+		t.Fatal("expected provider prompt cache usage to be parsed")
+	}
+	if usage.PromptTokens != 10 {
+		t.Fatalf("PromptTokens = %d, want 10", usage.PromptTokens)
+	}
+	if usage.CachedTokens != 50000 {
+		t.Fatalf("CachedTokens = %d, want 50000", usage.CachedTokens)
+	}
+	if usage.CacheCreationInputTokens != 0 {
+		t.Fatalf("CacheCreationInputTokens = %d, want 0", usage.CacheCreationInputTokens)
+	}
+	if usage.TotalInputTokens != 50010 {
+		t.Fatalf("TotalInputTokens = %d, want 50010 (input_tokens 10 + cache_read 50000)", usage.TotalInputTokens)
+	}
+}
+
+// TestBuildOpsProviderPromptCacheSummaryFromLogs_WarmReadOnlyRatioStaysBounded 从
+// 聚合出口钉死同一条缺陷：CacheReuseRatio 是面板上直接显示的数字，缓存读 token
+// 不加回分母时它会是 500000%。单测 TotalInputTokens 只守住中间量，这条守住出口。
+func TestBuildOpsProviderPromptCacheSummaryFromLogs_WarmReadOnlyRatioStaysBounded(t *testing.T) {
+	llmCache := llm.GetCache()
+	oldLLMs := llmCache.GetAll()
+	llmCache.Clear()
+	llmCache.Set("claude-3-5-sonnet-20241022", model.LLMPrice{
+		Input:      3,
+		Output:     15,
+		CacheRead:  0.3,
+		CacheWrite: 3.75,
+	})
+	defer func() {
+		llmCache.Clear()
+		for k, v := range oldLLMs {
+			llmCache.Set(k, v)
+		}
+	}()
+
+	start := time.Unix(1_700_000_000, 0).UTC().Truncate(time.Hour)
+	logs := []model.RelayLog{
+		{
+			Time:            start.Add(1 * time.Hour).Unix(),
+			ChannelId:       1,
+			ChannelName:     "anthropic",
+			ActualModelName: "claude-3-5-sonnet-20241022",
+			ResponseContent: `{"usage":{"input_tokens":10,"input_tokens_details":{"cached_tokens":50000},"cache_creation_input_tokens":0}}`,
+		},
+	}
+
+	summary := buildOpsProviderPromptCacheSummaryFromLogs(logs, start)
+
+	// 50000 / (10 + 50000) * 100 = 99.98000399920016
+	const want = 99.98000399920016
+	if diff := summary.CacheReuseRatio - want; diff > 1e-9 || diff < -1e-9 {
+		t.Fatalf("summary.CacheReuseRatio = %v, want %v", summary.CacheReuseRatio, want)
+	}
+	if len(summary.Providers) != 1 {
+		t.Fatalf("Providers len = %d, want 1", len(summary.Providers))
+	}
+	if diff := summary.Providers[0].CacheReuseRatio - want; diff > 1e-9 || diff < -1e-9 {
+		t.Fatalf("Providers[0].CacheReuseRatio = %v, want %v", summary.Providers[0].CacheReuseRatio, want)
+	}
+}
+
 func TestParseOpsProviderPromptCacheUsage_PromptCacheHitTokensFallback(t *testing.T) {
 	usage, ok := parseOpsProviderPromptCacheUsage(`{"usage":{"prompt_tokens":512,"prompt_cache_hit_tokens":128,"output_tokens":64}}`)
 	if !ok {

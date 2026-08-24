@@ -10,6 +10,12 @@ type ProviderPromptCacheUsageSignals struct {
 	CachedTokens             int64
 	CacheCreationInputTokens int64
 	SemanticCacheHit         bool
+	// AnthropicUsage 记录日志里**存在** cache_creation_input_tokens 这个键，
+	// 与它的值无关。relay/metrics.go 只在 Usage.AnthropicUsage 为真时才把该键
+	// 拼进 response_content（两个字段都是 json:"-"，拼字符串是唯一通道），
+	// 所以键存在等价于「prompt_tokens 不含缓存读 token」。暖前缀纯命中时值是 0，
+	// 因此判据只能是键的有无，不能是值的大小。
+	AnthropicUsage bool
 }
 
 type providerPromptCacheUsagePayload struct {
@@ -69,6 +75,7 @@ func ParseProviderPromptCacheUsageSignals(responseContent string) (ProviderPromp
 		usage.CachedTokens = payload.Usage.PromptCacheHit
 	}
 	if payload.Usage.CacheCreationInputTokens != nil {
+		usage.AnthropicUsage = true
 		usage.CacheCreationInputTokens = *payload.Usage.CacheCreationInputTokens
 	}
 	if payload.Lodestar != nil && payload.Lodestar.SemanticCache != nil {

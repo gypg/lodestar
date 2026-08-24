@@ -490,7 +490,14 @@ func parseOpsProviderPromptCacheUsage(responseContent string) (opsProviderPrompt
 		CacheCreationInputTokens: signals.CacheCreationInputTokens,
 	}
 	usage.TotalInputTokens = usage.PromptTokens
-	if usage.CacheCreationInputTokens > 0 {
+	// Anthropic 的 input_tokens 不含 cache_read / cache_creation，要加回来才是真实
+	// 输入规模；OpenAI 的 prompt_tokens 本就含 cached_tokens，加了会重复计。
+	// 判据必须是 signals.AnthropicUsage（cache_creation_input_tokens 这个键在不在），
+	// 不能用 CacheCreationInputTokens > 0 —— 暖前缀纯命中（只读、不写新缓存）时
+	// 该值恰好是 0，会被误判成 OpenAI 语义，于是 CacheReadTokens 进了分子却没进
+	// 分母，CacheReuseRatio 冲到 500000%。计费侧（relay/metrics.go:99）用的就是
+	// 同一个显式标志，两边判据必须一致。
+	if signals.AnthropicUsage {
 		usage.TotalInputTokens += usage.CachedTokens + usage.CacheCreationInputTokens
 	}
 
