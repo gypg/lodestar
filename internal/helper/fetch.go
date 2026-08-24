@@ -115,7 +115,7 @@ func fetchOpenAIModels(client *http.Client, ctx context.Context, request model.C
 	if err != nil {
 		return nil, fmt.Errorf("create request: %w", err)
 	}
-	req.Header.Set("Authorization", "Bearer "+request.GetChannelKey().ChannelKey)
+	req.Header.Set("Authorization", "Bearer "+request.GetChannelKeyWithCooldown(ratelimitCooldownSeconds()).ChannelKey)
 	for _, header := range request.CustomHeader {
 		if header.HeaderKey != "" {
 			req.Header.Set(header.HeaderKey, header.HeaderValue)
@@ -165,7 +165,7 @@ func fetchGeminiModels(client *http.Client, ctx context.Context, request model.C
 			if err != nil {
 				return fmt.Errorf("create request: %w", err)
 			}
-			req.Header.Set("X-Goog-Api-Key", request.GetChannelKey().ChannelKey)
+			req.Header.Set("X-Goog-Api-Key", request.GetChannelKeyWithCooldown(ratelimitCooldownSeconds()).ChannelKey)
 			for _, header := range request.CustomHeader {
 				if header.HeaderKey != "" {
 					req.Header.Set(header.HeaderKey, header.HeaderValue)
@@ -231,7 +231,7 @@ func fetchAnthropicModels(client *http.Client, ctx context.Context, request mode
 			if err != nil {
 				return fmt.Errorf("create request: %w", err)
 			}
-			req.Header.Set("X-Api-Key", request.GetChannelKey().ChannelKey)
+			req.Header.Set("X-Api-Key", request.GetChannelKeyWithCooldown(ratelimitCooldownSeconds()).ChannelKey)
 			req.Header.Set("Anthropic-Version", "2023-06-01")
 			for _, header := range request.CustomHeader {
 				if header.HeaderKey != "" {

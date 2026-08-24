@@ -351,10 +351,6 @@ func appendBaseURLPathIfMissing(rawURL, lowerURL, suffix string) string {
 	return rawURL + suffix
 }
 
-func (c *Channel) GetChannelKey() ChannelKey {
-	return c.GetChannelKeyWithCooldown(300)
-}
-
 // EnabledKeyCount returns the number of enabled keys with non-empty ChannelKey.
 func (c *Channel) EnabledKeyCount() int {
 	if c == nil {
@@ -369,10 +365,15 @@ func (c *Channel) EnabledKeyCount() int {
 	return count
 }
 
-func (c *Channel) GetChannelKeyExcluding(excludeKeyIDs []int) ChannelKey {
-	return c.GetChannelKeyExcludingWithCooldown(excludeKeyIDs, 300)
-}
-
+// GetChannelKeyWithCooldown 及其下游只接受显式传入的冷却秒数，不自己读设置 ——
+// internal/op/setting 依赖本包，反向读会成环。所以调用方必须自己读
+// SettingKeyRatelimitCooldown 再传进来（relay/type.go:getRatelimitCooldown、
+// helper/ratelimit_cooldown.go:ratelimitCooldownSeconds）。
+//
+// 这里刻意不提供写死默认值的无参包装。曾经有 GetChannelKey() 与
+// GetChannelKeyExcluding() 两个包装写死 300，helper 的四个调用点全用了它们，
+// 结果 ratelimit_cooldown=0（关闭）对模型拉取和分组探测完全无效。少一个便捷
+// 包装，就少一处能悄悄绕过这个旋钮的入口。
 func (c *Channel) GetChannelKeyWithCooldown(ratelimitCooldownSec int) ChannelKey {
 	return c.GetChannelKeyExcludingWithCooldown(nil, ratelimitCooldownSec)
 }
