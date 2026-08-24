@@ -278,6 +278,10 @@ type ResponsesRequest struct {
 	Temperature       *float64              `json:"temperature,omitempty"`
 	TopP              *float64              `json:"top_p,omitempty"`
 	Reasoning         *ResponsesReasoning   `json:"reasoning,omitempty"`
+	// Include 只在这条出站路上合法：chat completions 没有这个参数，chat.go 因此
+	// 显式把它清空。漏掉这个字段等于把客户端的 include 无条件丢掉且不报错。
+	Include     []string `json:"include,omitempty"`
+	TopLogprobs *int64   `json:"top_logprobs,omitempty"`
 }
 
 type ResponsesInput struct {
@@ -393,6 +397,11 @@ type ResponsesTextFormat struct {
 	Schema json.RawMessage `json:"schema,omitempty"`
 }
 
+// ResponsesReasoning 刻意只有 Effort。入站的同名类型还有 MaxTokens
+// （reasoning.max_tokens），那是 Lodestar 的扩展，用来让 /v1/responses 客户端表达思考
+// 预算并送达 Anthropic 上游（outbound/anthropic 的 getThinkingBudget 是唯一消费者）。
+// OpenAI 的 reasoning 对象只有 effort / summary，补上 max_tokens 会把"少一个可选
+// 参数"换成上游硬 400。整个 OpenAI 系出站都不发它，别顺手补齐。
 type ResponsesReasoning struct {
 	Effort string `json:"effort,omitempty"`
 }
@@ -460,6 +469,13 @@ func ConvertToResponsesRequest(req *model.InternalLLMRequest) *ResponsesRequest 
 		Metadata:          req.Metadata,
 		MaxOutputTokens:   req.MaxCompletionTokens,
 		ParallelToolCalls: req.ParallelToolCalls,
+		TopLogprobs:       req.TopLogprobs,
+	}
+
+	// 复制而非共享底层数组：InternalLLMRequest 可能被重试路径复用，
+	// ClearHelpFields 只把 Include 置 nil，不动已交出去的切片。
+	if len(req.Include) > 0 {
+		result.Include = append([]string(nil), req.Include...)
 	}
 
 	// Convert instructions from system messages
