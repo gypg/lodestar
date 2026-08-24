@@ -1,6 +1,7 @@
 package helper
 
 import (
+	"context"
 	"net/http"
 	"testing"
 	"time"
@@ -236,5 +237,66 @@ func TestGroupTestProgressAccumulatesDuringRun(t *testing.T) {
 	}
 	if got, ok := byItem[2]; !ok || !got.Passed {
 		t.Fatalf("item 2 = %+v, want passed=true", got)
+	}
+}
+
+// TestRunGroupModelTestDefersDoneWhenCallerMustAmend 直接钉住修复的机制。
+//
+// 背景：runGroupModelTest 会自己发布一份终态进度记录。draft 路径随后还要再发一份，
+// 只为把 ClientID 盖上（编辑器靠 client_id 把判定对回未保存的行）。两次 store 之间
+// 存在一个窗口：记录已经 Done=true，但 ClientID 还是空的。任何轮询
+// GET /api/v1/group/test/progress/:id 的读者落在窗口里，拿到的每条判定都对不上行。
+//
+// 那个窗口就是 TestStartDraftGroupModelTestPublishesPerItemResults 在 CI 里偶发变红的原因。
+// 端到端测试只能概率性地撞上它，所以这里直接断言不变量：deferDone=true 时发布的记录
+// 必须带结果但**不能**是 Done。
+func TestRunGroupModelTestDefersDoneWhenCallerMustAmend(t *testing.T) {
+	initGroupProbeLogTestEnv(t)
+
+	upstream := newProbeStatusUpstream(t, http.StatusNotFound)
+	const channelID = 930101
+	channels := map[int]appmodel.Channel{
+		channelID: openAIProbeChannel(channelID, "defer-done-probe", upstream.URL),
+	}
+	group := &appmodel.Group{
+		Name:         "defer-done-group",
+		EndpointType: appmodel.EndpointTypeAll,
+		Items: []appmodel.GroupItem{
+			{ID: 1, ChannelID: channelID, ModelName: "some-model", Priority: 1, Weight: 1},
+		},
+	}
+
+	for _, tt := range []struct {
+		name      string
+		deferDone bool
+		wantDone  bool
+	}{
+		{name: "caller amends afterwards", deferDone: true, wantDone: false},
+		{name: "caller publishes nothing more", deferDone: false, wantDone: true},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			progress := &GroupModelTestProgress{
+				ID:      "defer-done-" + tt.name,
+				Total:   len(group.Items),
+				Results: make([]GroupModelTestResult, 0, len(group.Items)),
+			}
+			storeGroupModelProgress(progress)
+
+			if _, err := runGroupModelTest(context.Background(), group, channels, progress, tt.deferDone); err != nil {
+				t.Fatalf("runGroupModelTest() error = %v", err)
+			}
+
+			published, ok := GetGroupModelTestProgress(progress.ID)
+			if !ok {
+				t.Fatal("progress record was not published")
+			}
+			if published.Done != tt.wantDone {
+				t.Fatalf("published Done = %t, want %t (deferDone=%t)", published.Done, tt.wantDone, tt.deferDone)
+			}
+			// 无论是否 defer，结果都必须已经可见——推迟的只是 Done，不是结果。
+			if len(published.Results) != 1 {
+				t.Fatalf("published Results len = %d, want 1; deferring Done must not hide the verdicts", len(published.Results))
+			}
+		})
 	}
 }

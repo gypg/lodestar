@@ -83,7 +83,8 @@ func TestGroupModels(ctx context.Context, group *appmodel.Group, channels map[in
 		return buildDevMockGroupTestSummary(group)
 	}
 	progress := &GroupModelTestProgress{Total: len(group.Items)}
-	return runGroupModelTest(ctx, group, channels, progress)
+	// 同步调用方直接拿返回值，不轮询进度记录，也不需要事后补字段。
+	return runGroupModelTest(ctx, group, channels, progress, false)
 }
 
 func StartGroupModelTest(group *appmodel.Group, channels map[int]appmodel.Channel) (*GroupModelTestProgress, error) {
@@ -138,7 +139,7 @@ func StartGroupModelTest(group *appmodel.Group, channels map[int]appmodel.Channe
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 		defer cancel()
 
-		if _, err := runGroupModelTest(ctx, group, channels, progress); err != nil {
+		if _, err := runGroupModelTest(ctx, group, channels, progress, false); err != nil {
 			log.Errorf("group model test failed: group=%s progress_id=%s err=%v", group.Name, id, err)
 			failed := cloneGroupModelProgress(progress)
 			failed.Done = true
@@ -208,7 +209,18 @@ func StartDraftGroupModelTest(endpointType string, items []GroupModelDraftTestIt
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 		defer cancel()
 
-		summary, err := runGroupModelTest(ctx, group, channels, progress)
+		// deferDone: the terminal block below stamps ClientID, so the record must
+		// not be published as Done until that has happened.
+		//
+		// ⚠️ 这个参数没有测试守住：把它改成 false 会重新打开那个窗口，而全部测试照过
+		// （变异实测存活）。端到端测试只能概率性撞上那两次 store 之间的间隙，所以钉住的
+		// 是 runGroupModelTest 的机制（TestRunGroupModelTestDefersDoneWhenCallerMustAmend），
+		// 不是这个调用点。改这一行前请先想清楚上面那段注释。
+		//
+		// 附注：persistGroupTestResult 在 !Done 时直接返回，所以 runGroupModelTest 里
+		// 那次 persist 在 deferDone 下自动成为 no-op，落库仍然只发生一次，
+		// 且用的是下面的 testStartTime（时长准确），不是 run 内部的 time.Now()。
+		summary, err := runGroupModelTest(ctx, group, channels, progress, true)
 		if err != nil {
 			log.Errorf("draft group model test failed: progress_id=%s err=%v", id, err)
 			failed := cloneGroupModelProgress(progress)
@@ -263,7 +275,17 @@ func GetGroupModelTestProgress(id string) (*GroupModelTestProgress, bool) {
 	return &cloned, true
 }
 
-func runGroupModelTest(ctx context.Context, group *appmodel.Group, channels map[int]appmodel.Channel, progress *GroupModelTestProgress) (*GroupModelTestSummary, error) {
+// runGroupModelTest probes every item in group and publishes progress as it goes.
+//
+// deferDone controls whether the terminal record it publishes is marked Done.
+// Pass true when the caller still has to amend the results before they may become
+// visible: publishing Done here and amending afterwards leaves a window in which a
+// poller of GET /api/v1/group/test/progress/:id sees finished verdicts that have not
+// been stamped yet. The draft path stamps ClientID, which the group editor uses to
+// match verdicts back to unsaved rows, so a read landing in that window detaches
+// every verdict from its row. That window is what made
+// TestStartDraftGroupModelTestPublishesPerItemResults flake in CI.
+func runGroupModelTest(ctx context.Context, group *appmodel.Group, channels map[int]appmodel.Channel, progress *GroupModelTestProgress, deferDone bool) (*GroupModelTestSummary, error) {
 	if group == nil {
 		return nil, fmt.Errorf("group is nil")
 	}
@@ -327,7 +349,7 @@ func runGroupModelTest(ctx context.Context, group *appmodel.Group, channels map[
 		// by filtering Results, so "no results" rendered as "all models
 		// available" even when every item had answered 404.
 		finalProgress := cloneGroupModelProgress(progress)
-		finalProgress.Done = true
+		finalProgress.Done = !deferDone
 		finalProgress.Passed = summary.Passed
 		finalProgress.Completed = summary.Completed
 		finalProgress.Total = summary.Total
