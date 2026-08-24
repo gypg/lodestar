@@ -214,6 +214,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   charged.
 
 #### Security
+- **Unbounded regex backtracking on four live paths** (`4e0fcb2`, 2026-08-24): regexp2
+  is a backtracking engine, and without `Regexp.MatchTimeout` the zero value is
+  `math.MaxInt64` nanoseconds — so a catastrophic pattern could pin a request
+  goroutine indefinitely. Of ten compile sites only three set a timeout, one of those
+  being dead code; `helper/channel.go`, `helper/fetch.go` (twice) and
+  `op/group/auto.go` compiled and then matched with no bound. Both halves of the input
+  are partly external: the pattern is operator-supplied and the strings matched
+  against it are model names arriving from upstream site sync. All sites now compile
+  through `internal/utils/xregexp`, which cannot hand back a regex without the
+  timeout attached, and a repo walk test fails on any new direct `regexp2.Compile` —
+  a missing timeout produces no failure, no error and no log line, so review alone
+  cannot catch it.
 - **Secrets of 8 characters or fewer were echoed verbatim** (`80bc53c`, 2026-08-23):
   three near-identical masking helpers had drifted, and two returned the trimmed input
   unchanged for short values — `maskSecret` (channel probe) and
@@ -248,6 +260,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add 1MiB limit on anonymous Stripe webhook payloads
 
 #### Relay & Protocol
+- **Streaming aggregate dropped multipart output and aliased reasoning** (`e328640`
+  + `29b8aa4`, 2026-08-24): the chunk-merging half of `GetInternalResponse` existed
+  once per inbound adapter, and the openai-responses and anthropic-messages copies
+  were byte-identical to each other apart from the receiver — one copy pasted twice —
+  both missing three branches the openai-chat copy had: `Content.MultipleContent`,
+  `Images`, and reasoning read via `GetReasoningContent()`. Folded into one
+  `model.AggregateStreamChunks` (net −344 lines). Separately, four client-facing
+  conversions tested `ReasoningContent != nil` directly, so an upstream reporting
+  reasoning under the `reasoning` spelling (OpenRouter, Ollama cloud) produced no
+  reasoning at all for `/v1/messages` and `/v1/responses` clients. Scope, checked
+  rather than assumed: the aggregate feeds relay logging and the semantic cache, not
+  the client, and billing reads only `resp.Usage` — so this cost log fidelity, not
+  money. The three request-direction builders in `outbound/anthropic` are left alone
+  on purpose: accepting the alias there would synthesise a thinking block with no
+  `reasoning_signature`, which Anthropic can reject outright.
 - **Media upstream URLs skipped base-URL normalization** (`1f4d949`, 2026-08-23):
   the media relay read `channel.GetBaseUrl()` — the raw stored value — at both call
   sites, while the LLM relay and every other consumer read
@@ -340,6 +367,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   collapsible panel.
 
 #### Other
+- **Draft group-test results published before their ClientIDs** (`27e386b`,
+  2026-08-24): `runGroupModelTest` publishes a terminal progress record with
+  `Done=true`, but it cannot stamp `ClientID` — that mapping lives only in
+  `StartDraftGroupModelTest`, which then publishes a *second* record to attach them.
+  Between the two stores the record was Done with every `ClientID` empty, so a reader
+  polling `GET /api/v1/group/test/progress/:id` in that window — the group editor
+  included — got finished verdicts it could not match back to unsaved rows, since
+  `client_id` is exactly what it matches on. Surfaced as a CI failure rather than a
+  bug report; the run also blocked the docker workflow, and therefore deploys.
 - **Prompt-cache savings panel ignored four of five price sources** (`ef15d8f`,
   2026-08-23): `estimateOpsProviderPromptCacheSaved` called `llm.Get` directly, which
   reads only the `model_info` cache — the first of the five sources
