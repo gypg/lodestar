@@ -143,9 +143,13 @@ func (i *ResponseInbound) TransformStream(ctx context.Context, stream *model.Int
 	if len(stream.Choices) > 0 {
 		choice := stream.Choices[0]
 
-		// Handle reasoning content delta
-		if choice.Delta != nil && choice.Delta.ReasoningContent != nil && *choice.Delta.ReasoningContent != "" {
-			events = append(events, i.handleReasoningContent(choice.Delta.ReasoningContent)...)
+		// Handle reasoning content delta.
+		// 走访问器：上游可能用 `reasoning` 而非 `reasoning_content`
+		// （OpenRouter / Ollama cloud），裸判 ReasoningContent 会整条丢掉。
+		if choice.Delta != nil {
+			if reasoning := choice.Delta.GetReasoningContent(); reasoning != "" {
+				events = append(events, i.handleReasoningContent(&reasoning)...)
+			}
 		}
 
 		// Handle text content delta
@@ -1175,8 +1179,8 @@ func convertToResponsesAPIResponse(resp *model.InternalLLMResponse) *ResponsesRe
 			continue
 		}
 
-		// Handle reasoning content
-		if message.ReasoningContent != nil && *message.ReasoningContent != "" {
+		// Handle reasoning content. 同上，走访问器覆盖 `reasoning` 拼法。
+		if reasoning := message.GetReasoningContent(); reasoning != "" {
 			result.Output = append(result.Output, ResponsesItem{
 				ID:     generateItemID(),
 				Type:   "reasoning",
@@ -1184,7 +1188,7 @@ func convertToResponsesAPIResponse(resp *model.InternalLLMResponse) *ResponsesRe
 				Summary: []ResponsesReasoningSummary{
 					{
 						Type: "summary_text",
-						Text: *message.ReasoningContent,
+						Text: reasoning,
 					},
 				},
 			})

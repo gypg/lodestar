@@ -358,11 +358,13 @@ func (i *MessagesInbound) TransformResponse(ctx context.Context, response *model
 		if message != nil {
 			var contentBlocks []MessageContentBlock
 
-			// Handle reasoning content (thinking) first if present
-			if message.ReasoningContent != nil && *message.ReasoningContent != "" {
+			// Handle reasoning content (thinking) first if present.
+			// 走访问器：上游可能用 `reasoning` 而非 `reasoning_content`
+			// （OpenRouter / Ollama cloud），裸判 ReasoningContent 会整条丢掉。
+			if reasoning := message.GetReasoningContent(); reasoning != "" {
 				thinkingBlock := MessageContentBlock{
 					Type:     "thinking",
-					Thinking: message.ReasoningContent,
+					Thinking: &reasoning,
 				}
 				if message.ReasoningSignature != nil && *message.ReasoningSignature != "" {
 					thinkingBlock.Signature = message.ReasoningSignature
@@ -531,8 +533,17 @@ func (i *MessagesInbound) TransformStream(ctx context.Context, stream *model.Int
 	if len(stream.Choices) > 0 {
 		choice := stream.Choices[0]
 
-		// Handle reasoning content (thinking) delta
-		if choice.Delta != nil && choice.Delta.ReasoningContent != nil && *choice.Delta.ReasoningContent != "" {
+		// Handle reasoning content (thinking) delta.
+		// 走访问器才能覆盖 `reasoning` 拼法（OpenRouter / Ollama cloud）。
+		// ★ 先把值绑到局部变量再判断：只改条件不改分支体的话，分支体里的
+		// choice.Delta.ReasoningContent 在 `reasoning` 拼法下是 nil，条件过了却发出
+		// 空的 thinking delta —— 我第一版就是这么错的，被测试逮到。
+		// nil 检查必须在访问器调用之前，GetReasoningContent 对 nil 接收者会 panic。
+		var deltaReasoning string
+		if choice.Delta != nil {
+			deltaReasoning = choice.Delta.GetReasoningContent()
+		}
+		if deltaReasoning != "" {
 			// If the tool content has started before the thinking content, we need to stop it
 			if i.hasToolContentStarted {
 				i.hasToolContentStarted = false
@@ -576,7 +587,7 @@ func (i *MessagesInbound) TransformStream(ctx context.Context, stream *model.Int
 				Index: &i.contentIndex,
 				Delta: &StreamDelta{
 					Type:     lo.ToPtr("thinking_delta"),
-					Thinking: choice.Delta.ReasoningContent,
+					Thinking: &deltaReasoning,
 				},
 			}
 			data, err := json.Marshal(deltaEvent)

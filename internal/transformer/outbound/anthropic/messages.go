@@ -619,6 +619,15 @@ func buildMessageContent(msg model.Message) anthropicModel.MessageContent {
 	return anthropicModel.MessageContent{}
 }
 
+// hasThinkingContent 与本文件另外两处 thinking 块构造刻意只看 ReasoningContent，
+// 不走 Message.GetReasoningContent()。
+//
+// 这是请求方向：msg 来自客户端回传的会话历史。响应方向（internal → 客户端）已在
+// inbound/* 改为走访问器，因为 `reasoning` 拼法是上游给的。但这里若也接受 `reasoning`，
+// 就会为一个**没有 reasoning_signature** 的历史轮次补出 thinking 块，而 Anthropic 对
+// 多轮 thinking 要求签名，可能直接 400 —— 那是把丢数据换成了请求失败。
+//
+// 所以这个不对称是有意的，不是漏改。要改动这里，先确认签名缺失时上游的实际行为。
 func hasThinkingContent(msg model.Message) bool {
 	return msg.ReasoningContent != nil && *msg.ReasoningContent != ""
 }
