@@ -217,9 +217,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Unbounded regex backtracking on four live paths** (`4e0fcb2`, 2026-08-24): regexp2
   is a backtracking engine, and without `Regexp.MatchTimeout` the zero value is
   `math.MaxInt64` nanoseconds — so a catastrophic pattern could pin a request
-  goroutine indefinitely. Of ten compile sites only three set a timeout, one of those
-  being dead code; `helper/channel.go`, `helper/fetch.go` (twice) and
-  `op/group/auto.go` compiled and then matched with no bound. Both halves of the input
+  goroutine indefinitely. Of ten compile sites only three set a timeout, and those
+  three disagreed on the value (250 ms twice, 200 ms once); `helper/channel.go`,
+  `helper/fetch.go` (twice) and `op/group/auto.go` compiled and then matched with no
+  bound. The two channel auto-group paths are both live and had drifted apart:
+  `op.ChannelAutoGroupWithMode` bounded matching at 200 ms, while
+  `helper.ChannelAutoGroup` did not bound it at all. Both halves of the input
   are partly external: the pattern is operator-supplied and the strings matched
   against it are model names arriving from upstream site sync. All sites now compile
   through `internal/utils/xregexp`, which cannot hand back a regex without the
