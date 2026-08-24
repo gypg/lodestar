@@ -8,10 +8,10 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/dlclark/regexp2"
 	"github.com/gypg/lodestar/internal/conf"
 	"github.com/gypg/lodestar/internal/model"
 	"github.com/gypg/lodestar/internal/transformer/outbound"
+	"github.com/gypg/lodestar/internal/utils/xregexp"
 )
 
 func FetchModels(ctx context.Context, request model.Channel) ([]string, error) {
@@ -56,7 +56,7 @@ func fetchModelsWithClient(client *http.Client, ctx context.Context, request mod
 	}
 	if request.MatchRegex != nil && *request.MatchRegex != "" {
 		matchModel := make([]string, 0)
-		re, err := regexp2.Compile(*request.MatchRegex, regexp2.ECMAScript)
+		re, err := xregexp.CompileECMAScript(*request.MatchRegex)
 		if err != nil {
 			return nil, err
 		}
@@ -87,7 +87,7 @@ func filterDevMockModels(request model.Channel) ([]string, error) {
 		return models, nil
 	}
 
-	re, err := regexp2.Compile(*request.MatchRegex, regexp2.ECMAScript)
+	re, err := xregexp.CompileECMAScript(*request.MatchRegex)
 	if err != nil {
 		return nil, err
 	}

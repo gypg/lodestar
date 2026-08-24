@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/dlclark/regexp2"
 	"github.com/gin-gonic/gin"
 	"github.com/gypg/lodestar/internal/helper"
 	"github.com/gypg/lodestar/internal/model"
@@ -19,6 +18,7 @@ import (
 	"github.com/gypg/lodestar/internal/server/resp"
 	"github.com/gypg/lodestar/internal/server/router"
 	"github.com/gypg/lodestar/internal/utils/log"
+	"github.com/gypg/lodestar/internal/utils/xregexp"
 )
 
 func init() {
@@ -103,7 +103,7 @@ func createGroup(c *gin.Context) {
 	group.EndpointProvider = strings.ToLower(strings.TrimSpace(group.EndpointProvider))
 	group.OutboundFormat = strings.ToLower(strings.TrimSpace(group.OutboundFormat))
 	if group.MatchRegex != "" {
-		_, err := regexp2.Compile(group.MatchRegex, regexp2.ECMAScript)
+		_, err := xregexp.CompileECMAScript(group.MatchRegex)
 		if err != nil {
 			resp.Error(c, http.StatusBadRequest, err.Error())
 			return
@@ -140,7 +140,7 @@ func updateGroup(c *gin.Context) {
 		req.OutboundFormat = &normalizedFormat
 	}
 	if req.MatchRegex != nil {
-		_, err := regexp2.Compile(*req.MatchRegex, regexp2.ECMAScript)
+		_, err := xregexp.CompileECMAScript(*req.MatchRegex)
 		if err != nil {
 			resp.Error(c, http.StatusBadRequest, err.Error())
 			return

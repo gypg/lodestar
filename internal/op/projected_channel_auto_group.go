@@ -5,12 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-	"time"
 
-	"github.com/dlclark/regexp2"
 	"github.com/gypg/lodestar/internal/db"
 	"github.com/gypg/lodestar/internal/model"
 	"github.com/gypg/lodestar/internal/utils/log"
+	"github.com/gypg/lodestar/internal/utils/xregexp"
 )
 
 func ProjectedChannelGlobalAutoGroupMode() model.AutoGroupType {
@@ -81,12 +80,11 @@ func ChannelAutoGroupWithMode(channel *model.Channel, autoGroup model.AutoGroupT
 				break
 			}
 
-			re, err := regexp2.Compile(group.MatchRegex, regexp2.ECMAScript)
+			re, err := xregexp.CompileECMAScript(group.MatchRegex)
 			if err != nil {
 				log.Warnf("compile regex failed (channel=%d group=%d regex=%q): %v", channel.ID, group.ID, group.MatchRegex, err)
 				continue
 			}
-			re.MatchTimeout = 200 * time.Millisecond
 			for _, modelName := range channelModelNames {
 				matched, err := re.MatchString(modelName)
 				if err != nil {

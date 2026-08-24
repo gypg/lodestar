@@ -8,12 +8,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dlclark/regexp2"
 	"github.com/gypg/lodestar/internal/client"
 	"github.com/gypg/lodestar/internal/model"
 	ch "github.com/gypg/lodestar/internal/op/channel"
 	grp "github.com/gypg/lodestar/internal/op/group"
 	"github.com/gypg/lodestar/internal/utils/log"
+	"github.com/gypg/lodestar/internal/utils/xregexp"
 	"github.com/gypg/lodestar/internal/utils/xstrings"
 )
 
@@ -184,7 +184,7 @@ func ChannelAutoGroup(channel *model.Channel, ctx context.Context) {
 				break
 			}
 
-			re, err := regexp2.Compile(group.MatchRegex, regexp2.ECMAScript)
+			re, err := xregexp.CompileECMAScript(group.MatchRegex)
 			if err != nil {
 				log.Warnf("compile regex failed (channel=%d group=%d regex=%q): %v", channel.ID, group.ID, group.MatchRegex, err)
 				continue

@@ -16,6 +16,7 @@ import (
 	"github.com/gypg/lodestar/internal/relay/condition"
 	"github.com/gypg/lodestar/internal/utils/cache"
 	"github.com/gypg/lodestar/internal/utils/log"
+	"github.com/gypg/lodestar/internal/utils/xregexp"
 	"github.com/gypg/lodestar/internal/utils/xstrings"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -41,7 +42,9 @@ var groupRegexMatchersLock sync.RWMutex
 // GetRegexMatchersLock returns the regex matchers mutex (for backward compatibility).
 func GetRegexMatchersLock() *sync.RWMutex { return &groupRegexMatchersLock }
 
-const groupRegexMatchTimeout = 250 * time.Millisecond
+// groupRegexMatchTimeout 保留是因为 GetRegexMatchTimeout 已被 internal/op/group.go 引用。
+// 值统一指向 xregexp —— 设超时这件事本身已由 xregexp.CompileECMAScript 负责。
+const groupRegexMatchTimeout = xregexp.MatchTimeout
 
 // GetRegexMatchTimeout returns the regex match timeout (for backward compatibility).
 func GetRegexMatchTimeout() time.Duration { return groupRegexMatchTimeout }
@@ -385,11 +388,10 @@ func RebuildIndexes() {
 		if regex == "" {
 			continue
 		}
-		re, err := regexp2.Compile(regex, regexp2.ECMAScript)
+		re, err := xregexp.CompileECMAScript(regex)
 		if err != nil {
 			continue
 		}
-		re.MatchTimeout = groupRegexMatchTimeout
 		endpointType := model.NormalizeEndpointType(group.EndpointType)
 		matchersByEndpoint[endpointType] = append(matchersByEndpoint[endpointType], compiledGroupMatcher{group: group, Re: re})
 	}

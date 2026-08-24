@@ -4,9 +4,8 @@ import (
 	"encoding/json"
 	"strconv"
 	"strings"
-	"time"
 
-	"github.com/dlclark/regexp2"
+	"github.com/gypg/lodestar/internal/utils/xregexp"
 )
 
 // ConditionRule represents a single routing condition.
@@ -65,11 +64,10 @@ func evaluateRule(rule ConditionRule, ctx RequestContext) bool {
 	case "ends_with":
 		return strings.HasSuffix(strings.ToLower(actual), strings.ToLower(rule.Value))
 	case "regex":
-		re, err := regexp2.Compile(rule.Value, regexp2.ECMAScript)
+		re, err := xregexp.CompileECMAScript(rule.Value)
 		if err != nil {
 			return false
 		}
-		re.MatchTimeout = 250 * time.Millisecond
 		match, err := re.MatchString(actual)
 		if err != nil {
 			return false

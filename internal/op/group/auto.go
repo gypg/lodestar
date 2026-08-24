@@ -7,11 +7,11 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/dlclark/regexp2"
 	"github.com/gypg/lodestar/internal/db"
 	"github.com/gypg/lodestar/internal/model"
 	"github.com/gypg/lodestar/internal/op/channel"
 	"github.com/gypg/lodestar/internal/utils/log"
+	"github.com/gypg/lodestar/internal/utils/xregexp"
 	"github.com/gypg/lodestar/internal/utils/xstrings"
 )
 
@@ -538,7 +538,7 @@ func IsCandidateCoveredByExistingGroups(candidate model.CandidateGroup, existing
 		if regex == "" {
 			continue
 		}
-		re, err := regexp2.Compile(regex, regexp2.ECMAScript)
+		re, err := xregexp.CompileECMAScript(regex)
 		if err != nil {
 			continue
 		}
