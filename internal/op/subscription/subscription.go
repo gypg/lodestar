@@ -30,7 +30,38 @@ var (
 	ErrOrderNotFound       = errors.New("subscription order not found")
 	ErrOrderStatusInvalid  = errors.New("subscription order status invalid")
 	ErrInsufficientBalance = errors.New("insufficient balance")
+
+	// ErrSalesSuspended blocks the two paid entry points into a subscription
+	// (CompleteOrder, PurchaseWithBalance) because a purchased plan currently
+	// grants the buyer nothing.
+	//
+	// UserSubscription carries AmountTotal/AmountUsed: the design is that a plan
+	// grants a USD quota pool that requests draw down. But AmountUsed is only ever
+	// written as 0 at creation (all three sites are in this file) and nothing ever
+	// increments it, because the relay never reads UserSubscription — internal/relay
+	// bills exclusively against User.Quota. So buying a plan spends balance and
+	// changes nothing else, which is strictly worse for the customer than not buying.
+	//
+	// This is a code-level block rather than a setting so that sales cannot be
+	// switched back on before the pool is actually consumed by billing. Remove it in
+	// the same change that wires the pool into the relay's charge path.
+	// AdminBindSubscription is deliberately NOT blocked: it takes no money, so an
+	// admin granting a (currently inert) subscription cannot short-change anyone.
+	ErrSalesSuspended = errors.New("subscription sales are suspended: a purchased plan does not yet grant usage quota")
 )
+
+// subscriptionQuotaPoolWired reports whether a purchased plan's AmountTotal pool
+// is actually drawn down by request billing.
+//
+// While false, the two paid entry points refuse (see ErrSalesSuspended) so nobody
+// can buy a plan that grants nothing. Flip it to true in the same change that
+// wires UserSubscription.AmountUsed into the relay's charge path, then delete this
+// variable together with the two guards — a flag that is never false is noise.
+//
+// It is a var rather than a const only so that the tests covering the purchase
+// implementation (affordability guard, concurrent no-oversell) can keep running
+// against it; production never writes it. See withQuotaPoolWired in the tests.
+var subscriptionQuotaPoolWired = false
 
 // --- Plan CRUD ---
 
@@ -128,6 +159,9 @@ func CreateOrder(userID uint, planID int, method string, ctx context.Context) (*
 
 // CompleteOrder idempotently completes a pending order and creates a UserSubscription.
 func CompleteOrder(tradeNo string, ctx context.Context) error {
+	if !subscriptionQuotaPoolWired {
+		return ErrSalesSuspended
+	}
 	if tradeNo == "" {
 		return errors.New("trade_no is empty")
 	}
@@ -179,6 +213,9 @@ func CompleteOrder(tradeNo string, ctx context.Context) error {
 // PurchaseWithBalance deducts the plan price from the user's balance and creates
 // a completed order + active subscription in a single transaction.
 func PurchaseWithBalance(userID uint, planID int, ctx context.Context) error {
+	if !subscriptionQuotaPoolWired {
+		return ErrSalesSuspended
+	}
 	return db.GetDB().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var plan model.SubscriptionPlan
 		if err := tx.First(&plan, planID).Error; err != nil {

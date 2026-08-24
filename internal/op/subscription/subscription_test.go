@@ -63,6 +63,7 @@ func newPlan(t *testing.T, price float64) int {
 }
 
 func TestPurchaseWithBalance_deductsPrice(t *testing.T) {
+	withQuotaPoolWired(t)
 	initSubTestDB(t)
 	ctx := context.Background()
 	uid := newUser(t, 10.0)
@@ -81,6 +82,7 @@ func TestPurchaseWithBalance_deductsPrice(t *testing.T) {
 }
 
 func TestPurchaseWithBalance_insufficientRejected(t *testing.T) {
+	withQuotaPoolWired(t)
 	initSubTestDB(t)
 	ctx := context.Background()
 	uid := newUser(t, 2.0)
@@ -107,6 +109,7 @@ func TestPurchaseWithBalance_insufficientRejected(t *testing.T) {
 }
 
 func TestPurchaseWithBalance_zeroPrice_free(t *testing.T) {
+	withQuotaPoolWired(t)
 	initSubTestDB(t)
 	ctx := context.Background()
 	uid := newUser(t, 0.0)
@@ -129,6 +132,7 @@ func TestPurchaseWithBalance_zeroPrice_free(t *testing.T) {
 // BUG-002 regression test — without the WHERE guard, both succeed and the
 // balance becomes -6.
 func TestPurchaseWithBalance_concurrentNoOversell(t *testing.T) {
+	withQuotaPoolWired(t)
 	initSubTestDB(t)
 	ctx := context.Background()
 	uid := newUser(t, 10.0)

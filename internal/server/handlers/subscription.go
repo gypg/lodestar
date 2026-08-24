@@ -18,6 +18,7 @@ Admin routes (subscriptions:write):
 */
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -111,6 +112,12 @@ func purchaseWithBalance(c *gin.Context) {
 	}
 	userID := uint(c.GetInt("user_id"))
 	if err := subop.PurchaseWithBalance(userID, req.PlanID, c.Request.Context()); err != nil {
+		// 停售期间必须是明确的 409，不能落到 500 —— 客户要看得懂"现在买不了"，
+		// 而不是以为是我们的故障然后重试。
+		if errors.Is(err, subop.ErrSalesSuspended) {
+			resp.Error(c, http.StatusConflict, err.Error())
+			return
+		}
 		if err == subop.ErrInsufficientBalance {
 			resp.Error(c, http.StatusBadRequest, "insufficient balance")
 			return
