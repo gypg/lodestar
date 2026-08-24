@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"strings"
 	"testing"
 
@@ -23,7 +24,14 @@ func initQuotaTestDB(t *testing.T) {
 	}
 }
 
-func TestDeductQuota_neverNegative(t *testing.T) {
+// TestSettleUsage_overspendBecomesDebt 钉死结算的核心语义：**已交付的用量一定记账**，
+// 即使超出余额 —— 余额允许为负。
+//
+// 这条测试取代了旧的 TestDeductQuota_neverNegative。旧契约（WHERE quota >= amount，
+// 不够就整笔丢弃）读起来像是在保护用户不透支，实际后果相反：上游的钱我们已经付了，
+// 却既不扣余额也不涨 used_quota，闸门（remaining > 0）于是继续放行，账户在余额跌破
+// 单次成本后可以无限白嫖。拦截的职责归闸门，不归结算。
+func TestSettleUsage_overspendBecomesDebt(t *testing.T) {
 	initQuotaTestDB(t)
 	ctx := context.Background()
 	u := model.User{Username: "u1", Password: "x", Quota: 1.0, UsedQuota: 0}
@@ -31,55 +39,54 @@ func TestDeductQuota_neverNegative(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// First deduction succeeds (1.0 >= 0.6).
-	if err := DeductQuota(u.ID, 0.6, ctx); err != nil {
+	// 第一次结算在余额内。
+	if err := SettleUsage(u.ID, 0.6, ctx); err != nil {
 		t.Fatal(err)
 	}
-	// Second deduction fails: remaining 0.4 < 0.6.
-	err := DeductQuota(u.ID, 0.6, ctx)
-	if !errors.Is(err, ErrInsufficientBalance) {
-		t.Fatalf("want ErrInsufficientBalance, got %v", err)
-	}
-
 	rem, used, err := GetQuota(u.ID, ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if rem < 0 {
-		t.Fatalf("quota went negative: %v", rem)
+	if math.Abs(rem-0.4) > 1e-9 || math.Abs(used-0.6) > 1e-9 {
+		t.Fatalf("after first settle: quota=%v used=%v, want 0.4 / 0.6", rem, used)
 	}
-	// Only the first deduction went through (0.6 charged).
-	if rem != 0.4 {
-		t.Fatalf("want quota 0.4 after one successful deduction, got %v", rem)
+
+	// 第二次超出剩余（0.4 < 0.6）：必须记成欠款，不得丢弃。
+	if err := SettleUsage(u.ID, 0.6, ctx); err != nil {
+		t.Fatalf("settle must not fail on overspend: %v", err)
 	}
-	if used != 0.6 {
-		t.Fatalf("want used_quota 0.6, got %v", used)
+	rem, used, err = GetQuota(u.ID, ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if math.Abs(rem-(-0.2)) > 1e-9 {
+		t.Fatalf("quota = %v, want -0.2 (delivered usage must be owed, not forgiven)", rem)
+	}
+	if math.Abs(used-1.2) > 1e-9 {
+		t.Fatalf("used_quota = %v, want 1.2 (revenue reporting must see both charges)", used)
+	}
+
+	// 充值净掉欠款。
+	if err := AddQuota(u.ID, 1.0, ctx); err != nil {
+		t.Fatal(err)
+	}
+	rem, _, err = GetQuota(u.ID, ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if math.Abs(rem-0.8) > 1e-9 {
+		t.Fatalf("quota after top-up = %v, want 0.8 (debt nets off)", rem)
 	}
 }
 
-func TestDeductQuota_insufficientBalance(t *testing.T) {
+// TestSettleUsage_missingUserIsReported 结算目标不存在必须报错，不能静默成功 ——
+// 静默会让"用量已交付但没人付钱"这件事无迹可寻。
+func TestSettleUsage_missingUserIsReported(t *testing.T) {
 	initQuotaTestDB(t)
 	ctx := context.Background()
-	u := model.User{Username: "u2", Password: "x", Quota: 0.25, UsedQuota: 10}
-	if err := db.GetDB().Create(&u).Error; err != nil {
-		t.Fatal(err)
-	}
 
-	// Attempting to deduct more than available returns ErrInsufficientBalance.
-	err := DeductQuota(u.ID, 1.0, ctx)
-	if !errors.Is(err, ErrInsufficientBalance) {
-		t.Fatalf("want ErrInsufficientBalance, got %v", err)
-	}
-
-	rem, used, err := GetQuota(u.ID, ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	// Balance unchanged — the deduction was rejected.
-	if rem != 0.25 {
-		t.Fatalf("want 0.25 remaining (unchanged), got %v", rem)
-	}
-	if used != 10 {
-		t.Fatalf("want used 10 (unchanged), got %v", used)
+	err := SettleUsage(4242, 1.0, ctx)
+	if !errors.Is(err, ErrUserNotFound) {
+		t.Fatalf("SettleUsage on a missing user = %v, want ErrUserNotFound", err)
 	}
 }

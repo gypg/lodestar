@@ -17,7 +17,6 @@ match Lodestar's StatsMetrics cost (see internal/op/user/quota.go).
 
 import (
 	"context"
-	"errors"
 
 	"github.com/gypg/lodestar/internal/model"
 	"github.com/gypg/lodestar/internal/op/apikey"
@@ -44,8 +43,13 @@ var CallRecorder func(apiKeyID int, modelName string, inputTokens, outputTokens 
 // HasBalanceForKey reports whether a request on this key may proceed.
 // Fail-open: billing off, unowned key, or any lookup error => allow (never break
 // the relay hot path on a transient infra error). When billing is on, requires
-// strictly positive balance; post-request ChargeKey uses atomic DeductQuota with
-// a WHERE guard so concurrent overspend is rejected (not silently under-charged).
+// strictly positive balance.
+//
+// A positive balance is NOT a guarantee that the request is affordable — the cost
+// is unknown until the response arrives. Overspend is therefore settled as debt
+// (user.SettleUsage lets the balance go negative), and this gate is what closes
+// the loop: once the balance is negative the next request gets 402. Exposure per
+// incident is one request's cost per concurrent request, not unbounded.
 func HasBalanceForKey(apiKeyID int, ctx context.Context) bool {
 	if !Enabled() {
 		return true
@@ -84,12 +88,11 @@ func ChargeKey(apiKeyID int, cost float64, ctx context.Context) {
 		}
 		return
 	}
-	if err := user.DeductQuota(key.UserID, cost, ctx); err != nil {
-		if errors.Is(err, user.ErrInsufficientBalance) {
-			log.Warnf("billing charge: insufficient balance, user_id=%d api_key_id=%d cost=%.6f", key.UserID, apiKeyID, cost)
-		} else {
-			log.Errorf("billing charge: deduct failed, user_id=%d api_key_id=%d cost=%.6f err=%v", key.UserID, apiKeyID, cost, err)
-		}
+	if err := user.SettleUsage(key.UserID, cost, ctx); err != nil {
+		// 结算失败不再有"余额不够"这一档 —— 用量已经交付，欠款一定记得下。
+		// 剩下的都是真异常：成本算成了 NaN/±Inf（上游 usage 或定价出了问题），
+		// 或者用户行没了。两者都必须响，否则就是静默漏收。
+		log.Errorf("billing settle failed, user_id=%d api_key_id=%d cost=%.6f err=%v — usage delivered but NOT charged", key.UserID, apiKeyID, cost, err)
 	}
 }
 

@@ -51,28 +51,9 @@ func initBillingTestDB(t *testing.T, quota float64) (uint, int) {
 }
 
 // ---------------------------------------------------------------------------
-// WO-009 §2.4 — Insufficient balance: ChargeKey logs warn, balance unchanged
+// WO-009 §2.4 — 已作废并反转：原契约「余额不足 ⇒ ChargeKey 只记 warn、余额不变」
+// 正是无限白嫖的来源。新契约见 overdraft_test.go 的两条测试。
 // ---------------------------------------------------------------------------
-
-func TestChargeKey_insufficientBalance_balanceUnchanged(t *testing.T) {
-	uid, kid := initBillingTestDB(t, 0.5)
-	ctx := context.Background()
-
-	// Attempt to charge more than available balance.
-	ChargeKey(kid, 1.0, ctx)
-
-	rem, used, err := user.GetQuota(uid, ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	// Balance must remain 0.5 — no deduction took place.
-	if math.Abs(rem-0.5) > 1e-9 {
-		t.Errorf("balance changed: want 0.5, got %.17g", rem)
-	}
-	if used != 0 {
-		t.Errorf("used_quota changed: want 0, got %.17g", used)
-	}
-}
 
 // ---------------------------------------------------------------------------
 // WO-009 §2.4 — Normal charge: balance decremented correctly
