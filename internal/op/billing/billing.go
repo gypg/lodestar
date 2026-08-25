@@ -44,24 +44,27 @@ func Enabled() bool {
 // apiKeyID and cost are meaningful there.
 var CallRecorder func(apiKeyID int, modelName string, inputTokens, outputTokens int, upstreamCost float64)
 
-// HasBalanceForKey reports whether a request on this key may proceed.
-// Fail-open: billing off, unowned key, or any lookup error => allow (never break
-// the relay hot path on a transient infra error). When billing is on, requires
-// either a strictly positive wallet balance or room left in an active
-// subscription quota pool.
+// HasBalanceForKey reports whether this key's owner can pay for anything at all.
+//
+// It is the predicate half of AcquireForKey (internal/op/billing/inflight.go) and
+// shares its headroom calculation, so the two can never disagree. Prefer
+// AcquireForKey on the relay path: a predicate cannot bound how many requests sit
+// between the gate and settlement, and that count is what turns a one-request
+// overdraft into a concurrency-multiplied one.
+//
+// Fail-open: billing off, unowned key, or a quota lookup error => allow (never
+// break the relay hot path on a transient infra error). Requires either a
+// strictly positive wallet balance or room in an active subscription quota pool.
 //
 // A positive balance is NOT a guarantee that the request is affordable — the cost
 // is unknown until the response arrives. Overspend is therefore settled as debt
 // (user.SettleUsage lets the balance go negative), and this gate is what closes
-// the loop: once the balance is negative the next request gets 402. Exposure per
-// incident is one request's cost per concurrent request, not unbounded.
+// the loop: once the balance is negative the next request gets 402.
 //
-// The pool is checked only when the wallet cannot pay, so a subscriber whose
-// wallet is empty still gets the usage they bought. Note the deliberate
-// asymmetry: a pool lookup error fails CLOSED, unlike every other error here.
-// Failing open there would mean "cannot verify a pool ⇒ serve for free", which is
-// the unlimited-overdraft hole re-opened through an error path. Refusing costs us
-// nothing legitimate, because we already know the wallet is empty.
+// The pool is counted so a subscriber whose wallet is empty still gets the usage
+// they bought. Note the deliberate asymmetry inside headroomForUser: a pool
+// lookup error on an empty wallet fails CLOSED, because failing open there would
+// mean "cannot verify a pool ⇒ serve for free".
 func HasBalanceForKey(apiKeyID int, ctx context.Context) bool {
 	if !Enabled() {
 		return true
@@ -73,20 +76,8 @@ func HasBalanceForKey(apiKeyID int, ctx context.Context) bool {
 		}
 		return true
 	}
-	remaining, _, err := user.GetQuota(key.UserID, ctx)
-	if err != nil {
-		log.Errorf("billing fail-open: quota lookup failed, user_id=%d api_key_id=%d err=%v — allowing request", key.UserID, apiKeyID, err)
-		return true
-	}
-	if remaining > 0 {
-		return true
-	}
-	pool, poolErr := subscription.PoolRemaining(key.UserID, ctx)
-	if poolErr != nil {
-		log.Errorf("billing: subscription pool lookup failed, user_id=%d api_key_id=%d err=%v — refusing (wallet is empty and the pool cannot be verified)", key.UserID, apiKeyID, poolErr)
-		return false
-	}
-	return pool > 0
+	headroom, ok := headroomForUser(key.UserID, apiKeyID, ctx)
+	return ok && headroom > 0
 }
 
 // ChargeKey deducts the request's USD cost from the key owner, drawing on their

@@ -166,13 +166,23 @@ func APIKeyAuth() gin.HandlerFunc {
 				return
 			}
 		}
-		// Lodestar commercial: when commercial_mode is on, the key owner must have
-		// positive balance (no-op for unowned/admin keys or in self-use mode).
-		if !billing.HasBalanceForKey(apiKeyObj.ID, c.Request.Context()) {
+		// Lodestar commercial: when commercial_mode is on, the key owner must be
+		// able to pay — a positive wallet balance or room in an active
+		// subscription pool (no-op for unowned/admin keys or in self-use mode).
+		//
+		// Acquire, not a bare predicate: this also reserves an in-flight slot so a
+		// burst cannot all pass the gate before any of it settles. The release is
+		// deferred here rather than in the relay handler so that every exit path —
+		// a later abort below, a handler panic, a client disconnect — gives the
+		// slot back. Deferring inside a middleware works because this one ends in
+		// c.Next(), so the deferred call runs after the whole chain unwinds.
+		release, canPay := billing.AcquireForKey(apiKeyObj.ID, c.Request.Context())
+		if !canPay {
 			resp.Error(c, http.StatusPaymentRequired, "insufficient balance, please top up")
 			c.Abort()
 			return
 		}
+		defer release()
 		if !isIPAllowed(c.ClientIP(), apiKeyObj.AllowedIPs) {
 			resp.Error(c, http.StatusForbidden, "IP address not allowed for this API key")
 			c.Abort()

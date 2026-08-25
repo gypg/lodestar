@@ -6,7 +6,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gypg/lodestar/internal/db"
@@ -113,5 +115,113 @@ func TestAuthWiring_billingOff_allowsZeroBalance(t *testing.T) {
 	w := doAuthWireRequest(r, key)
 	if w.Code != http.StatusOK {
 		t.Fatalf("billing-off zero-balance status = %d, want %d (200 fail-open)", w.Code, http.StatusOK)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// 并发闸门接线断言（auth.go 的 billing.AcquireForKey + defer release）
+//
+// 上面三条只能证明"余额闸门在链上"。它们证明不了本次修复的东西：纯谓词闸门在并发
+// 下形同不存在 —— 一次打进来的 N 条请求全都在第一条结算之前通过了 `remaining > 0`。
+// 实测（改之前，上游带真实延迟）：余额 $0.005 的用户并发 20 条，20 条全被服务，
+// 结算完 -$0.205。
+//
+// 所以这里要复现"请求互相重叠"：handler 阻塞住不返回，第一条还没结算时后面的就打
+// 进来。单元测试（internal/op/billing/inflight_test.go）只覆盖判定规则本身，覆盖
+// 不到"槽位到底有没有在中间件里被 defer 还回去"——那只能走真实 HTTP 链路。
+// ---------------------------------------------------------------------------
+
+// newBlockingAuthWiringEngine 的 handler 会先报告"我进来了"，再挂住等 hold 关闭，
+// 借此让请求互相重叠。带 3 秒兜底超时：闸门被改坏时后续请求会真的进到 handler，
+// 有超时才会得到一条清晰的断言失败，而不是把测试挂死。
+func newBlockingAuthWiringEngine(entered chan<- struct{}, hold <-chan struct{}) *gin.Engine {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	r.Use(APIKeyAuth())
+	r.POST("/v1/chat/completions", func(c *gin.Context) {
+		entered <- struct{}{}
+		select {
+		case <-hold:
+		case <-time.After(3 * time.Second):
+		}
+		c.String(http.StatusOK, "ok")
+	})
+	return r
+}
+
+// TestAuthWiring_concurrentBurstOnThinBalance_servesOne
+// 余额 $0.005（连一次请求都不一定盖得住）的 key：一条请求正挂在 handler 里没结算时，
+// 再并发打 19 条，19 条必须全被 402 拦下。
+//
+// 故意不改 max_expected_request_cost，用出厂默认值跑 —— 顺带钉死"默认值不是 0"，
+// 否则生产上这道闸门是关着的，测试却在自己设的值上绿。
+func TestAuthWiring_concurrentBurstOnThinBalance_servesOne(t *testing.T) {
+	const burst = 19
+	key := initAuthWiringDB(t, 0.005)
+
+	if got, err := setting.GetString(model.SettingKeyMaxExpectedRequestCost); err != nil || got != "0.5" {
+		t.Fatalf("出厂默认假定成本 = %q err=%v, want \"0.5\"（默认值若为 0 或读不到，生产的并发闸门就是关着的）", got, err)
+	}
+
+	entered := make(chan struct{}, burst+1)
+	hold := make(chan struct{})
+	r := newBlockingAuthWiringEngine(entered, hold)
+
+	// 第一条：放行，并且卡在 handler 里持有槽位。
+	firstCode := make(chan int, 1)
+	go func() { firstCode <- doAuthWireRequest(r, key).Code }()
+	select {
+	case <-entered:
+	case <-time.After(3 * time.Second):
+		t.Fatal("第一条请求没进到 handler —— 有钱的账户被闸门误伤了")
+	}
+
+	// 第一条尚未结算，此刻并发打 burst 条。
+	var wg sync.WaitGroup
+	codes := make([]int, burst)
+	for i := 0; i < burst; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			codes[i] = doAuthWireRequest(r, key).Code
+		}(i)
+	}
+	wg.Wait()
+
+	refused := 0
+	for _, c := range codes {
+		if c == http.StatusPaymentRequired {
+			refused++
+		}
+	}
+	if refused != burst {
+		t.Fatalf("一条在途未结算时并发 %d 条: 被 402 拦下 %d 条, want %d —— 其余被服务了, 透支敞口 = 并发数 × 单次成本（这正是修复前的实测行为: 20/20 全服务, 停在 -$0.205）",
+			burst, refused, burst)
+	}
+
+	close(hold)
+	if code := <-firstCode; code != http.StatusOK {
+		t.Fatalf("第一条请求 = %d, want 200", code)
+	}
+
+	// 槽位必须被 defer release 还回去：还不回来的话，这个还有钱的账户会被自己上一条
+	// 请求永久挡在门外。
+	if w := doAuthWireRequest(r, key); w.Code != http.StatusOK {
+		t.Fatalf("上一条完成后再发一条 = %d, want 200（auth.go 的 defer release 没生效，账户被自己挡死）", w.Code)
+	}
+}
+
+// TestAuthWiring_slotReleasedAfterEachRequest
+// 薄余额（只够一条在途）连发三条顺序请求，三条都必须 200。删掉 auth.go 的
+// defer release 之后，第二条就会 402 —— 顺序请求本来永远不该受并发闸门影响。
+func TestAuthWiring_slotReleasedAfterEachRequest(t *testing.T) {
+	key := initAuthWiringDB(t, 0.005)
+	r := newAuthWiringEngine()
+
+	for i := 1; i <= 3; i++ {
+		w := doAuthWireRequest(r, key)
+		if w.Code != http.StatusOK {
+			t.Fatalf("第 %d 条顺序请求 = %d, want 200（前一条的在途槽位没还回来）", i, w.Code)
+		}
 	}
 }

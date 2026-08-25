@@ -366,7 +366,77 @@ async function main() {
   const bAfterSpill = await balance(custTok)
   eqMoney('only the uncovered remainder hit the wallet', bAfterSpill.quota, balAfterBuy - spill)
 
-  // --- summary ----------------------------------------------------------
+  // --- 11. a burst cannot multiply the overdraft ------------------------
+  // Step 8 shows the overdraft is bounded when requests arrive one at a time.
+  // Concurrency is the interesting case: the gate only asks `remaining > 0` and
+  // nothing settles until a response returns, so N parallel requests can all
+  // pass the gate before any of them moves the balance. Exposure would then be
+  // N x cost with N chosen by the caller — 20 requests on a $0.005 balance
+  // measured at -$0.205, i.e. 41x the prepaid amount.
+  //
+  // The requests must be SLOW for this to mean anything. Against an instant
+  // upstream request 1 finishes and settles before request 2 reaches the gate,
+  // so the burst looks bounded and the assertion passes for the wrong reason.
+  console.log('\n[11] a concurrent burst cannot multiply the overdraft')
+  const burst = { username: 'e2eburst', password: 'E2eBurstPass123!' }
+  await api('POST', '/api/v1/user/register', { body: burst })
+  const burstTok = (await api('POST', '/api/v1/user/login', { body: burst })).json?.data?.token
+  if (!burstTok) return bad('burst user login', 'no token')
+
+  const bGen = await api('POST', '/api/v1/wallet/codes', {
+    token: adminTok,
+    body: { count: 1, quota: 0.005 }, // under one request
+  })
+  const bCode = bGen.json?.data?.[0]?.code
+  if (!bCode) return bad('generate burst code', bGen.text.slice(0, 200))
+  await api('POST', '/api/v1/wallet/redeem', { token: burstTok, body: { code: bCode } })
+
+  const bk = await api('POST', '/api/v1/apikey/create', {
+    token: burstTok,
+    body: { name: 'burst-key', api_key: '' },
+  })
+  const burstKey = bk.json?.data?.api_key
+  if (!burstKey) return bad('burst api key', bk.text.slice(0, 200))
+
+  const BURST = 20
+  const burstResults = await Promise.all(
+    Array.from({ length: BURST }, () =>
+      fetch(BASE + '/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${burstKey}` },
+        body: JSON.stringify({
+          model: MODEL,
+          // Marker makes the mock answer slowly, so the whole burst is in flight
+          // at once — the only arrangement that actually probes the gate.
+          messages: [{ role: 'user', content: 'LODESTAR_SLOW_UPSTREAM hi' }],
+        }),
+      }).then((r) => r.status),
+    ),
+  )
+  const served = burstResults.filter((s) => s === 200).length
+  const bFinal = await balance(burstTok)
+  console.log(
+    `        ${served}/${BURST} served, balance ${bFinal.quota} ` +
+      `(prepaid 0.005, one request costs ${COST_PER_REQ})`,
+  )
+  if (served === 1) {
+    ok('burst bounded to a single request', `${served}/${BURST} served`)
+  } else if (served === 0) {
+    bad(
+      'burst refused every request',
+      `a wallet holding 0.005 can pay for something, so exactly one request must be served ` +
+        `and booked as debt. Serving none means the gate now over-refuses.`,
+    )
+  } else {
+    bad(
+      'concurrent burst multiplied the overdraft',
+      `${served}/${BURST} requests served on a 0.005 balance; balance ${bFinal.quota}. ` +
+        `Exposure is concurrency x cost and the caller picks the concurrency.`,
+    )
+  }
+  // Whatever the gate admits, the debt must be recorded in full — an unbilled
+  // served request is worse than a refused one.
+  eqMoney('every served request was billed', bFinal.used, served * COST_PER_REQ)
   console.log(`\n=== ${pass} passed, ${fail} failed ===`)
   if (fail) {
     console.log('\nFailures:')

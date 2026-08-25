@@ -82,6 +82,7 @@ const (
 	SettingKeyWebAuthnOrigins                      SettingKey = "webauthn_origins"                         // WebAuthn 允许的 Origin 列表（逗号分隔，完整 scheme://host[:port]）
 	SettingKeyCustomThemes                         SettingKey = "custom_themes"                            // Lodestar 自定义主题预设(JSON 数组), 可经设置 API 上传, 全站可选
 	SettingKeyCommercialMode                       SettingKey = "commercial_mode"                          // Lodestar 商业模式开关: false=自用(关闭公开注册), true=商业(开放公开注册)
+	SettingKeyMaxExpectedRequestCost               SettingKey = "max_expected_request_cost"                // Lodestar 单次请求假定最坏成本(USD): 并发闸门用它限制在途请求数, 0=关闭该限制
 	SettingKeySiteName                             SettingKey = "site_name"                                // Lodestar 站点名称(对外展示/封面刊头)
 	SettingKeySiteDescription                      SettingKey = "site_description"                         // Lodestar 站点简介(关于本站)
 	SettingKeySiteAnnouncement                     SettingKey = "site_announcement"                        // Lodestar 站点公告(对外公开展示)
@@ -170,6 +171,10 @@ func DefaultSettings() []Setting {
 		{Key: SettingKeyNavVisible, Value: `["home","hub","channel","group","model","analytics","log","alert","ops","apikey","setting","user"]`},
 		{Key: SettingKeyCustomThemes, Value: "[]"},      // Lodestar 自定义主题预设, 默认空数组
 		{Key: SettingKeyCommercialMode, Value: "false"}, // Lodestar 默认自用模式(关闭公开注册)
+		// 单次请求假定最坏成本。并发闸门要求「可用额度 > 在途请求数 × 本值」，
+		// 于是余额撑不住并发的账户被串行化，透支敞口回到「一次请求」而不是「攻击者
+		// 选定的并发数 × 一次请求」。0 关闭该限制（回到只查余额为正）。
+		{Key: SettingKeyMaxExpectedRequestCost, Value: "0.5"},
 		{Key: SettingKeySiteName, Value: "Lodestar"},
 		{Key: SettingKeySiteDescription, Value: "高自定义 · 自用优先 · 可聚合的个人 AI 中转站"},
 		{Key: SettingKeySiteAnnouncement, Value: ""},
