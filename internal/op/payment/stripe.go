@@ -3,7 +3,8 @@ package payment
 /*
 Lodestar commercial layer — online top-up via Stripe.
 
-Ported from GGGZERO's Stripe flow (controller/topup_stripe.go), adapted to
+Ported from New API's Stripe flow (github.com/QuantumNous/new-api, AGPL-3.0 —
+see NOTICE.md): controller/topup_stripe.go. Adapted to
 Lodestar's internal/op + internal/server/handlers pattern. Uses the Stripe
 Checkout Session API to create a hosted payment page. The webhook handler
 verifies the Stripe-Signature header, processes checkout.session.completed,

@@ -3,7 +3,9 @@ package model
 /*
 Lodestar — subscription system data models.
 
-Ported from GGGZERO's subscription system, simplified for Lodestar:
+Ported from New API's subscription system (github.com/QuantumNous/new-api,
+AGPL-3.0 — see NOTICE.md): model/subscription.go, controller/subscription.go.
+Simplified for Lodestar:
 - No Stripe/Creem/Waffo price IDs (will add later)
 - No upgrade_group logic (keep simple)
 - No quota reset period (can add later)

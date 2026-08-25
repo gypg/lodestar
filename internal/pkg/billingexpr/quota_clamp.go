@@ -1,3 +1,9 @@
+// This file replaces New API's pkg/billingexpr/round.go
+// (github.com/QuantumNous/new-api, AGPL-3.0 — see NOTICE.md). The
+// implementation is Lodestar's own and adds clamp-kind reporting for auditing,
+// but it deliberately keeps upstream's QuotaRound name and contract:
+// half-away-from-zero rounding with int32 saturation.
+
 package billingexpr
 
 import (

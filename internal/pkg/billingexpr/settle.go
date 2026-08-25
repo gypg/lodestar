@@ -1,3 +1,7 @@
+// This file is derived from New API (github.com/QuantumNous/new-api),
+// pkg/billingexpr/settle.go, licensed under AGPL-3.0 — the same license as
+// Lodestar. Adapted for Lodestar's float-USD cost model. See NOTICE.md.
+
 package billingexpr
 
 // quotaConversion converts raw expression output to quota based on the

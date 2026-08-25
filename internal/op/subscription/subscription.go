@@ -3,7 +3,8 @@ package subscription
 /*
 Lodestar — subscription business logic.
 
-Ported from GGGZERO's subscription model/controller layer, simplified:
+Ported from New API's subscription model/controller layer
+(github.com/QuantumNous/new-api, AGPL-3.0 — see NOTICE.md). Simplified:
 - No Stripe/Creem/Waffo payment providers (balance-only for now)
 - No upgrade_group / user group change logic
 - No quota reset period (can add later)

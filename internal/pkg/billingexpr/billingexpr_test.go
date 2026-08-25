@@ -1,3 +1,7 @@
+// This file is derived from New API (github.com/QuantumNous/new-api),
+// pkg/billingexpr/billingexpr_test.go, licensed under AGPL-3.0 — the same
+// license as Lodestar. See NOTICE.md.
+
 package billingexpr_test
 
 import (
