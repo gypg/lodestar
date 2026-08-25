@@ -11,8 +11,10 @@
 //   - a user whose balance is smaller than one request still gets served, but
 //     the delivered usage is booked as debt so the NEXT request is refused
 //     (regression guard: overdraft used to be unlimited free service)
-//   - paid subscription purchase is refused while a plan grants no quota, and
-//     the refusal takes no money
+//   - a plan granting no quota pool cannot be sold, and the refusal takes no money
+//   - a funded plan IS sellable, and the pool it grants pays for real requests
+//     before the wallet is touched, capping exactly at the pool size
+//     (regression guard: buying a plan used to grant nothing at all)
 //
 // Run the whole thing with: bash scripts/verify-payment-chain.sh
 // (that script wipes a throwaway DB, boots the server and the mock, then runs this)
@@ -260,44 +262,109 @@ async function main() {
   const p2 = await balance(poorTok)
   eqMoney('refused request charges nothing more', p2.quota, 0.005 - COST_PER_REQ)
 
-  // --- 9. subscription sales are blocked (guard for fe47e13) -----------
-  console.log('\n[9] subscription sale is refused while a plan grants nothing')
-  const plan = await api('POST', '/api/v1/subscription/admin/plans/create', {
+  // --- 9. a plan that grants no quota cannot be sold -------------------
+  // Selling a pool-less plan takes money and delivers nothing. That used to be
+  // true of EVERY plan (nothing drew the pool down), so sales were suspended
+  // wholesale; the block is now narrowed to plans whose pool is not positive.
+  console.log('\n[9] a plan granting no quota is refused')
+  const emptyPlan = await api('POST', '/api/v1/subscription/admin/plans/create', {
     token: adminTok,
     body: {
-      name: 'e2e-plan',
-      description: 'e2e',
+      name: 'e2e-empty-plan',
+      description: 'grants nothing',
       price: 0.01,
       currency: 'USD',
       duration_type: 'month',
       duration_days: 30,
-      quota_amount: 5,
+      quota_amount: 0,
       enabled: true,
       sort_order: 0,
     },
   })
-  if (plan.status !== 200) {
-    console.log(`        plan create -> ${plan.status} ${plan.text.slice(0, 300)}`)
-  }
-  eq('admin creates a plan', plan.status, 200)
-  const planId = plan.json?.data?.id ?? plan.json?.data?.ID ?? 1
-  const buy = await api('POST', '/api/v1/subscription/purchase', {
+  eq('admin creates a pool-less plan', emptyPlan.status, 200)
+  const emptyPlanId = emptyPlan.json?.data?.id ?? emptyPlan.json?.data?.ID
+  const badBuy = await api('POST', '/api/v1/subscription/purchase', {
     token: custTok,
-    body: { plan_id: planId },
+    body: { plan_id: emptyPlanId },
   })
-  if (buy.status === 200) {
+  if (badBuy.status === 200) {
     bad(
-      'paid subscription purchase must be refused',
-      `purchase SUCCEEDED (${buy.text.slice(0, 200)}) — sales block is not holding`,
+      'pool-less plan must not be sellable',
+      `purchase SUCCEEDED (${badBuy.text.slice(0, 200)}) — money taken for nothing`,
     )
   } else {
-    ok('paid subscription purchase refused', `HTTP ${buy.status}`)
-    const msg = (buy.json?.message ?? buy.text ?? '').toString()
-    if (/suspend|quota|grant/i.test(msg)) ok('refusal explains why', msg.slice(0, 90))
+    ok('pool-less plan purchase refused', `HTTP ${badBuy.status}`)
+    const msg = (badBuy.json?.message ?? badBuy.text ?? '').toString()
+    if (/quota/i.test(msg)) ok('refusal explains why', msg.slice(0, 90))
     else bad('refusal message', `unexpected: ${msg.slice(0, 200)}`)
   }
+  const afterBadBuy = await balance(custTok)
+  eqMoney('refused purchase took no money', afterBadBuy.quota, b3.quota)
+
+  // --- 10. a real plan is sellable AND its pool actually pays ----------
+  // The regression guard for "sold but grants nothing": it is not enough that
+  // the purchase succeeds — the pool it grants must fund real requests, and it
+  // must do so BEFORE the wallet is touched.
+  console.log('\n[10] a purchased pool funds requests before the wallet')
+  const PLAN_PRICE = 0.1
+  const PLAN_POOL = 0.02 // slightly less than two requests (2 * 0.0105)
+  const realPlan = await api('POST', '/api/v1/subscription/admin/plans/create', {
+    token: adminTok,
+    body: {
+      name: 'e2e-real-plan',
+      description: 'grants a small pool',
+      price: PLAN_PRICE,
+      currency: 'USD',
+      duration_type: 'month',
+      duration_days: 30,
+      quota_amount: PLAN_POOL,
+      enabled: true,
+      sort_order: 0,
+    },
+  })
+  eq('admin creates a funded plan', realPlan.status, 200)
+  const realPlanId = realPlan.json?.data?.id ?? realPlan.json?.data?.ID
+
+  const goodBuy = await api('POST', '/api/v1/subscription/purchase', {
+    token: custTok,
+    body: { plan_id: realPlanId },
+  })
+  if (goodBuy.status !== 200) console.log('        body: ' + goodBuy.text.slice(0, 300))
+  eq('funded plan purchase succeeds', goodBuy.status, 200)
+
   const afterBuy = await balance(custTok)
-  eqMoney('refused purchase took no money', afterBuy.quota, b3.quota)
+  const balAfterBuy = b3.quota - PLAN_PRICE
+  eqMoney('purchase charged exactly the plan price', afterBuy.quota, balAfterBuy)
+
+  const pool = async () => {
+    const r = await api('GET', '/api/v1/subscription/self', { token: custTok })
+    return {
+      total: r.json?.data?.amount_total,
+      used: r.json?.data?.amount_used,
+      status: r.json?.data?.status,
+    }
+  }
+  const s0 = await pool()
+  eqMoney('granted pool equals the plan quota', s0.total, PLAN_POOL)
+  eqMoney('granted pool starts unused', s0.used, 0)
+
+  // Request 3: the pool covers it in full, so the wallet must not move at all.
+  const r3 = await relay()
+  eq('request funded by the pool succeeds', r3.status, 200)
+  const s1 = await pool()
+  eqMoney('pool paid for the request', s1.used, COST_PER_REQ)
+  const bAfterPoolReq = await balance(custTok)
+  eqMoney('wallet untouched while the pool has room', bAfterPoolReq.quota, balAfterBuy)
+
+  // Request 4: only 0.0095 of pool is left against a 0.0105 cost, so the pool
+  // pays what it can and the 0.001 remainder falls to the wallet.
+  const r4 = await relay()
+  eq('request spanning pool and wallet succeeds', r4.status, 200)
+  const s2 = await pool()
+  eqMoney('pool exhausted, never overdrawn', s2.used, PLAN_POOL)
+  const spill = COST_PER_REQ - (PLAN_POOL - COST_PER_REQ)
+  const bAfterSpill = await balance(custTok)
+  eqMoney('only the uncovered remainder hit the wallet', bAfterSpill.quota, balAfterBuy - spill)
 
   // --- summary ----------------------------------------------------------
   console.log(`\n=== ${pass} passed, ${fail} failed ===`)

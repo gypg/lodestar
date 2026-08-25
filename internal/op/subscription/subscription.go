@@ -32,37 +32,23 @@ var (
 	ErrOrderStatusInvalid  = errors.New("subscription order status invalid")
 	ErrInsufficientBalance = errors.New("insufficient balance")
 
-	// ErrSalesSuspended blocks the two paid entry points into a subscription
-	// (CompleteOrder, PurchaseWithBalance) because a purchased plan currently
-	// grants the buyer nothing.
+	// ErrPlanGrantsNoQuota refuses to SELL a plan whose quota pool is not
+	// positive. It replaced a blanket sales suspension that existed while nothing
+	// drew the pool down at all (see internal/op/subscription/pool.go, now wired
+	// into internal/op/billing.ChargeKey).
 	//
-	// UserSubscription carries AmountTotal/AmountUsed: the design is that a plan
-	// grants a USD quota pool that requests draw down. But AmountUsed is only ever
-	// written as 0 at creation (all three sites are in this file) and nothing ever
-	// increments it, because the relay never reads UserSubscription — internal/relay
-	// bills exclusively against User.Quota. So buying a plan spends balance and
-	// changes nothing else, which is strictly worse for the customer than not buying.
+	// Two reasons a zero pool must not be sold rather than being treated as
+	// "unlimited":
+	//   - Taking money for a plan that grants nothing is the exact defect the
+	//     suspension was introduced for.
+	//   - Genuinely unlimited usage at a fixed price puts no ceiling on the
+	//     upstream cost this gateway pays, so one subscriber can outspend their
+	//     own subscription without limit.
 	//
-	// This is a code-level block rather than a setting so that sales cannot be
-	// switched back on before the pool is actually consumed by billing. Remove it in
-	// the same change that wires the pool into the relay's charge path.
-	// AdminBindSubscription is deliberately NOT blocked: it takes no money, so an
-	// admin granting a (currently inert) subscription cannot short-change anyone.
-	ErrSalesSuspended = errors.New("subscription sales are suspended: a purchased plan does not yet grant usage quota")
+	// AdminBindSubscription is deliberately NOT subject to this: it takes no
+	// money, so an admin may grant a pool-less subscription if they want to.
+	ErrPlanGrantsNoQuota = errors.New("subscription plan grants no usage quota, so it cannot be sold")
 )
-
-// subscriptionQuotaPoolWired reports whether a purchased plan's AmountTotal pool
-// is actually drawn down by request billing.
-//
-// While false, the two paid entry points refuse (see ErrSalesSuspended) so nobody
-// can buy a plan that grants nothing. Flip it to true in the same change that
-// wires UserSubscription.AmountUsed into the relay's charge path, then delete this
-// variable together with the two guards — a flag that is never false is noise.
-//
-// It is a var rather than a const only so that the tests covering the purchase
-// implementation (affordability guard, concurrent no-oversell) can keep running
-// against it; production never writes it. See withQuotaPoolWired in the tests.
-var subscriptionQuotaPoolWired = false
 
 // --- Plan CRUD ---
 
@@ -160,9 +146,6 @@ func CreateOrder(userID uint, planID int, method string, ctx context.Context) (*
 
 // CompleteOrder idempotently completes a pending order and creates a UserSubscription.
 func CompleteOrder(tradeNo string, ctx context.Context) error {
-	if !subscriptionQuotaPoolWired {
-		return ErrSalesSuspended
-	}
 	if tradeNo == "" {
 		return errors.New("trade_no is empty")
 	}
@@ -182,6 +165,12 @@ func CompleteOrder(tradeNo string, ctx context.Context) error {
 		var plan model.SubscriptionPlan
 		if err := tx.First(&plan, order.PlanID).Error; err != nil {
 			return ErrPlanNotFound
+		}
+		// A plan with no pool grants nothing, so it must not be turned into a
+		// subscription off the back of a payment. Checked here and not only at
+		// order creation because the plan may have been edited in between.
+		if plan.QuotaAmount <= 0 {
+			return ErrPlanGrantsNoQuota
 		}
 
 		now := time.Now()
@@ -214,9 +203,6 @@ func CompleteOrder(tradeNo string, ctx context.Context) error {
 // PurchaseWithBalance deducts the plan price from the user's balance and creates
 // a completed order + active subscription in a single transaction.
 func PurchaseWithBalance(userID uint, planID int, ctx context.Context) error {
-	if !subscriptionQuotaPoolWired {
-		return ErrSalesSuspended
-	}
 	return db.GetDB().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var plan model.SubscriptionPlan
 		if err := tx.First(&plan, planID).Error; err != nil {
@@ -224,6 +210,11 @@ func PurchaseWithBalance(userID uint, planID int, ctx context.Context) error {
 		}
 		if !plan.Enabled {
 			return ErrPlanDisabled
+		}
+		// Refuse before touching the balance: a plan with no quota pool would take
+		// the customer's money and grant them nothing.
+		if plan.QuotaAmount <= 0 {
+			return ErrPlanGrantsNoQuota
 		}
 
 		// Deduct balance with an atomic WHERE guard (quota >= price). The

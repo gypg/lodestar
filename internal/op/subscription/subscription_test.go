@@ -47,11 +47,16 @@ func newUser(t *testing.T, quota float64) uint {
 }
 
 // newPlan creates an enabled plan with the given price and returns its ID.
+// newPlan creates a sellable plan at the given price. QuotaAmount must be
+// positive or PurchaseWithBalance refuses it up front (ErrPlanGrantsNoQuota),
+// and these tests are about the balance deduction, not that guard — the guard
+// has its own coverage in plan_grants_quota_test.go.
 func newPlan(t *testing.T, price float64) int {
 	t.Helper()
 	p := model.SubscriptionPlan{
 		Name:         "plan",
 		Price:        price,
+		QuotaAmount:  25,
 		DurationType: model.SubDurationDay,
 		DurationDays: 1,
 		Enabled:      true,
@@ -63,7 +68,6 @@ func newPlan(t *testing.T, price float64) int {
 }
 
 func TestPurchaseWithBalance_deductsPrice(t *testing.T) {
-	withQuotaPoolWired(t)
 	initSubTestDB(t)
 	ctx := context.Background()
 	uid := newUser(t, 10.0)
@@ -82,7 +86,6 @@ func TestPurchaseWithBalance_deductsPrice(t *testing.T) {
 }
 
 func TestPurchaseWithBalance_insufficientRejected(t *testing.T) {
-	withQuotaPoolWired(t)
 	initSubTestDB(t)
 	ctx := context.Background()
 	uid := newUser(t, 2.0)
@@ -109,7 +112,6 @@ func TestPurchaseWithBalance_insufficientRejected(t *testing.T) {
 }
 
 func TestPurchaseWithBalance_zeroPrice_free(t *testing.T) {
-	withQuotaPoolWired(t)
 	initSubTestDB(t)
 	ctx := context.Background()
 	uid := newUser(t, 0.0)
@@ -132,7 +134,6 @@ func TestPurchaseWithBalance_zeroPrice_free(t *testing.T) {
 // BUG-002 regression test — without the WHERE guard, both succeed and the
 // balance becomes -6.
 func TestPurchaseWithBalance_concurrentNoOversell(t *testing.T) {
-	withQuotaPoolWired(t)
 	initSubTestDB(t)
 	ctx := context.Background()
 	uid := newUser(t, 10.0)

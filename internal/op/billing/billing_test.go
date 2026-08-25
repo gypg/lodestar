@@ -28,7 +28,7 @@ func initBillingTestDB(t *testing.T, quota float64) (uint, int) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = db.Close() })
-	if err := db.GetDB().AutoMigrate(&model.User{}, &model.APIKey{}, &model.Setting{}); err != nil {
+	if err := db.GetDB().AutoMigrate(&model.User{}, &model.APIKey{}, &model.Setting{}, &model.UserSubscription{}); err != nil {
 		t.Fatal(err)
 	}
 	if err := setting.RefreshCache(context.Background()); err != nil {

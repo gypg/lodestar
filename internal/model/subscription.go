@@ -42,7 +42,7 @@ type SubscriptionPlan struct {
 	DurationType    string  `json:"duration_type" gorm:"type:varchar(16);not null;default:'month'"` // month/day/hour/custom
 	DurationDays    int     `json:"duration_days" gorm:"type:int;not null;default:30"`
 	CustomDurationS int64   `json:"custom_duration_s" gorm:"type:bigint;not null;default:0"` // seconds, for custom
-	QuotaAmount     float64 `json:"quota_amount" gorm:"type:real;not null;default:0"`        // USD quota granted (0 = unlimited)
+	QuotaAmount     float64 `json:"quota_amount" gorm:"type:real;not null;default:0"`        // USD quota pool granted; must be > 0 to be sellable
 	Enabled         bool    `json:"enabled" gorm:"default:true"`
 	SortOrder       int     `json:"sort_order" gorm:"type:int;default:0"`
 	CreatedAt       int64   `json:"created_at" gorm:"bigint"`

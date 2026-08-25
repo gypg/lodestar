@@ -112,9 +112,9 @@ func purchaseWithBalance(c *gin.Context) {
 	}
 	userID := uint(c.GetInt("user_id"))
 	if err := subop.PurchaseWithBalance(userID, req.PlanID, c.Request.Context()); err != nil {
-		// 停售期间必须是明确的 409，不能落到 500 —— 客户要看得懂"现在买不了"，
-		// 而不是以为是我们的故障然后重试。
-		if errors.Is(err, subop.ErrSalesSuspended) {
+		// 「这个套餐不给额度，所以卖不了」必须是明确的 409，不能落到 500 ——
+		// 客户要看得懂"现在买不了"，而不是以为是我们的故障然后重试。
+		if errors.Is(err, subop.ErrPlanGrantsNoQuota) {
 			resp.Error(c, http.StatusConflict, err.Error())
 			return
 		}
