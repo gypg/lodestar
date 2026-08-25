@@ -140,6 +140,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🐛 Bug Fixes
 
 #### Critical (Production Impact)
+- **Concurrency-multiplied overdraft** (`efc8ebe`, 2026-08-25): the relay gate was a
+  pure predicate (`remaining > 0`), and a request's cost is unknown until the
+  response arrives, so a burst could all pass the gate before any of it settled.
+  Measured against a real server with a slow upstream: a wallet holding $0.005
+  served **20 of 20** concurrent requests and ended at **-$0.205**, 41x the prepaid
+  amount. The exposure was concurrency x cost, with the caller choosing the
+  concurrency. `AcquireForKey` now reserves an in-flight slot and admits only when
+  `max(wallet, 0) + pool > inflight * max_expected_request_cost`; the slot is
+  released by `defer` in `APIKeyAuth`, which wraps the whole chain so aborts, panics
+  and client disconnects all return it. With nothing in flight the rule is exactly
+  the old `headroom > 0`, so a thin-but-positive account still gets its one request
+  and still owes for it — accounts that cannot cover what is already in flight are
+  serialized, not refused. Deliberately not a pre-deduction: no money moves, so a
+  leaked release only over-restricts one account until restart. New setting
+  `max_expected_request_cost` (default $0.5, no UI yet — settings API only); 0
+  restores the old behaviour, and negative/unparsable values clamp to 0 instead of
+  inverting the comparison. Same probe with the guard on: 1/20 served, -$0.0055, and
+  the mock's log shows only one request ever reached the upstream. Pinned by 8 unit
+  tests plus 2 middleware wiring tests and 11/11 killed mutations — `defer release`
+  deletion and a call site reverted to the bare predicate are caught only by the
+  wiring tests. Counters are per-process: multi-instance deployments get a looser
+  bound of instances x the assumed cost.
 - **Single-failure cooldown loop** (`5991d04`, 2026-08-18): `FailureTracker` never
   cleared its counters when a cooldown expired, so `consecutiveFailures` stayed at
   or above the threshold forever. After the first cooldown lapsed, the *next single*
