@@ -1,0 +1,314 @@
+// Payment-chain verification for Lodestar.
+//
+// Proves the money path against a REAL running server plus a mock upstream that
+// returns a fixed usage block, so every expected charge is exact:
+//   price input=3 / output=15 USD per 1M tokens, usage 1000 prompt + 500 completion
+//   => cost per request = 1000*3e-6 + 500*15e-6 = 0.003 + 0.0075 = 0.0105 USD
+//
+// What it pins down:
+//   - top-up codes credit the exact amount and cannot be redeemed twice
+//   - a relay request deducts exactly the computed cost, once
+//   - a user whose balance is smaller than one request still gets served, but
+//     the delivered usage is booked as debt so the NEXT request is refused
+//     (regression guard: overdraft used to be unlimited free service)
+//   - paid subscription purchase is refused while a plan grants no quota, and
+//     the refusal takes no money
+//
+// Run the whole thing with: bash scripts/verify-payment-chain.sh
+// (that script wipes a throwaway DB, boots the server and the mock, then runs this)
+
+const BASE = process.env.BASE || 'http://127.0.0.1:8123'
+const MOCK = process.env.MOCK || 'http://127.0.0.1:8899'
+
+const ADMIN = { username: 'e2eadmin', password: 'E2eAdminPass123!' }
+const MODEL = 'e2e-model'
+const PRICE_IN = 3 // USD / 1M prompt tokens
+const PRICE_OUT = 15 // USD / 1M completion tokens
+const COST_PER_REQ = 1000 * PRICE_IN * 1e-6 + 500 * PRICE_OUT * 1e-6 // 0.0105
+
+let pass = 0
+let fail = 0
+const failures = []
+
+function ok(name, extra = '') {
+  pass += 1
+  console.log(`  PASS  ${name}${extra ? '  (' + extra + ')' : ''}`)
+}
+function bad(name, detail) {
+  fail += 1
+  failures.push(`${name}: ${detail}`)
+  console.log(`  FAIL  ${name}\n        ${detail}`)
+}
+function eq(name, actual, expected) {
+  if (actual === expected) ok(name, `= ${JSON.stringify(actual)}`)
+  else bad(name, `expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`)
+}
+// Money comparison with a tolerance far below one cent, to absorb float noise
+// while still catching any real mis-charge.
+function eqMoney(name, actual, expected) {
+  const d = Math.abs(actual - expected)
+  if (d < 1e-9) ok(name, `= ${actual}`)
+  else bad(name, `expected ${expected}, got ${actual} (delta ${d})`)
+}
+
+async function api(method, path, { token, body, key } = {}) {
+  const headers = { 'Content-Type': 'application/json' }
+  if (token) headers['Authorization'] = `Bearer ${token}`
+  if (key) headers['Authorization'] = `Bearer ${key}`
+  const res = await fetch(BASE + path, {
+    method,
+    headers,
+    body: body === undefined ? undefined : JSON.stringify(body),
+  })
+  const text = await res.text()
+  let json = null
+  try {
+    json = JSON.parse(text)
+  } catch {
+    /* non-JSON body kept in text */
+  }
+  return { status: res.status, json, text }
+}
+
+async function main() {
+  console.log(`\n=== Lodestar payment-chain e2e ===`)
+  console.log(`server=${BASE}  mock=${MOCK}  expected cost/req=$${COST_PER_REQ}\n`)
+
+  // --- mock upstream reachable -------------------------------------------
+  const mockProbe = await fetch(MOCK + '/v1/models').then((r) => r.status)
+  eq('mock upstream reachable', mockProbe, 200)
+
+  // --- 0. bootstrap first admin (no-op if already initialized) ----------
+  console.log('[0] bootstrap admin')
+  const st = await api('GET', '/api/v1/bootstrap/status')
+  if (st.json?.data?.initialized) {
+    ok('admin already initialized')
+  } else {
+    const cr = await api('POST', '/api/v1/bootstrap/create-admin', { body: ADMIN })
+    eq('create first admin', cr.status, 200)
+  }
+
+  // --- 1. admin login ----------------------------------------------------
+  console.log('\n[1] admin login')
+  const login = await api('POST', '/api/v1/user/login', { body: ADMIN })
+  const adminTok = login.json?.data?.token
+  if (!adminTok) return bad('admin login', `no token: ${login.status} ${login.text.slice(0, 200)}`)
+  ok('admin login')
+
+  // --- 2. commercial mode on --------------------------------------------
+  console.log('\n[2] enable commercial mode')
+  const setCM = await api('POST', '/api/v1/setting/set', {
+    token: adminTok,
+    body: { key: 'commercial_mode', value: 'true' },
+  })
+  eq('set commercial_mode=true', setCM.status, 200)
+
+  // The price table is only authoritative while the expression-billing path is
+  // inactive. If billing_expr ever maps this model, it REPLACES the price table
+  // and every cost assertion below would be predicting the wrong number — so
+  // assert the default here rather than silently mis-verifying.
+  const settings = await api('GET', '/api/v1/setting/list', { token: adminTok })
+  const bexpr = (settings.json?.data ?? []).find((s) => s.key === 'billing_expr')?.value
+  eq('billing_expr inactive, so the price table governs cost', bexpr, '{}')
+
+  // --- 3. model price ----------------------------------------------------
+  console.log('\n[3] configure model price')
+  const mk = await api('POST', '/api/v1/model/create', {
+    token: adminTok,
+    body: { name: MODEL, input: PRICE_IN, output: PRICE_OUT, cache_read: 0, cache_write: 0 },
+  })
+  eq('create priced model', mk.status, 200)
+
+  // --- 4. channel -> mock upstream + routing ----------------------------
+  console.log('\n[4] channel + routing')
+  const ch = await api('POST', '/api/v1/channel/create', {
+    token: adminTok,
+    body: {
+      name: 'e2e-mock',
+      type: 0,
+      enabled: true,
+      base_urls: [{ url: MOCK }],
+      keys: [{ channel_key: 'sk-mock-not-used' }],
+      model: MODEL, // NOTE: Channel.Model is a string, not an array
+    },
+  })
+  if (ch.status !== 200) console.log('        body: ' + ch.text.slice(0, 300))
+  eq('create channel', ch.status, 200)
+  const ag = await api('POST', '/api/v1/group/auto-group?force=true', {
+    token: adminTok,
+    body: {},
+  })
+  eq('auto-group routing', ag.status, 200)
+  eq('routing group created for the model', ag.json?.data?.created_groups, 1)
+
+  // --- 5. end-customer registration -------------------------------------
+  console.log('\n[5] register end-customer')
+  const cust = { username: 'e2ebuyer', password: 'E2eBuyerPass123!' }
+  const reg = await api('POST', '/api/v1/user/register', { body: cust })
+  if (reg.status !== 200) bad('register user', `${reg.status} ${reg.text.slice(0, 300)}`)
+  else ok('register user')
+  const custLogin = await api('POST', '/api/v1/user/login', { body: cust })
+  const custTok = custLogin.json?.data?.token
+  if (!custTok) return bad('customer login', `${custLogin.status} ${custLogin.text.slice(0, 200)}`)
+  ok('customer login')
+
+  const balance = async (tok) => {
+    const r = await api('GET', '/api/v1/wallet/balance', { token: tok })
+    return { quota: r.json?.data?.quota, used: r.json?.data?.used_quota, status: r.status }
+  }
+
+  const b0 = await balance(custTok)
+  eqMoney('fresh user balance is 0', b0.quota, 0)
+
+  // --- 6. top-up code: generate (admin) -> redeem (user) ----------------
+  console.log('\n[6] top-up code redeem')
+  const gen = await api('POST', '/api/v1/wallet/codes', {
+    token: adminTok,
+    body: { count: 1, quota: 1.0 },
+  })
+  const codes = gen.json?.data
+  const code = Array.isArray(codes) ? (codes[0]?.code ?? codes[0]) : null
+  if (!code) return bad('generate top-up code', `${gen.status} ${gen.text.slice(0, 300)}`)
+  ok('generate top-up code', String(code).slice(0, 12) + '...')
+
+  const red = await api('POST', '/api/v1/wallet/redeem', { token: custTok, body: { code } })
+  eq('redeem accepted', red.status, 200)
+  eqMoney('credited amount', red.json?.data?.credited, 1.0)
+  const b1 = await balance(custTok)
+  eqMoney('balance after redeem', b1.quota, 1.0)
+
+  const red2 = await api('POST', '/api/v1/wallet/redeem', { token: custTok, body: { code } })
+  eq('same code cannot be redeemed twice', red2.status, 400)
+
+  // --- 7. api key + relay request, exact charge -------------------------
+  console.log('\n[7] relay request charges the exact cost')
+  const kc = await api('POST', '/api/v1/apikey/create', {
+    token: custTok,
+    body: { name: 'e2e-key', api_key: '' },
+  })
+  const apiKey =
+    kc.json?.data?.api_key ?? kc.json?.data?.key ?? kc.json?.data?.apikey ?? null
+  if (!apiKey) return bad('create api key', `${kc.status} ${kc.text.slice(0, 400)}`)
+  ok('create api key', String(apiKey).slice(0, 16) + '...')
+
+  const relay = async () =>
+    fetch(BASE + '/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({ model: MODEL, messages: [{ role: 'user', content: 'hi' }] }),
+    }).then(async (r) => ({ status: r.status, text: await r.text() }))
+
+  const r1 = await relay()
+  eq('relay request 1 succeeds', r1.status, 200)
+  if (r1.status !== 200) console.log('        body: ' + r1.text.slice(0, 400))
+
+  const b2 = await balance(custTok)
+  eqMoney('balance charged exactly once', b2.quota, 1.0 - COST_PER_REQ)
+  eqMoney('used_quota records the spend', b2.used, COST_PER_REQ)
+
+  const r2 = await relay()
+  eq('relay request 2 succeeds', r2.status, 200)
+  const b3 = await balance(custTok)
+  eqMoney('balance charged twice', b3.quota, 1.0 - 2 * COST_PER_REQ)
+
+  // --- 8. overdraft is bounded (regression guard for f6c0128) ----------
+  // A user whose remaining balance is smaller than one request's cost used to
+  // get UNLIMITED free service: the pre-request gate only checked quota > 0 and
+  // settlement was all-or-nothing, so the balance never moved and the loop had
+  // no exit. Now the delivered usage must be owed (balance may go negative),
+  // which closes the gate on the NEXT request.
+  console.log('\n[8] overdraft is bounded, not unlimited')
+  const poor = { username: 'e2epoor', password: 'E2ePoorPass123!' }
+  await api('POST', '/api/v1/user/register', { body: poor })
+  const poorTok = (await api('POST', '/api/v1/user/login', { body: poor })).json?.data?.token
+  if (!poorTok) return bad('poor user login', 'no token')
+
+  const smallGen = await api('POST', '/api/v1/wallet/codes', {
+    token: adminTok,
+    body: { count: 1, quota: 0.005 }, // less than one request (0.0105)
+  })
+  const smallCodes = smallGen.json?.data
+  const smallCode = Array.isArray(smallCodes)
+    ? (smallCodes[0]?.code ?? smallCodes[0])
+    : null
+  if (!smallCode) return bad('generate small code', smallGen.text.slice(0, 300))
+  await api('POST', '/api/v1/wallet/redeem', { token: poorTok, body: { code: smallCode } })
+  const p0 = await balance(poorTok)
+  eqMoney('under-funded user starts at 0.005', p0.quota, 0.005)
+
+  const pk = await api('POST', '/api/v1/apikey/create', {
+    token: poorTok,
+    body: { name: 'poor-key', api_key: '' },
+  })
+  const poorKey = pk.json?.data?.api_key ?? pk.json?.data?.key ?? null
+  if (!poorKey) return bad('poor api key', pk.text.slice(0, 300))
+
+  const poorRelay = async () =>
+    fetch(BASE + '/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${poorKey}` },
+      body: JSON.stringify({ model: MODEL, messages: [{ role: 'user', content: 'hi' }] }),
+    }).then(async (r) => ({ status: r.status, text: await r.text() }))
+
+  const pr1 = await poorRelay()
+  eq('under-funded request is served (gate cannot know cost yet)', pr1.status, 200)
+  const p1 = await balance(poorTok)
+  eqMoney('delivered usage is owed, balance goes negative', p1.quota, 0.005 - COST_PER_REQ)
+
+  const pr2 = await poorRelay()
+  eq('next request is refused, so overdraft cannot repeat', pr2.status, 402)
+  const p2 = await balance(poorTok)
+  eqMoney('refused request charges nothing more', p2.quota, 0.005 - COST_PER_REQ)
+
+  // --- 9. subscription sales are blocked (guard for fe47e13) -----------
+  console.log('\n[9] subscription sale is refused while a plan grants nothing')
+  const plan = await api('POST', '/api/v1/subscription/admin/plans/create', {
+    token: adminTok,
+    body: {
+      name: 'e2e-plan',
+      description: 'e2e',
+      price: 0.01,
+      currency: 'USD',
+      duration_type: 'month',
+      duration_days: 30,
+      quota_amount: 5,
+      enabled: true,
+      sort_order: 0,
+    },
+  })
+  if (plan.status !== 200) {
+    console.log(`        plan create -> ${plan.status} ${plan.text.slice(0, 300)}`)
+  }
+  eq('admin creates a plan', plan.status, 200)
+  const planId = plan.json?.data?.id ?? plan.json?.data?.ID ?? 1
+  const buy = await api('POST', '/api/v1/subscription/purchase', {
+    token: custTok,
+    body: { plan_id: planId },
+  })
+  if (buy.status === 200) {
+    bad(
+      'paid subscription purchase must be refused',
+      `purchase SUCCEEDED (${buy.text.slice(0, 200)}) — sales block is not holding`,
+    )
+  } else {
+    ok('paid subscription purchase refused', `HTTP ${buy.status}`)
+    const msg = (buy.json?.message ?? buy.text ?? '').toString()
+    if (/suspend|quota|grant/i.test(msg)) ok('refusal explains why', msg.slice(0, 90))
+    else bad('refusal message', `unexpected: ${msg.slice(0, 200)}`)
+  }
+  const afterBuy = await balance(custTok)
+  eqMoney('refused purchase took no money', afterBuy.quota, b3.quota)
+
+  // --- summary ----------------------------------------------------------
+  console.log(`\n=== ${pass} passed, ${fail} failed ===`)
+  if (fail) {
+    console.log('\nFailures:')
+    failures.forEach((f) => console.log('  - ' + f))
+    process.exitCode = 1
+  }
+}
+
+main().catch((e) => {
+  console.error('e2e crashed:', e)
+  process.exitCode = 1
+})

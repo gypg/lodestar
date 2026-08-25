@@ -401,12 +401,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Remove unused `const Stub = true` dead symbol from sitesync
 
 ### 📚 Documentation
+- **Attribute New API for copied and ported code** (`a06c212`, 2026-08-25):
+  `NOTICE.md` credited only octopus/lingyu, but an audit against the reference
+  upstreams (byte-identical hashing plus same-basename diffing over every Go and
+  TS file) found New API code present and uncredited. `internal/pkg/billingexpr/`
+  is New API's `pkg/billingexpr/` — `compile.go` byte-for-byte identical — and
+  octopus has no billingexpr at all, so it cannot be inherited from the declared
+  upstream. Three files also read "Ported from GGGZERO", a private local folder
+  name that means nothing in published source; they now name New API and the
+  specific upstream files. New API is AGPL-3.0 like Lodestar, so the
+  incorporation was always permitted — only the attribution was missing. Also
+  discloses three projects that contributed **no** code (Sub2API interop client,
+  Metapi import format, N-SLMCRS preset design), because the audit found zero
+  copied files from them and the opposite error is worth preventing too.
 - Replace real deployment coordinates (database host, SSH endpoint, production
   domain) with `YOUR_*` placeholders throughout the docs.
 - Fix stale `OCTOPUS_*` environment variable names in the Chinese README; the
   binary reads the `LODESTAR_*` prefix.
 
 ### 🔧 CI & Testing
+- **Payment-chain verification harness** (`scripts/verify-payment-chain.sh`,
+  2026-08-25): boots a throwaway SQLite instance plus a mock upstream that
+  returns a fixed usage block, so every expected charge is an exact number rather
+  than a plausible one. Pins the money path end to end: top-up codes credit
+  exactly once and cannot be reused; a relay request deducts precisely
+  `prompt*input*1e-6 + completion*output*1e-6`; an under-funded user is still
+  served but the delivered usage becomes debt so the *next* request is refused
+  402 (the regression guard for unlimited-overdraft); a paid subscription
+  purchase is refused 409 and takes no money. It also asserts `billing_expr` is
+  inactive — otherwise expression billing would replace the price table and the
+  predicted costs would be wrong — and prints the upstream request log so a
+  refused request can be shown never to reach an upstream. Talks to no real
+  provider and writes only under `.tmp/`.
 - Add CJK regression gate (`web/tests/cjk-scan.cjs`): scans `web/src` for hardcoded
   CJK and compares against a frozen baseline (196 findings / 19 files). Blocks new
   files with CJK and non-allowlist files whose count increased; allowlist files
