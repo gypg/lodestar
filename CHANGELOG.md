@@ -27,6 +27,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Batch 7** (2026-08-14): Internationalize winter-landing, site/index, and BillingExpr components (139 remaining hardcoded strings, down from 817 - 83% complete)
 
 ### 🚀 Features
+- **Balance ledger with admin audit and reconciliation** (`edaf545`, `cc3620f`,
+  `fcd4d27`, 2026-08-26): every discrete change to a user's balance now flows
+  through a single funnel that writes the balance update and a `quota_ledgers`
+  row in one transaction, so neither "money arrived untraced" nor "traced but no
+  money" is reachable. Each row carries a signed delta, an event kind, the
+  originating document, the acting admin, and a reason. Previously balance
+  changes were spread across five packages writing their own bare UPDATE, and an
+  admin crediting or debiting an account left no trace whatsoever, so a user
+  dispute could not be settled from the data. Per-request usage settlement stays
+  outside the funnel by design — it runs on the hot path and `used_quota`
+  already accumulates wallet spend exactly — and the invariant
+  `quota == sum(delta) - used_quota` still closes. `AddQuota` and `SetQuota` are
+  removed: absolute overwrite cannot be expressed as a delta and read-then-write
+  is unsafe under concurrency. Non-finite deltas are now rejected at the entry
+  point rather than relying on one caller's JSON decoder, which matters because
+  `quota + NaN` poisons the column permanently and locks the account beyond
+  arithmetic repair. Admin adjustments require a reason and record the acting
+  admin rather than the beneficiary, and the audit middleware now captures the
+  beneficiary's id, which it previously dropped — the row recorded that someone
+  called the endpoint but not who received the money. Existing users get a
+  one-time opening row of `quota + used_quota` (not `quota`, which would leave
+  the two sides a whole `used_quota` apart). `GET /api/v1/wallet/reconcile`
+  reports accounts failing the invariant with a signed drift and a 1e-9
+  tolerance, since float residue would otherwise flag every active account.
+  Verified by eleven mutations, each confirmed to turn a test red: removing the
+  non-finite guard, splitting the ledger write out of the transaction, dropping
+  the affordability guard, moving the CAS boundary off `>=`, recording the
+  beneficiary as the actor, dropping the reason requirement, backfilling with
+  `quota` alone, zeroing the drift tolerance, taking the absolute value of the
+  delta, bypassing the funnel at the epay call site both literally and via Raw
+  SQL, and removing the audit target key.
 - **Overdraft bound control** (`fd74d54`, 2026-08-26): `max_expected_request_cost` is now
   editable from the commercial settings page instead of the settings API only. It
   sits with the other billing knobs inside the commercial-only block, because the
