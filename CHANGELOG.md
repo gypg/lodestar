@@ -27,6 +27,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Batch 7** (2026-08-14): Internationalize winter-landing, site/index, and BillingExpr components (139 remaining hardcoded strings, down from 817 - 83% complete)
 
 ### 🚀 Features
+- **Overdraft bound control** (`fd74d54`, 2026-08-26): `max_expected_request_cost` is now
+  editable from the commercial settings page instead of the settings API only. It
+  sits with the other billing knobs inside the commercial-only block, because the
+  admission gate short-circuits when `commercial_mode` is off. The panel states the
+  trade-off it governs — raising the value holds the exposure tighter and admits
+  fewer parallel requests on a thin balance, lowering it favours throughput — and
+  derives the consequence of the current value: an account ends at most about that
+  much in debt, whatever concurrency it chooses. Setting it to 0 renders a warning
+  rather than silently accepting it, since 0 disables the bound and returns exposure
+  to concurrency x cost. Invalid input is rejected client-side and reverted, and a
+  server rejection surfaces its message instead of leaving the typed number in the
+  box looking saved. Keys are literal `t('...')` calls, not the declarative
+  `labelKey` indirection, so the i18n gate reconciles them — verified by mutating a
+  key name and dropping an interpolation argument, both of which the gate caught.
 - **Site hub with reachable channel-key completion** (`c63de8d`, 2026-08-18): the
   `site` nav entry now renders the `remote-site` tab hub instead of the bare `Site`
   module. The hub is a thin wrapper: one tab hosts the existing live `<Site />`
@@ -140,6 +154,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🐛 Bug Fixes
 
 #### Critical (Production Impact)
+- **Non-finite overdraft bound reopened the unlimited-overdraft hole** (`7891478`, 2026-08-26):
+  `max_expected_request_cost` had no branch in `Setting.Validate()`, so it fell
+  through to the validator's trailing `return nil` and accepted any string. Two of
+  those strings are not harmless: `strconv.ParseFloat` succeeds on `"NaN"` and
+  `"Inf"`, and neither is caught by the runtime's `err != nil || v < 0` filter —
+  every comparison with NaN is false, and `0 * (+Inf)` is NaN. Stored, the admission
+  rule `headroom <= inflight * bound` became constant-false, so `AcquireForKey`
+  admitted **every** request, including from accounts whose wallet was already
+  negative. That is not "the concurrency bound is off"; it is the unlimited-overdraft
+  hole (`f6c0128`) reopened by a single settings write — and `settings:write` is held
+  by the `editor` role, not only by admins. Fixed at both ends: the validator now
+  requires a finite number >= 0, and `maxExpectedRequestCost()` additionally screens
+  NaN/±Inf so values already sitting in a database are clamped to 0 (bound off,
+  balance gate intact) rather than trusted. Confirmed by probe before fixing: with
+  `"NaN"` configured, an account at -$1 was admitted; the same probe now refuses it,
+  and a top-up positive control proves the gate is not simply refusing everything.
+  Pinned by 15 validator cases, a gate-level test over all non-finite spellings, a
+  handler wiring test asserting both the 400 and that the rejected value never
+  reaches the database, and 7/7 killed mutations — deleting the `Validate()` call
+  from `setSetting` leaves the model and billing tests green and is caught **only**
+  by the wiring test.
 - **Concurrency-multiplied overdraft** (`efc8ebe`, 2026-08-25): the relay gate was a
   pure predicate (`remaining > 0`), and a request's cost is unknown until the
   response arrives, so a burst could all pass the gate before any of it settled.
@@ -154,7 +189,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and still owes for it — accounts that cannot cover what is already in flight are
   serialized, not refused. Deliberately not a pre-deduction: no money moves, so a
   leaked release only over-restricts one account until restart. New setting
-  `max_expected_request_cost` (default $0.5, no UI yet — settings API only); 0
+  `max_expected_request_cost` (default $0.5); 0
   restores the old behaviour, and negative/unparsable values clamp to 0 instead of
   inverting the comparison. Same probe with the guard on: 1/20 served, -$0.0055, and
   the mock's log shows only one request ever reached the upstream. Pinned by 8 unit
