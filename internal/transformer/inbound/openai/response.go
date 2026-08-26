@@ -778,10 +778,16 @@ type ResponsesTextOptions struct {
 	Verbosity *string              `json:"verbosity,omitempty"`
 }
 
+// ResponsesTextFormat 是 json_schema 的**平铺**形式：Responses API 把 name/schema/
+// strict/description 直接放在 text.format 里，而 chat completions 把它们嵌在
+// response_format.json_schema 下。内部模型（model.ResponseFormat）用的是后者的形状，
+// 所以 convertToInternalRequest 必须把这几个字段收进 JSONSchema，不能只抄 Type。
 type ResponsesTextFormat struct {
-	Type   string          `json:"type,omitempty"`
-	Name   string          `json:"name,omitempty"`
-	Schema json.RawMessage `json:"schema,omitempty"`
+	Type        string          `json:"type,omitempty"`
+	Name        string          `json:"name,omitempty"`
+	Description string          `json:"description,omitempty"`
+	Schema      json.RawMessage `json:"schema,omitempty"`
+	Strict      *bool           `json:"strict,omitempty"`
 }
 
 type ResponsesReasoning struct {
@@ -910,9 +916,25 @@ func convertToInternalRequest(req *ResponsesRequest) (*model.InternalLLMRequest,
 	}
 
 	// Convert text format
+	//
+	// Schema 必须一起搬。只抄 Type 时客户端的 json_schema 整个消失，而且两种上游各
+	// 有一种坏法：OpenAI 系收到少了 schema 的 json_schema 直接 400；Gemini 出站
+	// （outbound/gemini/messages.go:358）只在 JSONSchema != nil 时设 ResponseSchema，
+	// 否则仅设 application/json —— 静默返回不合客户端 schema 的 JSON，不报错。
 	if req.Text != nil && req.Text.Format != nil && req.Text.Format.Type != "" {
 		chatReq.ResponseFormat = &model.ResponseFormat{
 			Type: req.Text.Format.Type,
+		}
+		// 只在真有 schema 时建 JSONSchema：model.ResponseFormatJSONSchema.Schema
+		// 没有 omitempty，空着会被序列化成 "schema":null，把「丢了 schema」换成
+		// 「上游因 null 而 400」。
+		if len(req.Text.Format.Schema) > 0 {
+			chatReq.ResponseFormat.JSONSchema = &model.ResponseFormatJSONSchema{
+				Name:        req.Text.Format.Name,
+				Description: req.Text.Format.Description,
+				Schema:      req.Text.Format.Schema,
+				Strict:      req.Text.Format.Strict,
+			}
 		}
 	}
 

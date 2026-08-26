@@ -391,10 +391,16 @@ type ResponsesTextOptions struct {
 	Verbosity *string              `json:"verbosity,omitempty"`
 }
 
+// ResponsesTextFormat 与入站的同名类型刻意保持一致 —— 这里的字段不是可选装饰：
+// Responses API 把 json_schema 的 name/schema/strict/description 平铺在 text.format
+// 里，少发 schema 上游就 400，少发 strict 则 schema 不被强制执行（结构化输出静默降级
+// 成"建议"）。
 type ResponsesTextFormat struct {
-	Type   string          `json:"type,omitempty"`
-	Name   string          `json:"name,omitempty"`
-	Schema json.RawMessage `json:"schema,omitempty"`
+	Type        string          `json:"type,omitempty"`
+	Name        string          `json:"name,omitempty"`
+	Description string          `json:"description,omitempty"`
+	Schema      json.RawMessage `json:"schema,omitempty"`
+	Strict      *bool           `json:"strict,omitempty"`
 }
 
 // ResponsesReasoning 刻意只有 Effort。入站的同名类型还有 MaxTokens
@@ -495,12 +501,19 @@ func ConvertToResponsesRequest(req *model.InternalLLMRequest) *ResponsesRequest 
 	}
 
 	// Convert text options
+	//
+	// 内部模型把 json_schema 嵌在 ResponseFormat.JSONSchema 下（chat completions 的
+	// 形状），Responses API 要的是平铺形式，所以这里做展开。只发 Type 会让所有
+	// 结构化输出请求失去 schema —— 无论入站是 /v1/responses 还是 /v1/chat/completions。
 	if req.ResponseFormat != nil {
-		result.Text = &ResponsesTextOptions{
-			Format: &ResponsesTextFormat{
-				Type: req.ResponseFormat.Type,
-			},
+		format := &ResponsesTextFormat{Type: req.ResponseFormat.Type}
+		if js := req.ResponseFormat.JSONSchema; js != nil {
+			format.Name = js.Name
+			format.Description = js.Description
+			format.Schema = js.Schema
+			format.Strict = js.Strict
 		}
+		result.Text = &ResponsesTextOptions{Format: format}
 	}
 
 	// Convert reasoning
