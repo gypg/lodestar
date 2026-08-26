@@ -38,15 +38,8 @@ func GetQuota(userID uint, ctx context.Context) (remaining float64, used float64
 	return u.Quota, u.UsedQuota, nil
 }
 
-// AddQuota credits a user's balance (top-up / admin grant / redemption).
-func AddQuota(userID uint, amount float64, ctx context.Context) error {
-	if amount == 0 {
-		return nil
-	}
-	return db.GetDB().WithContext(ctx).Model(&model.User{}).
-		Where("id = ?", userID).
-		Update("quota", gorm.Expr("quota + ?", amount)).Error
-}
+// 没有 AddQuota：入账必须留下"谁、为什么"，所以一律走 MutateQuota（见 ledger.go）。
+// 旧的 AddQuota 只有一个调用点（管理员加款），却既不记流水也不校验非有限值。
 
 // SettleUsage records the cost of usage that has ALREADY been delivered, and
 // accumulates used_quota.
@@ -94,12 +87,10 @@ func SettleUsage(userID uint, amount float64, ctx context.Context) error {
 	return nil
 }
 
-// SetQuota overwrites a user's balance (admin adjust).
-func SetQuota(userID uint, amount float64, ctx context.Context) error {
-	return db.GetDB().WithContext(ctx).Model(&model.User{}).
-		Where("id = ?", userID).
-		Update("quota", amount).Error
-}
+// 没有 SetQuota：绝对覆盖（"把余额设成 X"）无法表达为一条 delta，而 read-then-write
+// 在并发下不安全 —— 两个管理员同时调整会互相覆盖，且流水上看不出发生了两次。
+// 管理员纠错一律走 MutateQuota 的有符号 delta（kind=admin_adjust），见 WO-017。
+// 旧的 SetQuota 是孤儿：带着 "admin adjust" 的注释出厂，生产侧零调用点。
 
 // UpdateEmail sets a user's email (e.g. captured at verified registration).
 func UpdateEmail(userID uint, email string, ctx context.Context) error {

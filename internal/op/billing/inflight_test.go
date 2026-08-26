@@ -412,7 +412,7 @@ func TestMaxExpectedRequestCost_nonFiniteValuesCannotBypassTheGate(t *testing.T)
 	if err := setting.SetString(model.SettingKeyMaxExpectedRequestCost, "0.5"); err != nil {
 		t.Fatal(err)
 	}
-	if err := user.AddQuota(uid, 10.0, ctx); err != nil {
+	if err := user.MutateQuota(nil, uid, 10.0, user.LedgerEntry{Kind: model.LedgerKindTopupEpay}, ctx); err != nil {
 		t.Fatal(err)
 	}
 	release, ok := AcquireForKey(keyID, ctx)

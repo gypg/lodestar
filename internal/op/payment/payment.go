@@ -29,6 +29,7 @@ import (
 	"github.com/gypg/lodestar/internal/db"
 	"github.com/gypg/lodestar/internal/model"
 	"github.com/gypg/lodestar/internal/op/setting"
+	"github.com/gypg/lodestar/internal/op/user"
 	"github.com/gypg/lodestar/internal/utils/log"
 
 	"gorm.io/gorm"
@@ -150,9 +151,12 @@ func HandleEpayNotify(params map[string]string, ctx context.Context) bool {
 		if res.RowsAffected == 0 {
 			return nil // already processed (idempotent)
 		}
-		return tx.Model(&model.User{}).
-			Where("id = ?", order.UserID).
-			Update("quota", gorm.Expr("quota + ?", order.AmountUSD)).Error
+		// 入账走漏斗（WO-017）：余额与流水在同一事务里，且金额取自 DB 订单而非回调参数。
+		return user.MutateQuota(tx, order.UserID, order.AmountUSD, user.LedgerEntry{
+			Kind:    model.LedgerKindTopupEpay,
+			RefType: model.LedgerRefPaymentOrder,
+			RefID:   order.TradeNo,
+		}, ctx)
 	}); err != nil {
 		log.Errorf("epay callback transaction failed for trade %s: %v", vi.ServiceTradeNo, err)
 		return false // tell gateway to retry

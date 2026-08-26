@@ -186,69 +186,12 @@ func TestSettleUsage_negativeAmountNoOp(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// WO-009-续 §2.1 — AddQuota: credits balance; AddQuota(0) is a no-op
+// WO-017：AddQuota / SetQuota 的测试随函数一起删除。
+//
+// 两个函数已不存在（见 quota.go 里挡复发的注释）：入账与管理员调整一律走
+// user.MutateQuota 漏斗。原来的三个测试只验"余额被改了"，不验流水与操作者，
+// 留下来只会编译失败。等价且更强的覆盖在 ledger_test.go：
+//   - AddQuota 加款      → TestGateB_reconciliationInvariantHolds 的充值一段
+//   - AddQuota(0) no-op → TestMutateQuota_zeroDeltaIsNoop（还多断言了不留流水）
+//   - SetQuota 覆盖余额  → 语义已废弃，无对应替代（绝对覆盖无法表达为 delta）
 // ---------------------------------------------------------------------------
-
-func TestAddQuota_creditsBalance(t *testing.T) {
-	initQuotaTestDB(t)
-	ctx := context.Background()
-	u := model.User{Username: "add1", Password: "x", Quota: 5.0}
-	if err := db.GetDB().Create(&u).Error; err != nil {
-		t.Fatal(err)
-	}
-
-	if err := AddQuota(u.ID, 5.0, ctx); err != nil {
-		t.Fatal(err)
-	}
-	rem, _, err := GetQuota(u.ID, ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if math.Abs(rem-10.0) > 1e-9 {
-		t.Errorf("want remaining 10.0 after adding 5.0 to 5.0, got %.17g", rem)
-	}
-}
-
-func TestAddQuota_zeroNoOp(t *testing.T) {
-	initQuotaTestDB(t)
-	ctx := context.Background()
-	u := model.User{Username: "add2", Password: "x", Quota: 5.0}
-	if err := db.GetDB().Create(&u).Error; err != nil {
-		t.Fatal(err)
-	}
-
-	if err := AddQuota(u.ID, 0, ctx); err != nil {
-		t.Fatal(err)
-	}
-	rem, used, err := GetQuota(u.ID, ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if rem != 5.0 || used != 0 {
-		t.Errorf("AddQuota(0) should be no-op: rem=%.17g used=%.17g", rem, used)
-	}
-}
-
-// ---------------------------------------------------------------------------
-// WO-009-续 §2.1 — SetQuota: overwrites balance
-// ---------------------------------------------------------------------------
-
-func TestSetQuota_overwritesBalance(t *testing.T) {
-	initQuotaTestDB(t)
-	ctx := context.Background()
-	u := model.User{Username: "set1", Password: "x", Quota: 5.0, UsedQuota: 3.0}
-	if err := db.GetDB().Create(&u).Error; err != nil {
-		t.Fatal(err)
-	}
-
-	if err := SetQuota(u.ID, 99.0, ctx); err != nil {
-		t.Fatal(err)
-	}
-	rem, _, err := GetQuota(u.ID, ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if rem != 99.0 {
-		t.Errorf("SetQuota should overwrite to 99.0, got %.17g", rem)
-	}
-}

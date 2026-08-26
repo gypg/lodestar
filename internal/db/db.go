@@ -269,6 +269,7 @@ func Migrate(conn *gorm.DB) error {
 		&model.WebAuthnCredential{},
 		&model.TopupCode{},
 		&model.PaymentOrder{},
+		&model.QuotaLedger{},
 		&model.SubscriptionPlan{},
 		&model.SubscriptionOrder{},
 		&model.UserSubscription{},

@@ -28,7 +28,10 @@ func initBillingTestDB(t *testing.T, quota float64) (uint, int) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = db.Close() })
-	if err := db.GetDB().AutoMigrate(&model.User{}, &model.APIKey{}, &model.Setting{}, &model.UserSubscription{}); err != nil {
+	// QuotaLedger：WO-017 起充值走 user.MutateQuota 漏斗（同事务写流水），缺表会报错。
+	if err := db.GetDB().AutoMigrate(
+		&model.User{}, &model.APIKey{}, &model.Setting{}, &model.UserSubscription{}, &model.QuotaLedger{},
+	); err != nil {
 		t.Fatal(err)
 	}
 	if err := setting.RefreshCache(context.Background()); err != nil {

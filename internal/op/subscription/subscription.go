@@ -17,10 +17,12 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/gypg/lodestar/internal/db"
 	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/op/user"
 
 	"gorm.io/gorm"
 )
@@ -220,18 +222,24 @@ func PurchaseWithBalance(userID uint, planID int, ctx context.Context) error {
 		// Deduct balance with an atomic WHERE guard (quota >= price). The
 		// WHERE guard, not a read-then-check, is what makes concurrent
 		// purchases safe: two requests for price 8 on a balance of 10 can
-		// only one succeed, so balance never goes negative. RowsAffected
-		// being 0 means insufficient balance (or zero-price plans, which
-		// skip the deduction entirely below).
+		// only one succeed, so balance never goes negative.
+		//
+		// WO-017：扣款走 user.MutateQuota 漏斗（同事务写一条流水），
+		// RequireAffordable 保留的正是上面那个原子 WHERE 守卫 —— 不许退化成
+		// read-then-check。余额不足时漏斗返回 user.ErrInsufficientBalance，
+		// 这里翻译成本包的同名哨兵以保持对外 API 不变。
 		if plan.Price > 0 {
-			res := tx.Model(&model.User{}).
-				Where("id = ? AND quota >= ?", userID, plan.Price).
-				Update("quota", gorm.Expr("quota - ?", plan.Price))
-			if res.Error != nil {
-				return res.Error
-			}
-			if res.RowsAffected == 0 {
+			err := user.MutateQuota(tx, userID, -plan.Price, user.LedgerEntry{
+				Kind:              model.LedgerKindSubscriptionPurchase,
+				RefType:           model.LedgerRefSubscriptionPlan,
+				RefID:             strconv.Itoa(plan.ID),
+				RequireAffordable: true,
+			}, ctx)
+			if errors.Is(err, user.ErrInsufficientBalance) {
 				return ErrInsufficientBalance
+			}
+			if err != nil {
+				return err
 			}
 		}
 

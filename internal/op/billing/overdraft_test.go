@@ -5,6 +5,7 @@ import (
 	"math"
 	"testing"
 
+	"github.com/gypg/lodestar/internal/model"
 	"github.com/gypg/lodestar/internal/op/user"
 )
 
@@ -50,8 +51,8 @@ func TestOverdraftIsRecordedAsDebtAndThenBlocked(t *testing.T) {
 		t.Fatal("request 2: gate passed on a negative balance — the overdraft loop is still open")
 	}
 
-	// 充值必须能清掉欠款并恢复服务。
-	if err := user.AddQuota(uid, 2.0, ctx); err != nil {
+	// 充值必须能清掉欠款并恢复服务。WO-017 起入账走漏斗。
+	if err := user.MutateQuota(nil, uid, 2.0, user.LedgerEntry{Kind: model.LedgerKindTopupEpay}, ctx); err != nil {
 		t.Fatal(err)
 	}
 	rem, _, err = user.GetQuota(uid, ctx)

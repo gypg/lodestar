@@ -13,10 +13,12 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"strconv"
 	"time"
 
 	"github.com/gypg/lodestar/internal/db"
 	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/op/user"
 
 	"gorm.io/gorm"
 )
@@ -72,9 +74,12 @@ func Redeem(code string, userID uint, ctx context.Context) (float64, error) {
 		if res.RowsAffected == 0 {
 			return ErrInvalidCode
 		}
-		if err := tx.Model(&model.User{}).
-			Where("id = ?", userID).
-			Update("quota", gorm.Expr("quota + ?", tc.Quota)).Error; err != nil {
+		// 入账走漏斗（WO-017）：余额与流水、兑换码置为已用在同一事务里。
+		if err := user.MutateQuota(tx, userID, tc.Quota, user.LedgerEntry{
+			Kind:    model.LedgerKindRedeem,
+			RefType: model.LedgerRefTopupCode,
+			RefID:   strconv.Itoa(tc.ID),
+		}, ctx); err != nil {
 			return err
 		}
 		credited = tc.Quota

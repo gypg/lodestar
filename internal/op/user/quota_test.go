@@ -19,7 +19,8 @@ func initQuotaTestDB(t *testing.T) {
 		t.Fatalf("init db: %v", err)
 	}
 	t.Cleanup(func() { _ = db.Close() })
-	if err := db.GetDB().AutoMigrate(&model.User{}); err != nil {
+	// QuotaLedger：WO-017 起入账走漏斗，漏斗在同一事务里写流水行，缺表会直接报错。
+	if err := db.GetDB().AutoMigrate(&model.User{}, &model.QuotaLedger{}); err != nil {
 		t.Fatalf("migrate: %v", err)
 	}
 }
@@ -66,8 +67,8 @@ func TestSettleUsage_overspendBecomesDebt(t *testing.T) {
 		t.Fatalf("used_quota = %v, want 1.2 (revenue reporting must see both charges)", used)
 	}
 
-	// 充值净掉欠款。
-	if err := AddQuota(u.ID, 1.0, ctx); err != nil {
+	// 充值净掉欠款。WO-017 起入账走漏斗（AddQuota 已删）。
+	if err := MutateQuota(nil, u.ID, 1.0, LedgerEntry{Kind: model.LedgerKindTopupEpay}, ctx); err != nil {
 		t.Fatal(err)
 	}
 	rem, _, err = GetQuota(u.ID, ctx)
