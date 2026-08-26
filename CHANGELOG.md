@@ -320,6 +320,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add 1MiB limit on anonymous Stripe webhook payloads
 
 #### Relay & Protocol
+- **Structured Outputs lost its schema on the Responses path** (`c0e9c73`, 2026-08-26):
+  both Responses-API converters copied only `text.format.type`. The inbound one never
+  populated `ResponseFormat.JSONSchema` even though its `ResponsesTextFormat` had
+  already parsed `name` and `schema` off the wire, and the outbound one emitted a bare
+  `{"type":"json_schema"}` — so the caller's schema reached no upstream, in either
+  direction. A `/v1/chat/completions` caller routed to a Responses-format upstream
+  lost it on the way out too, even though its own inbound had parsed it correctly. The
+  two failure shapes differ and neither is loud: OpenAI-family upstreams reject
+  `json_schema` with no schema (400), while the Gemini outbound sets `ResponseSchema`
+  only when `JSONSchema != nil` and otherwise just asks for `application/json`,
+  returning JSON that ignores the caller's schema with nothing logged. Both structs
+  now also carry `strict` and `description`, which neither had — an unenforced schema
+  is its own quiet wrong answer. The nested-to-flat mapping stays conditional on
+  `JSONSchema` being present: `model.ResponseFormatJSONSchema.Schema` has no
+  `omitempty`, so building one for a schema-less `json_object` request would serialise
+  `"schema":null` and trade the dropped schema for a guaranteed 400. Assertions run
+  against the marshalled wire body, since a correct struct field under a wrong json
+  tag fails exactly as silently as the bug itself; 5/5 mutations killed, including
+  corrupting the outbound `schema` tag.
 - **Streaming aggregate dropped multipart output and aliased reasoning** (`e328640`
   + `29b8aa4`, 2026-08-24): the chunk-merging half of `GetInternalResponse` existed
   once per inbound adapter, and the openai-responses and anthropic-messages copies
@@ -427,6 +446,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   collapsible panel.
 
 #### Other
+- **Subscription expiry sweep had no caller** (`58aaf9d`, 2026-08-26):
+  `ExpireDueSubscriptions` shipped with a doc comment saying it was "intended for
+  periodic background invocation" and zero callers — not even a test. Nothing ever
+  flipped a due subscription's status, so every expired row stayed `active` forever and
+  both subscription lists rendered it with a green active badge. Not a billing hole:
+  the only two readers of that column (`GetUserSubscription` and the quota pool's
+  `activePoolSubscription`) both AND in `expires_at > now`, so an expired-but-active
+  row funds nothing — confirmed by grepping `SubStatusActive` exhaustively for a third
+  reader. What was broken is the column's truthfulness: admins could not tell who had
+  actually lapsed, and any later query filtering on status alone would have mis-billed.
+  Now registered on the existing task scheduler, hourly with `runOnStart`, routed
+  through the SQLite serial writer like the other periodic writes. Covered on both
+  halves, because either alone leaves the same gap open: a wiring assertion (the
+  registry must hold the task after `Init`), since that is precisely the call site that
+  went missing, plus a behavioural table proving the sweep spares a never-expiring
+  grant, a live subscription, and an admin-cancelled row — it writes the same column
+  the pool reads, so an over-broad `WHERE` would defund subscriptions people paid for.
+  6/6 mutations killed.
 - **Draft group-test results published before their ClientIDs** (`27e386b`,
   2026-08-24): `runGroupModelTest` publishes a terminal progress record with
   `Done=true`, but it cannot stamp `ClientID` — that mapping lives only in
