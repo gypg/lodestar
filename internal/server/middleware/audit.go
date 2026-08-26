@@ -298,6 +298,8 @@ func buildAuditTarget(c *gin.Context, fullPath string, bodyFields map[string]any
 		}
 	}
 
+	// 顺序有意义：先取人类可读的标识（name / username），取不到才退到数字 ID。
+	// 新键一律加在末尾，避免改变既有路由的 target 取值。
 	for _, key := range []string{
 		"key",
 		"name",
@@ -311,6 +313,10 @@ func buildAuditTarget(c *gin.Context, fullPath string, bodyFields map[string]any
 		"api_key_id",
 		"rule_id",
 		"notif_channel_id",
+		// user_id：管理员调整余额（POST /wallet/grant）的受益人。少了这个键，
+		// 这条审计行只记得"有人调了 wallet.grant"，记不住给了谁 —— 而"给谁"
+		// 恰恰是事后追溯要问的第一个问题。
+		"user_id",
 	} {
 		if value := stringifyAuditTargetValue(bodyFields[key]); value != "" {
 			if key == "id" || strings.HasSuffix(key, "_id") {

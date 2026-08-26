@@ -17,6 +17,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gypg/lodestar/internal/model"
 	apikey "github.com/gypg/lodestar/internal/op/apikey"
 	"github.com/gypg/lodestar/internal/op/email"
 	"github.com/gypg/lodestar/internal/op/invite"
@@ -88,6 +89,10 @@ func init() {
 		AddRoute(
 			router.NewRoute("/email-test", http.MethodPost).
 				Handle(testEmail),
+		).
+		AddRoute(
+			router.NewRoute("/reconcile", http.MethodGet).
+				Handle(reconcileWallets),
 		)
 }
 
@@ -286,6 +291,20 @@ func testEmail(c *gin.Context) {
 	resp.Success(c, nil)
 }
 
+// reconcileWallets 列出所有对不上账的用户 —— 不变式是
+// `quota == Σ(quota_ledger.delta) - used_quota`。
+//
+// 只读体检入口：漂移意味着有一笔余额改动绕过了流水（漏斗之外的写入点），或者流水写了
+// 但余额没落地。正常情况返回空数组。
+func reconcileWallets(c *gin.Context) {
+	drifts, err := user.ReconcileDrifts(c.Request.Context())
+	if err != nil {
+		resp.InternalError(c)
+		return
+	}
+	resp.Success(c, gin.H{"drifts": drifts, "count": len(drifts)})
+}
+
 func listInvites(c *gin.Context) {
 	codes, err := invite.ListCodes(c.Request.Context())
 	if err != nil {
@@ -295,10 +314,18 @@ func listInvites(c *gin.Context) {
 	resp.Success(c, codes)
 }
 
+// adminGrant 调整某个用户的余额。amount 有符号：正数加款，负数扣款（纠错、平账）。
+//
+// WO-017：改动走 user.MutateQuota 漏斗，余额与流水行落在同一事务内。三点不可退让：
+//   - reason 必填 —— 无理由的余额改动等于无痕，用户争议时无从查证。
+//   - ActorID 填**操作的管理员**，不是受益人 req.UserID。两者搞混则审计失效：
+//     流水上看起来像用户自己给自己加了钱。
+//   - amount 为 0 在入口拒掉，见下方注释。
 func adminGrant(c *gin.Context) {
 	var req struct {
 		UserID uint    `json:"user_id"`
 		Amount float64 `json:"amount"`
+		Reason string  `json:"reason"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		resp.Error(c, http.StatusBadRequest, resp.ErrInvalidJSON)
@@ -308,9 +335,31 @@ func adminGrant(c *gin.Context) {
 		resp.Error(c, http.StatusBadRequest, "user_id is required")
 		return
 	}
-	if err := user.AddQuota(req.UserID, req.Amount, c.Request.Context()); err != nil {
-		resp.InternalError(c)
+	reason := strings.TrimSpace(req.Reason)
+	if reason == "" {
+		resp.Error(c, http.StatusBadRequest, "reason is required")
 		return
 	}
-	resp.Success(c, nil)
+	// 漏斗把 delta==0 当 no-op（既不改余额也不留流水），返回 200 会让调用方以为
+	// 调整生效了。与其给出无痕的成功，不如在入口拒掉。
+	if req.Amount == 0 {
+		resp.Error(c, http.StatusBadRequest, "amount must not be zero")
+		return
+	}
+
+	err := user.MutateQuota(nil, req.UserID, req.Amount, user.LedgerEntry{
+		Kind:    model.LedgerKindAdminAdjust,
+		ActorID: uint(c.GetInt("user_id")),
+		Reason:  reason,
+	}, c.Request.Context())
+	switch {
+	case errors.Is(err, user.ErrNonFiniteAmount):
+		resp.Error(c, http.StatusBadRequest, "amount must be a finite number")
+	case errors.Is(err, user.ErrUserNotFound):
+		resp.Error(c, http.StatusNotFound, "user not found")
+	case err != nil:
+		resp.InternalError(c)
+	default:
+		resp.Success(c, nil)
+	}
 }
