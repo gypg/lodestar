@@ -17,6 +17,7 @@ import { useSettingStore } from '@/stores/setting';
 import { PaymentSettings } from '@/components/modules/setting/PaymentSettings';
 import { EmailSettings } from '@/components/modules/setting/EmailSettings';
 import { BillingExpr } from '@/components/modules/setting/BillingExpr';
+import { OverdraftBound } from '@/components/modules/setting/OverdraftBound';
 
 const Subscription = lazy(() => import('@/components/modules/subscription').then(m => ({ default: m.Subscription })));
 
@@ -237,6 +238,8 @@ export function Commercial() {
                     <Section icon={<Calculator className="h-4 w-4" />} title={t('billingExpr.title')}>
                         <BillingExpr />
                     </Section>
+
+                    <OverdraftBound />
 
                     <ToggleCard
                         icon={<Users className="h-4 w-4" />}

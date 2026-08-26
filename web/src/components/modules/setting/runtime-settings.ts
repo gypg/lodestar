@@ -7,6 +7,25 @@ export interface RuntimeSettingField {
     max?: string;
 }
 
+/**
+ * Parses the `max_expected_request_cost` input, mirroring the server-side
+ * validator in internal/model/setting.go: a finite number >= 0, or null when the
+ * input is unusable.
+ *
+ * Number('') and Number('  ') are both 0, so the blank check must come first or a
+ * cleared box would read as "bound disabled". 'NaN' and 'Infinity' are rejected
+ * for the reason the backend rejects them: a non-finite bound makes the admission
+ * gate's `headroom <= inflight * bound` comparison constant-false, so it stops
+ * refusing anyone — including accounts already in debt.
+ */
+export function parseOverdraftBound(raw: string): number | null {
+    const trimmed = raw.trim();
+    if (trimmed === '') return null;
+    const parsed = Number(trimmed);
+    if (!Number.isFinite(parsed) || parsed < 0) return null;
+    return parsed;
+}
+
 export const RETRY_FIELDS: RuntimeSettingField[] = [
     {
         key: 'relay_retry_count',

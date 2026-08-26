@@ -1983,6 +1983,16 @@
         "ao": "Audio output tokens"
       }
     },
+    "overdraftBound": {
+      "title": "Overdraft Bound",
+      "description": "Caps how far a burst of concurrent requests can push one account into debt.",
+      "label": "Assumed worst-case cost per request (USD)",
+      "hint": "Raise it to hold the exposure tighter; a thin balance then gets fewer requests in parallel. Lower it for throughput.",
+      "maxDebt": "At this setting an account ends at most about ${cost} in debt, whatever concurrency it uses.",
+      "boundOff": "Bound disabled. Concurrent requests can overdraw an account without limit — the exposure becomes concurrency × request cost.",
+      "invalid": "Enter a finite number that is 0 or greater.",
+      "saveFailed": "Could not save the overdraft bound."
+    },
     "llmPrice": {
       "updateInterval": {
         "label": "Price Update Interval (hours)",

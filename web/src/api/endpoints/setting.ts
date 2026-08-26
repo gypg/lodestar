@@ -58,6 +58,7 @@ export const SettingKey = {
     SiteBannerText: 'site_banner_text',
     SiteBannerTone: 'site_banner_tone',
     BillingExpr: 'billing_expr',
+    MaxExpectedRequestCost: 'max_expected_request_cost',
     EpayEnabled: 'epay_enabled',
     PayAddress: 'pay_address',
     EpayPID: 'epay_pid',
