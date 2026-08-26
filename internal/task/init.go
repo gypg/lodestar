@@ -11,6 +11,7 @@ import (
 	"github.com/gypg/lodestar/internal/op/relaylog"
 	"github.com/gypg/lodestar/internal/op/setting"
 	"github.com/gypg/lodestar/internal/op/stats"
+	"github.com/gypg/lodestar/internal/op/subscription"
 	"github.com/gypg/lodestar/internal/price"
 	"github.com/gypg/lodestar/internal/relay"
 	"github.com/gypg/lodestar/internal/relay/balancer"
@@ -27,7 +28,20 @@ const (
 	TaskBaseUrlDelay  = "base_url_delay"
 	TaskWebDAVBackup  = "webdav_backup"
 	TaskErrorLogClean = "error_log_cleanup"
+	TaskSubExpire     = "subscription_expire"
 )
+
+// subExpireInterval 是过期订阅状态回收的周期。
+//
+// 计费与配额池两处读取点（subscription.GetUserSubscription、
+// subscription.activePoolSubscription）的 WHERE 都带 expires_at > now，所以这个
+// 任务跑不跑都不影响钱 —— 它修的是 status 列本身：没有它，过期订阅永远停在
+// "active"，管理端和用户端的订阅列表都把它渲染成绿色「活跃」徽章
+// （web/src/components/modules/subscription/index.tsx:625）。
+//
+// 一小时是订阅时长里最细的整档（model.SubDurationHour），比它更密没有意义；
+// 更疏则按小时售卖的套餐会有大半天显示错误。
+const subExpireInterval = time.Hour
 
 func Init() {
 	if db.IsSQLite() {
@@ -144,5 +158,34 @@ func Init() {
 	} else {
 		siteCheckinInterval := time.Duration(siteCheckinIntervalHours) * time.Hour
 		Register(string(model.SettingKeySiteCheckinInterval), siteCheckinInterval, true, SiteCheckinTask)
+	}
+
+	// 过期订阅状态回收。runOnStart：进程重启后立即对账一次，否则一次崩溃就能让
+	// 一批过期订阅多顶着「活跃」显示一个周期。
+	Register(TaskSubExpire, subExpireInterval, true, ExpireSubscriptionsTask)
+}
+
+// ExpireSubscriptionsTask 把已过期但 status 仍为 active 的订阅改成 expired。
+//
+// SQLite 下必须走串行写队列：这是 UPDATE，和 stats/relay_log 那几个写任务一样，
+// 直接并发写会撞上 SQLite 的单写者锁。
+func ExpireSubscriptionsTask() {
+	run := func(ctx context.Context) error {
+		n, err := subscription.ExpireDueSubscriptions(ctx)
+		if err != nil {
+			return err
+		}
+		if n > 0 {
+			log.Infof("expired %d due subscription(s)", n)
+		}
+		return nil
+	}
+
+	if db.IsSQLite() {
+		db.EnqueueWrite(db.WriteJob{Name: TaskSubExpire, Fn: run})
+		return
+	}
+	if err := run(context.Background()); err != nil {
+		log.Warnf("expire due subscriptions failed: %v", err)
 	}
 }
