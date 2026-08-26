@@ -3,6 +3,7 @@ package model
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/url"
 	"strconv"
 	"strings"
@@ -495,6 +496,24 @@ func (s *Setting) Validate() error {
 		}
 		if v < 1 {
 			return fmt.Errorf("stripe min topup must be >= 1")
+		}
+		return nil
+	case SettingKeyMaxExpectedRequestCost:
+		// Guards the concurrency admission gate (internal/op/billing/inflight.go).
+		// Without this branch the key fell through to the function's trailing
+		// `return nil`, so any string was accepted — and "NaN"/"Inf" parse
+		// successfully, which turns the gate's comparison constant-false and lets
+		// an account that owes money keep spending. settings:write is held by
+		// editor too, so this is not an admin-only footgun.
+		v, err := strconv.ParseFloat(s.Value, 64)
+		if err != nil {
+			return fmt.Errorf("max expected request cost must be a number")
+		}
+		if math.IsNaN(v) || math.IsInf(v, 0) {
+			return fmt.Errorf("max expected request cost must be a finite number")
+		}
+		if v < 0 {
+			return fmt.Errorf("max expected request cost must be greater than or equal to 0")
 		}
 		return nil
 	case SettingKeyGitHubOAuthEnabled:

@@ -16,6 +16,7 @@ import (
 	"github.com/gypg/lodestar/internal/db"
 	"github.com/gypg/lodestar/internal/model"
 	"github.com/gypg/lodestar/internal/op"
+	stg "github.com/gypg/lodestar/internal/op/setting"
 	"github.com/gypg/lodestar/internal/utils/semantic_cache"
 )
 
@@ -178,6 +179,99 @@ func TestImportDBRefreshesSemanticCacheRuntime(t *testing.T) {
 	}
 	if semantic_cache.RuntimeEnabled() {
 		t.Fatal("expected importDB to refresh semantic cache runtime and clear stale state")
+	}
+}
+
+// TestSetSettingRejectsNonFiniteOverdraftBound 钉死 setSetting → Setting.Validate()
+// 这条接线本身。
+//
+// model 层的校验器单测挡不住"handler 根本不调它"这类改动：把 setSetting 里那两行
+// setting.Validate() 删掉，internal/model 的测试依然全绿，而 max_expected_request_cost
+// 又能存成 "NaN" —— 并发闸门的 `headroom <= inflight * bound` 随之恒为 false，连欠款
+// 账户都放行（见 internal/op/billing/inflight.go）。
+//
+// 断言两件事：被拒的请求返回 400，且库里的值没被改动。只断状态码不够 —— 先写库再校验
+// 的实现也能回 400。
+func TestSetSettingRejectsNonFiniteOverdraftBound(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", strings.NewReplacer("/", "-", "\\", "-", " ", "-").Replace(t.Name()))
+	if err := db.InitDB("sqlite", dsn, false); err != nil {
+		t.Fatalf("init db: %v", err)
+	}
+	if err := op.InitCache(); err != nil {
+		t.Fatalf("init cache: %v", err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+
+	if got, err := stg.GetString(model.SettingKeyMaxExpectedRequestCost); err != nil || got != "0.5" {
+		t.Fatalf("出厂默认值 = %q (err=%v), want 0.5 —— 种子没进来，下面「值未改动」的断言会变成空过", got, err)
+	}
+
+	for _, tt := range []struct {
+		value      string
+		wantStatus int
+	}{
+		{value: "2", wantStatus: http.StatusOK},
+		{value: "0", wantStatus: http.StatusOK},
+		{value: "NaN", wantStatus: http.StatusBadRequest},
+		{value: "nan", wantStatus: http.StatusBadRequest},
+		{value: "Inf", wantStatus: http.StatusBadRequest},
+		{value: "+Inf", wantStatus: http.StatusBadRequest},
+		{value: "-1", wantStatus: http.StatusBadRequest},
+		{value: "abc", wantStatus: http.StatusBadRequest},
+		{value: "", wantStatus: http.StatusBadRequest},
+	} {
+		before, err := stg.GetString(model.SettingKeyMaxExpectedRequestCost)
+		if err != nil {
+			t.Fatalf("read before %q: %v", tt.value, err)
+		}
+
+		body, err := json.Marshal(model.Setting{Key: model.SettingKeyMaxExpectedRequestCost, Value: tt.value})
+		if err != nil {
+			t.Fatalf("marshal %q: %v", tt.value, err)
+		}
+		recorder := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(recorder)
+		c.Request = httptest.NewRequest(http.MethodPost, "/api/v1/setting/set", bytes.NewReader(body))
+		c.Request = c.Request.WithContext(context.Background())
+		c.Request.Header.Set("Content-Type", "application/json")
+
+		setSetting(c)
+
+		if recorder.Code != tt.wantStatus {
+			t.Errorf("value=%q status = %d, want %d; body=%s", tt.value, recorder.Code, tt.wantStatus, recorder.Body.String())
+		}
+
+		after, err := stg.GetString(model.SettingKeyMaxExpectedRequestCost)
+		if err != nil {
+			t.Fatalf("read after %q: %v", tt.value, err)
+		}
+		if tt.wantStatus == http.StatusBadRequest && after != before {
+			t.Errorf("value=%q 被拒却写进了库: %q → %q（校验发生在写之后）", tt.value, before, after)
+		}
+		if tt.wantStatus == http.StatusOK && after != tt.value {
+			t.Errorf("value=%q 回了 200 但库里是 %q —— 没真的写进去", tt.value, after)
+		}
+	}
+
+	// 收尾写回种子值：stg 的设置缓存是包级的，把 "0" 留在里面会让同包后续测试
+	// 在一个"并发闸门关着"的环境里跑。顺带再确认一次合法值确实落库。
+	body, err := json.Marshal(model.Setting{Key: model.SettingKeyMaxExpectedRequestCost, Value: "0.5"})
+	if err != nil {
+		t.Fatalf("marshal restore: %v", err)
+	}
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	c.Request = httptest.NewRequest(http.MethodPost, "/api/v1/setting/set", bytes.NewReader(body))
+	c.Request = c.Request.WithContext(context.Background())
+	c.Request.Header.Set("Content-Type", "application/json")
+	setSetting(c)
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("写回种子值 status = %d, want 200; body=%s", recorder.Code, recorder.Body.String())
+	}
+	if got, err := stg.GetString(model.SettingKeyMaxExpectedRequestCost); err != nil || got != "0.5" {
+		t.Fatalf("写回种子值后库里是 %q (err=%v), want 0.5", got, err)
 	}
 }
 

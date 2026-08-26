@@ -65,11 +65,19 @@ var (
 func noopRelease() {}
 
 // maxExpectedRequestCost returns the assumed worst-case USD cost of one request.
-// 0 (or an unparsable value) disables the concurrency bound, in which case the
+// 0 (or an unusable value) disables the concurrency bound, in which case the
 // admission rule degenerates to `headroom > 0`.
+//
+// Non-finite values must be filtered here and not just at the write boundary:
+// strconv.ParseFloat accepts "NaN" and "Inf", so neither `err != nil` nor
+// `v < 0` rejects them (every comparison with NaN is false). Left through, they
+// make the admission comparison in AcquireForKey constant-false — NaN directly,
+// +Inf because 0*(+Inf) is NaN — which admits accounts that owe money. That is
+// not "the concurrency bound is off"; it is the unlimited-overdraft hole
+// reopened by a settings write, and settings:write is held by editor too.
 func maxExpectedRequestCost() float64 {
 	v, err := setting.GetFloat(model.SettingKeyMaxExpectedRequestCost)
-	if err != nil || v < 0 {
+	if err != nil || math.IsNaN(v) || math.IsInf(v, 0) || v < 0 {
 		return 0
 	}
 	return v

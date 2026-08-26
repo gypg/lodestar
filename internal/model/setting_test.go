@@ -32,6 +32,64 @@ func TestSettingValidateAlertNotifyLanguage(t *testing.T) {
 	}
 }
 
+// TestSettingValidateMaxExpectedRequestCost 钉死并发闸门配置的写入边界。
+//
+// 这个键原本在 Validate() 里没有分支，落到函数末尾的 return nil —— 任意字符串都存得
+// 进去。"NaN"/"Inf" 这两类尤其致命：strconv.ParseFloat 认它们，闸门里的
+// `headroom <= inflight*limit` 于是恒为 false，连"余额为负必须拒"都失效。
+// 后果与运行时兜底见 internal/op/billing/inflight.go。
+func TestSettingValidateMaxExpectedRequestCost(t *testing.T) {
+	tests := []struct {
+		name    string
+		value   string
+		wantErr bool
+	}{
+		{name: "default seed", value: "0.5"},
+		{name: "zero disables the bound", value: "0"},
+		{name: "integer form", value: "2"},
+		{name: "large but finite", value: "1000"},
+		{name: "negative", value: "-1", wantErr: true},
+		{name: "not a number", value: "abc", wantErr: true},
+		{name: "empty", value: "", wantErr: true},
+		{name: "leading space", value: " 0.5", wantErr: true},
+		{name: "nan upper", value: "NaN", wantErr: true},
+		{name: "nan lower", value: "nan", wantErr: true},
+		{name: "inf", value: "Inf", wantErr: true},
+		{name: "plus inf", value: "+Inf", wantErr: true},
+		{name: "infinity word", value: "Infinity", wantErr: true},
+		{name: "minus inf", value: "-Inf", wantErr: true},
+		{name: "overflows float64", value: "1e400", wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			setting := Setting{
+				Key:   SettingKeyMaxExpectedRequestCost,
+				Value: tt.value,
+			}
+
+			err := setting.Validate()
+			if tt.wantErr && err == nil {
+				t.Fatalf("Validate(%q) error = nil, want non-nil", tt.value)
+			}
+			if !tt.wantErr && err != nil {
+				t.Fatalf("Validate(%q) error = %v, want nil", tt.value, err)
+			}
+		})
+	}
+}
+
+// TestDefaultSettingSeedsValidate 钉死出厂默认值全部过得了自己的校验器。
+// 加新分支时最容易踩的就是把 seed 值判成非法 —— 那样全新部署会在第一次改设置时炸。
+func TestDefaultSettingSeedsValidate(t *testing.T) {
+	for _, seed := range DefaultSettings() {
+		s := seed
+		if err := s.Validate(); err != nil {
+			t.Errorf("默认值 %s=%q 过不了 Validate(): %v", s.Key, s.Value, err)
+		}
+	}
+}
+
 func TestSettingValidateNavOrder(t *testing.T) {
 	tests := []struct {
 		name    string

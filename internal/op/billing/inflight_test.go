@@ -8,6 +8,7 @@ import (
 
 	"github.com/gypg/lodestar/internal/model"
 	"github.com/gypg/lodestar/internal/op/setting"
+	"github.com/gypg/lodestar/internal/op/user"
 )
 
 // 并发闸门（inflight.go）的契约。
@@ -340,7 +341,11 @@ func assertNoInflightEntries(t *testing.T) {
 }
 
 // TestMaxExpectedRequestCost_badValuesDisableTheBound 钉死配置解析：读不出、解析
-// 失败、负数，一律当 0（关闭并发闸门）处理，而不是让负数把比较式反过来。
+// 失败、负数、非有限值，一律当 0（关闭并发闸门）处理，而不是让负数把比较式反过来。
+//
+// NaN / Inf 这几行不是凑数：strconv.ParseFloat("NaN") 和 ("Inf") 都是**成功**返回的，
+// 所以它们躲得过 `err != nil`，也躲得过 `v < 0`（NaN 的任何比较都是 false）。躲过之后
+// 会发生什么见 TestMaxExpectedRequestCost_nonFiniteValuesCannotBypassTheGate。
 func TestMaxExpectedRequestCost_badValuesDisableTheBound(t *testing.T) {
 	initBillingTestDB(t, 1.0)
 	for _, tt := range []struct {
@@ -352,6 +357,15 @@ func TestMaxExpectedRequestCost_badValuesDisableTheBound(t *testing.T) {
 		{raw: "-1", want: 0},
 		{raw: "abc", want: 0},
 		{raw: "", want: 0},
+		{raw: "NaN", want: 0},
+		{raw: "nan", want: 0},
+		{raw: "Inf", want: 0},
+		{raw: "+Inf", want: 0},
+		{raw: "-Inf", want: 0},
+		{raw: "Infinity", want: 0},
+		// 1e400 溢出 float64：ParseFloat 返回 (+Inf, ErrRange)，靠 err 就挡住了，
+		// 和上面几个"解析成功的非有限值"不是同一条路径，两条都要钉。
+		{raw: "1e400", want: 0},
 	} {
 		if err := setting.SetString(model.SettingKeyMaxExpectedRequestCost, tt.raw); err != nil {
 			t.Fatalf("set %q: %v", tt.raw, err)
@@ -360,4 +374,50 @@ func TestMaxExpectedRequestCost_badValuesDisableTheBound(t *testing.T) {
 			t.Errorf("配置值 %q → 假定成本 %v, want %v", tt.raw, got, tt.want)
 		}
 	}
+}
+
+// TestMaxExpectedRequestCost_nonFiniteValuesCannotBypassTheGate 钉死：配置里的
+// 非有限值不得把余额闸门整个顶开。
+//
+// 这不是理论洁癖，是一条可达的提权路径。max_expected_request_cost 归 settings:write
+// 管，而 settings:write **editor 角色也持有**（internal/server/auth/permissions.go），
+// 且这个键在 Setting.Validate() 里原本没有对应分支 —— 落到函数末尾的 return nil，
+// 任意字符串都存得进去。
+//
+// 于是 "NaN" 一存，闸门的比较式 `headroom <= inflight*limit` 就变成 `headroom <= NaN`，
+// 对任何 headroom 都是 false（IEEE-754：与 NaN 的任何比较都为假）→ 无条件放行。
+// "Inf" 走的是另一条：inflight=0 时 0*(+Inf) = NaN，同样恒 false。
+//
+// 恒 false 的后果不是"并发闸门失效"这么轻 —— 是连"余额为负必须拒"都失效，也就是把
+// f6c0128 修掉的无限白嫖洞原样重开。所以这里用一个**已经欠款**的账户（headroom 被
+// wallet floor 夹到 0）来测：任何配置值下都必须拒。
+func TestMaxExpectedRequestCost_nonFiniteValuesCannotBypassTheGate(t *testing.T) {
+	uid, keyID := initBillingTestDB(t, -1.0) // 已欠款：wallet floor 后 headroom = 0
+	freshInflight(t)
+	ctx := context.Background()
+
+	for _, raw := range []string{"NaN", "nan", "Inf", "+Inf", "Infinity", "-Inf", "1e400", "0", "0.5"} {
+		if err := setting.SetString(model.SettingKeyMaxExpectedRequestCost, raw); err != nil {
+			t.Fatalf("set %q: %v", raw, err)
+		}
+		release, ok := AcquireForKey(keyID, ctx)
+		if ok {
+			release()
+			t.Errorf("配置值 %q：欠款账户被放行了 —— 余额闸门被配置顶开，无限白嫖洞重开", raw)
+		}
+	}
+
+	// 反向对照：上面全拒不能是因为 AcquireForKey 恒拒。给账户充钱后必须放行，
+	// 否则这条测试是空过的 —— 一个永远返回 false 的闸门也能让上面的循环全绿。
+	if err := setting.SetString(model.SettingKeyMaxExpectedRequestCost, "0.5"); err != nil {
+		t.Fatal(err)
+	}
+	if err := user.AddQuota(uid, 10.0, ctx); err != nil {
+		t.Fatal(err)
+	}
+	release, ok := AcquireForKey(keyID, ctx)
+	if !ok {
+		t.Fatal("充值到 $9 后仍被拒 —— 闸门恒拒，上面那圈断言全是空过的")
+	}
+	release()
 }
