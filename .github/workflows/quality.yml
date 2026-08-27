@@ -56,14 +56,21 @@ jobs:
         # which has already masked a regression during verification once.
         run: go test ./... -count=1
 
-      - name: Migration tests on PostgreSQL
-        # Migrations must be cross-dialect: SQLite tests can't catch reserved-
-        # word quoting bugs (e.g. `key` = ? is a syntax error on PG). Run the
-        # opt-in postgres integration tests against the service container so
-        # the class of bug that previously blocked production boot is caught.
+      - name: PostgreSQL integration tests
+        # Cross-dialect bugs can't be caught by SQLite tests, and they have hit
+        # production twice:
+        #   - migration 011 used backtick quoting for the reserved word `key`,
+        #     a syntax error on PG that only surfaced at production boot;
+        #   - the money columns were tagged `type:real`, which is 8 bytes on
+        #     SQLite but float4 (~7 significant digits) on PG, so the reconcile
+        #     endpoint reported every active user as drifted.
+        #
+        # Scope is ./... rather than ./internal/db/migrate/...: the money-column
+        # schema guards live in internal/db and internal/op/user too, and a
+        # narrower path silently skips them (a green run that proves nothing).
         env:
           LODESTAR_TEST_POSTGRES_DSN: "host=127.0.0.1 user=postgres password=postgres dbname=lodestar_migrate_test port=5432 sslmode=disable"
-        run: go test ./internal/db/migrate/... -count=1 -run TestPostgres
+        run: go test ./... -count=1 -run TestPostgres
 
   race:
     name: race detector

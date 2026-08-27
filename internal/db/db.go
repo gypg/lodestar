@@ -227,63 +227,7 @@ func Migrate(conn *gorm.DB) error {
 	if err := migrate.BeforeAutoMigrate(conn); err != nil {
 		return err
 	}
-	if err := conn.AutoMigrate(
-		&model.User{},
-		&model.ChannelGroup{},
-		&model.Channel{},
-		&model.ChannelKey{},
-		&model.Group{},
-		&model.GroupItem{},
-		&model.AIRouteTask{},
-		&model.LLMInfo{},
-		&model.ModelPriceCategory{},
-		&model.APIKey{},
-		&model.AuditLog{},
-		&model.Setting{},
-		&model.StatsTotal{},
-		&model.StatsDaily{},
-		&model.StatsHourly{},
-		&model.StatsModel{},
-		&model.StatsChannel{},
-		&model.StatsAPIKey{},
-		&model.StatsSiteModelHourly{},
-		&model.RelayLog{},
-		&model.RelayLogAttempt{},
-		&model.AutoStrategyState{},
-		&model.CircuitBreakerState{},
-		&model.AlertRule{},
-		&model.AlertNotifChannel{},
-		&model.AlertStateRecord{},
-		&model.AlertHistory{},
-		&model.APICredentialProfile{},
-		&model.ModelMapping{},
-		&model.RedemptionRecord{},
-		&model.Site{},
-		&model.SiteAccount{},
-		&model.SiteToken{},
-		&model.SiteUserGroup{},
-		&model.SiteModel{},
-		&model.SiteChannelBinding{},
-		&model.ProxyConfiguration{},
-		&model.WSResponseAffinity{},
-		&model.WebAuthnCredential{},
-		&model.TopupCode{},
-		&model.PaymentOrder{},
-		&model.QuotaLedger{},
-		&model.SubscriptionPlan{},
-		&model.SubscriptionOrder{},
-		&model.UserSubscription{},
-		&model.InviteCode{},
-		&model.Feedback{},
-		&model.ChatSession{},
-		&model.ImageRecord{},
-		&model.TwoFA{},
-		&model.TwoFABackupCode{},
-		&model.OAuthBinding{},
-		&model.GroupTestResult{},
-		&model.ErrorLog{},
-		&migrate.MigrationRecord{},
-	); err != nil {
+	if err := conn.AutoMigrate(autoMigrateModels...); err != nil {
 		return err
 	}
 	if err := migrate.AfterAutoMigrate(conn); err != nil {
@@ -291,6 +235,14 @@ func Migrate(conn *gorm.DB) error {
 	}
 	// Postgres: schema changes during migrations can invalidate cached prepared plans
 	// (e.g. "cached plan must not change result type"). Clear them.
+	//
+	// ★ 副作用（实测，2026-08-27）：清掉服务端的预备语句后，本连接上 pgx 的 statement
+	// cache 与服务端脱同步。已缓存的语句被复用时报一次 SQLSTATE 26000（pgx 随后自愈，
+	// 第二次即恢复）。危险之处是 GORM 的 Migrator().HasTable() **吞掉**这个错误并返回
+	// false —— 静默错答。所以**不要在同一个连接上第二次调用 Migrate/AutoMigrate**：
+	// AutoMigrate 会以为表不存在而去 CREATE 已存在的表（实测报 42P07）。
+	// 目前没有可达路径踩到：生产只在启动时调一次，FastClearTable 在 Postgres 上走
+	// TRUNCATE 而不是 AutoMigrate。测试若要验升级路径，别走 Migrate 两遍。
 	if conn.Dialector != nil && conn.Dialector.Name() == "postgres" {
 		conn.Exec("DEALLOCATE ALL")
 		conn.Exec("DISCARD ALL")
@@ -551,4 +503,66 @@ func wrapSQLitePathError(action, path string, err error) error {
 		return fmt.Errorf("%s %q: %w; make sure the sqlite path is writable by the current process (the official Docker image runs as UID/GID 1000 and needs write access to /app/data)", action, path, err)
 	}
 	return fmt.Errorf("%s %q: %w", action, path, err)
+}
+
+// autoMigrateModels 是 AutoMigrate 的模型清单。
+//
+// 提成包级变量而不是内联在 Migrate 里：测试需要在**不调用 Migrate** 的前提下建出真实
+// 全量 schema —— Migrate 会消耗"每进程只跑一次"的迁移注册表，让后续断言变成空转。
+var autoMigrateModels = []any{
+	&model.User{},
+	&model.ChannelGroup{},
+	&model.Channel{},
+	&model.ChannelKey{},
+	&model.Group{},
+	&model.GroupItem{},
+	&model.AIRouteTask{},
+	&model.LLMInfo{},
+	&model.ModelPriceCategory{},
+	&model.APIKey{},
+	&model.AuditLog{},
+	&model.Setting{},
+	&model.StatsTotal{},
+	&model.StatsDaily{},
+	&model.StatsHourly{},
+	&model.StatsModel{},
+	&model.StatsChannel{},
+	&model.StatsAPIKey{},
+	&model.StatsSiteModelHourly{},
+	&model.RelayLog{},
+	&model.RelayLogAttempt{},
+	&model.AutoStrategyState{},
+	&model.CircuitBreakerState{},
+	&model.AlertRule{},
+	&model.AlertNotifChannel{},
+	&model.AlertStateRecord{},
+	&model.AlertHistory{},
+	&model.APICredentialProfile{},
+	&model.ModelMapping{},
+	&model.RedemptionRecord{},
+	&model.Site{},
+	&model.SiteAccount{},
+	&model.SiteToken{},
+	&model.SiteUserGroup{},
+	&model.SiteModel{},
+	&model.SiteChannelBinding{},
+	&model.ProxyConfiguration{},
+	&model.WSResponseAffinity{},
+	&model.WebAuthnCredential{},
+	&model.TopupCode{},
+	&model.PaymentOrder{},
+	&model.QuotaLedger{},
+	&model.SubscriptionPlan{},
+	&model.SubscriptionOrder{},
+	&model.UserSubscription{},
+	&model.InviteCode{},
+	&model.Feedback{},
+	&model.ChatSession{},
+	&model.ImageRecord{},
+	&model.TwoFA{},
+	&model.TwoFABackupCode{},
+	&model.OAuthBinding{},
+	&model.GroupTestResult{},
+	&model.ErrorLog{},
+	&migrate.MigrationRecord{},
 }

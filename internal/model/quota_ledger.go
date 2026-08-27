@@ -21,7 +21,7 @@ amount）。因此不变式仍然闭合：
 type QuotaLedger struct {
 	ID      int64   `json:"id" gorm:"primaryKey;autoIncrement"`
 	UserID  uint    `json:"user_id" gorm:"index;not null"`
-	Delta   float64 `json:"delta" gorm:"type:real;not null"` // 有符号：+ 入账，− 出账
+	Delta   float64 `json:"delta" gorm:"type:double precision;not null"` // 有符号：+ 入账，− 出账
 	Kind    string  `json:"kind" gorm:"type:varchar(32);index;not null"`
 	RefType string  `json:"ref_type" gorm:"type:varchar(32)"` // 关联单据类型，可空
 	RefID   string  `json:"ref_id" gorm:"type:varchar(64);index"`

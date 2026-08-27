@@ -185,6 +185,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🐛 Bug Fixes
 
 #### Critical (Production Impact)
+- **Money columns were single-precision on PostgreSQL, which broke the reconcile
+  endpoint it shipped with** (2026-08-27): 25 columns across 14 tables — `users.quota`,
+  `users.used_quota`, `quota_ledgers.delta`, the payment/top-up/subscription amounts,
+  and `input_cost`/`output_cost` on all seven stats tables — were tagged
+  `gorm:"type:real"`. That type name means different things per dialect: SQLite's REAL
+  is always 8-byte IEEE double and MySQL's REAL defaults to DOUBLE, but PostgreSQL's
+  `real` is float4 — 4 bytes, ~7 significant decimal digits. So the SQLite test suite
+  was green while production ran at single precision. Two measured consequences.
+  First, the reconcile endpoint (`GET /api/v1/wallet/reconcile`, shipped the day
+  before) reported **every active user as drifted**: on production's real schema, a
+  perfectly balanced account (top up $100, then 50 charges of $0.000123) yields
+  `quota=99.993896484375, used_quota=0.006149996, ledger_sum=100`, a drift of
+  `4.58e-05` — about 45,800× `ReconcileTolerance` (1e-9). The tolerance exists
+  precisely to stop float noise from flagging every active user; float4 turned the
+  failure mode it was guarding against into a certainty, so the only tool for
+  detecting a lost payment was itself unusable. Second, amounts lost sub-cent
+  precision: float4 stores 99999.99 with an error of 0.0022 (over 0.2 cents) and
+  1234.56 with 5.9e-05. The stats costs are worse than a one-off rounding, since
+  they are accumulated read-modify-write — at $1000 cumulative the float4 ULP is
+  6e-5, so any charge below that adds nothing at all.
+  Fixed by migration 020, which widens the columns to `double precision` on
+  PostgreSQL (registered as a *before* migration so the type is already correct when
+  AutoMigrate inspects it), plus the struct tags so fresh databases are built right.
+  Widening is lossless — every float4 value is exactly representable as float8 — but
+  it does not recover precision already discarded at write time; production carried
+  no non-zero money values, so nothing needed repair. No ALTER is needed on SQLite or
+  MySQL, where the storage is already 8 bytes; that is the absence of the defect, not
+  an unsupported dialect. Verified on a copy of the production database: 25 columns
+  widened, zero float4 remaining, every stored value bit-identical, NOT NULL and
+  DEFAULT preserved, index count unchanged (149), and a post-widening write of
+  99999.99 round-trips exactly. Guarded by a schema assertion that the whole
+  PostgreSQL schema contains no float4 column (so a future `type:real` on any new
+  money column fails CI, not just the 25 known ones), a completeness check pinning
+  the migration's column list against the production catalog, a legacy-schema
+  upgrade test, a registration test, SQLite type-affinity tests, and two reconcile
+  tests that reproduce the false drift on float4 and its absence on float8. All
+  seven mutations of the fix were killed.
 - **Non-finite overdraft bound reopened the unlimited-overdraft hole** (`7891478`, 2026-08-26):
   `max_expected_request_cost` had no branch in `Setting.Validate()`, so it fell
   through to the validator's trailing `return nil` and accepted any string. Two of
@@ -545,6 +582,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   binary reads the `LODESTAR_*` prefix.
 
 ### 🔧 CI & Testing
+- **PostgreSQL integration tests now cover the whole module** (2026-08-27): the
+  dedicated CI step ran `go test ./internal/db/migrate/... -run TestPostgres`, so
+  PostgreSQL-only guards outside that one package were silently never executed. The
+  money-column schema guards live in `internal/db` and `internal/op/user`, and under
+  the old path they would have skipped — a green run proving nothing. Widened to
+  `./... -run TestPostgres`. The PostgreSQL-backed tests in each package now use a
+  dedicated schema via the DSN's `search_path` rather than `public`: `go test` runs
+  packages concurrently against the one shared test database, and while both were in
+  `public` they tore down each other's tables (reproduced 3/3 as
+  `relation "subscription_plans" does not exist`). Per-schema isolation fixes that
+  structurally instead of requiring every caller to remember `-p 1`.
 - **Payment-chain verification harness** (`scripts/verify-payment-chain.sh`,
   2026-08-25): boots a throwaway SQLite instance plus a mock upstream that
   returns a fixed usage block, so every expected charge is an exact number rather
