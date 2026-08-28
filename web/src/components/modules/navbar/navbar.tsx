@@ -16,9 +16,17 @@ import type { BootstrapStatusResponse } from "@/api/endpoints/bootstrap"
 
 // Lodestar 多租户：非 staff（viewer/商业注册用户）只见用户自助门户导航（固定顺序）；
 // 渠道/分组/告警/运维/用户管理/多站聚合等管理项对其隐藏。
-// 订阅仅在商业模式下对非 staff 可见。
+//
+// 钱包与订阅仅在商业模式下对非 staff 可见 —— 自用模式没有计费也没有支付渠道，
+// 钱包页只会显示一个恒为 0 的余额。
+//
+// ★ 钱包必须在这份白名单里：它是付费客户看余额和充值的唯一入口
+// （全仓只有 SettingWallet 调 useWallet()，而它只挂在 wallet 路由下）。
+// 这里替换的是整个导航，visibleItems 不参与，所以漏掉它不是"管理员改配置能补上"的疏漏，
+// 而是该角色彻底到不了那一页。它还是订阅的前置：PurchaseWithBalance 从钱包扣款，
+// 没有充值入口时余额恒为 0，订阅同样买不动。
 const USER_PORTAL_NAV: NavItem[] = ['home', 'chat', 'image', 'model', 'apikey', 'setting']
-const USER_PORTAL_NAV_COMMERCIAL: NavItem[] = ['home', 'chat', 'image', 'model', 'subscription', 'apikey', 'setting']
+const USER_PORTAL_NAV_COMMERCIAL: NavItem[] = ['home', 'chat', 'image', 'model', 'wallet', 'subscription', 'apikey', 'setting']
 
 export function NavBar() {
     const { activeItem, orderedItems, visibleItems, setActiveItem } = useNavStore()
