@@ -87,10 +87,14 @@ else
     docker tag "${MIRROR}:${TARGET_TAG}" "$IMAGE"
     echo "   已从镜像站拉取并 retag 为 $IMAGE"
   else
-    echo "✗ 镜像站也拉不动。若本地已有该 tag 可继续用旧镜像启动，否则请手动处理：" >&2
-    echo "    docker pull ${MIRROR}:${TARGET_TAG} && docker tag ${MIRROR}:${TARGET_TAG} ${IMAGE}" >&2
+    # 用 bash 显式调用：仓库里这些脚本在 index 里是 100644（Windows 检出丢 exec 位），
+    # 直接 ./xxx.sh 在新克隆上会 Permission denied。
+    echo "✗ 镜像站也拉不动。用分片拉取绕过（不要反复 docker pull —— 它会卡在 blob 上占住连接）：" >&2
+    echo "    bash $(dirname "$0")/ghcr-pull-sharded.sh && bash $(dirname "$0")/deploy.sh ${TARGET_TAG}" >&2
+    echo "  它 8 路并发 Range 下载各 blob 再 docker load。单连接被限速到 5-10KB/s 并持续衰减，" >&2
+    echo "  但限速是按连接算的，多路并发能到 90-110KB/s；两个 28MB 大层约 10 分钟。" >&2
     docker image inspect "$IMAGE" >/dev/null 2>&1 || exit 1
-    echo "   本地已存在 $IMAGE，用它继续。" >&2
+    echo "   本地已存在 $IMAGE，用它继续 —— 注意这可能是**旧**镜像，本轮升级实际未生效。" >&2
   fi
 fi
 
