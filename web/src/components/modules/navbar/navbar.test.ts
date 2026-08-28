@@ -57,3 +57,27 @@ test('self-use portal nav omits the commercial-only entries', () => {
     assert.equal(items.includes('wallet'), false, `got ${JSON.stringify(items)}`);
     assert.equal(items.includes('subscription'), false, `got ${JSON.stringify(items)}`);
 });
+
+// 'model' 曾在两份白名单里，但该页唯一的数据源 GET /api/v1/model/market 挂在需要
+// settings:read 的组上，而终端客户角色刻意没有这个权限 —— 于是那一页对他们只能是
+// 一个 "permission denied" toast 加一片空白。
+//
+// 放宽权限不是正确解法：ModelMarketItem 内嵌 Channels []ModelMarketChannel，
+// 带着每个上游渠道的 id 与**名称**及其可用 key 数，等于告诉客户你在转售谁、有几路冗余。
+// 客户真正需要的"有哪些模型、什么价"由无需鉴权的 /api/v1/public/overview 提供
+// （只返回 name/input/output），首页已经在渲染它。
+for (const name of ['USER_PORTAL_NAV', 'USER_PORTAL_NAV_COMMERCIAL'] as const) {
+    test(`${name} omits the model page (its payload names upstream channels)`, () => {
+        const items = readPortalNav(name);
+        assert.equal(
+            items.includes('model'),
+            false,
+            `${name} must not contain 'model': /api/v1/model/market needs settings:read, ` +
+            `which the end-customer role lacks, and its response embeds upstream channel ` +
+            `names. got ${JSON.stringify(items)}`,
+        );
+        // 前提校验：解析器确实拿到了数据。否则 readPortalNav 返回空数组时
+        // includes 恒为 false，这条断言会空转绿。
+        assert.ok(items.length > 0, `${name} parsed as empty`);
+    });
+}

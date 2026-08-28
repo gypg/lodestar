@@ -6,6 +6,7 @@ import { motion, AnimatePresence, useReducedMotion } from "motion/react"
 import { RefreshCw, Search } from 'lucide-react';
 import { useAuth } from '@/api/endpoints/user';
 import { useCurrentUser, isStaffRole } from '@/api/endpoints/user';
+import { hasPermission } from '@/lib/permissions';
 import { LoginForm } from '@/components/modules/login';
 import { WinterLanding } from '@/components/modules/home/winter-landing';
 import { AccountThemeSync } from '@/components/account-theme-sync';
@@ -230,7 +231,13 @@ export function AppContainer() {
     });
     const { data: settings } = useQuery({
         ...getSettingsListQueryOptions(),
-        enabled: isAuthenticated && !isAPIKeyAuth,
+        // Also gated on settings:read, not just on being signed in. GET
+        // /api/v1/setting/list requires it and the end-customer role deliberately
+        // lacks it (that list carries secrets like stripe_api_key). AppContainer
+        // never unmounts and this re-polls, so without the permission check a
+        // customer got a "permission denied" toast on login and again every 60s --
+        // which reads as though switching pages caused it.
+        enabled: isAuthenticated && !isAPIKeyAuth && hasPermission(currentUser?.role, 'settings:read'),
         // 全局设置变更极少，且 AppContainer 常驻不卸载；60s 轮询足够，
         // 并依赖 mutation 后 invalidate 即时刷新，无需 refetchOnMount: 'always'。
         refetchInterval: REFETCH_INTERVAL_CONFIG,
@@ -328,16 +335,35 @@ export function AppContainer() {
                         })
                     );
                 } else {
-                    const settingsPromise = queryClient.fetchQuery(getSettingsListQueryOptions());
-                    prefetches.push(
-                        settingsPromise.then((nextSettings) => {
-                            if (cancelled) {
-                                return;
-                            }
-                            useNavStore.getState().setNavOrder(getNavOrderFromSettings(nextSettings));
-                            useNavStore.getState().setVisibleItems(getNavVisibleFromSettings(nextSettings));
-                        })
-                    );
+                    // fetchQuery is a direct call, so the `enabled` guard on the polling
+                    // query above does not cover this one; skipping has to be explicit or
+                    // bootstrap alone produces the 403 toast.
+                    //
+                    // Deliberately "skip only when the role is KNOWN to lack it" rather
+                    // than "fetch only when known to have it": this effect is one-shot
+                    // (bootstrapStartedRef) and its deps do not include currentUser, so
+                    // requiring a positive answer would permanently skip the prefetch on
+                    // any load where the role has not arrived yet. Waiting for the role
+                    // instead is worse -- bootstrapComplete gates a full-screen loader and
+                    // useCurrentUser has retry:false, so a failed /user/me would hang the
+                    // app. With this shape an unknown role behaves exactly as before.
+                    //
+                    // Nav order/visibility only matter for staff anyway: the portal path
+                    // replaces the whole nav with a whitelist and ignores visibleItems.
+                    const roleKnown = currentUser?.role !== undefined;
+                    const lacksSettingsRead = roleKnown && !hasPermission(currentUser?.role, 'settings:read');
+                    if (!lacksSettingsRead) {
+                        const settingsPromise = queryClient.fetchQuery(getSettingsListQueryOptions());
+                        prefetches.push(
+                            settingsPromise.then((nextSettings) => {
+                                if (cancelled) {
+                                    return;
+                                }
+                                useNavStore.getState().setNavOrder(getNavOrderFromSettings(nextSettings));
+                                useNavStore.getState().setVisibleItems(getNavVisibleFromSettings(nextSettings));
+                            })
+                        );
+                    }
 
                     // 普通用户认证模式：预取对应页面数据
                     const component = CONTENT_MAP[activeItem];

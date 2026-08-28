@@ -384,9 +384,13 @@ export function Subscription() {
     const { data: mySub, isLoading: subLoading } = useMySubscription();
     const purchase = usePurchaseSubscription();
 
-    // Admin hooks
-    const { data: adminPlans, isLoading: adminPlansLoading } = useAdminPlans();
-    const { data: adminSubs, isLoading: adminSubsLoading } = useAdminSubscriptions();
+    // Admin hooks. Gated on isAdmin because the render gate below is not enough:
+    // the queries would still fire for an end customer, hit subscriptions:write and
+    // 403, and the global query error handler turns every rejection into a toast --
+    // so a customer opening this page got "permission denied" twice with nothing
+    // visibly wrong. Gate the fetch, not just the markup.
+    const { data: adminPlans, isLoading: adminPlansLoading } = useAdminPlans(isAdmin);
+    const { data: adminSubs, isLoading: adminSubsLoading } = useAdminSubscriptions(isAdmin);
     const planNameById = useMemo(
         () => new Map((adminPlans ?? []).map((p) => [p.id, p.name])),
         [adminPlans],

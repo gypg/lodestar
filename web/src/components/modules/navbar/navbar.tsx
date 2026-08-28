@@ -25,8 +25,21 @@ import type { BootstrapStatusResponse } from "@/api/endpoints/bootstrap"
 // 这里替换的是整个导航，visibleItems 不参与，所以漏掉它不是"管理员改配置能补上"的疏漏，
 // 而是该角色彻底到不了那一页。它还是订阅的前置：PurchaseWithBalance 从钱包扣款，
 // 没有充值入口时余额恒为 0，订阅同样买不动。
-const USER_PORTAL_NAV: NavItem[] = ['home', 'chat', 'image', 'model', 'apikey', 'setting']
-const USER_PORTAL_NAV_COMMERCIAL: NavItem[] = ['home', 'chat', 'image', 'model', 'wallet', 'subscription', 'apikey', 'setting']
+// 'model' is deliberately NOT here. The model page's only data source is
+// GET /api/v1/model/market, which sits on a group requiring settings:read -- a
+// permission the end-customer role deliberately lacks. So for that role the page
+// could only ever render a "permission denied" toast over an empty view.
+//
+// Relaxing the permission instead would be wrong: ModelMarketItem embeds
+// Channels []ModelMarketChannel, i.e. the id and NAME of every upstream a model
+// is served from, plus each one's enabled-key count. That tells a customer which
+// providers are being resold and at what redundancy.
+//
+// The customer's legitimate need -- which models exist and what they cost -- is
+// already met by GET /api/v1/public/overview, which returns name/input/output only
+// and needs no auth at all. The home page already renders it.
+const USER_PORTAL_NAV: NavItem[] = ['home', 'chat', 'image', 'apikey', 'setting']
+const USER_PORTAL_NAV_COMMERCIAL: NavItem[] = ['home', 'chat', 'image', 'wallet', 'subscription', 'apikey', 'setting']
 
 export function NavBar() {
     const { activeItem, orderedItems, visibleItems, setActiveItem } = useNavStore()

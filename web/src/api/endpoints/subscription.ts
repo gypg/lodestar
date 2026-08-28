@@ -87,16 +87,24 @@ export function usePurchaseSubscription() {
 
 // ── Admin hooks ───────────────────────────────────────────────────────────────
 
-export function useAdminPlans() {
+/**
+ * Admin-only: requires subscriptions:write. Pass `enabled: false` for roles that
+ * lack it -- an unconditional fetch 403s and the global query error handler shows
+ * that as a toast, so the caller must not merely hide the resulting markup.
+ */
+export function useAdminPlans(enabled = true) {
     return useQuery({
+        enabled,
         queryKey: ['subscription', 'admin', 'plans'],
         queryFn: async () => apiClient.get<SubscriptionPlan[]>('/api/v1/subscription/admin/plans'),
         refetchOnWindowFocus: false,
     });
 }
 
-export function useAdminSubscriptions() {
+/** Admin-only: requires subscriptions:write. See useAdminPlans on `enabled`. */
+export function useAdminSubscriptions(enabled = true) {
     return useQuery({
+        enabled,
         queryKey: ['subscription', 'admin', 'subscriptions'],
         queryFn: async () => apiClient.get<UserSubscription[]>('/api/v1/subscription/admin/subscriptions'),
         refetchOnWindowFocus: false,
