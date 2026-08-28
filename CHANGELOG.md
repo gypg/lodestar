@@ -197,6 +197,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🐛 Bug Fixes
 
 #### Critical (Production Impact)
+- **The operator could not configure payments before going commercial** (`faa470c`, 2026-08-28):
+  `docs/DEPLOY.md` prescribes the order for opening up — grant yourself a balance, turn
+  on the registration gate, configure payments, then flip `commercial_mode`. Every one
+  of those configuration steps lived inside the commercial-only block of the settings
+  page, so none were reachable until the switch was already on: the switch they were
+  meant to precede. Two individually correct decisions collided — hiding commercial
+  features while in self-use mode, and requiring payment setup before exposing a
+  top-up button — and together they left the settings API as the only way through.
+  The payment forms and the registration gates now render regardless of the switch.
+  `payment_callback_base` is empty by default and its absence fails Stripe checkout
+  outright while taking Epay down with it, so it has to be settable first; and since
+  `commercial_mode` opens public self-registration the instant it flips, gating the
+  invite requirement behind it left a window where anyone could sign up. Subscriptions,
+  the billing expression, and the overdraft bound stay gated — inert until billing is
+  live, and none of them block the pre-flip sequence. Also fixes the minimum top-up
+  input rejecting fractional amounts such as 2.50: `type="number"` defaults to a step
+  of 1, while the backend parses the value as a float and only floors it at 1.
 - **Paying customers had no way to reach the wallet page** (`489f9b3`, 2026-08-28):
   the portal navigation whitelist omitted `wallet`, and across the whole repo only
   `SettingWallet` reads the balance endpoint while being mounted solely under the
