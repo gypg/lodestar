@@ -27,6 +27,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Batch 7** (2026-08-14): Internationalize winter-landing, site/index, and BillingExpr components (139 remaining hardcoded strings, down from 817 - 83% complete)
 
 ### 🚀 Features
+- **Confirm a Stripe payment when the customer comes back** (`0a3170f`, 2026-08-28):
+  Stripe returns the buyer to `/wallet?stripe=success`, but nothing read that
+  parameter. Since routing is driven by the nav store and the active tab is persisted,
+  buyers landed back on whichever tab they had left with no acknowledgement at all —
+  most naturally read as a failed payment, and then paid again. The outcome is now
+  read once on mount: success switches to the wallet page, invalidates the balance
+  query and confirms receipt, while cancel simply says so. The parameter is stripped
+  via `replaceState` first so a refresh cannot re-fire the message. The wording stops
+  at "payment received, balance updates shortly" rather than claiming the money has
+  landed, because crediting happens on the webhook and may not have fired yet when
+  the redirect arrives. Crediting itself is untouched — the webhook remains the only
+  path that moves money.
 - **Balance ledger with admin audit and reconciliation** (`edaf545`, `cc3620f`,
   `fcd4d27`, 2026-08-26): every discrete change to a user's balance now flows
   through a single funnel that writes the balance update and a `quota_ledgers`
@@ -185,6 +197,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🐛 Bug Fixes
 
 #### Critical (Production Impact)
+- **Paying customers had no way to reach the wallet page** (`489f9b3`, 2026-08-28):
+  the portal navigation whitelist omitted `wallet`, and across the whole repo only
+  `SettingWallet` reads the balance endpoint while being mounted solely under the
+  `wallet` route. So the `user` role — the role every paying customer holds — could
+  reach neither the top-up buttons nor their own balance. Not recoverable by
+  reordering the navigation either: the portal path replaces the entire list with
+  that whitelist, leaving the user-configurable `visibleItems` no say. It blocked
+  subscriptions too, since `PurchaseWithBalance` deducts from the wallet and a
+  balance with no way to be topped up stays at zero, so wallet is ordered ahead of
+  subscription rather than appended. Left out of the self-use whitelist, matching how
+  `subscription` is gated: with billing off and no payment provider configured the
+  page could only ever show a zero balance. This was the second defect at the same
+  junction as `572976a` — narrowing the portal navigation and giving the wallet its
+  own route are both correct in isolation, and the defect existed only where they
+  met, which is why a per-file review and an admin session each missed it. Guarded by
+  source-level assertions that parse the array literal instead of searching the file
+  for the word, which also appears in the comment above it; verified by mutation.
+  Blocked go-live rather than leaking money: production runs with `commercial_mode`
+  off.
 - **The Stripe top-up entry point never rendered for paying customers**
   (`572976a`, 2026-08-28): the button was gated on finding `stripe_enabled` in the
   settings list, but end customers hold the `user` role, which deliberately carries no
