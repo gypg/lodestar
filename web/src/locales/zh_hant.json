@@ -2150,7 +2150,9 @@
         "stripeFailed": "Stripe 支付發起失敗（需管理員配置 Stripe）",
         "codesGenerated": "已生成 {count} 個兌換碼",
         "invitesGenerated": "已生成 {count} 個邀請碼",
-        "generateFailed": "生成失敗（需管理員權限）"
+        "generateFailed": "生成失敗（需管理員權限）",
+        "stripeReturned": "已收到你的付款，餘額將在幾秒內到帳",
+        "stripeCancelled": "已取消支付，未產生任何扣款"
       }
     },
     "siteIdentity": {

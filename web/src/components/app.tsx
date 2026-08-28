@@ -212,6 +212,7 @@ export function AppContainer() {
     const { data: currentUser } = useCurrentUser();
     const { activeItem, direction, visibleItems, setNavOrder, setVisibleItems, resetNavOrder } = useNavStore();
     const t = useTranslations('navbar');
+    const walletToast = useTranslations('setting.wallet.toast');
     const queryClient = useQueryClient();
     const isMobile = useIsMobile();
     const reduceMotion = useReducedMotion();
@@ -251,6 +252,38 @@ export function AppContainer() {
         const timer = setTimeout(() => el.remove(), 220);
         return () => clearTimeout(timer);
     }, []);
+
+    // Stripe 结账后回跳 /wallet?stripe=success|cancel（success_url/cancel_url 由
+    // internal/op/payment/stripe.go 用 payment_callback_base 拼出）。这是整站唯一读 URL
+    // 查询串的地方：路由由 nav store 驱动、activeItem 又是持久化的，所以不读这个参数时
+    // 付款人会落回上一个 tab 且没有任何反馈——极可能被理解成"付款没成功"而重复支付。
+    //
+    // 措辞刻意只说"已收到付款"，不说"余额已到账"：入账走 webhook，回跳时它可能还没到。
+    useEffect(() => {
+        if (!isAuthenticated) return;
+
+        const params = new URLSearchParams(window.location.search);
+        const outcome = params.get('stripe');
+        if (outcome !== 'success' && outcome !== 'cancel') return;
+
+        // 先清掉参数，避免刷新页面重复弹提示。
+        params.delete('stripe');
+        const query = params.toString();
+        window.history.replaceState(
+            null,
+            '',
+            window.location.pathname + (query ? `?${query}` : '') + window.location.hash
+        );
+
+        if (outcome === 'cancel') {
+            toast.info(walletToast('stripeCancelled'));
+            return;
+        }
+
+        useNavStore.getState().setActiveItem('wallet');
+        void queryClient.invalidateQueries({ queryKey: ['wallet', 'balance'] });
+        toast.success(walletToast('stripeReturned'));
+    }, [isAuthenticated, queryClient, walletToast]);
 
     useEffect(() => {
         const timer = setTimeout(() => setLogoAnimationComplete(true), LOGO_DRAW_END_MS);

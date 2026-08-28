@@ -2150,7 +2150,9 @@
         "stripeFailed": "Could not start the Stripe payment (an admin must configure Stripe first)",
         "codesGenerated": "Generated {count} top-up codes",
         "invitesGenerated": "Generated {count} invite codes",
-        "generateFailed": "Generation failed (admin only)"
+        "generateFailed": "Generation failed (admin only)",
+        "stripeReturned": "Payment received. Your balance updates within a few seconds.",
+        "stripeCancelled": "Payment cancelled. You have not been charged."
       }
     },
     "siteIdentity": {
