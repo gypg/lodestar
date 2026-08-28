@@ -13,8 +13,11 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"strconv"
+	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/gypg/lodestar/internal/db"
 	"github.com/gypg/lodestar/internal/model"
@@ -31,18 +34,40 @@ func genCode() string {
 	return "ls-" + hex.EncodeToString(b)
 }
 
-// GenerateCodes creates `count` unused codes each worth `quota` USD.
-func GenerateCodes(count int, quota float64, ctx context.Context) ([]model.TopupCode, error) {
+// MaxNoteLen bounds the reconciliation note. Matches the column width so a note
+// is rejected outright rather than silently truncated by the driver — a clipped
+// audit trail is worse than a refused one, because it still looks complete.
+const MaxNoteLen = 256
+
+// validateGenerateCodes holds the input rules, separated from persistence so they
+// can be tested without a database. Returns the note as it should be stored.
+func validateGenerateCodes(count int, quota float64, note string) (string, error) {
 	if count <= 0 || count > 1000 {
-		return nil, errors.New("count must be 1..1000")
+		return "", errors.New("count must be 1..1000")
 	}
 	if quota <= 0 {
-		return nil, errors.New("quota must be positive")
+		return "", errors.New("quota must be positive")
+	}
+	note = strings.TrimSpace(note)
+	// Counted in runes, not bytes: the operator writes these in Chinese, where a
+	// byte-based limit would cut the allowance to a third of what it looks like.
+	if utf8.RuneCountInString(note) > MaxNoteLen {
+		return "", fmt.Errorf("note must be at most %d characters", MaxNoteLen)
+	}
+	return note, nil
+}
+
+// GenerateCodes creates `count` unused codes each worth `quota` USD, all sharing
+// the same reconciliation note (they come from one offline payment).
+func GenerateCodes(count int, quota float64, note string, ctx context.Context) ([]model.TopupCode, error) {
+	note, err := validateGenerateCodes(count, quota, note)
+	if err != nil {
+		return nil, err
 	}
 	now := time.Now().Unix()
 	codes := make([]model.TopupCode, 0, count)
 	for i := 0; i < count; i++ {
-		codes = append(codes, model.TopupCode{Code: genCode(), Quota: quota, CreatedAt: now})
+		codes = append(codes, model.TopupCode{Code: genCode(), Quota: quota, Note: note, CreatedAt: now})
 	}
 	if err := db.GetDB().WithContext(ctx).Create(&codes).Error; err != nil {
 		return nil, err

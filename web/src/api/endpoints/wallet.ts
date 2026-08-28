@@ -20,6 +20,8 @@ export interface TopupCode {
     id: number;
     code: string;
     quota: number;
+    /** Reconciliation trail for money collected outside the app: payer, amount, channel, date. */
+    note?: string;
     used: boolean;
     used_by: number;
     created_at: number;
@@ -45,7 +47,7 @@ export function useRedeemCode() {
 
 export function useGenerateCodes() {
     return useMutation({
-        mutationFn: async (data: { count: number; quota: number }) =>
+        mutationFn: async (data: { count: number; quota: number; note?: string }) =>
             apiClient.post<TopupCode[]>('/api/v1/wallet/codes', data),
     });
 }

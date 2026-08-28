@@ -248,12 +248,13 @@ func generateCodes(c *gin.Context) {
 	var req struct {
 		Count int     `json:"count"`
 		Quota float64 `json:"quota"`
+		Note  string  `json:"note"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		resp.Error(c, http.StatusBadRequest, resp.ErrInvalidJSON)
 		return
 	}
-	codes, err := topup.GenerateCodes(req.Count, req.Quota, c.Request.Context())
+	codes, err := topup.GenerateCodes(req.Count, req.Quota, req.Note, c.Request.Context())
 	if err != nil {
 		resp.Error(c, http.StatusBadRequest, err.Error())
 		return

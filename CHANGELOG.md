@@ -27,6 +27,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Batch 7** (2026-08-14): Internationalize winter-landing, site/index, and BillingExpr components (139 remaining hardcoded strings, down from 817 - 83% complete)
 
 ### 🚀 Features
+- **Record who paid for an offline top-up** (2026-08-28): redemption codes are the
+  inbound money path when no payment provider is configured, but unlike a payment
+  order they recorded nothing about the payment behind them — only the code, its
+  value, and who redeemed it. An operator collecting money out of band had no way to
+  match a redeemed code back to a bank transfer weeks later. Code generation now takes
+  an optional free-form note, stored alongside the code. Over-long notes are refused
+  rather than truncated, because a note clipped mid-sentence still reads as a complete
+  audit trail, and the limit counts characters rather than bytes so a note written in
+  Chinese gets the full allowance instead of a third of it.
 - **Confirm a Stripe payment when the customer comes back** (`0a3170f`, 2026-08-28):
   Stripe returns the buyer to `/wallet?stripe=success`, but nothing read that
   parameter. Since routing is driven by the nav store and the active tab is persisted,

@@ -34,6 +34,7 @@ export function SettingWallet() {
     const [method, setMethod] = useState('alipay');
     const [count, setCount] = useState('10');
     const [quota, setQuota] = useState('1');
+    const [note, setNote] = useState('');
     const [generated, setGenerated] = useState<string[]>([]);
     const [inviteCount, setInviteCount] = useState('10');
     const [invites, setInvites] = useState<string[]>([]);
@@ -98,10 +99,13 @@ export function SettingWallet() {
 
     const onGenerate = () => {
         genCodes.mutate(
-            { count: parseInt(count, 10) || 0, quota: parseFloat(quota) || 0 },
+            { count: parseInt(count, 10) || 0, quota: parseFloat(quota) || 0, note: note.trim() },
             {
                 onSuccess: (codes) => {
                     setGenerated(codes.map((c) => c.code));
+                    // Keep the note in the box: one offline payment usually means
+                    // generating again after a miscount, and retyping the payer
+                    // details is where a reconciliation trail gets mistyped.
                     toast.success(t('setting.wallet.toast.codesGenerated', { count: codes.length }));
                 },
                 onError: (e) =>
@@ -250,6 +254,21 @@ export function SettingWallet() {
                             <Input value={quota} onChange={(e) => setQuota(e.target.value)} type="number" step="0.01" min="0" className="w-32 rounded-lg" />
                         </div>
                         <Button type="button" size="sm" onClick={onGenerate} disabled={genCodes.isPending}>{t('setting.wallet.generate')}</Button>
+                    </div>
+                    {/* The note is the whole reconciliation trail for an offline sale: a
+                        redemption code otherwise records nothing about the payment behind
+                        it, unlike a PaymentOrder. Optional, because self-issued codes have
+                        no payer to record. */}
+                    <div className="flex flex-col gap-1">
+                        <label className="ml-1 text-xs text-muted-foreground">{t('setting.wallet.codeNoteLabel')}</label>
+                        <Input
+                            value={note}
+                            onChange={(e) => setNote(e.target.value)}
+                            maxLength={256}
+                            placeholder={t('setting.wallet.codeNotePlaceholder')}
+                            className="rounded-lg"
+                        />
+                        <p className="ml-1 text-xs text-muted-foreground">{t('setting.wallet.codeNoteHint')}</p>
                     </div>
                     {generated.length > 0 && (
                         <textarea
