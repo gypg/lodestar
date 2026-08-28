@@ -150,4 +150,26 @@ Lodestar 是**全新自研栈**（非 newapi 容器），重新部署、独立�
 - [ ] `LODESTAR_AUTH_JWT_SECRET`：固定值，否则重启全员掉登录。
 - [ ] 独立日志库（可选）：`LODESTAR_DATABASE_LOG_*`，relay 日志量大时可秒级清理而不动主库。
 
-切换商业模式：设置 → 开 `commercial_mode`（可逆）。详见 `docs/COMMERCIAL-PORT.md`。
+### 切换商业模式（顺序有讲究）
+
+开关本身可逆，但**直接翻开关会先打断你自己**。按顺序做：
+
+1. **先给管理员账号充一笔余额**（`POST /api/v1/wallet/grant`）。余额闸门对**所有有主的
+   key** 生效，`AcquireForKey` 只豁免「计费关闭」和「key 无主」两种情况——**没有管理员
+   豁免**。管理员账号默认 `quota=0`，所以开关翻下去的那一刻自己的 key 立刻返回 402，
+   很容易误判成「刚上线的改动搞坏了中继」。
+2. **想控制注册就先开 `register_invite_required`**（或 `register_email_required`）。
+   `commercial_mode` 同时打开公开自助注册，开关一翻即全网可注册。
+3. **配齐支付再开**，否则充值入口不会出现：
+   - `stripe_enabled` + `stripe_api_key` + `stripe_webhook_secret` 三者齐全，前端才渲染
+     Stripe 充值（缺一项就不显示，避免给出一个必然失败的按钮）
+   - **`payment_callback_base`**——最容易漏的一项。它为空时 Checkout Session 直接失败并
+     报 `payment callback base URL not configured`，易支付同样失效。填站点对外基址，
+     成功/取消回跳与支付通知都由它拼出。
+   - Stripe 后台的 webhook 需指向 `POST /api/v1/webhook/stripe`（公开、无鉴权，靠签名
+     校验）。**入账只走 webhook**：回跳页面只是提示，webhook 不通则钱付了但余额不到账。
+4. 最后开 `commercial_mode`。
+
+验证请用**非管理员账号**走一遍：能看到钱包入口 → 能看到余额 → 走一笔真实小额 →
+余额到账 → 花掉一点 → `GET /api/v1/wallet/reconcile` 仍为零。
+管理员会话验不出这条路径上的权限与导航问题。
