@@ -16,6 +16,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/common/Toast';
 import { useWallet, useRedeemCode, useGenerateCodes, useTopup, useStripeTopup, useUsage, useGenerateInvites } from '@/api/endpoints/wallet';
+import { useCurrentUser } from '@/api/endpoints/user';
+import { hasPermission } from '@/lib/permissions';
 import { WalletUsageChart } from './WalletUsageChart';
 import { UsageHeatmap } from './UsageHeatmap';
 
@@ -26,6 +28,10 @@ export function SettingWallet() {
     const redeem = useRedeemCode();
     const genCodes = useGenerateCodes();
     const genInvites = useGenerateInvites();
+    const { data: currentUser } = useCurrentUser();
+    // Both admin sections below call users:write endpoints (/wallet/codes,
+    // /wallet/invites). Same permission, so one flag covers both.
+    const canIssueCredit = hasPermission(currentUser?.role, 'users:write');
     const topup = useTopup();
     const stripeTopup = useStripeTopup();
     const [code, setCode] = useState('');
@@ -241,6 +247,11 @@ export function SettingWallet() {
                 </div>
             )}
 
+            {/* Admin tooling on an otherwise customer-facing page. Both endpoints behind
+                these require users:write, so for the end-customer role they could only
+                ever 403 -- and issuing credit to yourself is not something a paying
+                customer should be shown at all, even disabled. */}
+            {canIssueCredit && (
             <details className="rounded-lg border border-border/30 bg-card p-3">
                 <summary className="cursor-pointer text-sm font-medium text-card-foreground">{t('setting.wallet.adminGenerateCodes')}</summary>
                 <div className="mt-3 flex flex-col gap-3">
@@ -281,7 +292,9 @@ export function SettingWallet() {
                     )}
                 </div>
             </details>
+            )}
 
+            {canIssueCredit && (
             <details className="rounded-lg border border-border/30 bg-card p-3">
                 <summary className="cursor-pointer text-sm font-medium text-card-foreground">{t('setting.wallet.adminGenerateInvites')}</summary>
                 <div className="mt-3 flex flex-col gap-3">
@@ -304,6 +317,7 @@ export function SettingWallet() {
                     )}
                 </div>
             </details>
+            )}
         </div>
     );
 }

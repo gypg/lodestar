@@ -30,35 +30,56 @@ import { SettingResponseFilter } from './ResponseFilter';
 import { SettingTwoFA } from './TwoFA';
 import { SettingAIRoute } from './AIRoute';
 import { DEFAULT_SETTING_ORDER } from './SettingOrder';
+import { useCurrentUser } from '@/api/endpoints/user';
+import { hasPermission, type Permission } from '@/lib/permissions';
 
+/**
+ * `requires` is the permission a role must hold for the panel to be listed at all.
+ *
+ * Undefined means "self-scoped": the panel only ever touches the signed-in user's
+ * own account, so every role gets it. Everything else operates the deployment and
+ * must not be offered to an end customer — the backend already refuses those calls,
+ * but a control that renders, takes a click and then reports "insufficient
+ * permission" reads as a broken product, and it also leaks how the site is run.
+ *
+ * Gated on the permission rather than on a role name because `viewer` is read-only
+ * STAFF and does hold settings:read: an admin||editor check would hide operational
+ * panels from a role that is meant to see them.
+ */
 type SettingItemDef = {
     id: string;
     icon: React.ReactNode;
     titleKey: string;
     component: React.ReactNode;
+    requires?: Permission;
 };
 
 const SETTING_ITEM_DEFS: SettingItemDef[] = [
-    { id: 'info',              icon: <Info className="h-5 w-5" />,              titleKey: 'info.title',           component: <SettingInfo /> },
-    { id: 'appearance',        icon: <Sun className="h-5 w-5" />,              titleKey: 'appearance.title',     component: <SettingAppearance /> },
-    { id: 'auto-strategy',     icon: <Sparkles className="h-5 w-5" />,         titleKey: 'autoStrategy.title',   component: <SettingAutoStrategy /> },
-    { id: 'strategy-presets',  icon: <Wand2 className="h-5 w-5" />,            titleKey: 'strategyPresets.title', component: <SettingStrategyPresets /> },
+    // Self-scoped: own credentials, own passkeys, own 2FA, own theme.
     { id: 'account',           icon: <User className="h-5 w-5" />,              titleKey: 'account.title',         component: <SettingAccount /> },
-    { id: 'semantic-cache',    icon: <Database className="h-5 w-5" />,          titleKey: 'semanticCache.title',  component: <SettingSemanticCache /> },
-    { id: 'retry',             icon: <RotateCcw className="h-5 w-5" />,        titleKey: 'retry.title',          component: <SettingRetry /> },
-    { id: 'log',               icon: <ScrollText className="h-5 w-5" />,        titleKey: 'log.title',           component: <SettingLog /> },
-    { id: 'system',            icon: <Monitor className="h-5 w-5" />,           titleKey: 'system.title',         component: <SettingSystem /> },
-    { id: 'llmsync',           icon: <RefreshCw className="h-5 w-5" />,        titleKey: 'llmSync.title',        component: <SettingLLMSync /> },
-    { id: 'circuit-breaker',   icon: <Zap className="h-5 w-5" />,              titleKey: 'circuitBreaker.title', component: <SettingCircuitBreaker /> },
-    { id: 'response-filter',   icon: <ShieldAlert className="h-5 w-5" />,      titleKey: 'responseFilter.title', component: <SettingResponseFilter /> },
-    { id: 'backup',            icon: <Database className="h-5 w-5" />,          titleKey: 'backup.title',         component: <SettingBackup /> },
-    { id: 'webdav',            icon: <Cloud className="h-5 w-5" />,             titleKey: 'webdav.title',         component: <SettingWebDAV /> },
-    { id: 'image-bed',         icon: <Cloud className="h-5 w-5" />,             titleKey: 'imageBed.title',       component: <SettingImageBed /> },
-    { id: 'webauthn',          icon: <Fingerprint className="h-5 w-5" />,      titleKey: 'webauthn.title',       component: <SettingWebAuthn /> },
-    { id: 'purge-unavailable', icon: <Eraser className="h-5 w-5" />,           titleKey: 'purgeUnavailable.title', component: <SettingPurgeUnavailableModels /> },
-    { id: 'route-group-danger',icon: <FolderX className="h-5 w-5" />,          titleKey: 'routeGroups.title',    component: <SettingRouteGroupDanger /> },
+    { id: 'appearance',        icon: <Sun className="h-5 w-5" />,              titleKey: 'appearance.title',     component: <SettingAppearance /> },
     { id: 'twofa',           icon: <Shield className="h-5 w-5" />,            titleKey: 'twofa.title',          component: <SettingTwoFA /> },
-    { id: 'ai-route',          icon: <Bot className="h-5 w-5" />,               titleKey: 'aiRoute.title',        component: <SettingAIRoute /> },
+
+    // Operational: relay behaviour, upstream config, backups, destructive tools.
+    { id: 'info',              icon: <Info className="h-5 w-5" />,              titleKey: 'info.title',           component: <SettingInfo />, requires: 'settings:read' },
+    { id: 'auto-strategy',     icon: <Sparkles className="h-5 w-5" />,         titleKey: 'autoStrategy.title',   component: <SettingAutoStrategy />, requires: 'settings:write' },
+    { id: 'strategy-presets',  icon: <Wand2 className="h-5 w-5" />,            titleKey: 'strategyPresets.title', component: <SettingStrategyPresets />, requires: 'settings:write' },
+    { id: 'semantic-cache',    icon: <Database className="h-5 w-5" />,          titleKey: 'semanticCache.title',  component: <SettingSemanticCache />, requires: 'settings:write' },
+    { id: 'retry',             icon: <RotateCcw className="h-5 w-5" />,        titleKey: 'retry.title',          component: <SettingRetry />, requires: 'settings:write' },
+    { id: 'log',               icon: <ScrollText className="h-5 w-5" />,        titleKey: 'log.title',           component: <SettingLog />, requires: 'settings:write' },
+    { id: 'system',            icon: <Monitor className="h-5 w-5" />,           titleKey: 'system.title',         component: <SettingSystem />, requires: 'settings:write' },
+    { id: 'llmsync',           icon: <RefreshCw className="h-5 w-5" />,        titleKey: 'llmSync.title',        component: <SettingLLMSync />, requires: 'settings:write' },
+    { id: 'circuit-breaker',   icon: <Zap className="h-5 w-5" />,              titleKey: 'circuitBreaker.title', component: <SettingCircuitBreaker />, requires: 'settings:write' },
+    { id: 'response-filter',   icon: <ShieldAlert className="h-5 w-5" />,      titleKey: 'responseFilter.title', component: <SettingResponseFilter />, requires: 'settings:write' },
+    { id: 'image-bed',         icon: <Cloud className="h-5 w-5" />,             titleKey: 'imageBed.title',       component: <SettingImageBed />, requires: 'settings:write' },
+    // Writes WebAuthnRPID/RPName/Origins -- deployment config, not the user's own
+    // passkeys (those are in Account, which every role gets).
+    { id: 'webauthn',          icon: <Fingerprint className="h-5 w-5" />,      titleKey: 'webauthn.title',       component: <SettingWebAuthn />, requires: 'settings:write' },
+    { id: 'ai-route',          icon: <Bot className="h-5 w-5" />,               titleKey: 'aiRoute.title',        component: <SettingAIRoute />, requires: 'settings:write' },
+    { id: 'backup',            icon: <Database className="h-5 w-5" />,          titleKey: 'backup.title',         component: <SettingBackup />, requires: 'settings:write' },
+    { id: 'webdav',            icon: <Cloud className="h-5 w-5" />,             titleKey: 'webdav.title',         component: <SettingWebDAV />, requires: 'settings:write' },
+    { id: 'purge-unavailable', icon: <Eraser className="h-5 w-5" />,           titleKey: 'purgeUnavailable.title', component: <SettingPurgeUnavailableModels />, requires: 'groups:write' },
+    { id: 'route-group-danger',icon: <FolderX className="h-5 w-5" />,          titleKey: 'routeGroups.title',    component: <SettingRouteGroupDanger />, requires: 'groups:write' },
 ];
 
 const SETTING_ITEM_MAP = new Map<string, SettingItemDef>(
@@ -103,7 +124,13 @@ function loadOrder(): string[] {
 export function Setting() {
     const t = useTranslations('setting');
     const [openId, setOpenId] = useState<string | null>(null);
-    const items = getOrderedItems(loadOrder());
+    const { data: currentUser } = useCurrentUser();
+    // Filter before ordering: the saved order is a list of ids from localStorage and
+    // may name panels this role cannot have, so filtering after would let a stale
+    // order resurrect them.
+    const items = getOrderedItems(loadOrder()).filter(
+        (item) => item.requires === undefined || hasPermission(currentUser?.role, item.requires),
+    );
     const activeItem = items.find((item) => item.id === openId);
 
     return (

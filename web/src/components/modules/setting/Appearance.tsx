@@ -27,6 +27,7 @@ import { serializeNavOrder, serializeNavVisible } from '@/components/modules/nav
 import { useSettingStore, type Locale } from '@/stores/setting';
 import { useThemePresetStore } from '@/stores/theme-preset';
 import { useSetUserPreferences, useCurrentUser, isStaffRole } from '@/api/endpoints/user';
+import { hasPermission } from '@/lib/permissions';
 import { SiteIdentity } from './SiteIdentity';
 import { ApiUsageGuide } from './ApiUsageGuide';
 import { Feedback } from './Feedback';
@@ -251,6 +252,13 @@ export function SettingAppearance() {
     const { presetId, setPreset } = useThemePresetStore();
     const { data: meUser } = useCurrentUser();
     const showAdmin = isStaffRole(meUser?.role);
+    // This panel mixes per-user preferences (theme, locale, time zone, and the
+    // localStorage-only setting order) with three controls that write GLOBAL
+    // settings: custom theme upload, alert notification language, and the
+    // navigation order/visibility. The end-customer role has no settings:write,
+    // so offering those means a click that can only fail -- and it advertises
+    // site-wide configuration to someone who is just buying credit.
+    const canWriteSettings = hasPermission(meUser?.role, 'settings:write');
     const setUserPreferences = useSetUserPreferences();
     const applyPreset = (id: string) => {
         setPreset(id);
@@ -422,6 +430,9 @@ export function SettingAppearance() {
                         </div>
                     </div>
 
+                    {/* Uploading a preset writes the global custom_themes list, which
+                        every user then sees in the picker above -- not a personal theme. */}
+                    {canWriteSettings && (
                     <div className="flex flex-col gap-3 rounded-lg border-border/30 bg-card p-4 shadow-sm">
                         <button
                             type="button"
@@ -457,6 +468,7 @@ export function SettingAppearance() {
                             </div>
                         )}
                     </div>
+                    )}
 
                     <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
                         <div className="flex flex-col gap-4 rounded-lg border-border/30 bg-card p-4 shadow-sm">
@@ -496,22 +508,25 @@ export function SettingAppearance() {
                             <p className="text-xs leading-5 text-muted-foreground">{t('timeZone.description')}</p>
                         </div>
 
-                        <div className="flex flex-col gap-4 rounded-lg border-border/30 bg-card p-4 shadow-sm">
-                            <div className="flex items-center gap-3">
-                                <Bell className="h-5 w-5 text-muted-foreground" />
-                                <span className="text-sm font-medium">{t('alertLanguage.label')}</span>
+                        {/* Writes the global alert_notify_language, not a per-user one. */}
+                        {canWriteSettings && (
+                            <div className="flex flex-col gap-4 rounded-lg border-border/30 bg-card p-4 shadow-sm">
+                                <div className="flex items-center gap-3">
+                                    <Bell className="h-5 w-5 text-muted-foreground" />
+                                    <span className="text-sm font-medium">{t('alertLanguage.label')}</span>
+                                </div>
+                                <Select value={alertNotifyLanguage} onValueChange={handleAlertNotifyLanguageChange}>
+                                    <SelectTrigger className="w-full rounded-lg">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent className="rounded-lg">
+                                        <SelectItem value="zh-Hans" className="rounded-xl">{t('alertLanguage.zh_hans')}</SelectItem>
+                                        <SelectItem value="zh-Hant" className="rounded-xl">{t('alertLanguage.zh_hant')}</SelectItem>
+                                        <SelectItem value="en" className="rounded-xl">{t('alertLanguage.en')}</SelectItem>
+                                    </SelectContent>
+                                </Select>
                             </div>
-                            <Select value={alertNotifyLanguage} onValueChange={handleAlertNotifyLanguageChange}>
-                                <SelectTrigger className="w-full rounded-lg">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent className="rounded-lg">
-                                    <SelectItem value="zh-Hans" className="rounded-xl">{t('alertLanguage.zh_hans')}</SelectItem>
-                                    <SelectItem value="zh-Hant" className="rounded-xl">{t('alertLanguage.zh_hant')}</SelectItem>
-                                    <SelectItem value="en" className="rounded-xl">{t('alertLanguage.en')}</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
+                        )}
                     </div>
 
                     <ApiUsageGuide />
@@ -520,8 +535,10 @@ export function SettingAppearance() {
 
                     {showAdmin && <SiteIdentity />}
 
+                    {/* NavigationPreferences writes the global nav_order/nav_visible;
+                        SettingOrder is localStorage only, so it stays for everyone. */}
                     <div className="grid items-start gap-4 xl:grid-cols-2">
-                        <NavigationPreferences />
+                        {canWriteSettings && <NavigationPreferences />}
                         <SettingOrder />
                     </div>
                 </div>
