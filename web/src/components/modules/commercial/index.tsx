@@ -109,7 +109,12 @@ function StripeSection() {
                 </div>
                 <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-medium text-muted-foreground">{t('stripe.minTopup')}</label>
-                    <Input value={minTopup} onChange={(e) => setMinTopup(e.target.value)} type="number" className="rounded-lg text-xs" />
+                    {/* step defaults to 1 on type="number", which makes the browser
+                        reject a fractional minimum like 2.50 — but the backend parses
+                        this with Sscanf("%f") and only floors it at 1, so fractions are
+                        legitimate. Ported from the never-mounted StripeSettings.tsx,
+                        which had it right. */}
+                    <Input value={minTopup} onChange={(e) => setMinTopup(e.target.value)} type="number" step="0.01" min="0" className="rounded-lg text-xs" />
                 </div>
             </div>
             <div className="flex items-center justify-between mt-3">
@@ -221,14 +226,44 @@ export function Commercial() {
             />
             <ChinaModeSection />
 
-            {/* Commercial-only features */}
+            {/* Pre-flip setup — must stay reachable while commercial_mode is still OFF.
+                docs/DEPLOY.md requires all of these configured BEFORE the switch:
+                  - payment_callback_base (PaymentSettings) is empty by default and its
+                    absence fails Stripe checkout outright, taking Epay down with it;
+                  - the three Stripe keys must all be present or the top-up button never
+                    renders (see the stripe_configured judgement in SettingWallet);
+                  - the registration gates decide WHO can sign up, and commercial_mode
+                    opens public self-registration the instant it flips — gating them
+                    behind it leaves a window where anyone can register.
+                Gating these on isCommercial made the documented order impossible to
+                follow from the UI: you cannot configure them until the switch is on,
+                and the switch is what you were told to configure them before. */}
+            <Section icon={<CreditCard className="h-4 w-4" />} title={t('paymentGateway.title')}>
+                <PaymentSettings />
+            </Section>
+            <StripeSection />
+            <ToggleCard
+                icon={<Users className="h-4 w-4" />}
+                title={t('inviteRequired.title')}
+                description={t('inviteRequired.description')}
+                checked={inviteRequired}
+                onToggle={(v) => setSetting.mutate({ key: SettingKey.RegisterInviteRequired, value: v ? 'true' : 'false' })}
+            />
+            <ToggleCard
+                icon={<Mail className="h-4 w-4" />}
+                title={t('emailRequired.title')}
+                description={t('emailRequired.description')}
+                checked={emailRequired}
+                onToggle={(v) => setSetting.mutate({ key: SettingKey.RegisterEmailRequired, value: v ? 'true' : 'false' })}
+            />
+            <Section icon={<Mail className="h-4 w-4" />} title={t('emailSettings.title')}>
+                <EmailSettings />
+            </Section>
+
+            {/* Commercial-only features — inert or meaningless until the switch is on,
+                and none of them block the documented pre-flip sequence. */}
             {isCommercial && (
                 <>
-                    <Section icon={<CreditCard className="h-4 w-4" />} title={t('paymentGateway.title')}>
-                        <PaymentSettings />
-                    </Section>
-                    <StripeSection />
-
                     <Section icon={<Package className="size-4" />} title={t('subscriptionManagement.title')}>
                         <Suspense fallback={<Loader className="size-6 animate-spin mx-auto" />}>
                             <Subscription />
@@ -240,24 +275,6 @@ export function Commercial() {
                     </Section>
 
                     <OverdraftBound />
-
-                    <ToggleCard
-                        icon={<Users className="h-4 w-4" />}
-                        title={t('inviteRequired.title')}
-                        description={t('inviteRequired.description')}
-                        checked={inviteRequired}
-                        onToggle={(v) => setSetting.mutate({ key: SettingKey.RegisterInviteRequired, value: v ? 'true' : 'false' })}
-                    />
-                    <ToggleCard
-                        icon={<Mail className="h-4 w-4" />}
-                        title={t('emailRequired.title')}
-                        description={t('emailRequired.description')}
-                        checked={emailRequired}
-                        onToggle={(v) => setSetting.mutate({ key: SettingKey.RegisterEmailRequired, value: v ? 'true' : 'false' })}
-                    />
-                    <Section icon={<Mail className="h-4 w-4" />} title={t('emailSettings.title')}>
-                        <EmailSettings />
-                    </Section>
                 </>
             )}
         </PageWrapper>
