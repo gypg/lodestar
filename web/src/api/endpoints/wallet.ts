@@ -5,7 +5,15 @@ import { apiClient } from '../client';
 export interface WalletBalance {
     quota: number;
     used_quota: number;
+    /**
+     * 哪些在线充值方式可用，由后端判定后下发。
+     *
+     * ★ 不要改成前端读 setting 列表推断：`user` 角色（付费终端用户）没有
+     * settings:read（那个列表会暴露 epay_key 等密钥），拿不到任何 setting，
+     * 于是充值入口会对所有非管理员消失。本接口只需 Auth()，人人可读。
+     */
     epay_configured?: boolean;
+    stripe_configured?: boolean;
 }
 
 export interface TopupCode {

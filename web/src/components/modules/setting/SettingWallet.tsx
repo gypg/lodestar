@@ -16,7 +16,6 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/common/Toast';
 import { useWallet, useRedeemCode, useGenerateCodes, useTopup, useStripeTopup, useUsage, useGenerateInvites } from '@/api/endpoints/wallet';
-import { SettingKey, useSettingList } from '@/api/endpoints/setting';
 import { WalletUsageChart } from './WalletUsageChart';
 import { UsageHeatmap } from './UsageHeatmap';
 
@@ -29,7 +28,6 @@ export function SettingWallet() {
     const genInvites = useGenerateInvites();
     const topup = useTopup();
     const stripeTopup = useStripeTopup();
-    const { data: settings } = useSettingList();
     const [code, setCode] = useState('');
     const [amount, setAmount] = useState('5');
     const [stripeAmount, setStripeAmount] = useState('5');
@@ -229,7 +227,7 @@ export function SettingWallet() {
                 </div>
             )}
 
-            {settings?.find((s) => s.key === SettingKey.StripeEnabled)?.value === 'true' && (
+            {balance?.stripe_configured && (
                 <div className="flex items-end gap-2">
                     <div className="flex flex-1 flex-col gap-1.5">
                         <label className="ml-1 text-xs font-medium text-muted-foreground">{t('setting.wallet.stripeTopupLabel')}</label>

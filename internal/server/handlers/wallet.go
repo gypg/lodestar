@@ -103,7 +103,17 @@ func getWallet(c *gin.Context) {
 		resp.InternalError(c)
 		return
 	}
-	resp.Success(c, gin.H{"quota": remaining, "used_quota": used, "epay_configured": payment.EpayConfigured()})
+	// stripe_configured must be reported here, not inferred by the frontend from
+	// the settings list: the `user` role (paying end customers) deliberately has
+	// no settings:read, because that list exposes secrets like epay_key. This
+	// endpoint needs only Auth(), so it is the one place every signed-in user can
+	// learn which top-up methods are actually available.
+	resp.Success(c, gin.H{
+		"quota":             remaining,
+		"used_quota":        used,
+		"epay_configured":   payment.EpayConfigured(),
+		"stripe_configured": payment.StripeConfigured(),
+	})
 }
 
 // getUsage returns the current user's own usage, aggregated over their API keys
