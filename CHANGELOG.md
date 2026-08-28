@@ -206,6 +206,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🐛 Bug Fixes
 
 #### Critical (Production Impact)
+- **End customers were shown administrator controls** (`7d1fad2`, 2026-08-28): a
+  registered customer saw the top-up-code and invite generators on their own wallet
+  page, plus all 21 settings panels including database backup, WebDAV, upstream sync
+  and the destructive group tools. The settings list carried no role check at all,
+  and neither did the wallet page. Nothing was exploitable — the backend refuses each
+  of those calls — but enforcing it only at the click is the wrong place: it reads as
+  a broken paid product, and the presence of the controls itself discloses how the
+  deployment is operated. Each panel now declares the permission it requires and the
+  list filters on it, before applying the saved order so a stale order cannot
+  resurrect a hidden panel. Gated on permissions rather than role names, because the
+  read-only staff role does hold settings:read and an admin-or-editor test would draw
+  the line in the wrong place. Appearance is gated from within instead of hidden: a
+  customer keeps their own theme, locale and time zone, while the controls that write
+  site-wide settings require write access.
 - **The operator could not configure payments before going commercial** (`faa470c`, 2026-08-28):
   `docs/DEPLOY.md` prescribes the order for opening up — grant yourself a balance, turn
   on the registration gate, configure payments, then flip `commercial_mode`. Every one
