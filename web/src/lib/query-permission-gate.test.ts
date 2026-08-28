@@ -59,6 +59,50 @@ test('the bootstrap prefetch of settings is permission-aware', () => {
     );
 });
 
+/**
+ * The permission check above is worthless if it runs before the role is known:
+ * hasPermission(undefined, ...) is false, and an earlier version compensated by
+ * inverting the test to "skip only when known to lack it" -- which let every cold
+ * load through and produced a 403 toast once per page load. The real fix is to not
+ * decide until /user/me settles.
+ *
+ * Pinned because the previous test passed while that bug was live.
+ */
+test('bootstrap waits for the role to settle before deciding', () => {
+    const src = read('src/components/app.tsx');
+
+    assert.match(
+        src,
+        /isPending:\s*currentUserPending/,
+        'app.tsx must read isPending from useCurrentUser to know whether the role has settled',
+    );
+    assert.match(
+        src,
+        /if\s*\(currentUserPending\)\s*return;/,
+        'the bootstrap effect must return early while the role is still in flight',
+    );
+
+    // The early return only resumes if the flag is a dependency; otherwise bootstrap
+    // never completes and the app sits behind its loader.
+    const depsIdx = src.indexOf('}, [authLoading, isAPIKeyAuth, isAuthenticated');
+    assert.notEqual(depsIdx, -1, 'the bootstrap effect dependency array has moved');
+    const deps = src.slice(depsIdx, src.indexOf(']', depsIdx) + 1);
+    assert.match(
+        deps,
+        /currentUserPending/,
+        'currentUserPending must be a dependency of the bootstrap effect, or the early ' +
+        `return never resumes. got: ${deps}`,
+    );
+
+    // And the guard must be the positive form now -- the inverted shape is the bug.
+    assert.doesNotMatch(
+        src,
+        /lacksSettingsRead/,
+        'the inverted "skip only when known to lack it" guard is the cold-load bug; ' +
+        'with the pending check in place the positive form is correct',
+    );
+});
+
 test('admin subscription hooks accept an enabled flag', () => {
     const src = read('src/api/endpoints/subscription.ts');
     for (const hook of ['useAdminPlans', 'useAdminSubscriptions']) {
@@ -74,6 +118,78 @@ test('admin subscription hooks accept an enabled flag', () => {
     const caller = read('src/components/modules/subscription/index.tsx');
     assert.match(caller, /useAdminPlans\(isAdmin\)/, 'useAdminPlans must be called with isAdmin');
     assert.match(caller, /useAdminSubscriptions\(isAdmin\)/, 'useAdminSubscriptions must be called with isAdmin');
+});
+
+/**
+ * activeItem is persisted in nav-storage, so it can name a page the current role
+ * cannot reach -- a shared browser left on a staff tab, or 'model' from before it
+ * was removed from the portal whitelist. The bootstrap switch prefetches off that
+ * stored value, so without a check it calls those endpoints and toasts once per
+ * load with nothing on screen to explain it.
+ */
+test('the per-tab bootstrap prefetch is permission-gated', () => {
+    const src = read('src/components/app.tsx');
+
+    assert.match(
+        src,
+        /const prefetchPermissions:\s*Partial<Record<NavItem,\s*Permission>>/,
+        'the per-tab prefetch permission table has moved or been removed',
+    );
+    assert.match(
+        src,
+        /if\s*\(mayPrefetchActive\)\s*switch\s*\(activeItem\)/,
+        'the prefetch switch must be guarded by the permission check',
+    );
+
+    // Asserting the guard's shape is not enough: replacing the permission call with
+    // `true` keeps that shape and left this test green once. Pin the computation.
+    const flagIdx = src.indexOf('const mayPrefetchActive =');
+    assert.notEqual(flagIdx, -1, 'mayPrefetchActive has been renamed or removed');
+    const flagExpr = src.slice(flagIdx, src.indexOf(';', flagIdx));
+    assert.match(
+        flagExpr,
+        /hasPermission\(\s*currentUser\?\.role\s*,\s*neededForActive\s*\)/,
+        'mayPrefetchActive must be computed from hasPermission(currentUser?.role, ' +
+        `neededForActive). got: ${flagExpr}`,
+    );
+    assert.doesNotMatch(
+        flagExpr,
+        /\|\|\s*true|&&\s*true|=\s*true\b/,
+        `mayPrefetchActive must not be short-circuited to true. got: ${flagExpr}`,
+    );
+    // Unnegated: `!hasPermission(...)` also satisfies the match above, and inverting
+    // it swaps the whole behaviour (customers prefetch, staff do not). That mutation
+    // survived until this assertion was added.
+    assert.doesNotMatch(
+        flagExpr,
+        /!\s*hasPermission\(/,
+        `the permission check must not be negated -- that inverts who prefetches. got: ${flagExpr}`,
+    );
+
+    // The table must cover the tabs whose endpoints the end-customer role cannot
+    // call. 'model' is the one that actually regressed, so it is asserted by name.
+    const tableStart = src.indexOf('const prefetchPermissions:');
+    const table = src.slice(tableStart, src.indexOf('};', tableStart));
+    for (const [tab, perm] of [
+        ['model', 'settings:read'],
+        ['ops', 'settings:read'],
+        ['channel', 'channels:read'],
+        ['group', 'groups:read'],
+    ] as const) {
+        assert.match(
+            table,
+            new RegExp(`${tab}:\\s*'${perm}'`),
+            `prefetchPermissions must map ${tab} to ${perm}`,
+        );
+        // And that permission must genuinely be one the customer lacks, or the
+        // entry is decorative.
+        assert.equal(
+            hasPermission('user', perm),
+            false,
+            `${tab} is mapped to ${perm}, but the end-customer role holds it -- ` +
+            `gating on it would not prevent the 403`,
+        );
+    }
 });
 
 test('the end-customer role lacks every permission these queries need', () => {

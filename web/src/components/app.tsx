@@ -6,7 +6,7 @@ import { motion, AnimatePresence, useReducedMotion } from "motion/react"
 import { RefreshCw, Search } from 'lucide-react';
 import { useAuth } from '@/api/endpoints/user';
 import { useCurrentUser, isStaffRole } from '@/api/endpoints/user';
-import { hasPermission } from '@/lib/permissions';
+import { hasPermission, type Permission } from '@/lib/permissions';
 import { LoginForm } from '@/components/modules/login';
 import { WinterLanding } from '@/components/modules/home/winter-landing';
 import { AccountThemeSync } from '@/components/account-theme-sync';
@@ -210,7 +210,10 @@ function PublicEntry() {
 
 export function AppContainer() {
     const { isAuthenticated, isAPIKeyAuth, isLoading: authLoading } = useAuth();
-    const { data: currentUser } = useCurrentUser();
+    // isPending, not just data: bootstrap has to know whether the role is still
+    // in flight. Treating "not yet loaded" as "no answer" is what made the 403
+    // toast appear on the very first load and then stop.
+    const { data: currentUser, isPending: currentUserPending } = useCurrentUser();
     const { activeItem, direction, visibleItems, setNavOrder, setVisibleItems, resetNavOrder } = useNavStore();
     const t = useTranslations('navbar');
     const walletToast = useTranslations('setting.wallet.toast');
@@ -316,6 +319,16 @@ export function AppContainer() {
             return;
         }
 
+        // Wait for the role to SETTLE before prefetching anything permission-bound.
+        // On a cold load this effect used to run while /user/me was still in flight,
+        // so the role read as unknown, the settings prefetch went ahead, and the
+        // customer got a 403 toast exactly once per page load.
+        //
+        // Waiting is safe here specifically because useCurrentUser has retry:false:
+        // isPending clears on success or failure, so this cannot park behind a
+        // retry loop while bootstrapComplete holds the full-screen loader.
+        if (currentUserPending) return;
+
         if (bootstrapStartedRef.current) return;
         bootstrapStartedRef.current = true;
         setBootstrapComplete(false);
@@ -339,20 +352,16 @@ export function AppContainer() {
                     // query above does not cover this one; skipping has to be explicit or
                     // bootstrap alone produces the 403 toast.
                     //
-                    // Deliberately "skip only when the role is KNOWN to lack it" rather
-                    // than "fetch only when known to have it": this effect is one-shot
-                    // (bootstrapStartedRef) and its deps do not include currentUser, so
-                    // requiring a positive answer would permanently skip the prefetch on
-                    // any load where the role has not arrived yet. Waiting for the role
-                    // instead is worse -- bootstrapComplete gates a full-screen loader and
-                    // useCurrentUser has retry:false, so a failed /user/me would hang the
-                    // app. With this shape an unknown role behaves exactly as before.
+                    // Safe to require a positive answer because the effect now returns
+                    // early while currentUserPending, so the role has settled by here.
+                    // An earlier version inverted this ("skip only when known to lack it")
+                    // to avoid starving admins on a slow /user/me -- but that let the
+                    // fetch through on every cold load, which is precisely the once-per-
+                    // load toast this was supposed to remove.
                     //
                     // Nav order/visibility only matter for staff anyway: the portal path
                     // replaces the whole nav with a whitelist and ignores visibleItems.
-                    const roleKnown = currentUser?.role !== undefined;
-                    const lacksSettingsRead = roleKnown && !hasPermission(currentUser?.role, 'settings:read');
-                    if (!lacksSettingsRead) {
+                    if (hasPermission(currentUser?.role, 'settings:read')) {
                         const settingsPromise = queryClient.fetchQuery(getSettingsListQueryOptions());
                         prefetches.push(
                             settingsPromise.then((nextSettings) => {
@@ -371,7 +380,35 @@ export function AppContainer() {
                         prefetches.push(component.preload());
                     }
 
-                    switch (activeItem) {
+                    // activeItem is persisted in nav-storage, so it can name a page this
+                    // role can no longer reach: a tab left on a staff page in a shared
+                    // browser, or 'model' from before it left the portal whitelist. The
+                    // nav no longer offers those, but this prefetch runs off the stored
+                    // value and would still call their endpoints -- one 403 toast per load,
+                    // with nothing on screen to explain it.
+                    //
+                    // Prefetching is an optimisation, so the conservative choice is to skip
+                    // it whenever the role cannot reach the page, and let the page itself
+                    // fetch if it really is reachable.
+                    // Only the tabs the switch below actually prefetches for, each mapped
+                    // to the permission its endpoints sit behind (verified against the
+                    // route groups in internal/server/handlers, not inferred from names).
+                    // A tab absent here has nothing to gate: 'apikey' and 'setting' fetch
+                    // apikey/list + stats/apikey, and 'home' fetches stats/*, all of which
+                    // the end-customer role holds.
+                    const prefetchPermissions: Partial<Record<NavItem, Permission>> = {
+                        home: 'stats:read',       // /api/v1/stats -> stats:read
+                        channel: 'channels:read', // /api/v1/channel -> channels:read
+                        group: 'groups:read',     // group/list -> groups:read (also fetches channel/list)
+                        model: 'settings:read',   // /api/v1/model -> settings:read
+                        ops: 'settings:read',     // /api/v1/ops -> settings:read
+                    };
+                    const neededForActive = prefetchPermissions[activeItem];
+                    const mayPrefetchActive =
+                        neededForActive === undefined ||
+                        hasPermission(currentUser?.role, neededForActive);
+
+                    if (mayPrefetchActive) switch (activeItem) {
                         case 'home': {
                             prefetches.push(
                                 queryClient.prefetchQuery({
@@ -484,8 +521,14 @@ export function AppContainer() {
         // dependencies intentionally exclude activeItem; bootstrap should only run
         // when auth state changes (not on every activeItem change, to avoid
         // re-prefetching). queryClient is a stable useQueryClient() instance.
+        //
+        // currentUserPending IS included: the body returns early while it is true, so
+        // without it the effect would never re-run once the role settles and bootstrap
+        // would stall forever behind the loader. currentUser?.role is excluded on
+        // purpose -- bootstrapStartedRef makes this one-shot and the role has already
+        // settled by the time the guard reads it.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [authLoading, isAPIKeyAuth, isAuthenticated]);
+    }, [authLoading, isAPIKeyAuth, isAuthenticated, currentUserPending]);
 
     useEffect(() => {
         if (!bootstrapComplete || !isAuthenticated || isAPIKeyAuth || visibleItems.length === 0) {
