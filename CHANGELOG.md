@@ -185,6 +185,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🐛 Bug Fixes
 
 #### Critical (Production Impact)
+- **The Stripe top-up entry point never rendered for paying customers**
+  (`572976a`, 2026-08-28): the button was gated on finding `stripe_enabled` in the
+  settings list, but end customers hold the `user` role, which deliberately carries no
+  `settings:read` — that list exposes `stripe_api_key`, `epay_key` and `smtp_pass`. For
+  them the request returned 403, the settings array stayed undefined, and the gate
+  evaluated `undefined === 'true'`, so the top-up entry was invisible to everyone who
+  was not an admin. Both halves were individually correct; only their junction was
+  wrong, which is why neither an admin session nor a per-file review surfaced it.
+  Stripe checkout itself had been wired and working the entire time.
+  `GET /api/v1/wallet/balance` requires only authentication, making it the one place
+  every signed-in user can learn which top-up methods exist, and it already carried
+  `epay_configured`; it now also reports `stripe_configured` — which is what the
+  previously uncalled `payment.StripeConfigured()` was written for. Gating on that
+  value is additionally stricter than the old check, requiring the toggle *and* an API
+  key *and* a webhook secret, so the button no longer appears when a top-up would fail
+  for missing credentials. Guarded by wiring tests that assert the response body rather
+  than the status code, plus a test pinning the premise that the `user` role cannot read
+  settings, since re-granting that permission would hand every customer the secret list.
+  Not reachable before this fix landed: production runs with `commercial_mode` off, so
+  this blocked go-live rather than leaking money.
 - **Money columns were single-precision on PostgreSQL, which broke the reconcile
   endpoint it shipped with** (2026-08-27): 25 columns across 14 tables — `users.quota`,
   `users.used_quota`, `quota_ledgers.delta`, the payment/top-up/subscription amounts,
