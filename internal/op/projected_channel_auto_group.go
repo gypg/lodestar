@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/gypg/lodestar/internal/db"
 	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/op/group"
 	"github.com/gypg/lodestar/internal/utils/log"
 	"github.com/gypg/lodestar/internal/utils/xregexp"
 )
@@ -117,21 +117,50 @@ func ChannelAutoGroup(channel *model.Channel, ctx context.Context) {
 	ChannelAutoGroupWithMode(channel, channel.AutoGroup, ctx)
 }
 
-func AutoGroupAllProjectedChannels(ctx context.Context) error {
+// ProjectedChannelJoinGroups puts a projected channel into groups so the relay
+// can actually reach it. Two passes:
+//
+//  1. ChannelAutoGroupWithMode -- honours the operator's chosen match mode
+//     against groups that already exist.
+//  2. group.EnsureCanonicalGroupsForChannel -- creates a canonical group for any
+//     model the first pass left with no GroupItem.
+//
+// The second pass is why a fresh install can route site models at all: pass 1
+// only ever *matches* existing groups, so on a system whose groups were never
+// hand-built there is nothing to match and every projected model stays
+// unroutable ("group not found" at relay time).
+//
+// Non-destructive by construction -- it never deletes a group, unlike the manual
+// AutoGroupModels rebuild.
+func ProjectedChannelJoinGroups(channel *model.Channel, autoGroup model.AutoGroupType, ctx context.Context) {
+	if channel == nil || autoGroup == model.AutoGroupTypeNone {
+		return
+	}
+	ChannelAutoGroupWithMode(channel, autoGroup, ctx)
+	if _, err := group.EnsureCanonicalGroupsForChannel(*channel, ctx); err != nil {
+		log.Warnf("failed to ensure canonical groups for projected channel %d: %v", channel.ID, err)
+	}
+}
+
+// AutoGroupAllProjectedChannels retroactively puts every already-projected
+// channel into groups. Needed because ProjectedChannelJoinGroups only fires
+// during projection: channels projected while the global switch was off stay
+// groupless (and therefore unroutable) until re-synced one account at a time.
+//
+// Returns the number of channels processed and groups created.
+//
+// Deliberately does NOT delete anything. The previous implementation called
+// deleteAllNonDefaultGroups first, which wiped hand-made groups and any group
+// belonging to another site -- far too destructive for an operator-triggered
+// "fill in the gaps" action.
+func AutoGroupAllProjectedChannels(ctx context.Context) (int, int, error) {
 	mode := ProjectedChannelGlobalAutoGroupMode()
 	if mode == model.AutoGroupTypeNone {
-		return nil
+		return 0, 0, fmt.Errorf("projected channel auto group is disabled")
 	}
 	channels := channelCache.GetAll()
 	if len(channels) == 0 {
-		return nil
-	}
-
-	// 新逻辑：先清空所有非默认分组，再重新分组
-	// 这样每次分组都是全新的，不会被旧分组干扰
-	if err := deleteAllNonDefaultGroups(ctx); err != nil {
-		log.Warnf("failed to delete non-default groups before auto-group: %v", err)
-		// 继续执行，不阻塞
+		return 0, 0, nil
 	}
 
 	channelIDs := make([]int, 0, len(channels))
@@ -140,69 +169,26 @@ func AutoGroupAllProjectedChannels(ctx context.Context) error {
 	}
 	bindingMap, err := SiteChannelBindingMapByChannelIDs(channelIDs, ctx)
 	if err != nil {
-		return err
+		return 0, 0, err
 	}
+
+	processed := 0
+	createdGroups := 0
 	for id, channel := range channels {
 		if _, ok := bindingMap[id]; !ok {
 			continue
 		}
 		ChannelAutoGroupWithMode(&channel, mode, ctx)
-	}
-	return nil
-}
-
-// deleteAllNonDefaultGroups 删除所有非默认分组及其关联的 group_items。
-// 用于自动分组前清空旧分组，确保每次分组都是全新的。
-func deleteAllNonDefaultGroups(ctx context.Context) error {
-	tx := db.GetDB().WithContext(ctx).Begin()
-	committed := false
-	defer func() {
-		if r := recover(); r != nil {
-			if !committed {
-				tx.Rollback()
-			}
-			log.Errorf("panic recovered in deleteAllNonDefaultGroups: %v", r)
-			panic(r)
+		created, err := group.EnsureCanonicalGroupsForChannel(channel, ctx)
+		if err != nil {
+			log.Warnf("failed to ensure canonical groups for projected channel %d: %v", id, err)
+			continue
 		}
-		if !committed {
-			tx.Rollback()
-		}
-	}()
-
-	// 获取所有非默认分组 ID
-	var nonDefaultGroupIDs []int
-	if err := tx.Model(&model.ChannelGroup{}).
-		Where("is_default = ?", false).
-		Pluck("id", &nonDefaultGroupIDs).Error; err != nil {
-		return fmt.Errorf("failed to query non-default groups: %w", err)
+		processed++
+		createdGroups += created
 	}
-
-	if len(nonDefaultGroupIDs) == 0 {
-		return nil
-	}
-
-	// 删除这些分组的 group_items
-	if err := tx.Where("group_id IN ?", nonDefaultGroupIDs).Delete(&model.GroupItem{}).Error; err != nil {
-		return fmt.Errorf("failed to delete group items: %w", err)
-	}
-
-	// 删除非默认分组
-	if err := tx.Where("is_default = ?", false).Delete(&model.ChannelGroup{}).Error; err != nil {
-		return fmt.Errorf("failed to delete non-default groups: %w", err)
-	}
-
-	if err := tx.Commit().Error; err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
-	}
-	committed = true
-
-	// 刷新缓存
-	if err := channelGroupRefreshCache(ctx); err != nil {
-		log.Warnf("failed to refresh channel group cache: %v", err)
-	}
-
-	log.Infof("deleted %d non-default groups for auto-group reset", len(nonDefaultGroupIDs))
-	return nil
+	log.Infof("projected channel regroup finished: processed=%d created_groups=%d", processed, createdGroups)
+	return processed, createdGroups, nil
 }
 
 func splitChannelModelNames(values ...string) []string {

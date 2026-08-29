@@ -159,59 +159,6 @@ func deleteAutoCreatedGroups(ctx context.Context) ([]model.AutoGroupDeletedItem,
 	return deleted, nil
 }
 
-// deleteAllNonDefaultGroups 删除所有非默认分组及其关联的 group_items。
-// 用于自动分组前清空旧分组，确保每次分组都是全新的。
-func deleteAllNonDefaultGroups(ctx context.Context) (int, error) {
-	tx := db.GetDB().WithContext(ctx).Begin()
-	committed := false
-	defer func() {
-		if r := recover(); r != nil {
-			if !committed {
-				tx.Rollback()
-			}
-			log.Errorf("panic recovered in deleteAllNonDefaultGroups: %v", r)
-			panic(r)
-		}
-		if !committed {
-			tx.Rollback()
-		}
-	}()
-
-	// 获取所有非默认分组 ID
-	var nonDefaultGroupIDs []int
-	if err := tx.Model(&model.ChannelGroup{}).
-		Where("is_default = ?", false).
-		Pluck("id", &nonDefaultGroupIDs).Error; err != nil {
-		return 0, fmt.Errorf("failed to query non-default groups: %w", err)
-	}
-
-	if len(nonDefaultGroupIDs) == 0 {
-		return 0, nil
-	}
-
-	// 删除这些分组的 group_items
-	if err := tx.Where("group_id IN ?", nonDefaultGroupIDs).Delete(&model.GroupItem{}).Error; err != nil {
-		return 0, fmt.Errorf("failed to delete group items: %w", err)
-	}
-
-	// 删除非默认分组
-	if err := tx.Where("is_default = ?", false).Delete(&model.ChannelGroup{}).Error; err != nil {
-		return 0, fmt.Errorf("failed to delete non-default groups: %w", err)
-	}
-
-	if err := tx.Commit().Error; err != nil {
-		return 0, fmt.Errorf("failed to commit transaction: %w", err)
-	}
-	committed = true
-
-	// 刷新缓存
-	if err := RefreshAllCache(ctx); err != nil {
-		log.Warnf("failed to refresh group cache: %v", err)
-	}
-
-	return len(nonDefaultGroupIDs), nil
-}
-
 // deleteStaleGroups 删除所有没有渠道绑定的模型分组（groups 表中无 group_items 的分组）。
 // 用于自动分组后清理历史残留，确保只有有渠道来源的分组存在。
 func deleteStaleGroups(ctx context.Context) (int, error) {
@@ -260,6 +207,122 @@ func deleteStaleGroups(ctx context.Context) (int, error) {
 	return len(staleIDs), nil
 }
 
+// EnsureCanonicalGroupsForChannel creates canonical groups for any model on ch
+// that no group currently routes, and wires the channel into them.
+//
+// This is the non-destructive counterpart to AutoGroupModels, which deletes
+// every non-default group before rebuilding -- fine behind a manual button,
+// unacceptable during a site sync that must not disturb other sites' groups or
+// hand-made ones.
+//
+// Models already carrying a GroupItem for this channel are left alone, so
+// calling this after ChannelAutoGroupWithMode preserves the operator's chosen
+// match semantic and only fills what that pass could not cover.
+func EnsureCanonicalGroupsForChannel(ch model.Channel, ctx context.Context) (int, error) {
+	modelNames := xstrings.SplitTrimCompact(",", ch.Model, ch.CustomModel)
+	if len(modelNames) == 0 {
+		return 0, nil
+	}
+
+	var existingItems []model.GroupItem
+	if err := db.GetDB().WithContext(ctx).
+		Where("channel_id = ?", ch.ID).
+		Find(&existingItems).Error; err != nil {
+		return 0, fmt.Errorf("list group items for channel %d failed: %w", ch.ID, err)
+	}
+	covered := make(map[string]struct{}, len(existingItems))
+	for _, item := range existingItems {
+		covered[strings.ToLower(strings.TrimSpace(item.ModelName))] = struct{}{}
+	}
+
+	candidateMap := make(map[string]*model.CandidateGroup)
+	for _, rawModel := range modelNames {
+		if _, ok := covered[strings.ToLower(strings.TrimSpace(rawModel))]; ok {
+			continue
+		}
+		identity := NormalizeModelIdentity(rawModel)
+		key := identity.EndpointType + "::" + identity.Canonical
+		candidate := candidateMap[key]
+		if candidate == nil {
+			candidate = &model.CandidateGroup{
+				EndpointType: identity.EndpointType,
+				Canonical:    identity.Canonical,
+			}
+			candidateMap[key] = candidate
+		}
+		candidate.RawModels = appendUniqueString(candidate.RawModels, strings.TrimSpace(rawModel))
+		candidate.ChannelIDs = appendUniqueInt(candidate.ChannelIDs, ch.ID)
+		candidate.Refs = append(candidate.Refs, model.ChannelModelRef{
+			ChannelID:   ch.ID,
+			ChannelName: ch.Name,
+			RawModel:    strings.TrimSpace(rawModel),
+		})
+	}
+	if len(candidateMap) == 0 {
+		return 0, nil
+	}
+
+	existingGroups, err := GroupList(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("list groups failed: %w", err)
+	}
+
+	candidates := make([]model.CandidateGroup, 0, len(candidateMap))
+	for _, candidate := range candidateMap {
+		candidate.MatchRegex = buildCandidateMatchRegex(*candidate)
+		candidates = append(candidates, *candidate)
+	}
+	sort.Slice(candidates, func(i, j int) bool {
+		if candidates[i].EndpointType != candidates[j].EndpointType {
+			return candidates[i].EndpointType < candidates[j].EndpointType
+		}
+		return candidates[i].Canonical < candidates[j].Canonical
+	})
+
+	created := 0
+	for _, candidate := range candidates {
+		// An existing group may already route this model by regex even though no
+		// GroupItem names it yet; adopt it instead of creating a duplicate.
+		if covered, _ := IsCandidateCoveredByExistingGroups(candidate, existingGroups); covered {
+			if err := attachChannelToCoveringGroup(candidate, existingGroups, ctx); err != nil {
+				log.Warnf("failed to attach channel %d to covering group for %q: %v", ch.ID, candidate.Canonical, err)
+			}
+			continue
+		}
+		if err := createAutoGroupCandidate(candidate, ctx); err != nil {
+			log.Warnf("failed to create group %q for channel %d: %v", candidate.Canonical, ch.ID, err)
+			continue
+		}
+		existingGroups = append(existingGroups, model.Group{
+			Name:         candidate.Canonical,
+			EndpointType: candidate.EndpointType,
+			MatchRegex:   candidate.MatchRegex,
+		})
+		created++
+	}
+	return created, nil
+}
+
+// attachChannelToCoveringGroup adds the candidate's models to the existing group
+// that already covers them, so a channel joins a group it matches by regex
+// instead of being silently skipped with no GroupItem at all.
+func attachChannelToCoveringGroup(candidate model.CandidateGroup, existingGroups []model.Group, ctx context.Context) error {
+	for _, group := range existingGroups {
+		if !sameEndpointType(group.EndpointType, candidate.EndpointType) {
+			continue
+		}
+		if !strings.EqualFold(strings.TrimSpace(group.Name), candidate.Canonical) {
+			continue
+		}
+		items := make([]model.GroupIDAndLLMName, 0, len(candidate.Refs))
+		for _, ref := range candidate.Refs {
+			items = append(items, model.GroupIDAndLLMName{ChannelID: ref.ChannelID, ModelName: ref.RawModel})
+		}
+		return GroupItemBatchAdd(group.ID, items, ctx)
+	}
+	return nil
+}
+
 func AutoGroupModels(ctx context.Context, force bool) (*model.AutoGroupResult, error) {
 	// Ensure rules are loaded from config (or use built-in defaults).
 	initAutoGroupFamilyRules()
@@ -274,14 +337,32 @@ func AutoGroupModels(ctx context.Context, force bool) (*model.AutoGroupResult, e
 		TotalModelsSeen: len(channelRefs),
 	}
 
-	// 每次自动分组都先删除所有非默认分组，确保从零开始
-	deletedCount, delErr := deleteAllNonDefaultGroups(ctx)
-	if delErr != nil {
-		log.Warnf("auto group: failed to delete non-default groups: %v", delErr)
-		// 继续执行，不阻塞
-	} else {
-		result.DeletedGroups = deletedCount
-		log.Infof("auto group: cleared %d non-default groups before rebuild", deletedCount)
+	// force: rebuild auto-created routing groups from scratch.
+	//
+	// This used to call a helper that queried model.ChannelGroup -- the channel
+	// *folder* table -- and did so unconditionally. model.Group has no IsDefault
+	// column, so `is_default = false` could only ever have addressed folders: it
+	// was a wrong-table bug, not a design choice. It deleted every operator
+	// folder (bypassing ChannelGroupDelete's non-empty guard, leaving channels
+	// with dangling group_ids and thus invisible on the folder-filtered 渠道
+	// page) and emptied unrelated routing groups wherever a folder id collided
+	// with a Group id.
+	//
+	// deleteAutoCreatedGroups is the correct-table counterpart and had no caller;
+	// its own log strings say "auto group force", which is what the otherwise
+	// unused force parameter was for. Non-force runs need no wipe:
+	// IsCandidateCoveredByExistingGroups skips what already exists and
+	// deleteStaleGroups collects what lost its channel source.
+	if force {
+		deleted, delErr := deleteAutoCreatedGroups(ctx)
+		if delErr != nil {
+			log.Warnf("auto group: failed to delete auto-created groups: %v", delErr)
+			// 继续执行，不阻塞
+		} else {
+			result.DeletedGroups = len(deleted)
+			result.Deleted = append(result.Deleted, deleted...)
+			log.Infof("auto group: cleared %d auto-created groups before rebuild", len(deleted))
+		}
 	}
 
 	rawSeen := make(map[string]struct{}, len(channelRefs))
