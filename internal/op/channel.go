@@ -2,10 +2,12 @@ package op
 
 import (
 	"context"
+	"strings"
 
 	"github.com/gypg/lodestar/internal/db"
 	"github.com/gypg/lodestar/internal/model"
 	"github.com/gypg/lodestar/internal/op/channel"
+	"github.com/gypg/lodestar/internal/op/llm"
 	"github.com/gypg/lodestar/internal/op/stats"
 	"github.com/gypg/lodestar/internal/utils/log"
 )
@@ -67,6 +69,9 @@ func ChannelDel(id int, ctx context.Context) error {
 	// 记录渠道所属分组，以便删除后检查是否需要清理空分组
 	affectedGroupID := ch.GroupID
 
+	// 必须在删除前取：删除后渠道已从缓存和库里消失，拿不到它声明过哪些模型。
+	deletedModelNames := splitChannelModelNames(ch.Model, ch.CustomModel)
+
 	if err := channel.Delete(id, ctx); err != nil {
 		return err
 	}
@@ -99,6 +104,62 @@ func ChannelDel(id int, ctx context.Context) error {
 		}
 	}
 
+	// 回收只由本渠道提供的模型：否则删掉渠道后，其模型仍留在 llm 注册表里，
+	// 在模型广场显示为「渠道 0 / Key 0」的空壳，且不会被同步任务回收
+	// （回收条件是四个价格列全零，有价格的模型永远留着）。
+	if err := reclaimOrphanedModels(deletedModelNames, ctx); err != nil {
+		log.Warnf("failed to reclaim models after channel %d deletion: %v", id, err)
+	}
+
+	return nil
+}
+
+// reclaimOrphanedModels 删除注册表中已无任何渠道提供的模型。
+//
+// 只考虑被删渠道声明过的名字，所以手动添加、本就没有渠道的模型不受影响 ——
+// 它们不在 names 里。反之，若某个名字仍被其他渠道声明，则保留：删一个渠道不该
+// 影响另一个渠道还在提供的模型。
+//
+// ★ 有价格的模型也会被删。这是刻意的取舍：用户要的是「删渠道时对应模型自行删除」，
+// 而保留价格就等于保留空壳。删掉渠道再建回来需要重新配价格。
+func reclaimOrphanedModels(names []string, ctx context.Context) error {
+	if len(names) == 0 {
+		return nil
+	}
+
+	// 缓存在 channel.Delete 返回前已剔除被删渠道，所以此处遍历到的都是仍存在的渠道。
+	stillDeclared := make(map[string]struct{})
+	for _, ch := range channelCache.GetAll() {
+		for _, name := range splitChannelModelNames(ch.Model, ch.CustomModel) {
+			stillDeclared[strings.ToLower(strings.TrimSpace(name))] = struct{}{}
+		}
+	}
+
+	orphaned := make([]string, 0, len(names))
+	seen := make(map[string]struct{}, len(names))
+	for _, name := range names {
+		lowered := strings.ToLower(strings.TrimSpace(name))
+		if lowered == "" {
+			continue
+		}
+		if _, ok := stillDeclared[lowered]; ok {
+			continue
+		}
+		if _, ok := seen[lowered]; ok {
+			continue
+		}
+		seen[lowered] = struct{}{}
+		orphaned = append(orphaned, lowered)
+	}
+	if len(orphaned) == 0 {
+		return nil
+	}
+
+	if err := llm.BatchDelete(orphaned, ctx); err != nil {
+		return err
+	}
+	ModelMarketInvalidateCache()
+	log.Infof("reclaimed %d orphaned model(s) from the registry after channel deletion", len(orphaned))
 	return nil
 }
 
