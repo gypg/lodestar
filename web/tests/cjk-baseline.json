@@ -1,10 +1,10 @@
 {
-  "total": 209,
+  "total": 211,
   "files": {
     "api/endpoints/apikey.ts": 7,
     "api/endpoints/channel.ts": 15,
     "api/endpoints/group-progress.hook.test.ts": 3,
-    "api/endpoints/group.ts": 20,
+    "api/endpoints/group.ts": 22,
     "api/endpoints/log.hook.test.ts": 6,
     "api/endpoints/log.ts": 8,
     "api/endpoints/model.ts": 8,
@@ -22,5 +22,5 @@
     "lib/theme-presets.ts": 17,
     "lib/utils.ts": 4
   },
-  "generatedAt": "2026-08-17T04:33:03.288Z"
+  "generatedAt": "2026-08-29T06:12:22.612Z"
 }

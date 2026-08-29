@@ -2041,6 +2041,14 @@
         "label": "Check In to All Sites Manually",
         "checking": "Checking in…",
         "button": "Check In Now"
+      },
+      "regroupProjected": {
+        "label": "Backfill Groups for Existing Site Channels",
+        "description": "Site channels projected before auto-grouping was enabled belong to no group, so the relay cannot route them. This only adds groups, it never deletes any.",
+        "button": "Backfill Now",
+        "running": "Backfilling…",
+        "done": "Processed {processed} site channels, created {groups} groups",
+        "failed": "Failed to backfill groups"
       }
     },
     "aiRoute": {

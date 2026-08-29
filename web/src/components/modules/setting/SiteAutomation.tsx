@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/select';
 import { useSettingList, useSetSetting, SettingKey } from '@/api/endpoints/setting';
 import { useCheckinAllSites, useSyncAllSites } from '@/api/endpoints/site';
+import { useRegroupProjectedChannels } from '@/api/endpoints/group';
 import { toast } from '@/components/common/Toast';
 import { useSettingStore } from '@/stores/setting';
 import { translateSiteMessage } from '@/components/modules/site/site-message';
@@ -45,6 +46,7 @@ export function SettingSiteAutomation() {
     const setSetting = useSetSetting();
     const syncAllSites = useSyncAllSites();
     const checkinAllSites = useCheckinAllSites();
+    const regroupProjected = useRegroupProjectedChannels();
 
     const [syncInterval, setSyncInterval] = useState('');
     const [checkinInterval, setCheckinInterval] = useState('');
@@ -106,6 +108,24 @@ export function SettingSiteAutomation() {
             },
             onError: (error) => {
                 toast.error(translateSiteMessage(locale, getErrorMessage(error, t('siteAutomation.syncFailed')), t));
+            },
+        });
+    }
+
+    function handleRegroupProjected() {
+        regroupProjected.mutate(undefined, {
+            onSuccess: (data) => {
+                toast.success(
+                    t('siteAutomation.regroupProjected.done', {
+                        processed: data.processed,
+                        groups: data.created_groups,
+                    })
+                );
+            },
+            onError: (error) => {
+                toast.error(
+                    translateSiteMessage(locale, getErrorMessage(error, t('siteAutomation.regroupProjected.failed')), t)
+                );
             },
         });
     }
@@ -208,6 +228,19 @@ export function SettingSiteAutomation() {
                 </div>
                 <Button variant="outline" size="sm" onClick={handleManualCheckin} disabled={checkinAllSites.isPending} className="rounded-xl">
                     {checkinAllSites.isPending ? t('siteAutomation.manualCheckin.checking') : t('siteAutomation.manualCheckin.button')}
+                </Button>
+            </div>
+
+            <div className="flex flex-col gap-3 rounded-lg border-border/30 bg-card p-4 shadow-sm md:flex-row md:items-center md:justify-between">
+                <div className="flex items-center gap-3">
+                    <Layers className="h-5 w-5 text-muted-foreground" />
+                    <div className="flex flex-col">
+                        <span className="text-sm font-medium">{t('siteAutomation.regroupProjected.label')}</span>
+                        <span className="text-xs text-muted-foreground">{t('siteAutomation.regroupProjected.description')}</span>
+                    </div>
+                </div>
+                <Button variant="outline" size="sm" onClick={handleRegroupProjected} disabled={regroupProjected.isPending} className="rounded-xl">
+                    {regroupProjected.isPending ? t('siteAutomation.regroupProjected.running') : t('siteAutomation.regroupProjected.button')}
                 </Button>
             </div>
         </div>

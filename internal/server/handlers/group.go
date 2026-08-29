@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gypg/lodestar/internal/helper"
 	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/op"
 	ch "github.com/gypg/lodestar/internal/op/channel"
 	grp "github.com/gypg/lodestar/internal/op/group"
 	"github.com/gypg/lodestar/internal/op/grouptest"
@@ -44,6 +45,11 @@ func init() {
 			router.NewRoute("/auto-group", http.MethodPost).
 				Use(middleware.RequirePermission(auth.PermGroupsWrite)).
 				Handle(autoGroupModels),
+		).
+		AddRoute(
+			router.NewRoute("/regroup-projected", http.MethodPost).
+				Use(middleware.RequirePermission(auth.PermGroupsWrite)).
+				Handle(regroupProjectedChannels),
 		).
 		AddRoute(
 			router.NewRoute("/test", http.MethodPost).
@@ -299,6 +305,18 @@ func autoGroupModels(c *gin.Context) {
 		return
 	}
 	resp.Success(c, result)
+}
+
+// regroupProjectedChannels fills in groups for site channels that were projected
+// while the global auto-group switch was off. Unlike /auto-group this deletes
+// nothing, so it is safe to run on a system with hand-made groups.
+func regroupProjectedChannels(c *gin.Context) {
+	processed, createdGroups, err := op.AutoGroupAllProjectedChannels(c.Request.Context())
+	if err != nil {
+		resp.Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	resp.Success(c, gin.H{"processed": processed, "created_groups": createdGroups})
 }
 
 func deleteGroup(c *gin.Context) {

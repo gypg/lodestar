@@ -43,6 +43,7 @@ var auditedManagementWriteRoutes = map[string]struct{}{
 	"DELETE /api/v1/chat/sessions/:id":                                               {},
 	"PUT /api/v1/chat/sessions/:id":                                                  {},
 	"POST /api/v1/group/auto-group":                                                  {},
+	"POST /api/v1/group/regroup-projected":                                           {},
 	"POST /api/v1/group/purge-unavailable":                                           {},
 	"POST /api/v1/group/create":                                                      {},
 	"POST /api/v1/group/update":                                                      {},
@@ -280,6 +281,8 @@ func buildAuditTarget(c *gin.Context, fullPath string, bodyFields map[string]any
 		return "all-groups"
 	case "/api/v1/group/purge-unavailable":
 		return "unavailable-group-items"
+	case "/api/v1/group/regroup-projected":
+		return "projected-channels"
 	case "/api/v1/log/clear":
 		return "relay-logs"
 	case "/api/v1/model/update-price":

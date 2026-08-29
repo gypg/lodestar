@@ -2041,6 +2041,14 @@
         "label": "手动签到全部站点",
         "checking": "签到中…",
         "button": "立即签到"
+      },
+      "regroupProjected": {
+        "label": "给已有站点渠道补分组",
+        "description": "自动分组开启前投影的站点渠道不在任何分组里，中继无法路由。此操作只新增，不会删除任何分组。",
+        "button": "立即补分组",
+        "running": "补分组中…",
+        "done": "已处理 {processed} 个站点渠道，新建 {groups} 个分组",
+        "failed": "补分组失败"
       }
     },
     "aiRoute": {

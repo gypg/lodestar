@@ -463,6 +463,34 @@ export function useAutoGroupModels() {
     });
 }
 
+export interface RegroupProjectedResult {
+    processed: number;
+    created_groups: number;
+}
+
+/**
+ * Fills in groups for site channels projected while the global auto-group switch
+ * was off. Unlike useAutoGroupModels this deletes nothing, so it is safe to run
+ * on an install with hand-made groups.
+ */
+export function useRegroupProjectedChannels() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async () => {
+            return apiClient.post<RegroupProjectedResult>('/api/v1/group/regroup-projected', {});
+        },
+        onSuccess: (data) => {
+            logger.log('站点渠道补分组成功:', data);
+            queryClient.invalidateQueries({ queryKey: ['groups', 'list'] });
+            queryClient.invalidateQueries({ queryKey: ['models', 'market'] });
+        },
+        onError: (error) => {
+            logger.error('站点渠道补分组失败:', error);
+        },
+    });
+}
+
 export function useDeleteAllGroups() {
     const queryClient = useQueryClient();
 
