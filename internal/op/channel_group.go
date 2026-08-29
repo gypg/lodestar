@@ -117,6 +117,47 @@ func ChannelGroupDelete(id int, ctx context.Context) error {
 	return nil
 }
 
+// ChannelGroupEnsureByName returns the id of the folder named name, creating it
+// when absent. Used by site projection so each site's projected channels land in
+// their own folder instead of piling into Default, where the channel page's
+// group filter hides them behind whichever tab happens to be selected.
+//
+// Name matching is case-insensitive and trimmed, mirroring the unique index on
+// ChannelGroup.Name: a site literally named "Default" reuses the default folder
+// rather than failing the insert.
+func ChannelGroupEnsureByName(name string, ctx context.Context) (int, error) {
+	trimmedName := strings.TrimSpace(name)
+	if trimmedName == "" {
+		return ChannelGroupDefaultID(ctx)
+	}
+
+	groups, err := ChannelGroupList(ctx)
+	if err != nil {
+		return 0, err
+	}
+	for _, group := range groups {
+		if strings.EqualFold(strings.TrimSpace(group.Name), trimmedName) {
+			return group.ID, nil
+		}
+	}
+
+	created, err := ChannelGroupCreate(trimmedName, ctx)
+	if err != nil {
+		// Lost a race, or the name collides under a different fold: re-read and
+		// reuse rather than failing the whole projection over a folder.
+		if refreshErr := channelGroupRefreshCache(ctx); refreshErr != nil {
+			return 0, err
+		}
+		for _, group := range channelGroupCache.GetAll() {
+			if strings.EqualFold(strings.TrimSpace(group.Name), trimmedName) {
+				return group.ID, nil
+			}
+		}
+		return 0, err
+	}
+	return created.ID, nil
+}
+
 func ChannelGroupDefaultID(ctx context.Context) (int, error) {
 	for _, group := range channelGroupCache.GetAll() {
 		if group.IsDefault {

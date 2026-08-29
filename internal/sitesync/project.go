@@ -130,6 +130,22 @@ func ProjectAccount(ctx context.Context, accountID int) ([]int, error) {
 	shouldSplit := shouldSplitByOutboundType(siteRecord)
 	bindingChannelByKey := make(map[string]int)
 
+	// Give this site its own channel folder. Without it every projected channel
+	// inherits Default (op/channel.Create falls back to GroupDefaultID), and the
+	// channel page filters strictly by folder -- so the site's channels are
+	// invisible unless Default happens to be the selected tab.
+	//
+	// Resolved lazily: a site with no usable token projects no channels, and
+	// creating its folder anyway would litter the channel page with empty tabs.
+	channelGroupID := 0
+	if len(desiredKeys) > 0 {
+		id, err := op.ChannelGroupEnsureByName(siteRecord.Name, ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to ensure channel folder for site %q: %w", siteRecord.Name, err)
+		}
+		channelGroupID = id
+	}
+
 	for _, groupKey := range desiredKeys {
 		group := groupMap[groupKey]
 		groupTokens := tokenGroups[groupKey]
@@ -153,6 +169,7 @@ func ProjectAccount(ctx context.Context, accountID int) ([]int, error) {
 				Name:     buildManagedChannelName(siteRecord, account, group, obType),
 				Type:     obType,
 				Enabled:  enabled,
+				GroupID:  channelGroupID,
 				BaseUrls: baseUrls,
 				// Must be rebuilt per channel: op.ChannelCreate cascades the
 				// insert into Keys and writes the generated ID/ChannelID back
@@ -195,9 +212,7 @@ func ProjectAccount(ctx context.Context, accountID int) ([]int, error) {
 				bindingMap[bindingKey] = binding
 				bindingChannelByKey[bindingKey] = channelPayload.ID
 				managedChannelIDs = append(managedChannelIDs, channelPayload.ID)
-				if effective := op.EffectiveProjectedChannelAutoGroup(channelPayload); effective != model.AutoGroupTypeNone {
-					op.ChannelAutoGroupWithMode(&channelPayload, effective, ctx)
-				}
+				op.ProjectedChannelJoinGroups(&channelPayload, op.EffectiveProjectedChannelAutoGroup(channelPayload), ctx)
 				continue
 			}
 
@@ -220,13 +235,13 @@ func ProjectAccount(ctx context.Context, accountID int) ([]int, error) {
 				}
 				bindingChannelByKey[bindingKey] = channelPayload.ID
 				managedChannelIDs = append(managedChannelIDs, channelPayload.ID)
-				if effective := op.EffectiveProjectedChannelAutoGroup(channelPayload); effective != model.AutoGroupTypeNone {
-					op.ChannelAutoGroupWithMode(&channelPayload, effective, ctx)
-				}
+				op.ProjectedChannelJoinGroups(&channelPayload, op.EffectiveProjectedChannelAutoGroup(channelPayload), ctx)
 				continue
 			}
 
-			updateReq := &model.ChannelUpdateRequest{ID: existingChannel.ID, Name: &channelPayload.Name, Type: &channelPayload.Type, Enabled: &channelPayload.Enabled, BaseUrls: &channelPayload.BaseUrls, Model: &channelPayload.Model, CustomModel: &channelPayload.CustomModel, ProxyMode: &channelPayload.ProxyMode, ProxyConfigID: channelPayload.ProxyConfigID, AutoSync: &channelPayload.AutoSync, CustomHeader: &channelPayload.CustomHeader, BypassManagedCheck: true}
+			// GroupID is sent on update too, so channels projected before the
+			// per-site folder existed get migrated out of Default on re-sync.
+			updateReq := &model.ChannelUpdateRequest{ID: existingChannel.ID, Name: &channelPayload.Name, Type: &channelPayload.Type, Enabled: &channelPayload.Enabled, GroupID: &channelPayload.GroupID, BaseUrls: &channelPayload.BaseUrls, Model: &channelPayload.Model, CustomModel: &channelPayload.CustomModel, ProxyMode: &channelPayload.ProxyMode, ProxyConfigID: channelPayload.ProxyConfigID, AutoSync: &channelPayload.AutoSync, CustomHeader: &channelPayload.CustomHeader, BypassManagedCheck: true}
 			updateReq.KeysToAdd, updateReq.KeysToUpdate, updateReq.KeysToDelete = diffManagedChannelKeys(existingChannel.Keys, channelPayload.Keys)
 			if _, err := op.ChannelUpdate(updateReq, ctx); err != nil {
 				return nil, fmt.Errorf("failed to update managed channel: %w", err)
@@ -246,9 +261,7 @@ func ProjectAccount(ctx context.Context, accountID int) ([]int, error) {
 			if err != nil {
 				return nil, err
 			}
-			if effective := op.EffectiveProjectedChannelAutoGroup(*updatedChannel); effective != model.AutoGroupTypeNone {
-				op.ChannelAutoGroupWithMode(updatedChannel, effective, ctx)
-			}
+			op.ProjectedChannelJoinGroups(updatedChannel, op.EffectiveProjectedChannelAutoGroup(*updatedChannel), ctx)
 		}
 	}
 
