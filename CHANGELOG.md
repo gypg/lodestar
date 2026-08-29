@@ -27,6 +27,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Batch 7** (2026-08-14): Internationalize winter-landing, site/index, and BillingExpr components (139 remaining hardcoded strings, down from 817 - 83% complete)
 
 ### 🚀 Features
+- **Site channels are reachable and routable** (`d178199` / `7ebc8f7`, 2026-08-29):
+  a projected site channel was both invisible and unusable, for two separate reasons.
+  Invisible: projection never set a folder, so every projected channel fell back to
+  the default one, and the channel list filters strictly by folder with no "all"
+  option — a site's channels only showed if that tab happened to be selected. Each
+  site now gets a folder named after it, created lazily so a site with no usable token
+  does not litter the tab strip, and the folder is sent on update too so channels
+  projected before this change migrate out of the default folder on their next sync.
+  Unusable: projection only ran the pass that *matches* pre-existing routing groups,
+  so on an install whose groups were never hand-built there was nothing to match, no
+  group item was written, and the relay answered "group not found" for every site
+  model — even with the global auto-group switch on. Projection now runs that match
+  pass first, preserving whichever mode the operator chose, then creates a canonical
+  group for anything it could not cover; a second site offering the same model joins
+  the existing group rather than being skipped. The switch stays authoritative: with
+  it off, nothing is created. Since this only fires during projection, channels
+  projected while the switch was off would stay groupless, so a non-destructive
+  retroactive action is exposed at `POST /api/v1/group/regroup-projected` and as a
+  button in Settings → Site Automation. Unlike the rebuild button it deletes nothing.
 - **Record who paid for an offline top-up** (2026-08-28): redemption codes are the
   inbound money path when no payment provider is configured, but unlike a payment
   order they recorded nothing about the payment behind them — only the code, its
@@ -206,6 +225,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🐛 Bug Fixes
 
 #### Critical (Production Impact)
+- **Auto-group deleted every channel folder** (`eebd31a`, 2026-08-29): the 自动分组
+  button ran a helper that queried the channel *folder* table while its purpose is
+  routing groups. `model.Group` has no `is_default` column at all, so that predicate
+  could only ever have addressed folders — a wrong-table bug, not a design choice, and
+  it ran on every press rather than only under `force`. Three consequences: every
+  operator-created folder was deleted, bypassing the non-empty guard that normally
+  protects a folder still holding channels; `group_items` rows were deleted keyed by
+  folder ids, which live in a different id space, so unrelated routing groups were
+  silently emptied wherever the integers collided; and the cache refresh afterwards
+  rebuilt only the routing-group cache, so the deleted folders kept being served until
+  something else refreshed. Because the channel list filters strictly by folder with no
+  "all" option, an affected channel then disappeared from the UI entirely. The
+  correct-table counterpart already existed with no caller and its own log strings
+  naming `force`; it is now wired there, and both copies of the broken helper are
+  deleted. Production had pressed this button 15 times but had never created a custom
+  folder, so nothing was actually lost — the default folder is protected by its flag.
+- **Site models were deleted from the model registry on every sync** (`fa54852`,
+  2026-08-29): `SyncModelsTask` diffed the whole registry against the models it had
+  just fetched and deleted every leftover carrying no price. But it only fetches from
+  channels that are both enabled and auto-sync, and site-projected channels are built
+  with auto-sync off, so none of their models were ever in that observation. A site
+  model with no known upstream price is registered at zero price, which is exactly the
+  deletion predicate. The task also runs on start, so a restart erased them too. The
+  visible symptom was a model listed on the site-channel page — which reads the site
+  tables directly — while being absent from the model market, which iterates the
+  registry. Candidates still declared by some channel are now retained, spanning all
+  channels regardless of enabled/auto-sync state, since a merely disabled channel is
+  still configured to serve its models and dropping the row would take the operator's
+  price settings with it. A model no channel offers at all stays collectable.
 - **End customers were shown administrator controls** (`7d1fad2`, 2026-08-28): a
   registered customer saw the top-up-code and invite generators on their own wallet
   page, plus all 21 settings panels including database backup, WebDAV, upstream sync
@@ -547,6 +595,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Roll back transactions on every early return path
 
 #### Site Management
+- **Model market showed a different spelling than the site-channel page** (`7ea4613`,
+  2026-08-29): the registry lowercases every model name on insert, so a model synced
+  as `Qwen/Qwen3-8B` was stored and rendered as `qwen/qwen3-8b`, while the
+  site-channel page showed the original casing read straight from the site tables.
+  Same model, two spellings, depending on which page you were on. Channels keep the
+  raw spelling, so the market now carries it through as a separate display field and
+  falls back to the stored name when no channel advertises the model. The stored name
+  deliberately stays the lowercased key: update and delete are addressed by it, and
+  exact group lookup is case-sensitive, so it is the spelling guaranteed to route —
+  which is also why the copy button still copies that one. Search needed no change,
+  as it already folded case on both sides.
 - **Username/password site accounts**: These accounts could never sync or check in.
   NewAPI-style logins authenticate with a session cookie plus a `new-api-user`
   header and return no `access_token`, which the credential path treated as
