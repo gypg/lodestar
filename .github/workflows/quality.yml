@@ -72,6 +72,16 @@ jobs:
           LODESTAR_TEST_POSTGRES_DSN: "host=127.0.0.1 user=postgres password=postgres dbname=lodestar_migrate_test port=5432 sslmode=disable"
         run: go test ./... -count=1 -run TestPostgres
 
+      - name: Deploy script exit codes
+        # deploy.sh used to exit 0 after falling back to a stale local image when
+        # both pull routes failed: the container ran old code, reported healthy,
+        # and poll-and-deploy.sh logged "deployment succeeded". That happened four
+        # times on 2026-08-28 and was only ever caught by inspecting the revision
+        # label by hand -- production sat on old code while the log said otherwise.
+        #
+        # Runs docker through stubs, so it needs no daemon and touches nothing.
+        run: bash scripts/deploy-exit-code.test.sh
+
   race:
     name: race detector
     runs-on: ubuntu-latest

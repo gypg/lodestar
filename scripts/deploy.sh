@@ -95,8 +95,16 @@ else
     echo "  但限速是按连接算的，多路并发能到 90-110KB/s；两个 28MB 大层约 10 分钟。" >&2
     docker image inspect "$IMAGE" >/dev/null 2>&1 || exit 1
     echo "   本地已存在 $IMAGE，用它继续 —— 注意这可能是**旧**镜像，本轮升级实际未生效。" >&2
+    # 记下「本轮没取回镜像」这个事实，供末尾决定退出码。
+    #
+    # ★ 这是四次假成功的根因：这条回落路径只往 stderr 打一句警告，然后照常走到
+    #   健康检查，容器（跑着旧代码）当然是 healthy，于是 exit 0 —— 调用方
+    #   poll-and-deploy.sh 据此打出「✓ 部署成功」。生产停在旧版本而日志说一切正常。
+    #   2026-08-28 一天内发生四次，每次都是人工核 revision label 才发现。
+    PULL_FELL_BACK_TO_STALE=1
   fi
 fi
+PULL_FELL_BACK_TO_STALE="${PULL_FELL_BACK_TO_STALE:-0}"
 
 # 回落路径已把镜像准备好，此处不能再让 compose 去 pull（pull_policy: always 会重蹈覆辙）。
 echo "==> 启动 / 滚动升级容器"
@@ -122,7 +130,31 @@ while ((SECONDS < DEADLINE)); do
   STATUS="$(docker inspect --format '{{.State.Health.Status}}' lodestar 2>/dev/null || echo "missing")"
   case "$STATUS" in
     healthy)
+      # Healthy 只说明「跑起来了」，不说明「跑的是这一轮要部署的东西」。
+      # 拉取回落过就必须失败退出：否则调用方会把「旧代码健康运行」读成部署成功。
+      if [[ "$PULL_FELL_BACK_TO_STALE" == "1" ]]; then
+        echo "✗ 容器健康，但本轮**未取回新镜像**，跑的仍是旧代码。" >&2
+        echo "  两条拉取链路都失败，脚本回落到了本地已有镜像。" >&2
+        echo "  修复：bash $(dirname "$0")/ghcr-pull-sharded.sh 然后重跑本脚本。" >&2
+        exit 1
+      fi
+      # 容器健康 ≠ 容器用的是刚拉下来的镜像。`up -d` 在某些情形下可能不重建容器，
+      # 于是新镜像躺在本地、容器还挂着旧的。比对「容器所用镜像的 revision」和
+      # 「tag 指向镜像的 revision」，不一致就失败 —— 这是判断「真的上线了」的唯一凭据，
+      # 也是此前每次部署都要人工执行的那条核查。
+      RUNNING_REV="$(docker inspect lodestar --format \
+        '{{index .Config.Labels "org.opencontainers.image.revision"}}' 2>/dev/null || true)"
+      IMAGE_REV="$(docker image inspect "$IMAGE" --format \
+        '{{index .Config.Labels "org.opencontainers.image.revision"}}' 2>/dev/null || true)"
+      if [[ -n "$RUNNING_REV" && -n "$IMAGE_REV" && "$RUNNING_REV" != "$IMAGE_REV" ]]; then
+        echo "✗ 容器健康，但它用的不是本轮镜像：" >&2
+        echo "    容器 revision：$RUNNING_REV" >&2
+        echo "    镜像 revision：$IMAGE_REV" >&2
+        echo "  容器未被重建。修复：docker compose up -d --force-recreate" >&2
+        exit 1
+      fi
       echo "✓ 部署成功，容器健康。运行版本：$IMAGE"
+      [[ -n "$RUNNING_REV" ]] && echo "  运行 revision：$RUNNING_REV"
       docker compose logs --tail=5 lodestar || true
       echo
       echo "  日志：docker compose logs -f lodestar"

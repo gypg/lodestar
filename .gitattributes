@@ -7,3 +7,16 @@
 # keeps the local working tree LF too, so local `gofmt` matches CI exactly.
 *.go text eol=lf
 
+# Same reasoning for shell scripts, with a harder failure mode: these get copied to
+# the Linux server and run there. CRLF makes the shebang `#!/usr/bin/env bash\r`, and
+# the kernel then reports "bad interpreter: No such file or directory" -- which reads
+# as a missing binary rather than a line-ending problem.
+#
+# The blobs were already LF (text=auto normalises on commit), so a clean checkout on
+# Linux was never affected. What this pins is the WORKING TREE on Windows, where
+# core.autocrlf=true was producing CRLF for build.sh and verify-heatmap-server.sh.
+# That matters because scripts reach the server by being copied out of a working tree
+# -- /opt/docker/lodestar is not a git checkout -- so a CRLF working copy ships a
+# broken script even though the repo is fine.
+*.sh text eol=lf
+
