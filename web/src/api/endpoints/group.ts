@@ -381,8 +381,10 @@ export interface GroupUpdateRequest {
     items_to_delete?: number[];
 }
 
-export function useGroupList() {
+/** Requires groups:read. Group.Items carries ChannelID/Priority/Weight (routing topology), so pass enabled:false for roles without it rather than opening the route. */
+export function useGroupList(enabled = true) {
     return useQuery({
+        enabled,
         queryKey: ['groups', 'list'],
         queryFn: async () => {
             return apiClient.get<Group[]>('/api/v1/group/list');

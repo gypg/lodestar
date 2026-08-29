@@ -223,6 +223,70 @@ test('the per-tab bootstrap prefetch is permission-gated', () => {
     }
 });
 
+/**
+ * The API-key form is reachable by end customers -- creating your own key is the
+ * point of the portal's API-keys page -- but two of its inputs were built for
+ * operators and fetched operator data unconditionally: useGroupList (groups:read)
+ * and useChannelList (channels:read). Pressing "new key" produced two toasts.
+ *
+ * Neither route can be opened up instead: Group.Items carries ChannelID, Priority
+ * and Weight (the routing topology) and Channel carries upstream names. So the model
+ * names a customer needs come from /model/capabilities, which is Auth()-only.
+ */
+test('the API-key form gates operator-only queries', () => {
+    const src = read('src/components/modules/setting/APIKey.tsx');
+
+    assert.match(
+        src,
+        /useGroupList\(\s*mayReadGroups\s*\)/,
+        'useGroupList must be gated -- it needs groups:read, which end customers lack',
+    );
+    assert.match(
+        src,
+        /useChannelList\(\s*mayReadChannels\s*\)/,
+        'useChannelList must be gated -- it needs channels:read',
+    );
+    for (const [flag, perm] of [
+        ['mayReadGroups', 'groups:read'],
+        ['mayReadChannels', 'channels:read'],
+    ] as const) {
+        const idx = src.indexOf(`const ${flag} =`);
+        assert.notEqual(idx, -1, `${flag} has been renamed or removed`);
+        const expr = src.slice(idx, src.indexOf(';', idx));
+        assert.match(
+            expr,
+            new RegExp(`hasPermission\\(\\s*currentUser\\?\\.role\\s*,\\s*'${perm}'\\s*\\)`),
+            `${flag} must be computed from hasPermission(..., '${perm}'). got: ${expr}`,
+        );
+        assert.doesNotMatch(expr, /!\s*hasPermission\(|\|\|\s*true/, `${flag} must not be inverted or forced true. got: ${expr}`);
+        assert.equal(
+            hasPermission('user', perm),
+            false,
+            `${flag} gates on ${perm}, but the end-customer role holds it -- gating would not help`,
+        );
+    }
+
+    // Customers must still be able to scope a key to models, via the safe source.
+    assert.match(
+        src,
+        /useModelCapabilities\(\s*!mayReadGroups\s*\)/,
+        'customers need model names from /model/capabilities when groups is unavailable',
+    );
+    assert.match(
+        src,
+        /mayReadGroups\s*\n?\s*\?\s*groups\.map/,
+        'availableModels must fall back to capabilities for roles without groups:read',
+    );
+
+    // The channel-exclusion picker lists upstream names, so it must be hidden
+    // outright rather than merely disabled.
+    assert.match(
+        src,
+        /\{mayReadChannels && \(/,
+        'the excluded-channels section must be hidden for roles without channels:read',
+    );
+});
+
 test('the end-customer role lacks every permission these queries need', () => {
     // The premise the three assertions above rest on. If this ever flips, the
     // gates are not wrong -- but they stop being about this role.

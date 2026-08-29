@@ -25,6 +25,9 @@ import {
 } from '@/api/endpoints/apikey';
 import { useGroupList } from '@/api/endpoints/group';
 import { useChannelList } from '@/api/endpoints/channel';
+import { useModelCapabilities } from '@/api/endpoints/model';
+import { useCurrentUser } from '@/api/endpoints/user';
+import { hasPermission } from '@/lib/permissions';
 import { useStatsAPIKey } from '@/api/endpoints/stats';
 import { cn } from '@/lib/utils';
 import { toast } from '@/components/common/Toast';
@@ -216,8 +219,23 @@ export interface APIKeyFormProps {
 
 export function APIKeyForm({ apiKey, isPending, submitLabel, tagSuggestions = [], onSubmit, onClose }: APIKeyFormProps) {
     const t = useTranslations('setting');
-    const { data: groups = [] } = useGroupList();
-    const { data: channels = [] } = useChannelList();
+    // This form is reachable by end customers -- creating your own key is the whole
+    // point of the portal's API-keys page -- but two of its inputs were built for
+    // operators and fetched operator data unconditionally. That 403'd twice for the
+    // `user` role, and the global query error handler turns each rejection into a
+    // toast, so pressing "new key" produced two "permission denied" popups.
+    //
+    // Neither list can simply be opened up. Group carries Items[] with ChannelID,
+    // Priority and Weight -- the routing topology; Channel carries upstream names.
+    const { data: currentUser } = useCurrentUser();
+    const mayReadGroups = hasPermission(currentUser?.role, 'groups:read');
+    const mayReadChannels = hasPermission(currentUser?.role, 'channels:read');
+    const { data: groups = [] } = useGroupList(mayReadGroups);
+    const { data: channels = [] } = useChannelList(mayReadChannels);
+    // Customers still need to pick which models their key may call, so the names come
+    // from /model/capabilities instead: {name, endpoints, conversation, available},
+    // reachable with only Auth() and carrying nothing about upstreams.
+    const { data: capabilities = [] } = useModelCapabilities(!mayReadGroups);
     const isEditing = !!apiKey;
 
     // Strip the fixed prefix so the form only edits the suffix part.
@@ -255,10 +273,14 @@ export function APIKeyForm({ apiKey, isPending, submitLabel, tagSuggestions = []
     });
     const [expireOpen, setExpireOpen] = useState(false);
 
+    // Staff get the names from groups (a group name IS the model name a key targets);
+    // customers get the same names from capabilities. Only one of the two queries runs.
     const availableModels = useMemo(() => {
-        const names = groups.map((g) => g.name).filter(Boolean);
-        return Array.from(new Set(names)).sort((a, b) => a.localeCompare(b));
-    }, [groups]);
+        const names = mayReadGroups
+            ? groups.map((g) => g.name)
+            : capabilities.map((c) => c.name);
+        return Array.from(new Set(names.filter(Boolean))).sort((a, b) => a.localeCompare(b));
+    }, [mayReadGroups, groups, capabilities]);
 
     const expireDate = parseExpireDate(form.expire_at);
     const neverExpire = !form.expire_at;
@@ -551,6 +573,11 @@ export function APIKeyForm({ apiKey, isPending, submitLabel, tagSuggestions = []
                 <div className="text-[11px] text-muted-foreground/80">{t('apiKey.form.modelsHint')}</div>
             </div>
 
+            {/* Excluding specific upstream channels is an operator control, and the
+                picker necessarily lists channel names. Hidden rather than disabled for
+                customers: showing them the upstream roster read-only is the disclosure
+                we are avoiding, not just the ability to change it. */}
+            {mayReadChannels && (
             <div className="grid gap-1 @lg:col-span-2">
                 <div className="text-xs text-muted-foreground">{t('apiKey.form.excludedChannels')}</div>
                 <div className="max-h-40 overflow-auto rounded-xl p-2">
@@ -587,6 +614,7 @@ export function APIKeyForm({ apiKey, isPending, submitLabel, tagSuggestions = []
                 </div>
                 <div className="text-[11px] text-muted-foreground/80">{t('apiKey.form.excludedChannelsHint')}</div>
             </div>
+            )}
 
             <div className="flex items-center justify-between pt-1 @lg:col-span-2">
                 <span className="text-xs text-muted-foreground">{t('apiKey.form.enabled')}</span>

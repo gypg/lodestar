@@ -300,8 +300,10 @@ export interface ModelCapability {
  *     console.log(cap.name, cap.endpoints, cap.conversation);
  * });
  */
-export function useModelCapabilities() {
+/** Auth() only -- safe for end customers; {name, endpoints, conversation, available}, nothing about upstreams. */
+export function useModelCapabilities(enabled = true) {
     return useQuery({
+        enabled,
         queryKey: ['models', 'capabilities'],
         queryFn: async () => {
             return apiClient.get<ModelCapability[]>('/api/v1/model/capabilities');

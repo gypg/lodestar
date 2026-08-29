@@ -211,8 +211,10 @@ export type TestChannelSummary = {
  *
  * channels?.forEach(channel => console.log(channel.raw.name));
  */
-export function useChannelList() {
+/** Requires channels:read and lists upstream names. Pass enabled:false where end customers can reach. */
+export function useChannelList(enabled = true) {
     return useQuery({
+        enabled,
         queryKey: ['channels', 'list'],
         queryFn: async () => {
             return apiClient.get<ChannelServer[]>('/api/v1/channel/list');
