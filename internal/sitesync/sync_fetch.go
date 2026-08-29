@@ -3,7 +3,9 @@ package sitesync
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/gypg/lodestar/internal/apperror"
@@ -38,9 +40,115 @@ func fetchManagementTokens(ctx context.Context, siteRecord *model.Site, account 
 		}
 		groupKey := model.NormalizeSiteGroupKey(firstNonEmptyString(jsonString(item["group"]), jsonString(item["token_group"]), jsonString(item["group_name"])))
 		groupName := model.NormalizeSiteGroupName(groupKey, firstNonEmptyString(jsonString(item["group_name"]), jsonString(item["group"]), jsonString(item["token_group"])))
-		tokens = append(tokens, model.SiteToken{Name: firstNonEmptyString(strings.TrimSpace(jsonString(item["name"])), fmt.Sprintf("token-%d", index+1)), Token: tokenValue, GroupKey: groupKey, GroupName: groupName, Enabled: parseEnabledFlag(item["status"]), Source: "sync", IsDefault: index == 0})
+		tokens = append(tokens, model.SiteToken{UpstreamID: int(jsonFloat(item["id"])), Name: firstNonEmptyString(strings.TrimSpace(jsonString(item["name"])), fmt.Sprintf("token-%d", index+1)), Token: tokenValue, GroupKey: groupKey, GroupName: groupName, Enabled: parseEnabledFlag(item["status"]), Source: "sync", IsDefault: index == 0})
 	}
-	return tokens, nil
+	return resolveMaskedManagementTokenKeys(ctx, siteRecord, account, accessToken, tokens), nil
+}
+
+// resolveMaskedManagementTokenKeys replaces masked key values with the plaintext
+// the remote site will hand back on request.
+//
+// Management platforms (new-api and its forks) mask keys everywhere they list
+// them -- list, get-by-id and update all return the `key[:4] + "**********" +
+// key[-4:]` form -- so a synced token is unusable for relaying: projection
+// refuses it and the operator is left retyping keys by hand. The plaintext is
+// still reachable through a dedicated endpoint, which the sync never called.
+//
+// Best-effort by design: any failure leaves the masked value in place, which is
+// exactly the previous behaviour, so an upstream without this endpoint (or one
+// that rate-limits it) degrades to "operator completes the key manually" rather
+// than breaking the sync.
+func resolveMaskedManagementTokenKeys(ctx context.Context, siteRecord *model.Site, account *model.SiteAccount, accessToken string, tokens []model.SiteToken) []model.SiteToken {
+	upstreamIDs := make([]int, 0, len(tokens))
+	for _, token := range tokens {
+		if token.UpstreamID > 0 && model.IsMaskedSiteTokenValue(token.Token) {
+			upstreamIDs = append(upstreamIDs, token.UpstreamID)
+		}
+	}
+	if len(upstreamIDs) == 0 {
+		return tokens
+	}
+
+	keysByUpstreamID := fetchManagementTokenPlaintextKeys(ctx, siteRecord, account, accessToken, upstreamIDs)
+	return applyResolvedTokenKeys(tokens, keysByUpstreamID)
+}
+
+// applyResolvedTokenKeys swaps masked values for the plaintext keyed by upstream
+// id. Split out from the request path so the substitution rules are testable
+// without standing up an upstream.
+func applyResolvedTokenKeys(tokens []model.SiteToken, keysByUpstreamID map[int]string) []model.SiteToken {
+	if len(keysByUpstreamID) == 0 {
+		return tokens
+	}
+
+	resolved := make([]model.SiteToken, 0, len(tokens))
+	for _, token := range tokens {
+		if token.UpstreamID > 0 && model.IsMaskedSiteTokenValue(token.Token) {
+			plaintext := strings.TrimSpace(keysByUpstreamID[token.UpstreamID])
+			// Reject an upstream that echoes the mask back: accepting it would
+			// flip the record to "ready" while leaving it unusable for relaying.
+			if plaintext != "" && !model.IsMaskedSiteTokenValue(plaintext) {
+				token.Token = plaintext
+			}
+		}
+		resolved = append(resolved, token)
+	}
+	return resolved
+}
+
+// fetchManagementTokenPlaintextKeys asks the remote site for the real key of each
+// upstream token id. Tries the batch endpoint first, then falls back to per-id
+// requests, since forks differ in which of the two they expose.
+func fetchManagementTokenPlaintextKeys(ctx context.Context, siteRecord *model.Site, account *model.SiteAccount, accessToken string, upstreamIDs []int) map[int]string {
+	keys := make(map[int]string, len(upstreamIDs))
+
+	batchPayload, err := requestJSONWithManagedAccessToken(
+		ctx,
+		siteRecord,
+		http.MethodPost,
+		buildSiteURL(siteRecord.BaseURL, "/api/token/batch/keys"),
+		map[string]any{"ids": upstreamIDs},
+		accessToken,
+		account,
+	)
+	if err == nil {
+		if raw, ok := nestedValue(batchPayload, "data", "keys").(map[string]any); ok {
+			for idText, value := range raw {
+				id, convErr := strconv.Atoi(idText)
+				if convErr != nil {
+					continue
+				}
+				if plaintext := strings.TrimSpace(jsonString(value)); plaintext != "" {
+					keys[id] = plaintext
+				}
+			}
+		}
+	}
+	if len(keys) == len(upstreamIDs) {
+		return keys
+	}
+
+	for _, id := range upstreamIDs {
+		if _, ok := keys[id]; ok {
+			continue
+		}
+		payload, singleErr := requestJSONWithManagedAccessToken(
+			ctx,
+			siteRecord,
+			http.MethodPost,
+			buildSiteURL(siteRecord.BaseURL, fmt.Sprintf("/api/token/%d/key", id)),
+			nil,
+			accessToken,
+			account,
+		)
+		if singleErr != nil {
+			continue
+		}
+		if plaintext := strings.TrimSpace(jsonString(nestedValue(payload, "data", "key"))); plaintext != "" {
+			keys[id] = plaintext
+		}
+	}
+	return keys
 }
 
 func fetchManagementGroups(ctx context.Context, siteRecord *model.Site, account *model.SiteAccount, accessToken string) ([]model.SiteUserGroup, error) {

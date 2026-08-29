@@ -188,17 +188,21 @@ const (
 )
 
 type SiteToken struct {
-	ID            int                  `json:"id" gorm:"primaryKey"`
-	SiteAccountID int                  `json:"site_account_id" gorm:"index;not null"`
-	Name          string               `json:"name"`
-	Token         string               `json:"token" gorm:"not null"`
-	ValueStatus   SiteTokenValueStatus `json:"value_status" gorm:"type:varchar(32);not null;default:'ready'"`
-	GroupKey      string               `json:"group_key" gorm:"size:128;index"`
-	GroupName     string               `json:"group_name"`
-	Enabled       bool                 `json:"enabled" gorm:"default:true"`
-	Source        string               `json:"source"`
-	IsDefault     bool                 `json:"is_default" gorm:"default:false"`
-	LastSyncAt    *time.Time           `json:"last_sync_at"`
+	ID            int `json:"id" gorm:"primaryKey"`
+	SiteAccountID int `json:"site_account_id" gorm:"index;not null"`
+	// UpstreamID is the token's id on the remote site, needed to ask that site
+	// for the plaintext key: management platforms mask keys in their token list,
+	// and the only way back to the real value is a per-id lookup.
+	UpstreamID  int                  `json:"upstream_id" gorm:"default:0"`
+	Name        string               `json:"name"`
+	Token       string               `json:"token" gorm:"not null"`
+	ValueStatus SiteTokenValueStatus `json:"value_status" gorm:"type:varchar(32);not null;default:'ready'"`
+	GroupKey    string               `json:"group_key" gorm:"size:128;index"`
+	GroupName   string               `json:"group_name"`
+	Enabled     bool                 `json:"enabled" gorm:"default:true"`
+	Source      string               `json:"source"`
+	IsDefault   bool                 `json:"is_default" gorm:"default:false"`
+	LastSyncAt  *time.Time           `json:"last_sync_at"`
 }
 
 type SiteUserGroup struct {
