@@ -150,6 +150,23 @@ func SyncModelsTask() {
 	}
 
 	deletedNorm, addedNorm := diff.Diff(llmPriceNames, totalNewModels)
+	// totalNewModels only covers channels this run actually fetched, i.e. those
+	// that are enabled AND AutoSync (see the skip at the top of the fetch loop).
+	// The registry, however, holds models from every channel. Diffing the whole
+	// registry against a partial observation misclassifies the rest as orphans.
+	//
+	// Site-projected channels are the case that bites: sitesync builds them with
+	// AutoSync:false, and a site model with no known upstream price is registered
+	// at zero price -- precisely the predicate
+	// LLMPriceDeleteFromDBWithNoPrice deletes on. Every sync run therefore
+	// erased them from 模型广场 while they kept rendering on the site-channel
+	// page, which reads site_models directly.
+	//
+	// Retain anything still declared by a channel; a model no channel offers at
+	// all remains collectable.
+	if len(deletedNorm) > 0 {
+		deletedNorm = retainModelsDeclaredByAnyChannel(deletedNorm, channels)
+	}
 	if len(deletedNorm) > 0 {
 		if err := helper.LLMPriceDeleteFromDBWithNoPrice(deletedNorm, ctx); err != nil {
 			log.Errorf("failed to batch delete models price: %v", err)
@@ -161,6 +178,38 @@ func SyncModelsTask() {
 		}
 	}
 	lastSyncModelsTime = time.Now()
+}
+
+// retainModelsDeclaredByAnyChannel drops from candidates every model that some
+// channel still declares, leaving only registry entries no channel offers.
+//
+// Deliberately spans all channels regardless of Enabled/AutoSync: a channel that
+// is merely disabled, or one that is refreshed by projection rather than by this
+// task, is still configured to serve its models, and dropping the registry row
+// would take the admin's price settings with it.
+func retainModelsDeclaredByAnyChannel(candidates []string, channels []model.Channel) []string {
+	declared := make(map[string]struct{}, len(channels)*8)
+	for _, ch := range channels {
+		for _, name := range xstrings.SplitTrimCompact(",", ch.Model, ch.CustomModel) {
+			name = strings.ToLower(strings.TrimSpace(name))
+			if name == "" {
+				continue
+			}
+			declared[name] = struct{}{}
+		}
+	}
+	if len(declared) == 0 {
+		return candidates
+	}
+
+	kept := make([]string, 0, len(candidates))
+	for _, candidate := range candidates {
+		if _, ok := declared[strings.ToLower(strings.TrimSpace(candidate))]; ok {
+			continue
+		}
+		kept = append(kept, candidate)
+	}
+	return kept
 }
 
 func GetLastSyncModelsTime() time.Time {
