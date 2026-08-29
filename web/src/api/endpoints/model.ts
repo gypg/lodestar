@@ -123,8 +123,14 @@ export function useModelChannelList() {
     });
 }
 
-export function useModelMarket() {
+/**
+ * Model market. Sits behind settings:read because the response embeds upstream
+ * channel names -- pass enabled:false anywhere an end customer can reach, or the
+ * 403 surfaces as a toast via the global query error handler.
+ */
+export function useModelMarket(enabled = true) {
     return useQuery({
+        enabled,
         queryKey: ['models', 'market'],
         queryFn: async () => {
             const response = await apiClient.get<ModelMarketResponse>('/api/v1/model/market');

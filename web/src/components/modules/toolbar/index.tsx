@@ -122,7 +122,16 @@ export function Toolbar() {
     const setModelProviderFilter = useToolbarViewOptionsStore((s) => s.setModelProviderFilter);
     const [expandedSearchItem, setExpandedSearchItem] = useState<ToolbarPage | null>(null);
     const searchExpanded = expandedSearchItem === toolbarItem;
-    const { data: modelMarket } = useModelMarket();
+    // Only fetch when this toolbar actually renders. The `if (!toolbarItem) return null`
+    // below cannot prevent it -- hooks run before it, and Toolbar is mounted on every
+    // page in app.tsx. So an ungated call hit /api/v1/model/market everywhere, including
+    // pages with no toolbar at all. That route needs settings:read, so for the
+    // end-customer role it 403'd and the global query error handler toasted, once per
+    // page load, on a page where the toolbar is not even visible.
+    //
+    // Gated on the toolbar being present rather than on the permission: the request is
+    // pointless when nothing consumes it, whoever is asking.
+    const { data: modelMarket } = useModelMarket(toolbarItem !== null);
     const updateModelPrice = useUpdateModelPrice();
     const modelSummary = modelMarket?.summary ?? {
         model_count: 0,

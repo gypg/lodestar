@@ -103,6 +103,37 @@ test('bootstrap waits for the role to settle before deciding', () => {
     );
 });
 
+/**
+ * Toolbar is mounted on every page in app.tsx, and its `if (!toolbarItem) return null`
+ * cannot stop a hook -- hooks run first. So an ungated useModelMarket() called
+ * /api/v1/model/market on every page for every role, including pages with no toolbar
+ * at all. That route needs settings:read, so it 403'd for end customers once per load.
+ */
+test('the toolbar only fetches the model market when it renders', () => {
+    const src = read('src/components/modules/toolbar/index.tsx');
+    assert.match(
+        src,
+        /useModelMarket\(\s*toolbarItem\s*!==\s*null\s*\)/,
+        'Toolbar must pass an enabled flag to useModelMarket -- it is mounted on every ' +
+        'page and the early return below the hooks cannot prevent the request',
+    );
+
+    const hookSrc = read('src/api/endpoints/model.ts');
+    assert.match(
+        hookSrc,
+        /export function useModelMarket\(enabled = true\)/,
+        'useModelMarket must accept an enabled flag',
+    );
+    // The flag has to reach useQuery, not just sit in the signature.
+    const start = hookSrc.indexOf('export function useModelMarket(');
+    const body = hookSrc.slice(start, hookSrc.indexOf('\n}', start));
+    assert.match(
+        body,
+        /^\s*enabled,\s*$/m,
+        `useModelMarket must forward enabled into useQuery. got: ${body}`,
+    );
+});
+
 test('admin subscription hooks accept an enabled flag', () => {
     const src = read('src/api/endpoints/subscription.ts');
     for (const hook of ['useAdminPlans', 'useAdminSubscriptions']) {

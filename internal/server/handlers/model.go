@@ -61,10 +61,10 @@ func init() {
 			router.NewRoute("/last-update-time", http.MethodGet).
 				Handle(getLastUpdateTime),
 		).
-		AddRoute(
-			router.NewRoute("/capabilities", http.MethodGet).
-				Handle(getModelCapabilities),
-		).
+		// /capabilities is registered separately below: it is the one route in this
+		// group that end customers legitimately need, and it carries nothing that
+		// justifies settings:read.
+
 		AddRoute(
 			router.NewRoute("/price-category/list", http.MethodGet).
 				Handle(listPriceCategories),
@@ -84,6 +84,25 @@ func init() {
 				Use(middleware.RequirePermission(auth.PermSettingsWrite)).
 				Handle(deletePriceCategory),
 		)
+	// Model capabilities: any signed-in user, no settings permission.
+	//
+	// It answers "which models exist, on which endpoint types, and are they up" --
+	// exactly what the API-keys page shows a customer so they know what their own key
+	// can call. ModelCapability is {name, endpoints, conversation, available}: no
+	// channel ids, no channel names, no key counts, nothing about upstreams. That is
+	// what separates it from /market in the group above, whose ModelMarketItem embeds
+	// Channels []ModelMarketChannel and therefore does need settings:read.
+	//
+	// It sat in that group only by proximity, and the end-customer role deliberately
+	// lacks settings:read, so the API-keys page 403'd on every visit.
+	router.NewGroupRouter("/api/v1/model").
+		Use(middleware.Auth()).
+		Use(middleware.RequireJSON()).
+		AddRoute(
+			router.NewRoute("/capabilities", http.MethodGet).
+				Handle(getModelCapabilities),
+		)
+
 	router.NewGroupRouter("/v1").
 		Use(middleware.APIKeyAuth()).
 		AddRoute(
