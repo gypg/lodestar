@@ -3558,24 +3558,32 @@ function SiteChannelGrid({
     // 添加 2 个以上站点后下方内容无法滚动查看。站点数量通常有限，直接
     // 全量渲染即可，和「站点」标签页保持一致的滚动行为。
     return (
-        <div
-            className={cn(
-                'grid gap-4',
-                layout === 'list' ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-3',
-            )}
-        >
-            {cards.map((card) => (
-                <SiteCard
-                    key={card.site_id}
-                    card={card}
-                    layout={layout}
-                    jumpRequest={pendingSiteChannelJump?.target.siteId === card.site_id ? pendingSiteChannelJump : null}
-                    highlighted={highlightedSiteId === card.site_id}
-                    registerCardRef={registerCardRef}
-                    onJumpHandled={clearPending}
-                    requestJump={requestJump}
-                />
-            ))}
+        <div className="flex flex-col gap-4">
+            {/* The only way to resolve a masked ("待补全") source key. Cards show
+                that state but carry no control for it, and this action was
+                exported without ever being mounted, so the state was a dead end:
+                projection refuses a masked key, and no reachable UI could
+                replace it. Self-hiding when nothing is pending. */}
+            <SiteChannelCompletionAction />
+            <div
+                className={cn(
+                    'grid gap-4',
+                    layout === 'list' ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-3',
+                )}
+            >
+                {cards.map((card) => (
+                    <SiteCard
+                        key={card.site_id}
+                        card={card}
+                        layout={layout}
+                        jumpRequest={pendingSiteChannelJump?.target.siteId === card.site_id ? pendingSiteChannelJump : null}
+                        highlighted={highlightedSiteId === card.site_id}
+                        registerCardRef={registerCardRef}
+                        onJumpHandled={clearPending}
+                        requestJump={requestJump}
+                    />
+                ))}
+            </div>
         </div>
     );
 }
