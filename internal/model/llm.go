@@ -29,7 +29,12 @@ type ModelMarketChannel struct {
 }
 
 type ModelMarketItem struct {
-	Name             string               `json:"name"`
+	Name string `json:"name"`
+	// DisplayName carries the upstream spelling of the model (e.g.
+	// "Qwen/Qwen3-8B") while Name stays the lowercased registry key that
+	// update/delete mutations are addressed by. Empty when no channel
+	// advertises the model, in which case the UI falls back to Name.
+	DisplayName      string               `json:"display_name"`
 	Input            float64              `json:"input"`
 	Output           float64              `json:"output"`
 	CacheRead        float64              `json:"cache_read"`

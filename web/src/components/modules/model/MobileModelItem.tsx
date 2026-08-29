@@ -167,7 +167,7 @@ export const MobileModelItem = memo(function MobileModelItem({ model, latencyUni
                     {/* Row 1: name + chevron */}
                     <div className="flex items-center gap-2">
                         <span className="min-w-0 flex-1 truncate text-sm font-semibold leading-tight text-card-foreground">
-                            {model.name}
+                            {model.display_name || model.name}
                         </span>
                         <ChevronDown
                             className={cn('size-4 shrink-0 text-muted-foreground transition-transform duration-200', isExpanded && 'rotate-180')}

@@ -102,3 +102,82 @@ func TestBuildModelMarket_UsesEmptyChannelsSliceWhenModelHasNoChannels(t *testin
 		t.Fatalf("len(Channels) = %d, want 0", len(items[0].Channels))
 	}
 }
+
+// The registry lowercases every name on insert, so a site model synced as
+// "Qwen/Qwen3-8B" is stored as "qwen/qwen3-8b" and used to render that way --
+// visibly inconsistent with the site channel page, which reads site_models
+// directly. DisplayName carries the channel's spelling back to the UI.
+func TestBuildModelMarket_DisplayNameKeepsUpstreamCasing(t *testing.T) {
+	items, _ := buildModelMarket(
+		[]model.LLMInfo{
+			{Name: "qwen/qwen3-8b"},
+		},
+		[]model.LLMChannel{
+			{Name: "Qwen/Qwen3-8B", ChannelID: 7, ChannelName: "site/acct/default-oai", Enabled: true},
+		},
+		map[int]model.Channel{
+			7: {ID: 7, Enabled: true, Keys: []model.ChannelKey{{Enabled: true}}},
+		},
+		nil,
+		time.Time{},
+	)
+
+	if len(items) != 1 {
+		t.Fatalf("len(items) = %d, want 1", len(items))
+	}
+	if items[0].DisplayName != "Qwen/Qwen3-8B" {
+		t.Fatalf("DisplayName = %q, want %q", items[0].DisplayName, "Qwen/Qwen3-8B")
+	}
+	// Name must stay the lowercased registry key: the UI addresses update and
+	// delete mutations by it, and exact group lookup is case-sensitive.
+	if items[0].Name != "qwen/qwen3-8b" {
+		t.Fatalf("Name = %q, want %q", items[0].Name, "qwen/qwen3-8b")
+	}
+}
+
+// A model in the registry that no channel advertises has no upstream spelling to
+// borrow; DisplayName stays empty and the UI falls back to Name.
+func TestBuildModelMarket_DisplayNameEmptyWithoutChannel(t *testing.T) {
+	items, _ := buildModelMarket(
+		[]model.LLMInfo{{Name: "orphan-model"}},
+		nil,
+		nil,
+		nil,
+		time.Time{},
+	)
+
+	if len(items) != 1 {
+		t.Fatalf("len(items) = %d, want 1", len(items))
+	}
+	if items[0].DisplayName != "" {
+		t.Fatalf("DisplayName = %q, want empty", items[0].DisplayName)
+	}
+}
+
+// The first channel to advertise a model decides its display casing, so the
+// result does not flip between renders when two channels disagree.
+func TestBuildModelMarket_DisplayNameStableAcrossDisagreeingChannels(t *testing.T) {
+	items, _ := buildModelMarket(
+		[]model.LLMInfo{{Name: "gpt-5.2"}},
+		[]model.LLMChannel{
+			{Name: "GPT-5.2", ChannelID: 1, ChannelName: "first", Enabled: true},
+			{Name: "gpt-5.2", ChannelID: 2, ChannelName: "second", Enabled: true},
+		},
+		map[int]model.Channel{
+			1: {ID: 1, Enabled: true},
+			2: {ID: 2, Enabled: true},
+		},
+		nil,
+		time.Time{},
+	)
+
+	if len(items) != 1 {
+		t.Fatalf("len(items) = %d, want 1", len(items))
+	}
+	if items[0].DisplayName != "GPT-5.2" {
+		t.Fatalf("DisplayName = %q, want %q (first channel wins)", items[0].DisplayName, "GPT-5.2")
+	}
+	if items[0].ChannelCount != 2 {
+		t.Fatalf("ChannelCount = %d, want 2", items[0].ChannelCount)
+	}
+}

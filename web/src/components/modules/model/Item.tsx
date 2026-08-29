@@ -46,6 +46,10 @@ export const ModelItem = memo(function ModelItem({ model, layout = 'grid', laten
     const deleteModel = useDeleteModel();
 
     const { Avatar: ModelAvatar, color: brandColor, label: providerLabel } = useMemo(() => getModelIcon(model.name), [model.name]);
+    // Upstream spelling for display only. Copy and mutations keep using
+    // model.name: exact group lookup is case-sensitive, so the lowercased
+    // registry key is the spelling guaranteed to route.
+    const displayName = model.display_name || model.name;
     const requestCount = model.request_success + model.request_failed;
     const visibleChannelTags = useMemo(() => model.channels.slice(0, isListLayout ? 4 : 3), [isListLayout, model.channels]);
     const hiddenChannelTagCount = Math.max(0, model.channels.length - visibleChannelTags.length);
@@ -181,9 +185,9 @@ export const ModelItem = memo(function ModelItem({ model, layout = 'grid', laten
                                 </div>
                                 <Tooltip side="top" sideOffset={10} align="start">
                                     <TooltipTrigger className="block max-w-full truncate text-left text-base font-semibold leading-tight text-card-foreground sm:text-lg">
-                                        {model.name}
+                                        {displayName}
                                     </TooltipTrigger>
-                                    <TooltipContent key={model.name}>{model.name}</TooltipContent>
+                                    <TooltipContent key={model.name}>{displayName}</TooltipContent>
                                 </Tooltip>
                                 <div className="flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground sm:gap-2">
                                     <span className="inline-flex items-center gap-1.5 rounded-full border border-border/25 bg-card px-2.5 py-0.5 text-[0.68rem] sm:gap-2 sm:px-3 sm:py-1 sm:text-xs">

@@ -92,10 +92,18 @@ func buildModelMarket(
 
 	channelsByModelName := make(map[string][]model.ModelMarketChannel)
 	seenChannelsByModel := make(map[string]map[int]struct{})
+	// The registry lowercases every model name on insert, so it cannot answer
+	// "how did upstream spell this". Channels keep the raw spelling, so the
+	// first channel to advertise a model decides its display casing.
+	displayNameByModelName := make(map[string]string)
 	for _, item := range modelChannels {
-		name := strings.ToLower(strings.TrimSpace(item.Name))
+		raw := strings.TrimSpace(item.Name)
+		name := strings.ToLower(raw)
 		if name == "" {
 			continue
+		}
+		if _, ok := displayNameByModelName[name]; !ok {
+			displayNameByModelName[name] = raw
 		}
 		if seenChannelsByModel[name] == nil {
 			seenChannelsByModel[name] = make(map[int]struct{})
@@ -158,6 +166,7 @@ func buildModelMarket(
 
 		items = append(items, model.ModelMarketItem{
 			Name:             llm.Name,
+			DisplayName:      displayNameByModelName[name],
 			Input:            llm.Input,
 			Output:           llm.Output,
 			CacheRead:        llm.CacheRead,

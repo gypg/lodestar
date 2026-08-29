@@ -38,6 +38,12 @@ export interface ModelMarketChannel {
 }
 
 export interface ModelMarketItem extends LLMInfo {
+    /**
+     * Upstream spelling of the model. `name` stays the lowercased registry key
+     * that update/delete mutations are addressed by, so render this instead and
+     * fall back to `name` when it is empty (no channel advertises the model).
+     */
+    display_name?: string;
     channel_count: number;
     enabled_key_count: number;
     average_latency_ms: number;
