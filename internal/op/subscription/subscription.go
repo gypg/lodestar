@@ -87,7 +87,24 @@ func CreatePlan(plan *model.SubscriptionPlan, ctx context.Context) error {
 	now := time.Now().Unix()
 	plan.CreatedAt = now
 	plan.UpdatedAt = now
-	return db.GetDB().WithContext(ctx).Create(plan).Error
+	// Enabled 的 default:true 标签会让 create 回调把显式的 false 吞成 true
+	// （停用套餐创建即上架可售）。Create 前快照意图，之后按回填的 ID 用
+	// UPDATE 补写停用态（更新路径不受该替换影响），并把结构体恢复为真实意图。
+	// EnabledSet 区分"字段缺失（默认启用）"与"显式 false（管理员要求下架）"：
+	// 只有后者需要补偿，否则缺失会被误当成停用——把一个 bug 换成另一个 bug。
+	explicitlyDisabled := plan.EnabledSet && !plan.Enabled
+	if err := db.GetDB().WithContext(ctx).Create(plan).Error; err != nil {
+		return err
+	}
+	if explicitlyDisabled {
+		if err := db.GetDB().WithContext(ctx).Model(&model.SubscriptionPlan{}).
+			Where("id = ?", plan.ID).
+			Update("enabled", false).Error; err != nil {
+			return err
+		}
+		plan.Enabled = false
+	}
+	return nil
 }
 
 // UpdatePlan updates an existing plan by ID using a map to preserve zero values.

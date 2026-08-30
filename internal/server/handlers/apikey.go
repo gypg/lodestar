@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
 	"strings"
@@ -15,6 +16,7 @@ import (
 	"github.com/gypg/lodestar/internal/server/middleware"
 	"github.com/gypg/lodestar/internal/server/resp"
 	"github.com/gypg/lodestar/internal/server/router"
+	"github.com/gypg/lodestar/internal/utils/log"
 	"github.com/gypg/lodestar/internal/utils/secretmask"
 	"github.com/samber/lo"
 )
@@ -78,6 +80,17 @@ func createAPIKey(c *gin.Context) {
 		}
 		resp.InternalError(c)
 		return
+	}
+	// Enabled 的 default:true 标签会让 create 回调把显式的 false 吞成 true，
+	// 且鉴权链只读 keyCache（auth.GetByKey → Get）——DB 对了缓存错照样放行。
+	// Create 前已快照意图；事后 UPDATE 落库并同步缓存。补偿失败必须大声记
+	// 日志：静默放行一把操作者要求停用的 Key 正是本缺陷要消灭的症状。
+	if req.EnabledSet && !req.Enabled {
+		if err := apikey.SetEnabled(apiKey.ID, false, c.Request.Context()); err != nil {
+			log.Errorf("createAPIKey: failed to persist explicitly disabled key (id=%d): %v", apiKey.ID, err)
+		} else {
+			apiKey.Enabled = false // 回写被 create 回调篡改的字段，保证响应体如实
+		}
 	}
 	resp.Success(c, apiKey)
 }
@@ -225,6 +238,7 @@ type apiKeyRequestPayload struct {
 	Name              string  `json:"name"`
 	APIKey            string  `json:"api_key,omitempty"`
 	Enabled           bool    `json:"enabled"`
+	EnabledSet        bool    `json:"-"` // 由 UnmarshalJSON 填充：区分"字段缺失"与"显式 false"
 	ExpireAt          int64   `json:"expire_at,omitempty"`
 	MaxCost           float64 `json:"max_cost,omitempty"`
 	MaxTokens         int64   `json:"max_tokens,omitempty"`
@@ -235,6 +249,24 @@ type apiKeyRequestPayload struct {
 	AllowedIPs        string  `json:"allowed_ips,omitempty"`
 	Tags              string  `json:"tags,omitempty"`
 	ExcludedChannels  string  `json:"excluded_channels,omitempty"`
+}
+
+// UnmarshalJSON 记录 "enabled" 键是否出现：裸 bool 下"字段缺失"与"显式 false"
+// 到达 Go 时都是 false，创建停用 Key 的补偿需要区分这两种请求。
+func (p *apiKeyRequestPayload) UnmarshalJSON(data []byte) error {
+	type alias apiKeyRequestPayload
+	aux := struct {
+		*alias
+	}{alias: (*alias)(p)}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	_, p.EnabledSet = raw["enabled"]
+	return nil
 }
 
 func (p apiKeyRequestPayload) toModel() model.APIKey {

@@ -13,6 +13,8 @@ Simplified for Lodestar:
 - Balance is float64 USD (matching Lodestar's quota model)
 */
 
+import "encoding/json"
+
 const (
 	// Subscription duration types
 	SubDurationMonth  = "month"
@@ -47,9 +49,31 @@ type SubscriptionPlan struct {
 	SortOrder       int     `json:"sort_order" gorm:"type:int;default:0"`
 	CreatedAt       int64   `json:"created_at" gorm:"bigint"`
 	UpdatedAt       int64   `json:"updated_at" gorm:"bigint"`
+	// EnabledSet 标记请求里是否显式给出了 enabled（仿 SiteAccount 的 *Set 模式）。
+	// 只在内存里传递，不落库：Enabled 的 default:true 标签会让 struct Create
+	// 把显式的 false 吞成 true（停用套餐创建即上架），CreatePlan 靠它事后补偿。
+	EnabledSet bool `json:"-" gorm:"-"`
 }
 
 func (SubscriptionPlan) TableName() string { return "subscription_plans" }
+
+// UnmarshalJSON 记录 "enabled" 键是否出现：裸 bool 下"字段缺失"（默认启用）
+// 与"显式 false（管理员要求下架）"到达 Go 时都是 false，必须可区分。
+func (p *SubscriptionPlan) UnmarshalJSON(data []byte) error {
+	type alias SubscriptionPlan
+	aux := struct {
+		*alias
+	}{alias: (*alias)(p)}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	_, p.EnabledSet = raw["enabled"]
+	return nil
+}
 
 // SubscriptionOrder represents a purchase attempt for a plan.
 type SubscriptionOrder struct {

@@ -28,6 +28,23 @@ func Create(key *model.APIKey, ctx context.Context) error {
 	return nil
 }
 
+// SetEnabled 按主键直接写 enabled 并同步 keyCache。
+// 鉴权链（auth.GetByKey → keyIDMap → Get → keyCache）只读缓存、零 DB 回落：
+// 补偿若只写 DB，Key 照样放行——DB 与缓存必须在同一次修正里一起改。
+// 用于补偿 struct Create 的 default:true 吞噬（显式 false 落库变启用）。
+func SetEnabled(id int, enabled bool, ctx context.Context) error {
+	if err := db.GetDB().WithContext(ctx).Model(&model.APIKey{}).
+		Where("id = ?", id).
+		Update("enabled", enabled).Error; err != nil {
+		return fmt.Errorf("failed to set API key enabled state: %w", err)
+	}
+	if k, ok := keyCache.Get(id); ok {
+		k.Enabled = enabled
+		keyCache.Set(id, k)
+	}
+	return nil
+}
+
 func Update(key *model.APIKey, ctx context.Context) error {
 	existing, ok := keyCache.Get(key.ID)
 	if !ok {

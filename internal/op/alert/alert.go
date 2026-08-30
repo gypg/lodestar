@@ -77,6 +77,20 @@ func RuleCreate(ctx context.Context, rule *model.AlertRule) error {
 	return nil
 }
 
+// RuleSetEnabled 按主键直接写 enabled 并失效规则缓存。
+// 用于补偿 struct Create 的 default:true 吞噬（显式 false 落库变启用，
+// 规则创建即开始评估告警）。缓存是失效式而非播种式：写库后失效即可，
+// 下一次读取会从 DB 重载。
+func RuleSetEnabled(ctx context.Context, id int, enabled bool) error {
+	if err := db.GetDB().WithContext(ctx).Model(&model.AlertRule{}).
+		Where("id = ?", id).
+		Update("enabled", enabled).Error; err != nil {
+		return err
+	}
+	invalidateRulesCache()
+	return nil
+}
+
 func RuleUpdate(ctx context.Context, rule *model.AlertRule) error {
 	if rule == nil || rule.ID == 0 {
 		return fmt.Errorf("alert rule not found")

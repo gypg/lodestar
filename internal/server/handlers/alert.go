@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
 	"strings"
@@ -13,6 +14,7 @@ import (
 	"github.com/gypg/lodestar/internal/server/middleware"
 	"github.com/gypg/lodestar/internal/server/resp"
 	"github.com/gypg/lodestar/internal/server/router"
+	"github.com/gypg/lodestar/internal/utils/log"
 )
 
 func init() {
@@ -49,6 +51,10 @@ func createAlertRule(c *gin.Context) {
 	}
 	rule := req.toModel()
 	rule.ID = 0
+	// Enabled 的 default:true 标签会让 create 回调把显式的 false 吞成 true，
+	// 规则创建即开始评估告警。Create 前快照意图，事后 UPDATE 落库并失效缓存。
+	enabledIntent := req.Enabled
+	explicitlyDisabled := req.EnabledSet && !req.Enabled
 	if err := alert.RuleCreate(c.Request.Context(), &rule); err != nil {
 		if status, msg, ok := classifyAlertMutationError(err); ok {
 			resp.Error(c, status, msg)
@@ -56,6 +62,13 @@ func createAlertRule(c *gin.Context) {
 		}
 		resp.InternalError(c)
 		return
+	}
+	if explicitlyDisabled {
+		if err := alert.RuleSetEnabled(c.Request.Context(), rule.ID, false); err != nil {
+			log.Errorf("createAlertRule: failed to persist explicitly disabled rule (id=%d): %v", rule.ID, err)
+		} else {
+			rule.Enabled = enabledIntent // 响应体如实
+		}
 	}
 	resp.Success(c, rule)
 }
@@ -192,6 +205,7 @@ type alertRulePayload struct {
 	ID             int                          `json:"id"`
 	Name           string                       `json:"name"`
 	Enabled        bool                         `json:"enabled"`
+	EnabledSet     bool                         `json:"-"` // 由 UnmarshalJSON 填充：区分"字段缺失"与"显式 false"
 	ConditionType  model.AlertRuleConditionType `json:"condition_type"`
 	Threshold      float64                      `json:"threshold"`
 	ConditionJSON  string                       `json:"condition_json,omitempty"`
@@ -199,6 +213,24 @@ type alertRulePayload struct {
 	CooldownSec    int                          `json:"cooldown_sec"`
 	ScopeChannelID int                          `json:"scope_channel_id,omitempty"`
 	ScopeAPIKeyID  int                          `json:"scope_api_key_id,omitempty"`
+}
+
+// UnmarshalJSON 记录 "enabled" 键是否出现：裸 bool 下"字段缺失"与"显式 false"
+// 到达 Go 时都是 false，创建停用规则的补偿需要区分这两种请求。
+func (p *alertRulePayload) UnmarshalJSON(data []byte) error {
+	type alias alertRulePayload
+	aux := struct {
+		*alias
+	}{alias: (*alias)(p)}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	_, p.EnabledSet = raw["enabled"]
+	return nil
 }
 
 func (p alertRulePayload) toModel() model.AlertRule {

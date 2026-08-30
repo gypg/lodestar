@@ -172,6 +172,10 @@ func createChannel(c *gin.Context) {
 		return
 	}
 	channel := req.toChannel()
+	// Channel.Enabled 与 Keys 的 Enabled 都是 default:true 裸 bool：Create 前快照
+	// 显式停用意图（create 回调会把结构体字段回写成 true，意图之后不可恢复）。
+	channelEnabledIntent := req.Enabled
+	channelExplicitlyDisabled := req.EnabledSet && !req.Enabled
 	// Enabled 的 default:true 标签会让 create 回调把结构体里的 Enabled=false
 	// 回写成 true（意图在 Create 之后不可恢复），必须在 Create 之前快照
 	// 显式停用意图，事后按回填的 ID 用 UPDATE 补写停用态并刷新缓存。
@@ -201,6 +205,16 @@ func createChannel(c *gin.Context) {
 	if len(disabledKeyIDs) > 0 {
 		if err := ch.KeysForceDisabled(channel.ID, disabledKeyIDs, c.Request.Context()); err != nil {
 			log.Errorf("createChannel: failed to persist explicitly disabled keys (channel_id=%d): %v", channel.ID, err)
+		}
+	}
+	// 与上面 Keys 补偿的先后无约束：ch.Enabled 先写 DB 再写 chCache，所以
+	// KeysForceDisabled 里的 RefreshCacheByID 无论在其前后重载，读到的都是
+	// 已修正的 DB 值。两种顺序终态一致，由 combined 测试守着。
+	if channelExplicitlyDisabled {
+		if err := ch.Enabled(channel.ID, false, c.Request.Context()); err != nil {
+			log.Errorf("createChannel: failed to persist explicitly disabled channel (id=%d): %v", channel.ID, err)
+		} else {
+			channel.Enabled = channelEnabledIntent // 响应体如实
 		}
 	}
 	stats := st.ChannelGet(channel.ID)
@@ -353,6 +367,7 @@ type channelRequestPayload struct {
 	GroupID        int                         `json:"group_id"`
 	Type           outbound.OutboundType       `json:"type"`
 	Enabled        bool                        `json:"enabled"`
+	EnabledSet     bool                        `json:"-"` // 由 UnmarshalJSON 填充：区分"字段缺失"与"显式 false"
 	BaseUrls       []model.BaseUrl             `json:"base_urls"`
 	Keys           []channelKeyRequestPayload  `json:"keys"`
 	Model          string                      `json:"model"`
@@ -386,6 +401,24 @@ type channelKeyRequestPayload struct {
 // 到达 Go 时都是 false，创建级联的停用补偿需要区分这两种请求。
 func (p *channelKeyRequestPayload) UnmarshalJSON(data []byte) error {
 	type alias channelKeyRequestPayload
+	aux := struct {
+		*alias
+	}{alias: (*alias)(p)}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	_, p.EnabledSet = raw["enabled"]
+	return nil
+}
+
+// UnmarshalJSON 记录 "enabled" 键是否出现：裸 bool 下"字段缺失"与"显式 false"
+// 到达 Go 时都是 false，创建停用渠道的补偿需要区分这两种请求。
+func (p *channelRequestPayload) UnmarshalJSON(data []byte) error {
+	type alias channelRequestPayload
 	aux := struct {
 		*alias
 	}{alias: (*alias)(p)}
