@@ -585,17 +585,22 @@ func UpdateSiteSourceKeys(siteID int, accountID int, req *model.SiteSourceKeyUpd
 			if err != nil {
 				return err
 			}
-			row := model.SiteToken{
-				SiteAccountID: accountID,
-				Name:          strings.TrimSpace(item.Name),
-				Token:         normalizedToken,
-				GroupKey:      targetGroupKey,
-				GroupName:     model.NormalizeSiteGroupName(targetGroupKey, targetGroupKey),
-				Enabled:       item.Enabled,
-				ValueStatus:   model.SiteTokenValueStatusReady,
-				Source:        "manual",
-			}
-			if err := tx.Create(&row).Error; err != nil {
+			// Enabled carries a gorm default:true tag, and gorm's create callback
+			// substitutes the default for any zero-valued tagged field, so a
+			// struct Create would turn an operator-added disabled key into an
+			// enabled one. Insert via a map to land item.Enabled as given.
+			// upstream_id / is_default / last_sync_at are omitted on purpose:
+			// their column defaults (0 / false / NULL) match the struct Create.
+			if err := tx.Model(&model.SiteToken{}).Create(map[string]any{
+				"site_account_id": accountID,
+				"name":            strings.TrimSpace(item.Name),
+				"token":           normalizedToken,
+				"group_key":       targetGroupKey,
+				"group_name":      model.NormalizeSiteGroupName(targetGroupKey, targetGroupKey),
+				"enabled":         item.Enabled,
+				"value_status":    model.SiteTokenValueStatusReady,
+				"source":          "manual",
+			}).Error; err != nil {
 				return err
 			}
 		}

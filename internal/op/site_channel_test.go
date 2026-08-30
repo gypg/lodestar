@@ -685,3 +685,104 @@ func TestBuildSiteModelSummaryAggregatesAndBuckets(t *testing.T) {
 		t.Fatalf("expected LastRequestAt to reflect latest hour, got %v", summary.LastRequestAt)
 	}
 }
+
+func TestUpdateSiteSourceKeysAddsDisabledKeyAsDisabled(t *testing.T) {
+	ctx := setupSiteOpTestDB(t)
+
+	site := &model.Site{
+		Name:     "site-channel-add-disabled-site",
+		Platform: model.SitePlatformNewAPI,
+		BaseURL:  "https://example.com",
+		Enabled:  true,
+	}
+	if err := SiteCreate(site, ctx); err != nil {
+		t.Fatalf("SiteCreate failed: %v", err)
+	}
+
+	account := &model.SiteAccount{
+		SiteID:         site.ID,
+		Name:           "site-channel-add-disabled-account",
+		CredentialType: model.SiteCredentialTypeAccessToken,
+		AccessToken:    "token",
+		Enabled:        true,
+	}
+	if err := SiteAccountCreate(account, ctx); err != nil {
+		t.Fatalf("SiteAccountCreate failed: %v", err)
+	}
+
+	if err := UpdateSiteSourceKeys(site.ID, account.ID, &model.SiteSourceKeyUpdateRequest{
+		GroupKey: model.SiteDefaultGroupKey,
+		KeysToAdd: []model.SiteSourceKeyAddRequest{{
+			Enabled: false,
+			Token:   "brand-new-key",
+			Name:    "added-disabled",
+		}},
+	}, ctx); err != nil {
+		t.Fatalf("UpdateSiteSourceKeys failed: %v", err)
+	}
+
+	var saved model.SiteToken
+	if err := dbpkg.GetDB().WithContext(ctx).
+		Where("site_account_id = ? AND group_key = ? AND name = ?", account.ID, model.SiteDefaultGroupKey, "added-disabled").
+		First(&saved).Error; err != nil {
+		t.Fatalf("load added site token failed: %v", err)
+	}
+	if saved.Enabled {
+		t.Fatalf("user asked for enabled=false; stored enabled=true")
+	}
+	if saved.Token != "sk-brand-new-key" {
+		t.Fatalf("expected added token to be normalized, got %q", saved.Token)
+	}
+	if saved.Source != "manual" {
+		t.Fatalf("expected added token source manual, got %q", saved.Source)
+	}
+	if saved.ValueStatus != model.SiteTokenValueStatusReady {
+		t.Fatalf("expected added token value_status ready, got %q", saved.ValueStatus)
+	}
+}
+
+func TestUpdateSiteSourceKeysAddsEnabledKeyAsEnabled(t *testing.T) {
+	ctx := setupSiteOpTestDB(t)
+
+	site := &model.Site{
+		Name:     "site-channel-add-enabled-site",
+		Platform: model.SitePlatformNewAPI,
+		BaseURL:  "https://example.com",
+		Enabled:  true,
+	}
+	if err := SiteCreate(site, ctx); err != nil {
+		t.Fatalf("SiteCreate failed: %v", err)
+	}
+
+	account := &model.SiteAccount{
+		SiteID:         site.ID,
+		Name:           "site-channel-add-enabled-account",
+		CredentialType: model.SiteCredentialTypeAccessToken,
+		AccessToken:    "token",
+		Enabled:        true,
+	}
+	if err := SiteAccountCreate(account, ctx); err != nil {
+		t.Fatalf("SiteAccountCreate failed: %v", err)
+	}
+
+	if err := UpdateSiteSourceKeys(site.ID, account.ID, &model.SiteSourceKeyUpdateRequest{
+		GroupKey: model.SiteDefaultGroupKey,
+		KeysToAdd: []model.SiteSourceKeyAddRequest{{
+			Enabled: true,
+			Token:   "brand-new-key",
+			Name:    "added-enabled",
+		}},
+	}, ctx); err != nil {
+		t.Fatalf("UpdateSiteSourceKeys failed: %v", err)
+	}
+
+	var saved model.SiteToken
+	if err := dbpkg.GetDB().WithContext(ctx).
+		Where("site_account_id = ? AND group_key = ? AND name = ?", account.ID, model.SiteDefaultGroupKey, "added-enabled").
+		First(&saved).Error; err != nil {
+		t.Fatalf("load added site token failed: %v", err)
+	}
+	if !saved.Enabled {
+		t.Fatalf("user asked for enabled=true; stored enabled=false")
+	}
+}
