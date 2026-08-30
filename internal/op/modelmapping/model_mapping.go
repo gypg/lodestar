@@ -9,6 +9,7 @@ import (
 
 	"github.com/gypg/lodestar/internal/db"
 	"github.com/gypg/lodestar/internal/model"
+	"gorm.io/gorm"
 )
 
 var (
@@ -61,9 +62,24 @@ func Create(ctx context.Context, req *model.ModelMappingCreateRequest) (*model.M
 		ScopeGroupID: req.ScopeGroupID,
 	}
 
-	if err := db.GetDB().WithContext(ctx).Create(mapping).Error; err != nil {
-		return nil, fmt.Errorf("create model mapping: %w", err)
+	// Enabled 带 gorm default:true 标签，create 回调会把零值的 false 替换成默认
+	// true（连结构体字段也被回写），struct Create 落不进显式的 false。
+	// 同事务用 map-Update 补写回操作者要求的停用态；更新路径不受该替换影响。
+	// 不用纯 map 插入：调用方需要回填了自增 ID 的 *ModelMapping。
+	writeErr := db.GetDB().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(mapping).Error; err != nil {
+			return err
+		}
+		if enabled {
+			return nil
+		}
+		return tx.Model(&model.ModelMapping{}).Where("id = ?", mapping.ID).
+			Update("enabled", false).Error
+	})
+	if writeErr != nil {
+		return nil, fmt.Errorf("create model mapping: %w", writeErr)
 	}
+	mapping.Enabled = enabled // create 回调把 false 回写成 true；返回值必须如实
 
 	if err := InitCache(ctx); err != nil {
 		return nil, err

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"strconv"
 	"strings"
@@ -171,6 +172,17 @@ func createChannel(c *gin.Context) {
 		return
 	}
 	channel := req.toChannel()
+	// Enabled 的 default:true 标签会让 create 回调把结构体里的 Enabled=false
+	// 回写成 true（意图在 Create 之后不可恢复），必须在 Create 之前快照
+	// 显式停用意图，事后按回填的 ID 用 UPDATE 补写停用态并刷新缓存。
+	// 补偿失败不回滚已创建的渠道，但必须大声记日志——静默启用正是本缺陷
+	// 要消灭的症状。
+	explicitlyDisabledIdx := make([]int, 0)
+	for i, key := range channel.Keys {
+		if key.EnabledSet && !key.Enabled {
+			explicitlyDisabledIdx = append(explicitlyDisabledIdx, i)
+		}
+	}
 	if err := ch.Create(&channel, c.Request.Context()); err != nil {
 		if status, msg, ok := classifyChannelMutationError(err); ok {
 			resp.Error(c, status, msg)
@@ -178,6 +190,18 @@ func createChannel(c *gin.Context) {
 		}
 		resp.InternalError(c)
 		return
+	}
+	disabledKeyIDs := make([]int, 0)
+	for _, idx := range explicitlyDisabledIdx {
+		if channel.Keys[idx].ID != 0 {
+			disabledKeyIDs = append(disabledKeyIDs, channel.Keys[idx].ID)
+			channel.Keys[idx].Enabled = false // 回写被 create 回调篡改的字段，保证响应体如实
+		}
+	}
+	if len(disabledKeyIDs) > 0 {
+		if err := ch.KeysForceDisabled(channel.ID, disabledKeyIDs, c.Request.Context()); err != nil {
+			log.Errorf("createChannel: failed to persist explicitly disabled keys (channel_id=%d): %v", channel.ID, err)
+		}
 	}
 	stats := st.ChannelGet(channel.ID)
 	channel.Stats = &stats
@@ -350,11 +374,30 @@ type channelKeyRequestPayload struct {
 	ID               int     `json:"id"`
 	ChannelID        int     `json:"channel_id"`
 	Enabled          bool    `json:"enabled"`
+	EnabledSet       bool    `json:"-"`
 	ChannelKey       string  `json:"channel_key"`
 	StatusCode       int     `json:"status_code"`
 	LastUseTimeStamp int64   `json:"last_use_time_stamp"`
 	TotalCost        float64 `json:"total_cost"`
 	Remark           string  `json:"remark"`
+}
+
+// UnmarshalJSON 记录 "enabled" 键是否出现：裸 bool 下"字段缺失"与"显式 false"
+// 到达 Go 时都是 false，创建级联的停用补偿需要区分这两种请求。
+func (p *channelKeyRequestPayload) UnmarshalJSON(data []byte) error {
+	type alias channelKeyRequestPayload
+	aux := struct {
+		*alias
+	}{alias: (*alias)(p)}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	_, p.EnabledSet = raw["enabled"]
+	return nil
 }
 
 func (p channelRequestPayload) toChannel() model.Channel {
@@ -367,6 +410,7 @@ func (p channelRequestPayload) toChannel() model.Channel {
 			Enabled:    key.Enabled,
 			ChannelKey: key.ChannelKey,
 			Remark:     key.Remark,
+			EnabledSet: key.EnabledSet,
 		})
 	}
 	// proxy_mode 空值兜底为 direct：老客户端不发这个字段，而 resolveChannelProxy

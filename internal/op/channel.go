@@ -32,6 +32,12 @@ func init() {
 	}
 }
 
+// ChannelKeysForceDisabled 把创建渠道时被 default:true 吞掉显式 false 的
+// 级联 Key 改回停用态，并刷新该渠道的缓存。见 channel.KeysForceDisabled。
+func ChannelKeysForceDisabled(channelID int, keyIDs []int, ctx context.Context) error {
+	return channel.KeysForceDisabled(channelID, keyIDs, ctx)
+}
+
 // Deprecated: Use channel.List from internal/op/channel instead.
 func ChannelList(ctx context.Context) ([]model.Channel, error) { return channel.List(ctx) }
 

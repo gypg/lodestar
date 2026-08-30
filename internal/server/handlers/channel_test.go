@@ -424,3 +424,138 @@ func TestChannelPayloadToModelDropsReadonlyAndRuntimeFields(t *testing.T) {
 		t.Fatalf("writable key fields not preserved: %+v", key)
 	}
 }
+
+// 创建渠道时 Keys 随 db.Create(ch) 级联插入，ChannelKey.Enabled 的
+// default:true 标签会把显式的 enabled=false 吞成 true。三条测试都必须
+// 真走 JSON 绑定（ShouldBindJSON → channelKeyRequestPayload 的 UnmarshalJSON）：
+// 显式 false → 落库 false；显式 true → 落库 true；字段缺失 → 落库 true。
+
+func setupChannelCreateHandlerTest(t *testing.T) {
+	t.Helper()
+	gin.SetMode(gin.TestMode)
+	testName := strings.NewReplacer("/", "-", "\\", "-", " ", "-").Replace(t.Name())
+	dsn := fmt.Sprintf("file:%s?mode=memory&cache=shared", testName)
+	if err := db.InitDB("sqlite", dsn, false); err != nil {
+		t.Fatalf("init db: %v", err)
+	}
+	if err := op.InitCache(); err != nil {
+		t.Fatalf("init cache: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = db.Close()
+	})
+}
+
+func TestCreateChannelPersistsExplicitlyDisabledKeyAsDisabled(t *testing.T) {
+	setupChannelCreateHandlerTest(t)
+
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	body := `{"name":"create-disabled-key","type":0,"enabled":true,"model":"gpt-4o-mini","keys":[{"channel_key":"k-dis","enabled":false,"remark":"added disabled"}]}`
+	c.Request = httptest.NewRequest(http.MethodPost, "/api/v1/channel/create", strings.NewReader(body))
+	c.Request.Header.Set("Content-Type", "application/json")
+
+	createChannel(c)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body=%s", recorder.Code, http.StatusOK, recorder.Body.String())
+	}
+
+	var saved model.ChannelKey
+	if err := db.GetDB().Where("channel_key = ?", "k-dis").First(&saved).Error; err != nil {
+		t.Fatalf("load created key failed: %v", err)
+	}
+	if saved.Enabled {
+		t.Fatalf("user asked for enabled=false; stored enabled=true")
+	}
+	if saved.Remark != "added disabled" {
+		t.Fatalf("expected remark to be persisted, got %q", saved.Remark)
+	}
+}
+
+func TestCreateChannelPersistsExplicitlyEnabledKeyAsEnabled(t *testing.T) {
+	setupChannelCreateHandlerTest(t)
+
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	body := `{"name":"create-enabled-key","type":0,"enabled":true,"model":"gpt-4o-mini","keys":[{"channel_key":"k-en","enabled":true}]}`
+	c.Request = httptest.NewRequest(http.MethodPost, "/api/v1/channel/create", strings.NewReader(body))
+	c.Request.Header.Set("Content-Type", "application/json")
+
+	createChannel(c)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body=%s", recorder.Code, http.StatusOK, recorder.Body.String())
+	}
+
+	var saved model.ChannelKey
+	if err := db.GetDB().Where("channel_key = ?", "k-en").First(&saved).Error; err != nil {
+		t.Fatalf("load created key failed: %v", err)
+	}
+	if !saved.Enabled {
+		t.Fatalf("user asked for enabled=true; stored enabled=false")
+	}
+}
+
+func TestCreateChannelAddsKeyWithoutEnabledFieldAsEnabled(t *testing.T) {
+	setupChannelCreateHandlerTest(t)
+
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	// 老客户端的形状：keys 条目里没有 "enabled" 键，必须保持默认启用。
+	body := `{"name":"create-missing-key","type":0,"enabled":true,"model":"gpt-4o-mini","keys":[{"channel_key":"k-legacy"}]}`
+	c.Request = httptest.NewRequest(http.MethodPost, "/api/v1/channel/create", strings.NewReader(body))
+	c.Request.Header.Set("Content-Type", "application/json")
+
+	createChannel(c)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body=%s", recorder.Code, http.StatusOK, recorder.Body.String())
+	}
+
+	var saved model.ChannelKey
+	if err := db.GetDB().Where("channel_key = ?", "k-legacy").First(&saved).Error; err != nil {
+		t.Fatalf("load created key failed: %v", err)
+	}
+	if !saved.Enabled {
+		t.Fatalf("expected key without explicit enabled to default to enabled=true, got enabled=false")
+	}
+}
+
+// 同一次创建里混合启用/停用 Key：各自必须按请求原样落库。
+// 这条测试防止停用补偿"扩大化"——把渠道里本该启用的 Key 也一起停掉。
+func TestCreateChannelPersistsMixedKeysAsGiven(t *testing.T) {
+	setupChannelCreateHandlerTest(t)
+
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	body := `{"name":"create-mixed-keys","type":0,"enabled":true,"model":"gpt-4o-mini","keys":[` +
+		`{"channel_key":"mix-on","enabled":true},` +
+		`{"channel_key":"mix-off","enabled":false,"remark":"held back"}]}`
+	c.Request = httptest.NewRequest(http.MethodPost, "/api/v1/channel/create", strings.NewReader(body))
+	c.Request.Header.Set("Content-Type", "application/json")
+
+	createChannel(c)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body=%s", recorder.Code, http.StatusOK, recorder.Body.String())
+	}
+
+	var enabledKey model.ChannelKey
+	if err := db.GetDB().Where("channel_key = ?", "mix-on").First(&enabledKey).Error; err != nil {
+		t.Fatalf("load mix-on failed: %v", err)
+	}
+	if !enabledKey.Enabled {
+		t.Fatalf("expected explicitly enabled key to stay enabled in a mixed create")
+	}
+	var disabledKey model.ChannelKey
+	if err := db.GetDB().Where("channel_key = ?", "mix-off").First(&disabledKey).Error; err != nil {
+		t.Fatalf("load mix-off failed: %v", err)
+	}
+	if disabledKey.Enabled {
+		t.Fatalf("user asked for enabled=false; stored enabled=true")
+	}
+	if disabledKey.Remark != "held back" {
+		t.Fatalf("expected remark to be persisted, got %q", disabledKey.Remark)
+	}
+}

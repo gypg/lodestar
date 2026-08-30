@@ -118,6 +118,10 @@ type ChannelKey struct {
 	LastUseTimeStamp int64   `json:"last_use_time_stamp"`
 	TotalCost        float64 `json:"total_cost"`
 	Remark           string  `json:"remark"`
+	// EnabledSet 标记请求里是否显式给出了 enabled（仿 SiteAccount 的 *Set 模式）。
+	// 只在内存里传递，不落库：Enabled 的 default:true 标签会让 struct Create
+	// 把显式的 false 吞成 true，create 级联靠这个标记事后补偿。
+	EnabledSet bool `json:"-" gorm:"-"`
 }
 
 // ChannelUpdateRequest 渠道更新请求 - 仅包含变更的数据
@@ -171,8 +175,27 @@ func (r *ChannelUpdateRequest) UnmarshalJSON(data []byte) error {
 
 type ChannelKeyAddRequest struct {
 	Enabled    bool   `json:"enabled"`
+	EnabledSet bool   `json:"-"` // 由 UnmarshalJSON 填充：区分"字段缺失"与"显式 false"
 	ChannelKey string `json:"channel_key" binding:"required"`
 	Remark     string `json:"remark"`
+}
+
+// UnmarshalJSON 记录 "enabled" 键是否出现，用于区分「字段缺失（默认启用）」
+// 和「显式 false（操作者要求停用）」——裸 bool 下两者到达 Go 时都是 false。
+func (r *ChannelKeyAddRequest) UnmarshalJSON(data []byte) error {
+	type alias ChannelKeyAddRequest
+	aux := struct {
+		*alias
+	}{alias: (*alias)(r)}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	_, r.EnabledSet = raw["enabled"]
+	return nil
 }
 
 type ChannelKeyUpdateRequest struct {

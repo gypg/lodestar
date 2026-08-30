@@ -87,6 +87,22 @@ func Create(ch *model.Channel, ctx context.Context) error {
 	return nil
 }
 
+// KeysForceDisabled 补偿创建渠道时 Keys 级联插入的 default:true 吞噬：
+// struct Create 落不进显式的 enabled=false，操作者要求停用的 Key 会落成启用。
+// 按 ID 用 UPDATE 写回停用态（更新路径不受 create 回调的默认值替换影响），
+// 并刷新渠道缓存，避免路由继续按缓存里的启用态调度该 Key。
+func KeysForceDisabled(channelID int, keyIDs []int, ctx context.Context) error {
+	if len(keyIDs) == 0 {
+		return nil
+	}
+	if err := db.GetDB().WithContext(ctx).Model(&model.ChannelKey{}).
+		Where("id IN ?", keyIDs).
+		Update("enabled", false).Error; err != nil {
+		return fmt.Errorf("failed to persist explicitly disabled channel keys: %w", err)
+	}
+	return RefreshCacheByID(channelID, ctx)
+}
+
 func KeyUpdate(key model.ChannelKey) error {
 	if key.ID == 0 || key.ChannelID == 0 {
 		return fmt.Errorf("invalid channel key")
@@ -376,6 +392,7 @@ func Update(req *model.ChannelUpdateRequest, ctx context.Context) (*model.Channe
 
 	if len(req.KeysToAdd) > 0 {
 		newKeys := make([]model.ChannelKey, 0, len(req.KeysToAdd))
+		explicitlyDisabledIdx := make([]int, 0)
 		for _, ka := range req.KeysToAdd {
 			newKeys = append(newKeys, model.ChannelKey{
 				ChannelID:  req.ID,
@@ -383,9 +400,23 @@ func Update(req *model.ChannelUpdateRequest, ctx context.Context) (*model.Channe
 				ChannelKey: ka.ChannelKey,
 				Remark:     ka.Remark,
 			})
+			// EnabledSet 由 ChannelKeyAddRequest.UnmarshalJSON 填充；没有它，
+			// "字段缺失"和"显式 false"在裸 bool 里无法区分。
+			if ka.EnabledSet && !ka.Enabled {
+				explicitlyDisabledIdx = append(explicitlyDisabledIdx, len(newKeys)-1)
+			}
 		}
 		if err := tx.Create(&newKeys).Error; err != nil {
 			return nil, fmt.Errorf("failed to create channel keys: %w", err)
+		}
+		// Enabled 的 default:true 标签会让 create 回调把显式的 false 替换成 true，
+		// struct Create 落不进停用态。同事务按回填的 ID 用 UPDATE 补写（更新路径
+		// 不受该替换影响），随后函数尾部的 RefreshCacheByID 会带回修正后的缓存。
+		for _, idx := range explicitlyDisabledIdx {
+			if err := tx.Model(&model.ChannelKey{}).Where("id = ?", newKeys[idx].ID).
+				Update("enabled", false).Error; err != nil {
+				return nil, fmt.Errorf("failed to persist explicitly disabled channel key: %w", err)
+			}
 		}
 	}
 

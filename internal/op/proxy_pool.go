@@ -14,6 +14,7 @@ import (
 	"github.com/gypg/lodestar/internal/utils/cache"
 	"github.com/gypg/lodestar/internal/utils/proxydial"
 	"github.com/gypg/lodestar/internal/utils/xurl"
+	"gorm.io/gorm"
 )
 
 const defaultProxyTestURL = "https://api.openai.com/v1/models"
@@ -63,9 +64,30 @@ func ProxyConfigurationCreate(item *model.ProxyConfiguration, ctx context.Contex
 	if err := item.Validate(); err != nil {
 		return err
 	}
-	if err := db.GetDB().WithContext(ctx).Create(item).Error; err != nil {
-		return err
+	// Enabled 带 gorm default:true 标签，create 回调会把零值的 false 替换成默认
+	// true（并回写结构体字段），struct Create 落不进显式的 false。启用态照常直插；
+	// 停用态在同事务里用 map-Update 补写回操作者要求的值（更新路径不受该替换影响）。
+	// 不用纯 map 插入：调用方依赖回填的自增 ID（响应体与缓存都以 item.ID 为键）。
+	enabledIntent := item.Enabled // Create 前快照意图：回调会把结构体里的 false 回写成 true
+	var createErr error
+	if enabledIntent {
+		createErr = db.GetDB().WithContext(ctx).Create(item).Error
+	} else {
+		createErr = db.GetDB().WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+			if err := tx.Create(item).Error; err != nil {
+				return err
+			}
+			return tx.Model(&model.ProxyConfiguration{}).Where("id = ?", item.ID).
+				Update("enabled", false).Error
+		})
 	}
+	if createErr != nil {
+		return createErr
+	}
+	// 恢复被回调篡改的字段，再播种缓存（Set 存的是 *item 的副本，顺序反了缓存
+	// 里就是错值）。缓存热时 ProxyConfigurationList 不查库，漏了这行新建的
+	// 配置在列表里根本不可见。
+	item.Enabled = enabledIntent
 	proxyConfigurationCache.Set(item.ID, *item)
 	return nil
 }
