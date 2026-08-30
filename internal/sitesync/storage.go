@@ -127,7 +127,29 @@ func persistSyncSnapshot(ctx context.Context, accountID int, snapshot *syncSnaps
 			return err
 		}
 		if len(mergedTokens) > 0 {
-			if err := tx.Create(&mergedTokens).Error; err != nil {
+			// Enabled carries a gorm default:true tag, and gorm's create callback
+			// substitutes the default for any zero-valued tagged field -- even one
+			// explicitly selected -- so a plain struct Create would turn every
+			// enabled=false decision (user-disabled keys, masked_pending rows)
+			// back into enabled=true. Insert via maps to land the merge's actual
+			// decision.
+			rows := make([]map[string]any, 0, len(mergedTokens))
+			for _, mergedToken := range mergedTokens {
+				rows = append(rows, map[string]any{
+					"site_account_id": mergedToken.SiteAccountID,
+					"upstream_id":     mergedToken.UpstreamID,
+					"name":            mergedToken.Name,
+					"token":           mergedToken.Token,
+					"value_status":    mergedToken.ValueStatus,
+					"group_key":       mergedToken.GroupKey,
+					"group_name":      mergedToken.GroupName,
+					"enabled":         mergedToken.Enabled,
+					"source":          mergedToken.Source,
+					"is_default":      mergedToken.IsDefault,
+					"last_sync_at":    mergedToken.LastSyncAt,
+				})
+			}
+			if err := tx.Model(&model.SiteToken{}).Create(&rows).Error; err != nil {
 				return err
 			}
 		}
@@ -295,7 +317,12 @@ func mergeReadyIncomingSiteToken(incoming model.SiteToken, existingTokens []mode
 		if existingToken != "" && existingToken != incomingsToken {
 			incoming.Token = existingToken
 		}
-		incoming.Enabled = existing.Enabled
+		// A masked_pending row is disabled by the sync itself (preparePersistedSiteTokens),
+		// not by the user; when the plaintext has since been resolved the upstream's
+		// active flag is the authoritative state, so do not inherit that disablement.
+		if existing.ValueStatus != model.SiteTokenValueStatusMaskedPending {
+			incoming.Enabled = existing.Enabled
+		}
 		if existing.ID != 0 {
 			usedExistingIDs[existing.ID] = struct{}{}
 		}
@@ -317,7 +344,9 @@ func mergeReadyIncomingSiteToken(incoming model.SiteToken, existingTokens []mode
 			continue
 		}
 		incoming.ID = existing.ID
-		incoming.Enabled = existing.Enabled
+		if existing.ValueStatus != model.SiteTokenValueStatusMaskedPending {
+			incoming.Enabled = existing.Enabled
+		}
 		if existing.ID != 0 {
 			usedExistingIDs[existing.ID] = struct{}{}
 		}

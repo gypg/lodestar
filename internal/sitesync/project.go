@@ -135,22 +135,27 @@ func ProjectAccount(ctx context.Context, accountID int) ([]int, error) {
 	// channel page filters strictly by folder -- so the site's channels are
 	// invisible unless Default happens to be the selected tab.
 	//
-	// Resolved lazily: a site with no usable token projects no channels, and
-	// creating its folder anyway would litter the channel page with empty tabs.
+	// Resolved lazily inside the loop: a group with no projectable models
+	// projects no channels, and creating the folder for it anyway would litter
+	// the channel page with empty tabs.
 	channelGroupID := 0
-	if len(desiredKeys) > 0 {
-		id, err := op.ChannelGroupEnsureByName(siteRecord.Name, ctx)
-		if err != nil {
-			return nil, fmt.Errorf("failed to ensure channel folder for site %q: %w", siteRecord.Name, err)
-		}
-		channelGroupID = id
-	}
 
 	for _, groupKey := range desiredKeys {
 		group := groupMap[groupKey]
 		groupTokens := tokenGroups[groupKey]
 		groupModels := modelsByGroup[groupKey]
 		modelBuckets := partitionSiteModelsByRouteType(groupModels, shouldSplit, siteRecord.Platform)
+		if len(modelBuckets) == 0 {
+			log.Warnf("site account %q (id=%d) group %q has usable keys but no projectable models; no channel projected", account.Name, account.ID, groupKey)
+			continue
+		}
+		if channelGroupID == 0 {
+			id, err := op.ChannelGroupEnsureByName(siteRecord.Name, ctx)
+			if err != nil {
+				return nil, fmt.Errorf("failed to ensure channel folder for site %q: %w", siteRecord.Name, err)
+			}
+			channelGroupID = id
+		}
 		proxyMode, proxyConfigID := resolveSiteAccountProxy(siteRecord, account)
 		baseUrls := []model.BaseUrl{{URL: buildProjectedChannelBaseURL(siteRecord), Delay: 0}}
 		// Enabled is decided by the count of *usable* keys, not the raw token
