@@ -225,6 +225,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🐛 Bug Fixes
 
 #### Critical (Production Impact)
+- **Proxy-pool routes were reachable by end customers** (`1e792d2`, 2026-08-31): the
+  whole `/api/v1/proxy-pool` group carried only `Auth()`, so any signed-in account —
+  including the `user` role a paying visitor receives on registration — reached all of
+  it. Three consequences, each reproduced against production before the fix: `GET
+  /list` returns `ProxyConfiguration.URL` verbatim, and a proxy address routinely
+  embeds credentials as `user:pass@host`, so a customer could read every configured
+  proxy credential (the dialog masks it on screen, not on the wire); `DELETE
+  /delete/:id` reached the handler, answering 500 for a nonexistent id rather than
+  403; and `POST /test` validated only the target URL, never the `proxy_url` it was
+  told to dial, while its reply separates "Not Found" from "connection refused" from
+  "no route to host" from a 20s timeout — an internal port-scan oracle. Read routes
+  now require `settings:read`, delete and the write routes `settings:write`, and
+  `proxy_url` is SSRF-checked alongside the target. The gate alone would have broken
+  the customer UI: `ProxyPoolDialog` is mounted unconditionally and polls the list at
+  its top level, so the 403 would have toasted on login and every interval — the hook
+  now consults the permission itself rather than relying on each call site. Found
+  while diffing the octopus reference, which gates delete and the write routes the
+  same way but leaves its read routes bare.
 - **Auto-group deleted every channel folder** (`eebd31a`, 2026-08-29): the 自动分组
   button ran a helper that queried the channel *folder* table while its purpose is
   routing groups. `model.Group` has no `is_default` column at all, so that predicate
