@@ -25,6 +25,7 @@ var maintenanceExemptPaths = map[string]bool{
 	"/api/v1/user/login":             true,
 	"/api/v1/user/register":          true,
 	"/api/v1/user/send-email-code":   true,
+	"/api/v1/user/logout":            true,
 	"/api/v1/webauthn/login/begin":   true,
 	"/api/v1/webauthn/login/finish":  true,
 	"/api/v1/ops/health":             true,

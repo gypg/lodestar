@@ -9,7 +9,6 @@ import (
 	"github.com/gypg/lodestar/internal/conf"
 	"github.com/gypg/lodestar/internal/db"
 	"github.com/gypg/lodestar/internal/model"
-	"github.com/gypg/lodestar/internal/op/apikey"
 	"github.com/gypg/lodestar/internal/op/setting"
 )
 
@@ -22,6 +21,11 @@ type ModelUsageRow struct {
 }
 
 // ModelBreakdownForUser aggregates relay logs by request_model_name for the user's keys.
+//
+// WO-023 缺陷 A：聚合现在走 loadUserLogsMerged（内存未刷盘日志 + DB 已刷盘日志，
+// 按 id 去重），不再直查 DB。这样 total_cost（内存 stats）刚扣过费、但日志尚未
+// 刷盘（最多滞后 200 条或 10 分钟定时任务）的那笔请求，能立刻出现在"分模型花费"
+// 里——否则低流量站客户会看到"总额变了、分模型却没变"，误以为账目错了。
 func ModelBreakdownForUser(uid uint, days int, limit int, ctx context.Context) ([]ModelUsageRow, bool, error) {
 	if days < 1 {
 		days = 30
@@ -32,58 +36,49 @@ func ModelBreakdownForUser(uid uint, days int, limit int, ctx context.Context) (
 	if limit <= 0 {
 		limit = 20
 	}
-	enabled, err := setting.GetBool(model.SettingKeyRelayLogKeepEnabled)
-	if err != nil || !enabled {
-		return nil, false, nil
+	cutoff := time.Now().AddDate(0, 0, -days).Unix()
+	logs, ok, err := loadUserLogsMerged(uid, cutoff, ctx)
+	if err != nil || !ok {
+		return nil, ok, err
 	}
-	conn := db.GetLogDB()
-	if conn == nil {
-		return nil, false, nil
-	}
-	keys, err := apikey.ListByUser(uid, ctx)
-	if err != nil {
-		return nil, false, err
-	}
-	if len(keys) == 0 {
+	if len(logs) == 0 {
 		return []ModelUsageRow{}, true, nil
 	}
-	ids := make([]int, 0, len(keys))
-	for _, k := range keys {
-		ids = append(ids, k.ID)
-	}
-	cutoff := time.Now().AddDate(0, 0, -days).Unix()
-	logDBType := conf.AppConfig.Database.LogType
-	if logDBType == "" {
-		logDBType = conf.AppConfig.Database.Type
-	}
 
-	type aggRow struct {
-		Model    string  `gorm:"column:model"`
-		Requests int64   `gorm:"column:requests"`
-		Tokens   int64   `gorm:"column:tokens"`
-		Cost     float64 `gorm:"column:cost"`
+	type agg struct {
+		Requests int64
+		Tokens   int64
+		Cost     float64
 	}
-	var rows []aggRow
-	q := conn.WithContext(ctx).Model(&model.RelayLog{}).
-		Select(`COALESCE(NULLIF(TRIM(request_model_name), ''), actual_model_name, 'unknown') as model,
-			COUNT(*) as requests,
-			COALESCE(SUM(input_tokens + output_tokens), 0) as tokens,
-			COALESCE(SUM(cost), 0) as cost`).
-		Where("request_api_key_id IN ?", ids).
-		Where("time >= ?", cutoff).
-		Group("model").
-		Order("requests DESC").
-		Limit(limit)
-	if err := q.Scan(&rows).Error; err != nil {
-		return nil, false, err
-	}
-	out := make([]ModelUsageRow, 0, len(rows))
-	for _, r := range rows {
-		m := strings.TrimSpace(r.Model)
+	byModel := make(map[string]*agg, 16)
+	order := make([]string, 0, 16)
+	for _, l := range logs {
+		m := strings.TrimSpace(l.RequestModelName)
+		if m == "" {
+			m = strings.TrimSpace(l.ActualModelName)
+		}
 		if m == "" {
 			m = "unknown"
 		}
-		out = append(out, ModelUsageRow{Model: m, Requests: r.Requests, Tokens: r.Tokens, Cost: r.Cost})
+		a, exists := byModel[m]
+		if !exists {
+			a = &agg{}
+			byModel[m] = a
+			order = append(order, m)
+		}
+		a.Requests++
+		a.Tokens += int64(l.InputTokens) + int64(l.OutputTokens)
+		a.Cost += l.Cost
+	}
+
+	out := make([]ModelUsageRow, 0, len(byModel))
+	for _, m := range order {
+		a := byModel[m]
+		out = append(out, ModelUsageRow{Model: m, Requests: a.Requests, Tokens: a.Tokens, Cost: a.Cost})
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Requests > out[j].Requests })
+	if len(out) > limit {
+		out = out[:limit]
 	}
 	return out, true, nil
 }

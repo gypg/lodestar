@@ -46,6 +46,16 @@ func init() {
 			Handle(sendEmailCode),
 	)
 
+	// Lodestar: server-side logout. Must NOT sit behind Auth() — a stale or
+	// expired token also has to be able to clear its own cookie, otherwise a
+	// user whose token went bad is stuck on a cookie that keeps impersonating
+	// them (see WO-023 缺陷 B). The handler always clears the cookie and
+	// always returns success.
+	publicUserRoutes.AddRoute(
+		router.NewRoute("/logout", http.MethodPost).
+			Handle(logout),
+	)
+
 	router.NewGroupRouter("/api/v1/user").
 		Use(middleware.Auth()).
 		Use(middleware.RequireJSON()).
@@ -310,6 +320,18 @@ func sendEmailCode(c *gin.Context) {
 		resp.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
+	resp.Success(c, nil)
+}
+
+// logout clears the JWT cookie server-side. It is intentionally public (no
+// Auth() gate): a client holding a stale, expired, or malformed token must be
+// able to wipe its own cookie. Without this the cookie — which extractToken
+// reads before the Authorization header — keeps authorizing every subsequent
+// request as the previous user until the JWT TTL elapses (up to 90 days under
+// "remember me"). Returns success unconditionally so the client can proceed to
+// clear local state regardless of the server-side token's validity.
+func logout(c *gin.Context) {
+	middleware.SetJWTCookie(c, "", -1)
 	resp.Success(c, nil)
 }
 

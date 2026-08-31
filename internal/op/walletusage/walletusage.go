@@ -4,12 +4,6 @@ import (
 	"context"
 	"strings"
 	"time"
-
-	"github.com/gypg/lodestar/internal/conf"
-	"github.com/gypg/lodestar/internal/db"
-	"github.com/gypg/lodestar/internal/model"
-	"github.com/gypg/lodestar/internal/op/apikey"
-	"github.com/gypg/lodestar/internal/op/setting"
 )
 
 // DailyPoint is per-calendar-day usage for a user's API keys (from relay logs).
@@ -21,7 +15,12 @@ type DailyPoint struct {
 }
 
 // DailySeriesForUser returns up to `days` daily buckets for all keys owned by uid.
-// Requires relay_log_keep_enabled and persisted logs; otherwise ok=false, empty series.
+//
+// WO-023 缺陷 A：改为聚合 loadUserLogsMerged 返回的"内存未刷盘 + DB 已刷盘（按 id
+// 去重）"日志，而非直查 DB。这样一笔刚扣费但尚未刷盘（最多滞后 200 条或 10 分钟
+// 定时任务）的请求，会立刻进入"分日花费"，与 total_cost 同步——否则低流量站客户会
+// 看到"总额变了、分日却没变"，误以为账目错了。chartAvailable 语义不变：未开启
+// relay_log_keep_enabled 或日志库不可用时返回 ok=false。
 func DailySeriesForUser(uid uint, days int, ctx context.Context) (series []DailyPoint, chartAvailable bool, err error) {
 	if days < 1 {
 		days = 14
@@ -29,57 +28,20 @@ func DailySeriesForUser(uid uint, days int, ctx context.Context) (series []Daily
 	if days > 90 {
 		days = 90
 	}
-	enabled, err := setting.GetBool(model.SettingKeyRelayLogKeepEnabled)
-	if err != nil || !enabled {
-		return nil, false, nil
-	}
-	conn := db.GetLogDB()
-	if conn == nil {
-		return nil, false, nil
-	}
-	keys, err := apikey.ListByUser(uid, ctx)
-	if err != nil {
-		return nil, false, err
-	}
-	if len(keys) == 0 {
-		return fillEmptyDays(days, nil), true, nil
-	}
-	ids := make([]int, 0, len(keys))
-	for _, k := range keys {
-		ids = append(ids, k.ID)
-	}
 	cutoff := time.Now().AddDate(0, 0, -days).Unix()
-
-	type aggRow struct {
-		Day      string  `gorm:"column:day"`
-		Requests int64   `gorm:"column:requests"`
-		Tokens   int64   `gorm:"column:tokens"`
-		Cost     float64 `gorm:"column:cost"`
+	logs, ok, err := loadUserLogsMerged(uid, cutoff, ctx)
+	if err != nil || !ok {
+		return nil, ok, err
 	}
-	var rows []aggRow
-	logDBType := conf.AppConfig.Database.LogType
-	if logDBType == "" {
-		logDBType = conf.AppConfig.Database.Type
-	}
-	dayExpr := dayBucketSQL(logDBType)
-	q := conn.WithContext(ctx).Model(&model.RelayLog{}).
-		Select(dayExpr+` as day,
-				COUNT(*) as requests,
-				COALESCE(SUM(input_tokens + output_tokens), 0) as tokens,
-				COALESCE(SUM(cost), 0) as cost`).
-		Where("request_api_key_id IN ?", ids).
-		Where("time >= ?", cutoff).
-		Group("day").
-		Order("day ASC")
-	if err := q.Scan(&rows).Error; err != nil {
-		return nil, false, err
-	}
-	byDay := make(map[string]DailyPoint, len(rows))
-	for _, r := range rows {
-		if r.Day == "" {
-			continue
-		}
-		byDay[r.Day] = DailyPoint{Date: r.Day, Requests: r.Requests, Tokens: r.Tokens, Cost: r.Cost}
+	byDay := make(map[string]DailyPoint, days)
+	for _, l := range logs {
+		key := time.Unix(l.Time, 0).Format("20060102")
+		p := byDay[key]
+		p.Date = key
+		p.Requests++
+		p.Tokens += int64(l.InputTokens) + int64(l.OutputTokens)
+		p.Cost += l.Cost
+		byDay[key] = p
 	}
 	return fillEmptyDays(days, byDay), true, nil
 }

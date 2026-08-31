@@ -69,7 +69,7 @@ interface AuthState {
     setAuth: (token: string, expireAt: string) => void;
     setAPIKeyAuth: (apiKey: string) => void;
     checkAuth: () => Promise<void>;
-    logout: () => void;
+    logout: () => Promise<void>;
 }
 
 /**
@@ -131,7 +131,26 @@ export const useAuthStore = create<AuthState>()(
                 }
             },
 
-            logout: () => {
+            logout: async () => {
+                // Server-side cookie clear (WO-023 缺陷 B). Must hit the server:
+                // the JWT lives in an HttpOnly cookie, and extractToken reads it
+                // before the Authorization header, so clearing only the local
+                // zustand state left the cookie authorizing every subsequent
+                // request as this user until the JWT TTL elapsed (up to 90d).
+                //
+                // API-key mode has no server cookie to clear, but we still call
+                // — the endpoint is a no-op there and local-state clear is the
+                // real work. Failures (network, 5xx) must NOT block the local
+                // clear, otherwise a user is stuck "logged in" with no way out;
+                // the cookie will simply expire on its own if the clear call
+                // failed to land.
+                if (!get().isAPIKeyAuth) {
+                    try {
+                        await apiClient.post('/api/v1/user/logout');
+                    } catch {
+                        // ignore — clear local state regardless below
+                    }
+                }
                 set({
                     isAuthenticated: false,
                     isAPIKeyAuth: false,

@@ -26,6 +26,7 @@ var exemptFromAudit = map[string]string{
 	// admin-audit subject; auditing would never capture a user_id anyway.
 	"POST /api/v1/user/register":        "public self-registration — no authenticated subject to audit (gated by commercial_mode)",
 	"POST /api/v1/user/send-email-code": "public email-code issuance — no authenticated subject; rate-limited, would flood the log",
+	"POST /api/v1/user/logout":          "public cookie clear — no state change, no authenticated subject (callable with a stale token); auditing every logout would flood the log",
 	"POST /api/v1/csp-report":           "CSP violation report — browser-generated, no session auth; not a management action",
 	"POST /api/v1/error-log/report":     "frontend crash report — any logged-in user, rate-limited; telemetry, not a management action",
 	"POST /api/v1/wallet/epay/notify":   "Epay gateway callback — no session auth, verified by signature; not a management action",
