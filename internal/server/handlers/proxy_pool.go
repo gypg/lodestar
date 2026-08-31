@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gypg/lodestar/internal/model"
 	"github.com/gypg/lodestar/internal/op"
+	"github.com/gypg/lodestar/internal/server/auth"
 	"github.com/gypg/lodestar/internal/server/middleware"
 	"github.com/gypg/lodestar/internal/server/resp"
 	"github.com/gypg/lodestar/internal/server/router"
@@ -14,15 +15,31 @@ import (
 )
 
 func init() {
+	// 这两组此前只有 Auth()，任何登录用户（含 user 角色的付费客户）都能到达。
+	// 三个后果都已在生产实测确认：
+	//   - /list 原样返回 ProxyConfiguration.URL，而代理 URL 常带 user:pass@host
+	//     → 端客户读得到全部代理凭据；
+	//   - /delete/:id 直达业务逻辑（不存在的 id 返 500 而非 403）→ 端客户可删配置；
+	//   - /test 的 proxy_url 不经任何 SSRF 校验（NormalizeProxyURL 只查 scheme/host），
+	//     响应区分 Not Found / connection refused / no route to host / 超时
+	//     → 端客户可枚举服务器内网与端口状态。
+	// user 角色的权限集只有 apikeys:read|write / stats:read / subscriptions:read
+	// （auth/permissions.go），所以 settings:* 两道门即可挡住它。
 	router.NewGroupRouter("/api/v1/proxy-pool").
 		Use(middleware.Auth()).
+		Use(middleware.RequirePermission(auth.PermSettingsRead)).
 		AddRoute(router.NewRoute("/list", http.MethodGet).Handle(listProxyConfigurations)).
-		AddRoute(router.NewRoute("/references/:id", http.MethodGet).Handle(listProxyConfigurationReferences)).
+		AddRoute(router.NewRoute("/references/:id", http.MethodGet).Handle(listProxyConfigurationReferences))
+
+	router.NewGroupRouter("/api/v1/proxy-pool").
+		Use(middleware.Auth()).
+		Use(middleware.RequirePermission(auth.PermSettingsWrite)).
 		AddRoute(router.NewRoute("/delete/:id", http.MethodDelete).Handle(deleteProxyConfiguration))
 
 	router.NewGroupRouter("/api/v1/proxy-pool").
 		Use(middleware.Auth()).
 		Use(middleware.RequireJSON()).
+		Use(middleware.RequirePermission(auth.PermSettingsWrite)).
 		AddRoute(router.NewRoute("/create", http.MethodPost).Handle(createProxyConfiguration)).
 		AddRoute(router.NewRoute("/update", http.MethodPost).Handle(updateProxyConfiguration)).
 		AddRoute(router.NewRoute("/test", http.MethodPost).Handle(testProxyConfiguration))

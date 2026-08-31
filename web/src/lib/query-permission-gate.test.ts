@@ -296,3 +296,36 @@ test('the end-customer role lacks every permission these queries need', () => {
     assert.equal(hasPermission('user', 'subscriptions:read'), true);
     assert.equal(hasPermission('user', 'apikeys:read'), true);
 });
+
+/**
+ * The proxy-pool list is the same shape of trap as the settings query above, and
+ * it became one the moment the backend route gained a settings:read gate:
+ * ProxyPoolDialog is mounted unconditionally by app.tsx and calls
+ * useProxyConfigurationList at its top level with a refetch interval, so an
+ * ungated version polls a 403 for every end customer and toasts on each tick.
+ *
+ * Gated inside the hook rather than at the call sites, so a new caller cannot
+ * reintroduce the toast by forgetting to pass `enabled`.
+ */
+test('the proxy-pool list query is gated on settings:read', () => {
+    const src = read('src/api/endpoints/proxy-pool.ts');
+
+    const idx = src.indexOf('export function useProxyConfigurationList()');
+    assert.notEqual(idx, -1, 'useProxyConfigurationList has moved or been renamed');
+
+    // Scan to the end of this hook only, so a sibling hook's gate is not credited
+    // to it. The next `export function` is the boundary.
+    const nextExport = src.indexOf('export function', idx + 1);
+    const body = nextExport === -1 ? src.slice(idx) : src.slice(idx, nextExport);
+
+    assert.match(
+        body,
+        /hasPermission\([^)]*'settings:read'\)/,
+        'useProxyConfigurationList must consult settings:read — the route now answers 403 without it',
+    );
+    assert.match(
+        body,
+        /enabled:/,
+        'the permission result must be wired into `enabled`, otherwise the query still fires',
+    );
+});

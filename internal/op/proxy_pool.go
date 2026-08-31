@@ -387,6 +387,16 @@ func ProxyConfigurationTest(req model.ProxyTestRequest, ctx context.Context) (mo
 	if err != nil {
 		return model.ProxyTestResult{Success: false, Message: err.Error()}, nil
 	}
+	// 代理地址本身也要过 SSRF 校验，不只是 targetURL。NormalizeProxyURL 只查
+	// scheme 与 host 非空，所以一个指向内网的 proxy_url 会让本进程去拨那个地址，
+	// 而返回的 message 区分 connection refused / no route to host / 超时 ——
+	// 即一个内网端口探测预言机。权限门已把这个端点收回 settings:write，这里再
+	// 补一层：持 write 权限的 editor 也不该借它探内网。
+	if parsedProxy, perr := url.Parse(normalizedProxyURL); perr == nil {
+		if aerr := xurl.AssertSafeHost(parsedProxy); aerr != nil {
+			return model.ProxyTestResult{Success: false, Message: "proxy url is not allowed: " + aerr.Error()}, nil
+		}
+	}
 
 	httpClient, err := newProxyTestHTTPClient(normalizedProxyURL)
 	if err != nil {

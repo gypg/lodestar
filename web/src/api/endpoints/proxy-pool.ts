@@ -3,6 +3,8 @@ import { useTranslations } from 'next-intl';
 import { apiClient } from '../client';
 import { REFETCH_INTERVAL_CONFIG } from '../constants';
 import { logger } from '@/lib/logger';
+import { hasPermission } from '@/lib/permissions';
+import { useCurrentUser } from './user';
 
 export type ProxyMode = 'direct' | 'system' | 'pool' | 'inherit';
 
@@ -50,12 +52,21 @@ function invalidateProxyPool(queryClient: ReturnType<typeof useQueryClient>) {
     queryClient.invalidateQueries({ queryKey: ['channels', 'list'] });
 }
 
+// The gate lives inside the hook rather than at each call site on purpose.
+// ProxyPoolDialog is mounted unconditionally by app.tsx and calls this at its
+// top level with a refetch interval, so without a gate every end customer polls
+// /api/v1/proxy-pool/list — which now answers 403 — and the global query error
+// handler toasts "permission denied" on a loop. Gating here also means a future
+// caller cannot reintroduce that by forgetting to pass `enabled`.
 export function useProxyConfigurationList() {
+    const { data: currentUser } = useCurrentUser();
+    const canRead = hasPermission(currentUser?.role, 'settings:read');
     return useQuery({
         queryKey: ['proxy-pool', 'list'],
         queryFn: async () => apiClient.get<ProxyConfiguration[]>('/api/v1/proxy-pool/list'),
         select: (data) => data ?? [],
         refetchInterval: REFETCH_INTERVAL_CONFIG,
+        enabled: canRead,
     });
 }
 
