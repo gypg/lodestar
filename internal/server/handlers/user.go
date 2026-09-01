@@ -46,6 +46,21 @@ func init() {
 			Handle(sendEmailCode),
 	)
 
+	// Lodestar WO-026 阶段 B：客户侧忘记密码（自助重置）。
+	// 两个端点都是 pre-auth 公开路由 + EmailCodeRateLimit（按 email+IP 限流，与
+	// send-email-code 同一道闸）。forgot-password 对一切输入返回同一响应（枚举防护
+	// 在 op 层 RequestPasswordReset）；reset-password 校验一次性码后改密并清 cookie。
+	publicUserRoutes.AddRoute(
+		router.NewRoute("/forgot-password", http.MethodPost).
+			Use(middleware.EmailCodeRateLimit()).
+			Handle(forgotPassword),
+	)
+	publicUserRoutes.AddRoute(
+		router.NewRoute("/reset-password", http.MethodPost).
+			Use(middleware.EmailCodeRateLimit()).
+			Handle(resetPassword),
+	)
+
 	// Lodestar: server-side logout. Must NOT sit behind Auth() — a stale or
 	// expired token also has to be able to clear its own cookie, otherwise a
 	// user whose token went bad is stuck on a cookie that keeps impersonating
@@ -320,6 +335,48 @@ func sendEmailCode(c *gin.Context) {
 		resp.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
+	resp.Success(c, nil)
+}
+
+// forgotPassword (WO-026 阶段 B) accepts any email and ALWAYS returns the same
+// success response. Whether the address exists, whether SMTP is configured, and
+// whether the mail actually went out are all invisible from here — op 层
+// RequestPasswordReset 内部静默处理一切分支。任何差异都会把本端点变成
+// "哪些邮箱注册过"的探测器（工单 T-B4 / M-B3）。
+func forgotPassword(c *gin.Context) {
+	var req struct {
+		Email string `json:"email"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		// 连 JSON 形状错误也保持 200 + 同一响应体，避免给格式探针留口子。
+		resp.Success(c, nil)
+		return
+	}
+	_ = usr.RequestPasswordReset(req.Email, c.Request.Context())
+	resp.Success(c, nil)
+}
+
+// resetPassword (WO-026 阶段 B) completes the reset: email + one-time code +
+// new password. 失败统一 "验证码错误或已过期"——不泄露邮箱存在性。
+// 成功后清 JWT cookie：旧会话与其主人的记忆绑定，改密即刻作废本端登录态
+// （无状态 JWT 的完整撤销限制见回执说明）。
+func resetPassword(c *gin.Context) {
+	var req struct {
+		Email       string `json:"email"`
+		Code        string `json:"code"`
+		NewPassword string `json:"new_password"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		resp.Error(c, http.StatusBadRequest, "验证码错误或已过期")
+		return
+	}
+	if err := usr.ResetPassword(req.Email, req.Code, req.NewPassword, c.Request.Context()); err != nil {
+		resp.Error(c, http.StatusBadRequest, "验证码错误或已过期")
+		return
+	}
+	// 改密成功：清掉当前端的 JWT cookie（若挂在 cookie 上）。已签出的旧 token
+	// 在其 TTL 内仍然有效——JWT 无撤销名单，见回执"会话失效做到什么程度"。
+	middleware.SetJWTCookie(c, "", -1)
 	resp.Success(c, nil)
 }
 

@@ -173,6 +173,13 @@ func validateManagedCredentials(username, password string) error {
 	if username == "" {
 		return fmt.Errorf("%w: username is required", ErrBootstrapCredentials)
 	}
+	return validatePasswordStrength(password)
+}
+
+// validatePasswordStrength 是注册/改密/重置共用的密码强度闸（最小 12 字符）。
+// WO-026 阶段 B：从 validateManagedCredentials 拆出，让密码重置路径复用同一条规则
+// —— 重置能设出的密码绝不能弱于注册时的要求。
+func validatePasswordStrength(password string) error {
 	if password == "" {
 		return fmt.Errorf("%w: password is required", ErrBootstrapCredentials)
 	}

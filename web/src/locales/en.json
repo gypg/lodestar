@@ -38,6 +38,20 @@
       "password": "Admin password",
       "passwordPlaceholder": "Enter admin password",
       "passwordHint": "Password must be at least 12 characters long."
+    ,
+      "forgot": {
+        "forgotPassword": "Forgot password?",
+        "backToLogin": "Back to login",
+        "sendResetCode": "Send reset code",
+        "resetSubmit": "Reset password",
+        "emailSentHint": "If this email is registered, a reset code has been sent (valid for 15 minutes). Check your spam folder or retry later if it does not arrive.",
+        "resetCodeLabel": "Reset code",
+        "resetCodePlaceholder": "6-digit code",
+        "newPasswordLabel": "New password",
+        "newPasswordPlaceholder": "At least 12 characters",
+        "newPasswordMinLength": "New password must be at least 12 characters",
+        "resetFailed": "Reset failed: the code is wrong or has expired, please retry"
+      }
     },
     "actions": {
       "refresh": "Refresh status",

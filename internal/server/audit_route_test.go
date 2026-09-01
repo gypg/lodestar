@@ -26,6 +26,11 @@ var exemptFromAudit = map[string]string{
 	// admin-audit subject; auditing would never capture a user_id anyway.
 	"POST /api/v1/user/register":        "public self-registration — no authenticated subject to audit (gated by commercial_mode)",
 	"POST /api/v1/user/send-email-code": "public email-code issuance — no authenticated subject; rate-limited, would flood the log",
+	// WO-026 阶段 B：客户侧忘记密码。均为 pre-auth 公开路由，无会话主体可记；
+	// EmailCodeRateLimit 已按 email+IP 限流。forgot-password 对一切输入返回同一响应
+	//（枚举防护），记审计反而会把"有人请求了重置"这种无主体事件刷进日志。
+	"POST /api/v1/user/forgot-password": "public password-reset code issuance — no authenticated subject; rate-limited",
+	"POST /api/v1/user/reset-password":  "public password-reset completion — no authenticated subject; rate-limited, code is one-time",
 	"POST /api/v1/user/logout":          "public cookie clear — no state change, no authenticated subject (callable with a stale token); auditing every logout would flood the log",
 	"POST /api/v1/csp-report":           "CSP violation report — browser-generated, no session auth; not a management action",
 	"POST /api/v1/error-log/report":     "frontend crash report — any logged-in user, rate-limited; telemetry, not a management action",

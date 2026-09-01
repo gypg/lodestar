@@ -26,7 +26,17 @@ type codeEntry struct {
 	exp  time.Time
 }
 
-var codes sync.Map // email -> codeEntry
+var codes sync.Map // key -> codeEntry；key = namespace + 邮箱（见 Namespace*）
+
+// 验证码 namespace。注册码与密码重置码必须隔离：一条泄漏的注册码绝不能当改密
+// 凭据用（反之亦然）。key 形如 "reset:user@example.com"。
+const (
+	NamespaceRegister = "reg:"
+	NamespaceReset    = "reset:"
+)
+
+// resetCodeTTL 是密码重置码的有效期。工单建议 ≤15 分钟（与 JWT 默认有效期一致）。
+const resetCodeTTL = 15 * time.Minute
 
 func get(k model.SettingKey) string {
 	v, _ := setting.GetString(k)
@@ -87,32 +97,77 @@ func normalize(email string) string { return strings.TrimSpace(strings.ToLower(e
 
 // GenerateAndSend creates a 6-digit code for the email and sends it.
 func GenerateAndSend(email string) error {
+	return generateAndSend(NamespaceRegister, email, "Lodestar 邮箱验证码",
+		func(code string) string {
+			return "你的验证码是：" + code + "，10 分钟内有效。如非本人操作请忽略。"
+		}, 10*time.Minute)
+}
+
+// GenerateAndSendPasswordReset 为密码重置生成并发送验证码。
+// 与注册码同机制（crypto/rand 6 位、消费即删）但 namespace 隔离，TTL 15 分钟。
+func GenerateAndSendPasswordReset(email string) error {
+	return generateAndSend(NamespaceReset, email, "Lodestar 密码重置",
+		func(code string) string {
+			return "你的密码重置验证码是：" + code + "，15 分钟内有效。如非本人操作请忽略此邮件" +
+				"——你的密码不会被改动。"
+		}, resetCodeTTL)
+}
+
+func generateAndSend(ns, email, subject string, body func(string) string, ttl time.Duration) error {
 	e := normalize(email)
 	if e == "" || !strings.Contains(e, "@") {
 		return errors.New("邮箱格式无效")
 	}
 	code := gen6()
-	codes.Store(e, codeEntry{code: code, exp: time.Now().Add(10 * time.Minute)})
-	return sendMail(e, "Lodestar 邮箱验证码", "你的验证码是："+code+"，10 分钟内有效。如非本人操作请忽略。")
+	codes.Store(ns+e, codeEntry{code: code, exp: time.Now().Add(ttl)})
+	return sendMail(e, subject, body(code))
 }
 
 // Verify checks (and consumes) the code for an email.
 func Verify(email, code string) bool {
+	return verify(NamespaceRegister, email, code)
+}
+
+// VerifyPasswordReset 校验（并消费）密码重置码。一次性：成功即删。
+func VerifyPasswordReset(email, code string) bool {
+	return verify(NamespaceReset, email, code)
+}
+
+func verify(ns, email, code string) bool {
 	e := normalize(email)
-	v, ok := codes.Load(e)
+	v, ok := codes.Load(ns + e)
 	if !ok {
 		return false
 	}
 	entry := v.(codeEntry)
 	if time.Now().After(entry.exp) {
-		codes.Delete(e)
+		codes.Delete(ns + e)
 		return false
 	}
 	if entry.code != strings.TrimSpace(code) {
 		return false
 	}
-	codes.Delete(e)
+	codes.Delete(ns + e)
 	return true
+}
+
+// SeedCodeForTest / SeedExpiredCodeForTest 是**仅供测试**的种子钩子：绕过 SMTP
+// 直接种一枚码，让上层（op/user、handlers）能对"拿到码之后"的流程做确定性测试。
+// 生产代码不得调用。与 generateAndSend 相同的 key 规则（ns+normalize(email)）。
+func SeedCodeForTest(t interface {
+	Helper()
+	Cleanup(func())
+}, ns, email, code string) {
+	t.Helper()
+	codes.Store(ns+normalize(email), codeEntry{code: code, exp: time.Now().Add(resetCodeTTL)})
+}
+
+func SeedExpiredCodeForTest(t interface {
+	Helper()
+	Cleanup(func())
+}, ns, email, code string) {
+	t.Helper()
+	codes.Store(ns+normalize(email), codeEntry{code: code, exp: time.Now().Add(-time.Minute)})
 }
 
 // SendTest sends a test email to verify SMTP config.

@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl'
 import { Button } from "@/components/ui/button"
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { useLogin, useRegister, useSendEmailCode } from "@/api/endpoints/user"
+import { useLogin, useRegister, useSendEmailCode, useForgotPassword, useResetPassword } from "@/api/endpoints/user"
 import { useAPIKeyLogin } from "@/api/endpoints/apikey"
 import { isWebAuthnSupported, usePasskeyLogin, useWebAuthnStatus } from "@/api/endpoints/webauthn"
 import { getGitHubAuthURL } from "@/api/endpoints/oauth"
@@ -32,6 +32,12 @@ export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
   const tf = useTranslations('form')
   const [mode, setMode] = useState<LoginMode>('user')
   const [isRegister, setIsRegister] = useState(false)
+  // WO-026 阶段 B：忘记密码两步流。step1 提交邮箱拿码（响应与邮箱存在与否无关，
+  // 枚举防护在后端），step2 用码 + 新密码重置。
+  const [isForgot, setIsForgot] = useState(false)
+  const [forgotStep, setForgotStep] = useState<1 | 2>(1)
+  const [resetCode, setResetCode] = useState("")
+  const [newPassword, setNewPassword] = useState("")
   const [inviteCode, setInviteCode] = useState("")
   const [email, setEmail] = useState("")
   const [emailCode, setEmailCode] = useState("")
@@ -61,6 +67,45 @@ export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
   const registerInviteRequired = bootstrapStatus?.register_invite_required === true
   const registerEmailRequired = bootstrapStatus?.register_email_required === true
   const sendCodeMutation = useSendEmailCode()
+  const forgotMutation = useForgotPassword()
+  const resetMutation = useResetPassword()
+
+  const onForgotStep1 = async () => {
+    setError(null)
+    try {
+      await forgotMutation.mutateAsync(email.trim())
+      // 枚举防护：无论邮箱是否存在，都提示同一条文案（不提示"已发送"以免暗示存在性；
+      // 也不提示"不存在"——那正是要防的泄漏）。
+      setForgotStep(2)
+      setError(null)
+    } catch {
+      setError(t('error.generic'))
+    }
+  }
+
+  const onForgotStep2 = async () => {
+    setError(null)
+    if (newPassword.length < 12) {
+      setError(tf('forgot.newPasswordMinLength'))
+      return
+    }
+    try {
+      await resetMutation.mutateAsync({
+        email: email.trim(),
+        code: resetCode.trim(),
+        new_password: newPassword,
+      })
+      // 重置成功：回登录态，让用户用新密码登录。旧 JWT cookie 已被后端清除。
+      setIsForgot(false)
+      setForgotStep(1)
+      setResetCode("")
+      setNewPassword("")
+      setEmail("")
+    } catch {
+      // 后端对一切失败统一"验证码错误或已过期"，直接展示。
+      setError(tf('forgot.resetFailed'))
+    }
+  }
   const onSendCode = () => {
     if (!email.trim()) { setError(tf('sendCodeFirst')); return }
     sendCodeMutation.mutate(email.trim(), {
@@ -81,6 +126,15 @@ export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
 
     try {
       if (mode === 'user') {
+        if (isForgot) {
+          // 忘记密码两步流：step1 发码、step2 重置。不触发 onLoginSuccess。
+          if (forgotStep === 1) {
+            await onForgotStep1()
+          } else {
+            await onForgotStep2()
+          }
+          return
+        }
         if (isRegister) {
           await registerMutation.mutateAsync({
             username: username.trim(),
@@ -212,6 +266,65 @@ export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
             <form onSubmit={handleSubmit} className="space-y-6 pt-4">
               <TabsContents>
                 <TabsContent value="user" className="space-y-5">
+                  {isForgot && (
+                    <>
+                    <Field>
+                      <FieldLabel className="text-xs font-semibold text-muted-foreground/70 ml-1" htmlFor="forgot-email">{tf('emailLabel')}</FieldLabel>
+                      <Input
+                        id="forgot-email"
+                        type="email"
+                        placeholder="your@email.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="h-12 rounded-xl bg-card border-border/30"
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        spellCheck={false}
+                        disabled={isPending}
+                      />
+                      {forgotStep === 2 && (
+                        <FieldDescription className="text-[11px] text-muted-foreground ml-1">
+                          {tf('forgot.emailSentHint')}
+                        </FieldDescription>
+                      )}
+                    </Field>
+                    {forgotStep === 2 && (
+                      <>
+                      <Field>
+                        <FieldLabel className="text-xs font-semibold text-muted-foreground/70 ml-1" htmlFor="reset-code">{tf('forgot.resetCodeLabel')}</FieldLabel>
+                        <Input
+                          id="reset-code"
+                          type="text"
+                          placeholder={tf('forgot.resetCodePlaceholder')}
+                          value={resetCode}
+                          onChange={(e) => setResetCode(e.target.value)}
+                          className="h-12 rounded-xl bg-card border-border/30"
+                          autoCapitalize="none"
+                          autoCorrect="off"
+                          spellCheck={false}
+                          autoComplete="one-time-code"
+                          disabled={isPending}
+                        />
+                      </Field>
+                      <Field>
+                        <FieldLabel className="text-xs font-semibold text-muted-foreground/70 ml-1" htmlFor="new-password">{tf('forgot.newPasswordLabel')}</FieldLabel>
+                        <Input
+                          id="new-password"
+                          type="password"
+                          placeholder={tf('forgot.newPasswordPlaceholder')}
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          className="h-12 rounded-xl bg-card border-border/30"
+                          autoComplete="new-password"
+                          disabled={isPending}
+                        />
+                      </Field>
+                      </>
+                    )}
+                    </>
+                  )}
+                  {!isForgot && (
+                  <>
                   <Field>
                     <FieldLabel className="text-xs font-semibold text-muted-foreground/70 ml-1" htmlFor="username">{t('username')}</FieldLabel>
                     <Input
@@ -330,13 +443,32 @@ export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
                       />
                     </Field>
                   )}
-                  {commercialMode && (
+                  </>
+                  )}
+                  {!isForgot && commercialMode && (
                     <button
                       type="button"
                       onClick={() => { setIsRegister((v) => !v); setError(null) }}
                       className="ml-1 self-start text-xs text-muted-foreground transition-colors hover:text-foreground"
                     >
                       {isRegister ? tf('hasAccount') : tf('noAccount')}
+                    </button>
+                  )}
+                  {/* WO-026 阶段 B：忘记密码入口/返回。所有登录用户可见（不只 commercialMode
+                      ——自用模式的 admin 也会忘密码），放在注册切换同一行位置。 */}
+                  {mode === 'user' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsForgot((v) => !v)
+                        setForgotStep(1)
+                        setResetCode("")
+                        setNewPassword("")
+                        setError(null)
+                      }}
+                      className="ml-1 self-start text-xs text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      {isForgot ? tf('forgot.backToLogin') : tf('forgot.forgotPassword')}
                     </button>
                   )}
                 </TabsContent>
@@ -378,7 +510,9 @@ export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
                 disabled={isPending}
                 className="w-full h-12 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-all active:scale-[0.98]"
               >
-                {isPending ? t('button.loading') : (mode === 'user' && isRegister ? tf('registerAndEnter') : t('button.submit'))}
+                {isPending ? t('button.loading')
+                  : (mode === 'user' && isForgot ? (forgotStep === 1 ? tf('forgot.sendResetCode') : tf('forgot.resetSubmit'))
+                    : (mode === 'user' && isRegister ? tf('registerAndEnter') : t('button.submit')))}
               </Button>
 
               {passkeyAvailable && (

@@ -230,6 +230,29 @@ export function useRegister() {
     });
 }
 
+/**
+ * WO-026 阶段 B：忘记密码 —— 请求重置码。
+ * 后端枚举防护：无论邮箱是否存在都返回 200 + 相同响应体，前端**不得**根据
+ * 响应推断邮箱是否存在（也不应该向用户展示"该邮箱不存在"之类的提示）。
+ */
+export function useForgotPassword() {
+    return useMutation({
+        mutationFn: async (email: string) =>
+            apiClient.post<{ message?: string }>('/api/v1/user/forgot-password', { email }, undefined, false),
+    });
+}
+
+/**
+ * WO-026 阶段 B：忘记密码 —— 用一次性码 + 新密码完成重置。
+ * 成功后后端会清掉 JWT cookie；失败统一返回"验证码错误或已过期"。
+ */
+export function useResetPassword() {
+    return useMutation({
+        mutationFn: async (data: { email: string; code: string; new_password: string }) =>
+            apiClient.post<{ message?: string }>('/api/v1/user/reset-password', data, undefined, false),
+    });
+}
+
 /** Lodestar：当前登录用户（驱动按角色分流——管理控制台 vs 用户自助门户） */
 export interface CurrentUser {
     id: number;
