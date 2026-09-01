@@ -18,6 +18,7 @@ import (
 
 	"github.com/gypg/lodestar/internal/model"
 	"github.com/gypg/lodestar/internal/op/setting"
+	"github.com/gypg/lodestar/internal/utils/xurl"
 )
 
 func notifyHTTPClient() *http.Client {
@@ -45,6 +46,14 @@ func SendWebhook(channel *model.AlertNotifChannel, payload AlertWebhookPayload) 
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return fmt.Errorf("marshal webhook payload: %w", err)
+	}
+
+	// SSRF 校验：channel.URL 是用户可控的出站目标（settings:write 路径），
+	// 必须在拨号前拒绝内网/元数据地址，否则响应差异会变成内网端口探测预言机
+	//（同型缺陷已在代理池路径修过一次，见 op/proxy_pool.go:396）。
+	// 校验放在“最终会被拨号的 URL”上 —— 对 webhook 即 channel.URL 本身。
+	if err := xurl.AssertSafeURL(channel.URL); err != nil {
+		return fmt.Errorf("webhook url is not allowed: %w", err)
 	}
 
 	req, err := http.NewRequest("POST", channel.URL, bytes.NewReader(body))
@@ -97,6 +106,12 @@ func SendGotify(channel *model.AlertNotifChannel, payload AlertWebhookPayload) e
 
 	if serverURL == "" || token == "" {
 		return fmt.Errorf("gotify: server_url and token are required")
+	}
+
+	// SSRF 校验：serverURL 是回落解析后的最终拨号目标（cfg.ServerURL 为空时回落
+	// channel.URL），校验必须落在回落之后，否则漏掉“create 时留空、运行时回落内网”这条。
+	if err := xurl.AssertSafeURL(serverURL); err != nil {
+		return fmt.Errorf("gotify url is not allowed: %w", err)
 	}
 
 	priority := cfg.Priority
@@ -434,6 +449,13 @@ func SendNtfy(channel *model.AlertNotifChannel, payload AlertWebhookPayload) err
 		} else {
 			topicURL = "https://ntfy.sh/" + topicURL
 		}
+	}
+
+	// SSRF 校验：必须校验补完 scheme 之后的 topicURL，而不是原始 cfg.TopicURL。
+	// 原始字段可能是 "127.0.0.1:9999/mytopic"（无 scheme），校验它要么 Parse 失败、
+	// 要么放过 —— 都会漏掉补 scheme 后指向内网的最终拨号目标。
+	if err := xurl.AssertSafeURL(topicURL); err != nil {
+		return fmt.Errorf("ntfy url is not allowed: %w", err)
 	}
 
 	text := buildAlertText(payload)

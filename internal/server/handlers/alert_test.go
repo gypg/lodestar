@@ -3,7 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -188,32 +187,49 @@ func TestNotifChannelReportsConfigError(t *testing.T) {
 	}
 }
 
-func TestNotifChannelSucceedsAgainstWebhook(t *testing.T) {
+// TestNotifChannelRejectsLoopbackWebhook 钉死 WO-025 修复行为：alert/notif/test 对
+// 指向 loopback 的 webhook URL 必须返回 SSRF 校验错误，而不是真的拨号出去。
+//
+// 原 TestNotifChannelSucceedsAgainstWebhook 用 httptest.NewServer（必然监听 127.0.0.1）
+// 端到端验证 webhook 链路。SSRF 校验加在 SendWebhook 内部后，loopback 必被拒——
+// 那个端到端形态与安全校验根本冲突（校验必须拒 loopback，测试 server 必然在 loopback），
+// 故改写为两个互补断言：本测试钉“loopback 被拒”，下一个钉“公网不被 SSRF 拒”。
+func TestNotifChannelRejectsLoopbackWebhook(t *testing.T) {
 	setupAlertHandlerTest(t)
-
-	var received map[string]any
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		body, _ := io.ReadAll(r.Body)
-		_ = json.Unmarshal(body, &received)
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer srv.Close()
 
 	recorder := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(recorder)
-	body := fmt.Sprintf(`{"name":"my-webhook","type":"webhook","url":%q}`, srv.URL)
+	body := `{"name":"my-webhook","type":"webhook","url":"http://127.0.0.1:9999/hook"}`
 	c.Request = httptest.NewRequest(http.MethodPost, "/api/v1/alert/notif/test", strings.NewReader(body))
 	c.Request.Header.Set("Content-Type", "application/json")
 
 	testNotifChannel(c)
 
-	if recorder.Code != http.StatusOK {
-		t.Fatalf("status = %d, want %d; body=%s", recorder.Code, http.StatusOK, recorder.Body.String())
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d (loopback webhook must be refused); body=%s",
+			recorder.Code, http.StatusBadRequest, recorder.Body.String())
 	}
-	if received == nil {
-		t.Fatalf("webhook server did not receive a request")
+	if !strings.Contains(recorder.Body.String(), "url is not allowed") {
+		t.Fatalf("loopback webhook must be refused with SSRF error, got: %s", recorder.Body.String())
 	}
-	if received["state"] != "test" {
-		t.Fatalf("expected state=test in webhook payload, got: %v", received["state"])
+}
+
+// TestNotifChannelAcceptsPublicWebhook 钉死 WO-025 T2 侧：公网 webhook URL 不应被
+// SSRF 校验拒绝。example.com 能解析、其 IP 不在 IsDisallowedIP 名单内，校验应放行。
+// 后续可能因 example.com 不是真 webhook 而返回其他错误（如 404/连接失败）——
+// 只断言“不是因为 SSRF 拒绝”。
+func TestNotifChannelAcceptsPublicWebhook(t *testing.T) {
+	setupAlertHandlerTest(t)
+
+	recorder := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(recorder)
+	body := `{"name":"my-webhook","type":"webhook","url":"https://example.com/hook"}`
+	c.Request = httptest.NewRequest(http.MethodPost, "/api/v1/alert/notif/test", strings.NewReader(body))
+	c.Request.Header.Set("Content-Type", "application/json")
+
+	testNotifChannel(c)
+
+	if strings.Contains(recorder.Body.String(), "url is not allowed") {
+		t.Fatalf("public webhook example.com must NOT be SSRF-refused, got: %s", recorder.Body.String())
 	}
 }
