@@ -38,20 +38,7 @@
       "password": "管理員密碼",
       "passwordPlaceholder": "請輸入管理員密碼",
       "passwordHint": "密碼長度至少 12 個字元。"
-    ,
-      "forgot": {
-        "forgotPassword": "忘記密碼？",
-        "backToLogin": "返回登入",
-        "sendResetCode": "發送重置碼",
-        "resetSubmit": "重置密碼",
-        "emailSentHint": "如果該信箱已註冊，重置碼已發出（15 分鐘內有效）。沒收到請檢查垃圾郵件或稍後再試。",
-        "resetCodeLabel": "重置碼",
-        "resetCodePlaceholder": "6 位數字驗證碼",
-        "newPasswordLabel": "新密碼",
-        "newPasswordPlaceholder": "至少 12 個字元",
-        "newPasswordMinLength": "新密碼至少 12 個字元",
-        "resetFailed": "重置失敗：驗證碼錯誤或已過期，請重試"
-      }
+    
     },
     "actions": {
       "refresh": "重新整理狀態",
@@ -3888,6 +3875,19 @@
     }
   },
   "form": {
+    "forgot": {
+      "forgotPassword": "忘記密碼？",
+      "backToLogin": "返回登入",
+      "sendResetCode": "發送重置碼",
+      "resetSubmit": "重置密碼",
+      "emailSentHint": "如果該信箱已註冊，重置碼已發出（15 分鐘內有效）。沒收到請檢查垃圾郵件或稍後再試。",
+      "resetCodeLabel": "重置碼",
+      "resetCodePlaceholder": "6 位數字驗證碼",
+      "newPasswordLabel": "新密碼",
+      "newPasswordPlaceholder": "至少 12 個字元",
+      "newPasswordMinLength": "新密碼至少 12 個字元",
+      "resetFailed": "重置失敗：驗證碼錯誤或已過期，請重試"
+    },
     "totpLabel": "兩步驗證碼",
     "totpPlaceholder": "請輸入 6 位驗證碼或備份碼",
     "emailLabel": "信箱",
