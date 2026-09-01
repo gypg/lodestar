@@ -2164,7 +2164,23 @@
         "generateFailed": "Generation failed (admin only)",
         "stripeReturned": "Payment received. Your balance updates within a few seconds.",
         "stripeCancelled": "Payment cancelled. You have not been charged."
-      }
+      },
+      "ledgerTitle": "Balance Ledger",
+      "ledgerHint": "Your own top-ups / redemptions / admin adjustments / subscription purchases, newest first.",
+      "ledgerKind": "Type",
+      "ledgerDelta": "Change",
+      "ledgerReason": "Note",
+      "ledgerTime": "Time",
+      "ledgerEmpty": "No ledger entries yet.",
+      "ledgerPrev": "Prev",
+      "ledgerNext": "Next",
+      "ledgerKindOpeningBalance": "Opening balance",
+      "ledgerKindTopupEpay": "Online top-up",
+      "ledgerKindTopupStripe": "Stripe top-up",
+      "ledgerKindRedeem": "Redeemed code",
+      "ledgerKindAdminAdjust": "Admin adjustment",
+      "ledgerKindSubscriptionPurchase": "Subscription purchase",
+      "ledgerKindUnknown": "Unknown"
     },
     "siteIdentity": {
       "title": "Site identity",

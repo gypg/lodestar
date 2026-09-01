@@ -15,11 +15,23 @@ import { Wallet } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/common/Toast';
-import { useWallet, useRedeemCode, useGenerateCodes, useTopup, useStripeTopup, useUsage, useGenerateInvites } from '@/api/endpoints/wallet';
+import { useWallet, useRedeemCode, useGenerateCodes, useTopup, useStripeTopup, useUsage, useGenerateInvites, useWalletLedger } from '@/api/endpoints/wallet';
 import { useCurrentUser } from '@/api/endpoints/user';
 import { hasPermission } from '@/lib/permissions';
 import { WalletUsageChart } from './WalletUsageChart';
 import { UsageHeatmap } from './UsageHeatmap';
+
+// WO-026 阶段 A：流水类型 → i18n key 后缀映射。后端 kind 常量见
+// internal/model/quota_ledger.go (LedgerKind*)，前端这里只做显示映射。
+// 命中不到的 kind 走 ledgerKindUnknown 兜底（不会因为上游加了新 kind 而崩）。
+const LEDGER_KIND_I18N: Record<string, string> = {
+    opening_balance: 'ledgerKindOpeningBalance',
+    topup_epay: 'ledgerKindTopupEpay',
+    topup_stripe: 'ledgerKindTopupStripe',
+    redeem: 'ledgerKindRedeem',
+    admin_adjust: 'ledgerKindAdminAdjust',
+    subscription_purchase: 'ledgerKindSubscriptionPurchase',
+};
 
 export function SettingWallet() {
     const t = useTranslations();
@@ -44,6 +56,12 @@ export function SettingWallet() {
     const [generated, setGenerated] = useState<string[]>([]);
     const [inviteCount, setInviteCount] = useState('10');
     const [invites, setInvites] = useState<string[]>([]);
+
+    // WO-026 阶段 A：客户侧余额流水。page 从 1 起；page_size 固定 10（钱包页流水区块
+    // 不宜太长，要看明细可后续单开页）。后端隔离在 op 层，这里只传分页。
+    const [ledgerPage, setLedgerPage] = useState(1);
+    const ledgerPageSize = 10;
+    const ledger = useWalletLedger(ledgerPage, ledgerPageSize);
 
     const onRedeem = () => {
         const c = code.trim();
@@ -318,6 +336,61 @@ export function SettingWallet() {
                 </div>
             </details>
             )}
+
+            {/* WO-026 阶段 A：客户侧余额流水。只读、只能看自己的。 */}
+            <details className="rounded-lg border border-border/30 bg-card p-3" open>
+                <summary className="cursor-pointer text-sm font-medium text-card-foreground">
+                    {t('setting.wallet.ledgerTitle')}
+                </summary>
+                <p className="mt-1 text-xs text-muted-foreground">{t('setting.wallet.ledgerHint')}</p>
+                <div className="mt-3 flex flex-col gap-1">
+                    {ledger.isLoading && (
+                        <div className="text-xs text-muted-foreground">…</div>
+                    )}
+                    {ledger.isError && (
+                        <div className="text-xs text-destructive">{String(ledger.error)}</div>
+                    )}
+                    {!ledger.isLoading && !ledger.isError && (ledger.data?.entries?.length ?? 0) === 0 && (
+                        <div className="text-xs text-muted-foreground">{t('setting.wallet.ledgerEmpty')}</div>
+                    )}
+                    {(ledger.data?.entries ?? []).map((e) => {
+                        const kindKey = LEDGER_KIND_I18N[e.kind] ?? 'ledgerKindUnknown';
+                        const kindLabel = t('setting.wallet.' + kindKey);
+                        const positive = e.delta >= 0;
+                        return (
+                            <div key={e.id} className="flex items-baseline justify-between gap-2 border-b border-border/20 pb-1 text-xs">
+                                <div className="flex flex-1 flex-col gap-0.5">
+                                    <span className="font-medium text-card-foreground">{kindLabel}</span>
+                                    {e.reason && <span className="text-muted-foreground">{e.reason}</span>}
+                                </div>
+                                <span className={'font-mono tabular-nums ' + (positive ? 'text-primary' : 'text-muted-foreground')}>
+                                    {positive ? '+' : ''}{e.delta.toFixed(4)}
+                                </span>
+                                <span className="shrink-0 text-muted-foreground">
+                                    {new Date(e.created_at * 1000).toLocaleString()}
+                                </span>
+                            </div>
+                        );
+                    })}
+                </div>
+                {(ledger.data?.entries?.length ?? 0) > 0 && (
+                    <div className="mt-2 flex items-center justify-between text-xs">
+                        <Button type="button" size="sm" variant="outline" disabled={ledgerPage <= 1} onClick={() => setLedgerPage((p) => Math.max(1, p - 1))}>
+                            {t('setting.wallet.ledgerPrev')}
+                        </Button>
+                        <span className="text-muted-foreground">#{ledgerPage}</span>
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            disabled={(ledger.data?.entries?.length ?? 0) < ledgerPageSize}
+                            onClick={() => setLedgerPage((p) => p + 1)}
+                        >
+                            {t('setting.wallet.ledgerNext')}
+                        </Button>
+                    </div>
+                )}
+            </details>
         </div>
     );
 }

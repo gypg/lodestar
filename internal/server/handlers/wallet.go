@@ -51,6 +51,15 @@ func init() {
 		AddRoute(
 			router.NewRoute("/usage", http.MethodGet).
 				Handle(getUsage),
+		).
+		AddRoute(
+			// WO-026 阶段 A：客户侧余额流水（只读列表）。
+			// 挂在第一组（Auth()，无 RequirePermission）——与 /balance /usage 同权限级，
+			// user 角色即可看自己的流水。绝不能加 RequirePermission 门，否则端客户
+			//（user 角色只持 apikeys/stats/subscriptions 三类权限）看不到自己的流水
+			// —— 那正是本工单要修的问题的反向重演（项目栽过三次：Stripe 按钮/钱包导航/代理池列表）。
+			router.NewRoute("/ledger", http.MethodGet).
+				Handle(getWalletLedger),
 		)
 
 	// Public, no-auth Epay callback (gateway posts form params, not JSON).
@@ -178,6 +187,27 @@ func getUsage(c *gin.Context) {
 		"usage_chart_available": chartOK,
 		"heatmap_by_day":        heatmap,
 		"per_model":             modelRows,
+	})
+}
+
+// getWalletLedger returns the current user's own balance ledger entries
+// (topups / redeem / admin_adjust / subscription_purchase etc.), paginated,
+// newest first. Drives the wallet page "流水" block.
+//
+// 隔离在 op 层：handler 只传 uid，user.ListByUser 内部 WHERE user_id = ?。
+// 调用方不会因为忘记加过滤而泄露跨用户流水。
+func getWalletLedger(c *gin.Context) {
+	uid := uint(c.GetInt("user_id"))
+	page, pageSize := parsePagination(c.DefaultQuery("page", "1"), c.DefaultQuery("page_size", "20"))
+	entries, err := user.ListByUser(uid, page, pageSize, c.Request.Context())
+	if err != nil {
+		resp.InternalError(c)
+		return
+	}
+	resp.Success(c, gin.H{
+		"entries":   entries,
+		"page":      page,
+		"page_size": pageSize,
 	})
 }
 

@@ -136,3 +136,36 @@ export function useUsage() {
         refetchOnWindowFocus: false,
     });
 }
+
+/** WO-026 阶段 A：客户侧余额流水（只读列表，只能看自己的）。
+ *  后端隔离在 op 层 user.ListByUser（WHERE user_id=?），前端只传分页。 */
+export interface LedgerEntry {
+    id: number;
+    user_id: number;
+    /** 有符号：+ 入账，− 出账 */
+    delta: number;
+    /** opening_balance / topup_epay / topup_stripe / redeem / admin_adjust / subscription_purchase */
+    kind: string;
+    ref_type?: string;
+    ref_id?: string;
+    /** 操作者（管理员 user_id；网关/系统开账为 0），不是受益人 */
+    actor_id: number;
+    reason?: string;
+    created_at: number;
+}
+export interface LedgerPage {
+    entries: LedgerEntry[];
+    page: number;
+    page_size: number;
+}
+export function useWalletLedger(page: number, pageSize: number) {
+    return useQuery({
+        queryKey: ['wallet', 'ledger', page, pageSize],
+        queryFn: async () =>
+            apiClient.get<LedgerPage>('/api/v1/wallet/ledger', {
+                page,
+                page_size: pageSize,
+            }),
+        refetchOnWindowFocus: false,
+    });
+}

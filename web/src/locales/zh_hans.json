@@ -2164,7 +2164,23 @@
         "generateFailed": "生成失败（需管理员权限）",
         "stripeReturned": "已收到你的付款，余额将在几秒内到账",
         "stripeCancelled": "已取消支付，未产生任何扣款"
-      }
+      },
+      "ledgerTitle": "余额流水",
+      "ledgerHint": "只显示你自己的充值 / 兑换 / 管理员调整 / 订阅购买记录，按时间倒序。",
+      "ledgerKind": "类型",
+      "ledgerDelta": "变动",
+      "ledgerReason": "备注",
+      "ledgerTime": "时间",
+      "ledgerEmpty": "暂无流水记录。",
+      "ledgerPrev": "上一页",
+      "ledgerNext": "下一页",
+      "ledgerKindOpeningBalance": "开账",
+      "ledgerKindTopupEpay": "在线充值",
+      "ledgerKindTopupStripe": "Stripe 充值",
+      "ledgerKindRedeem": "兑换码",
+      "ledgerKindAdminAdjust": "管理员调整",
+      "ledgerKindSubscriptionPurchase": "订阅购买",
+      "ledgerKindUnknown": "未知"
     },
     "siteIdentity": {
       "title": "站点信息",

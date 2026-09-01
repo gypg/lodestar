@@ -2164,7 +2164,23 @@
         "generateFailed": "生成失敗（需管理員權限）",
         "stripeReturned": "已收到你的付款，餘額將在幾秒內到帳",
         "stripeCancelled": "已取消支付，未產生任何扣款"
-      }
+      },
+      "ledgerTitle": "餘額流水",
+      "ledgerHint": "只顯示你自己的儲值 / 兌換 / 管理員調整 / 訂閱購買紀錄，依時間倒序。",
+      "ledgerKind": "類型",
+      "ledgerDelta": "變動",
+      "ledgerReason": "備註",
+      "ledgerTime": "時間",
+      "ledgerEmpty": "尚無流水紀錄。",
+      "ledgerPrev": "上一頁",
+      "ledgerNext": "下一頁",
+      "ledgerKindOpeningBalance": "開帳",
+      "ledgerKindTopupEpay": "線上儲值",
+      "ledgerKindTopupStripe": "Stripe 儲值",
+      "ledgerKindRedeem": "兌換碼",
+      "ledgerKindAdminAdjust": "管理員調整",
+      "ledgerKindSubscriptionPurchase": "訂閱購買",
+      "ledgerKindUnknown": "未知"
     },
     "siteIdentity": {
       "title": "站點資訊",

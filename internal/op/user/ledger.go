@@ -138,4 +138,33 @@ func ledgerSum(userID uint, ctx context.Context) (float64, error) {
 	return *sum, nil
 }
 
+// ListByUser returns a page of the given user's own ledger entries, newest first.
+//
+// 多租户隔离在 op 层做：调用方（handler）只传 uid，不会因为忘记加 WHERE user_id
+// 而泄露跨用户流水 —— 这是 WO-026 阶段 A 的核心安全要求，参照 apikey.ListByUser 的
+// 同一模式。handler 不直接查 quota_ledgers 表。
+//
+// 分页与既有端点（audit.List / errorlog.List）一致：page 从 1 起、page_size 默认 20、
+// 上限 100。返回 newest-first（按 created_at DESC, id DESC）——客户最近一笔在最上面。
+// 不返回 total：与既有分页端点风格一致，前端按“返回条数 < page_size 判断末页”。
+func ListByUser(userID uint, page, pageSize int, ctx context.Context) ([]model.QuotaLedger, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 20
+	}
+	entries := make([]model.QuotaLedger, 0, pageSize)
+	err := db.GetDB().WithContext(ctx).
+		Where("user_id = ?", userID).
+		Order("created_at DESC, id DESC").
+		Limit(pageSize).
+		Offset((page - 1) * pageSize).
+		Find(&entries).Error
+	if err != nil {
+		return nil, err
+	}
+	return entries, nil
+}
+
 // 对账（不变式校验）在 reconcile.go。
