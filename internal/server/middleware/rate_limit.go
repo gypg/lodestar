@@ -1,9 +1,11 @@
 package middleware
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"sync"
@@ -285,9 +287,15 @@ func EmailCodeRateLimit() gin.HandlerFunc {
 		var req struct {
 			Email string `json:"email"`
 		}
-		// Bind JSON to read the email. If binding fails the handler will
-		// reject anyway, so just pass through.
-		_ = c.ShouldBindJSON(&req)
+		// Bind JSON to read the email for the per-email bucket. Must read the raw
+		// body and put it BACK afterwards: ShouldBindJSON drains c.Request.Body,
+		// and without the reset the downstream handler's own bind always fails
+		// with "Invalid JSON format" — send-email-code (and the WO-026 password
+		// reset routes behind this same middleware) could never read their payload.
+		if raw, rerr := io.ReadAll(c.Request.Body); rerr == nil {
+			_ = json.Unmarshal(raw, &req)
+			c.Request.Body = io.NopCloser(bytes.NewReader(raw))
+		}
 
 		ip := c.ClientIP()
 		if ip == "" {
