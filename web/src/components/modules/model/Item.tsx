@@ -1,7 +1,7 @@
 'use client';
 
 import { memo, useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
-import { Pencil, Trash2, ArrowDownToLine, ArrowUpFromLine, ChevronDown, CircleCheckBig, Gauge, KeyRound, Orbit, RadioTower, Waves } from 'lucide-react';
+import { Pencil, Trash2, ArrowDownToLine, ArrowUpFromLine, ChevronDown, CircleAlert, CircleCheckBig, Gauge, KeyRound, Orbit, RadioTower, Waves } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTranslations } from 'next-intl';
 import { useUpdateModel, useDeleteModel, type ModelMarketItem } from '@/api/endpoints/model';
@@ -189,6 +189,12 @@ export const ModelItem = memo(function ModelItem({ model, layout = 'grid', laten
                                     </TooltipTrigger>
                                     <TooltipContent key={model.name}>{displayName}</TooltipContent>
                                 </Tooltip>
+                                {model.probe_failed_at ? (
+                                    <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-destructive/30 bg-destructive/10 px-2.5 py-0.5 text-[0.68rem] font-medium text-destructive sm:px-3 sm:py-1 sm:text-xs">
+                                        <CircleAlert className="size-3 sm:size-3.5" />
+                                        {t('card.probeFailed')}
+                                    </span>
+                                ) : null}
                                 <div className="flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground sm:gap-2">
                                     <span className="inline-flex items-center gap-1.5 rounded-full border border-border/25 bg-card px-2.5 py-0.5 text-[0.68rem] sm:gap-2 sm:px-3 sm:py-1 sm:text-xs">
                                         <Waves className="size-3 text-primary sm:size-3.5" />

@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/op/modelprobe"
 )
 
 type modelMarketStatsAggregate struct {
@@ -56,6 +57,15 @@ func ModelMarketGet(ctx context.Context, lastUpdateTime time.Time) (model.ModelM
 	}
 
 	items, summary := buildModelMarket(models, modelChannels, channelCache.GetAll(), StatsModelList(), lastUpdateTime)
+	// WO-028：探测连续失败达阈值的模型盖上 ProbeFailedAt（最近失败时刻），
+	// 广场默认视图据此隐藏、显示全部视图据此给标识。探测关闭/从未探测 → nil map，
+	// 行为与探测引入前一致。
+	hiddenProbes := modelprobe.HiddenSnapshot()
+	for i := range items {
+		if probedAt, bad := hiddenProbes[strings.ToLower(items[i].Name)]; bad {
+			items[i].ProbeFailedAt = probedAt
+		}
+	}
 	resp := model.ModelMarketResponse{
 		Summary: summary,
 		Items:   items,

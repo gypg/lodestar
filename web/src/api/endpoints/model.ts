@@ -51,6 +51,14 @@ export interface ModelMarketItem extends LLMInfo {
     request_success: number;
     request_failed: number;
     channels: ModelMarketChannel[];
+    /**
+     * WO-028: set when the scheduled probe has seen this model fail
+     * model_probe_fail_threshold consecutive rounds (value = last failed probe
+     * time). The market hides such models by default and badges them in
+     * "show all" mode. Never affects routing. Empty/undefined when probing is
+     * off or the model is healthy.
+     */
+    probe_failed_at?: string;
 }
 
 export interface ModelMarketSummary {
