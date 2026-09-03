@@ -11,6 +11,7 @@ import (
 	"github.com/gypg/lodestar/internal/conf"
 	"github.com/gypg/lodestar/internal/db"
 	"github.com/gypg/lodestar/internal/op"
+	"github.com/gypg/lodestar/internal/op/modelprobe"
 	"github.com/gypg/lodestar/internal/relay/balancer"
 	"github.com/gypg/lodestar/internal/server"
 	"github.com/gypg/lodestar/internal/task"
@@ -98,6 +99,10 @@ func runStart() error {
 	restoreCtx, restoreCancel := context.WithTimeout(context.Background(), 10*time.Second)
 	if err := balancer.LoadRuntimeState(restoreCtx); err != nil {
 		log.Warnf("balancer runtime state load error: %v", err)
+	}
+	// 探测状态（连续失败计数）同样必须跨重启保留，否则一次重启就永远凑不满阈值。
+	if err := modelprobe.LoadFromDB(restoreCtx); err != nil {
+		log.Warnf("model probe state load error: %v", err)
 	}
 	restoreCancel()
 

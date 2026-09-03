@@ -632,14 +632,23 @@ func sendGroupProbeRequest(ctx context.Context, outAdapter transmodel.Outbound, 
 		return resp.StatusCode, bodyText, fmt.Errorf("upstream error: %d", resp.StatusCode)
 	}
 
-	if _, err := outAdapter.TransformResponse(ctx, &http.Response{
+	internalResp, err := outAdapter.TransformResponse(ctx, &http.Response{
 		Status:        resp.Status,
 		StatusCode:    resp.StatusCode,
 		Header:        resp.Header.Clone(),
 		Body:          io.NopCloser(strings.NewReader(bodyText)),
 		ContentLength: int64(len(bodyText)),
-	}); err != nil {
+	})
+	if err != nil {
 		return resp.StatusCode, bodyText, err
+	}
+
+	// 假 200 判定（判据与 relay 层同源，见 model.InternalLLMResponse.IsFake200）：
+	// HTTP 200 但响应体解析不出任何有效载荷（Choices 与 EmbeddingData 全空，
+	// 典型如错误体被当作 200 返回）。TransformResponse 对空 choices 不报错，
+	// 不加这一层探测会把假 200 判为"通过"，坏模型在模型广场里看起来是健康的。
+	if internalResp.IsFake200() {
+		return resp.StatusCode, bodyText, fmt.Errorf("fake 200: upstream returned HTTP 200 with an unparseable body (no choices, no embedding data)")
 	}
 
 	return resp.StatusCode, bodyText, nil

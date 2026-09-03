@@ -1,7 +1,8 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { MotionConfig } from 'motion/react';
+import { Eye } from 'lucide-react';
 import { useModelMarket } from '@/api/endpoints/model';
 import { useTranslations } from 'next-intl';
 import { ModelItem } from './Item';
@@ -31,6 +32,14 @@ export function Model() {
     }, [market, modelSortMode]);
     const hasAnyModel = (market?.items.length ?? 0) > 0;
 
+    // WO-028: models that failed the scheduled probe threshold are hidden from
+    // the default view; the toggle reveals them with a visible badge.
+    const [showAllProbed, setShowAllProbed] = useState(false);
+    const probedBadCount = useMemo(
+        () => sortedModels.filter((m) => !!m.probe_failed_at).length,
+        [sortedModels],
+    );
+
     const visibleModels = useMemo(() => {
         const term = searchTerm.toLowerCase().trim();
         const byName = !term ? sortedModels : sortedModels.filter((m) => m.name.toLowerCase().includes(term));
@@ -48,12 +57,32 @@ export function Model() {
             filtered = filtered.filter((m) => getModelIcon(m.name).label === modelProviderFilter);
         }
 
+        if (!showAllProbed) {
+            filtered = filtered.filter((m) => !m.probe_failed_at);
+        }
+
         return filtered;
-    }, [sortedModels, searchTerm, filter, modelProviderFilter]);
+    }, [sortedModels, searchTerm, filter, modelProviderFilter, showAllProbed]);
 
     return (
         <section className="relative flex h-full min-h-0 flex-col gap-3 overflow-y-auto overscroll-contain rounded-t-xl pb-3 sm:gap-4 sm:pb-4 md:pb-4" aria-label={pageKey}>
             <ModelMappingPanel />
+            {probedBadCount > 0 ? (
+                <div className="flex items-center justify-between gap-3 rounded-xl border border-border/35 bg-card px-3 py-2 text-card-foreground md:px-4">
+                    <span className="text-xs text-muted-foreground">
+                        {t('probe.hiddenCount', { count: probedBadCount })}
+                    </span>
+                    <button
+                        type="button"
+                        onClick={() => setShowAllProbed((prev) => !prev)}
+                        aria-pressed={showAllProbed}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-border/40 px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
+                    >
+                        <Eye className="size-3.5" />
+                        {showAllProbed ? t('probe.showHealthyOnly') : t('probe.showAll')}
+                    </button>
+                </div>
+            ) : null}
             {visibleModels.length > 0 ? (
                 <section className="relative flex min-h-0 flex-1 flex-col rounded-xl border border-border/35 bg-card p-3 text-card-foreground md:p-4">
                     <div className="relative min-h-0 flex-1">

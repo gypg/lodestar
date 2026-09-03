@@ -12,6 +12,7 @@ import (
 	"github.com/gypg/lodestar/internal/db"
 	"github.com/gypg/lodestar/internal/model"
 	"github.com/gypg/lodestar/internal/op/channel"
+	"github.com/gypg/lodestar/internal/op/modelprobe"
 	"github.com/gypg/lodestar/internal/op/setting"
 	"github.com/gypg/lodestar/internal/relay/condition"
 	"github.com/gypg/lodestar/internal/utils/cache"
@@ -544,6 +545,8 @@ func GroupListModelCapabilities(ctx context.Context) ([]model.ModelCapability, e
 		byName[name] = append(byName[name], ep)
 	}
 
+	hiddenGroups := modelprobe.HiddenSnapshot()
+
 	caps := make([]model.ModelCapability, 0, len(byName))
 	for name, endpoints := range byName {
 		// Deduplicate and sort
@@ -567,11 +570,15 @@ func GroupListModelCapabilities(ctx context.Context) ([]model.ModelCapability, e
 			}
 		}
 
+		// Available = 定时探测实测可用（WO-028）。探测关闭或从未探测过时为 true
+		//（回退到探测引入前的行为）；连续失败达阈值的分组为 false。呈现层专用
+		// 标记：前端对 available 无功能性消费（grep 全仓零命中），路由不读它。
+		_, probedBad := hiddenGroups[strings.ToLower(name)]
 		caps = append(caps, model.ModelCapability{
 			Name:         name,
 			Endpoints:    uniq,
 			Conversation: conversation,
-			Available:    true,
+			Available:    !probedBad,
 		})
 	}
 

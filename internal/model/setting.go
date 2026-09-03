@@ -107,26 +107,33 @@ const (
 	SettingKeySiteBannerEnabled                    SettingKey = "site_banner_enabled"
 	SettingKeySiteBannerText                       SettingKey = "site_banner_text"
 	SettingKeySiteBannerTone                       SettingKey = "site_banner_tone"
-	SettingKeyBillingExpr                          SettingKey = "billing_expr"               // Lodestar 表达式计费(JSON: {"model":"expr",...})
-	SettingKeyStripeEnabled                        SettingKey = "stripe_enabled"             // Stripe 支付开关
-	SettingKeyStripeAPIKey                         SettingKey = "stripe_api_key"             // Stripe API 密钥 (sk_...)
-	SettingKeyStripeWebhookSecret                  SettingKey = "stripe_webhook_secret"      // Stripe Webhook 签名密钥 (whsec_...)
-	SettingKeyStripeCurrency                       SettingKey = "stripe_currency"            // Stripe 货币代码 (默认 usd)
-	SettingKeyStripeMinTopUp                       SettingKey = "stripe_min_topup"           // Stripe 最低充值金额(USD)
-	SettingKeyGitHubOAuthEnabled                   SettingKey = "github_oauth_enabled"       // GitHub OAuth 登录开关
-	SettingKeyGitHubOAuthClientID                  SettingKey = "github_oauth_client_id"     // GitHub OAuth Client ID
-	SettingKeyGitHubOAuthClientSecret              SettingKey = "github_oauth_client_secret" // GitHub OAuth Client Secret
-	SettingKeyTOTPIssuer                           SettingKey = "totp_issuer"                // TOTP 两步验证发行者名称(认证器App显示)
-	SettingKeyPIIRedactionEnabled                  SettingKey = "pii_redaction_enabled"      // Relay 日志 PII 脱敏开关
-	SettingKeyTurnstileEnabled                     SettingKey = "turnstile_enabled"          // Cloudflare Turnstile 注册验证开关
-	SettingKeyTurnstileSiteKey                     SettingKey = "turnstile_site_key"         // Cloudflare Turnstile Site Key
-	SettingKeyTurnstileSecretKey                   SettingKey = "turnstile_secret_key"       // Cloudflare Turnstile Secret Key
-	SettingKeyGuardrailEnabled                     SettingKey = "guardrail_enabled"          // Guardrail 输入/输出过滤开关
-	SettingKeyGuardrailRules                       SettingKey = "guardrail_rules"            // Guardrail 规则配置(JSON: GuardrailConfig)
-	SettingKeyImageBedEnabled                      SettingKey = "image_bed_enabled"          // 图床上传开关
-	SettingKeyImageBedEndpoint                     SettingKey = "image_bed_endpoint"         // 图床上传 API 地址
-	SettingKeyImageBedToken                        SettingKey = "image_bed_token"            // 图床 API Token
-	SettingKeyRetryEmptyOutput                     SettingKey = "retry_empty_output"         // 空输出自动重试: 上游返回 200 但内容为空时自动换 Key 重试
+	SettingKeyBillingExpr                          SettingKey = "billing_expr"                     // Lodestar 表达式计费(JSON: {"model":"expr",...})
+	SettingKeyStripeEnabled                        SettingKey = "stripe_enabled"                   // Stripe 支付开关
+	SettingKeyStripeAPIKey                         SettingKey = "stripe_api_key"                   // Stripe API 密钥 (sk_...)
+	SettingKeyStripeWebhookSecret                  SettingKey = "stripe_webhook_secret"            // Stripe Webhook 签名密钥 (whsec_...)
+	SettingKeyStripeCurrency                       SettingKey = "stripe_currency"                  // Stripe 货币代码 (默认 usd)
+	SettingKeyStripeMinTopUp                       SettingKey = "stripe_min_topup"                 // Stripe 最低充值金额(USD)
+	SettingKeyGitHubOAuthEnabled                   SettingKey = "github_oauth_enabled"             // GitHub OAuth 登录开关
+	SettingKeyGitHubOAuthClientID                  SettingKey = "github_oauth_client_id"           // GitHub OAuth Client ID
+	SettingKeyGitHubOAuthClientSecret              SettingKey = "github_oauth_client_secret"       // GitHub OAuth Client Secret
+	SettingKeyTOTPIssuer                           SettingKey = "totp_issuer"                      // TOTP 两步验证发行者名称(认证器App显示)
+	SettingKeyPIIRedactionEnabled                  SettingKey = "pii_redaction_enabled"            // Relay 日志 PII 脱敏开关
+	SettingKeyTurnstileEnabled                     SettingKey = "turnstile_enabled"                // Cloudflare Turnstile 注册验证开关
+	SettingKeyTurnstileSiteKey                     SettingKey = "turnstile_site_key"               // Cloudflare Turnstile Site Key
+	SettingKeyTurnstileSecretKey                   SettingKey = "turnstile_secret_key"             // Cloudflare Turnstile Secret Key
+	SettingKeyGuardrailEnabled                     SettingKey = "guardrail_enabled"                // Guardrail 输入/输出过滤开关
+	SettingKeyGuardrailRules                       SettingKey = "guardrail_rules"                  // Guardrail 规则配置(JSON: GuardrailConfig)
+	SettingKeyImageBedEnabled                      SettingKey = "image_bed_enabled"                // 图床上传开关
+	SettingKeyImageBedEndpoint                     SettingKey = "image_bed_endpoint"               // 图床上传 API 地址
+	SettingKeyImageBedToken                        SettingKey = "image_bed_token"                  // 图床 API Token
+	SettingKeyRetryEmptyOutput                     SettingKey = "retry_empty_output"               // 空输出自动重试: 上游返回 200 但内容为空时自动换 Key 重试
+	SettingKeyModelProbeEnabled                    SettingKey = "model_probe_enabled"              // 定时模型可用度探测开关（默认关闭：探测会真花上游的钱）
+	SettingKeyModelProbeIntervalHours              SettingKey = "model_probe_interval_hours"       // 探测周期（小时）
+	SettingKeyModelProbeFailThreshold              SettingKey = "model_probe_fail_threshold"       // 连续失败多少轮后隐藏 + 通知
+	SettingKeyModelProbeSkipGroups                 SettingKey = "model_probe_skip_groups"          // 人工跳过探测的分组名列表（JSON 数组），跳过=不探测/不计数/不通知
+	SettingKeyCustomerAlertEnabled                 SettingKey = "customer_alert_enabled"           // 面向客户的低余额/到期预警邮件开关（默认关闭：给客户发邮件的决定不替运营者做）
+	SettingKeyCustomerAlertBalanceThreshold        SettingKey = "customer_alert_balance_threshold" // 低余额预警阈值（USD），0=关闭该维度
+	SettingKeyCustomerAlertExpiryDays              SettingKey = "customer_alert_expiry_days"       // 订阅到期提前预警天数，0=关闭该维度
 )
 
 type Setting struct {
@@ -251,12 +258,24 @@ func DefaultSettings() []Setting {
 		{Key: SettingKeyImageBedEnabled, Value: "false"},
 		{Key: SettingKeyImageBedEndpoint, Value: ""},
 		{Key: SettingKeyImageBedToken, Value: ""},
+		// WO-028 定时模型可用度探测。默认关闭：一轮全量探测就是每个模型一次真实
+		// 上游请求（真花钱），默认开等于替运营者做花钱的决定。
+		{Key: SettingKeyModelProbeEnabled, Value: "false"},
+		{Key: SettingKeyModelProbeIntervalHours, Value: "2"},
+		{Key: SettingKeyModelProbeFailThreshold, Value: "3"},
+		{Key: SettingKeyModelProbeSkipGroups, Value: "[]"},
+		// WO-026 阶段 C 客户预警。默认关闭：邮件是发给客户本人的，运营者没点头
+		// 不该有邮件出去（SMTP 没配时发了也发不出，但开关本身要表达默认克制）。
+		{Key: SettingKeyCustomerAlertEnabled, Value: "false"},
+		{Key: SettingKeyCustomerAlertBalanceThreshold, Value: "1"},
+		{Key: SettingKeyCustomerAlertExpiryDays, Value: "3"},
 	}
 }
 
 func (s *Setting) Validate() error {
 	switch s.Key {
 	case SettingKeyModelInfoUpdateInterval, SettingKeySyncLLMInterval, SettingKeyRelayLogKeepPeriod, SettingKeyRelayLogKeepCount,
+		SettingKeyModelProbeIntervalHours, SettingKeyModelProbeFailThreshold,
 		SettingKeySiteSyncInterval, SettingKeySiteCheckinInterval,
 		SettingKeyRelayRetryCount, SettingKeyRelayRouteRetries, SettingKeyCircuitBreakerThreshold, SettingKeyCircuitBreakerCooldown,
 		SettingKeyCircuitBreakerMaxCooldown, SettingKeyRatelimitCooldown, SettingKeyRelayMaxTotalAttempts,
@@ -271,10 +290,14 @@ func (s *Setting) Validate() error {
 		SettingKeyLoginRateLimitWindow, SettingKeyLoginRateLimitMaxFailed,
 		SettingKeyStreamSessionTTLMinutes, SettingKeyStreamSessionMaxEvents, SettingKeyStreamSessionMaxBytesMB,
 		SettingKeyNotifyHTTPTimeoutSeconds,
-		SettingKeyFailureHintTTLUnauthorized, SettingKeyFailureHintTTLRateLimit, SettingKeyFailureHintTTLNetwork:
+		SettingKeyFailureHintTTLUnauthorized, SettingKeyFailureHintTTLRateLimit, SettingKeyFailureHintTTLNetwork,
+		SettingKeyCustomerAlertExpiryDays:
 		v, err := strconv.Atoi(s.Value)
 		if err != nil {
 			return fmt.Errorf("setting value must be an integer")
+		}
+		if s.Key == SettingKeyCustomerAlertExpiryDays && v < 0 {
+			return fmt.Errorf("customer alert expiry days must be >= 0 (0 disables)")
 		}
 		if s.Key == SettingKeyRelayRetryCount && v < 1 {
 			return fmt.Errorf("relay retry count must be greater than 0")
@@ -284,6 +307,9 @@ func (s *Setting) Validate() error {
 		}
 		if (s.Key == SettingKeyRatelimitCooldown || s.Key == SettingKeyRelayMaxTotalAttempts) && v < 0 {
 			return fmt.Errorf("setting value must be greater than or equal to 0")
+		}
+		if (s.Key == SettingKeyModelProbeIntervalHours || s.Key == SettingKeyModelProbeFailThreshold) && v < 1 {
+			return fmt.Errorf("model probe setting must be greater than 0")
 		}
 		if (s.Key == SettingKeyRateLimitHoldInterval || s.Key == SettingKeyRateLimitHoldMaxWait) && v < 1 {
 			return fmt.Errorf("rate limit hold setting must be greater than 0")
@@ -329,7 +355,19 @@ func (s *Setting) Validate() error {
 			}
 		}
 		return nil
-	case SettingKeyRelayLogKeepEnabled, SettingKeySemanticCacheEnabled, SettingKeyPIIRedactionEnabled, SettingKeyTurnstileEnabled, SettingKeyGuardrailEnabled, SettingKeyImageBedEnabled, SettingKeyRateLimitHoldEnabled:
+	// WO-030 缺陷 C（写入侧）：余额阈值是浮点。必须拒绝 NaN/±Inf（Go 浮点比较对
+	// NaN 恒为 false，会绕过一切范围判断；+Inf 会让 balanceTier 二分死循环）与负数。
+	// 运行时读取侧另有同款防御（customeralert.LowBalanceThreshold），双层。
+	case SettingKeyCustomerAlertBalanceThreshold:
+		v, err := strconv.ParseFloat(strings.TrimSpace(s.Value), 64)
+		if err != nil {
+			return fmt.Errorf("customer alert balance threshold must be a number")
+		}
+		if math.IsNaN(v) || math.IsInf(v, 0) || v < 0 {
+			return fmt.Errorf("customer alert balance threshold must be finite and >= 0 (0 disables)")
+		}
+		return nil
+	case SettingKeyRelayLogKeepEnabled, SettingKeySemanticCacheEnabled, SettingKeyPIIRedactionEnabled, SettingKeyTurnstileEnabled, SettingKeyGuardrailEnabled, SettingKeyImageBedEnabled, SettingKeyRateLimitHoldEnabled, SettingKeyModelProbeEnabled:
 		if s.Value != "true" && s.Value != "false" {
 			return fmt.Errorf("setting value must be true or false")
 		}

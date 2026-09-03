@@ -178,6 +178,11 @@ export const MobileModelItem = memo(function MobileModelItem({ model, latencyUni
                         <span className="inline-flex shrink-0 items-center rounded-full border border-primary/12 bg-card px-1.5 py-px text-[0.58rem] font-semibold text-primary">
                             {providerLabel}
                         </span>
+                        {model.probe_failed_at ? (
+                            <span className="inline-flex shrink-0 items-center rounded-full border border-destructive/30 bg-destructive/10 px-1.5 py-px text-[0.58rem] font-medium text-destructive">
+                                {t('card.probeFailed')}
+                            </span>
+                        ) : null}
                         <InlineMetric icon={Waves} value={requestCount.toLocaleString()} color={brandColor} />
                         <InlineMetric icon={RadioTower} value={String(model.channel_count)} color={brandColor} />
                         <InlineMetric icon={KeyRound} value={String(model.enabled_key_count)} color={brandColor} />

@@ -4,6 +4,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { apiClient, setAuthStoreGetter } from '../client';
 import { REFETCH_INTERVAL_DEFAULT } from '../constants';
+import { queryClientInstance } from '@/lib/query-client-instance';
 import { logger } from '@/lib/logger';
 
 /**
@@ -158,6 +159,31 @@ export const useAuthStore = create<AuthState>()(
                     expireAt: null,
                     isLoading: false
                 });
+                // WO-029 defect 1: drop every react-query cache entry on logout.
+                // Query keys carry no identity, so on a shared device the next
+                // visitor would see the previous user's balance, API keys,
+                // usage and logs within staleTime. Both logout paths (the
+                // explicit button and the 401 auto-logout in client.ts) funnel
+                // through this action, so clearing here covers both.
+                //
+                // clear() over removeQueries(): it also wipes mutation state
+                // (pending isPending flags, cached mutation results), which
+                // removeQueries leaves behind and the next identity has no
+                // business inheriting.
+                //
+                // After set(), not before: set() flips isAuthenticated, which
+                // triggers re-renders; anything that fires a fresh fetch in
+                // response must not have its result evicted by a cache clear
+                // racing behind it. Clearing after the state flip also means a
+                // re-render that happens mid-clear observes an empty cache
+                // rather than the previous identity's data.
+                //
+                // cancelQueries first: fetches already in flight for the old
+                // session would otherwise resolve after clear() and write the
+                // previous identity's data straight back into the fresh cache.
+                // Cancelled queries revert silently (no error state, no toast).
+                void queryClientInstance.cancelQueries();
+                queryClientInstance.clear();
             }
         }),
         {

@@ -2649,7 +2649,13 @@
       "successRate": "成功率",
       "sparkline7d": "近 7 日成功率",
       "expand": "展开详情",
-      "collapse": "收起详情"
+      "collapse": "收起详情",
+      "probeFailed": "探测失败"
+    },
+    "probe": {
+      "hiddenCount": "探测标记：{count} 个模型连续探测失败，已在默认视图隐藏",
+      "showAll": "显示全部",
+      "showHealthyOnly": "只看健康模型"
     },
     "detail": {
       "pricing": "价格信息",

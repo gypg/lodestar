@@ -36,6 +36,9 @@ func invalidateRulesCache() {
 	rulesCacheMu.Unlock()
 }
 
+// InvalidateNotifCache 供测试在同进程内灌入渠道行后刷新（WO-031 T6）。
+func InvalidateNotifCache() { invalidateNotifCache() }
+
 func invalidateNotifCache() {
 	notifCacheMu.Lock()
 	notifCached = false

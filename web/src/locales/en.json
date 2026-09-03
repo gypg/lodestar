@@ -2649,7 +2649,13 @@
       "successRate": "Success Rate",
       "sparkline7d": "7d Success Rate",
       "expand": "Expand details",
-      "collapse": "Collapse details"
+      "collapse": "Collapse details",
+      "probeFailed": "Probe failed"
+    },
+    "probe": {
+      "hiddenCount": "Probe flag: {count} model(s) failed consecutive probes and are hidden from the default view",
+      "showAll": "Show all",
+      "showHealthyOnly": "Healthy only"
     },
     "detail": {
       "pricing": "Pricing",

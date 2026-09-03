@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { reportError } from '@/lib/error-report';
+import { runRecovery } from '@/lib/chunk-error';
 import { resolveRuntimeI18nMessage } from '@/lib/i18n-runtime';
 
 export default function GlobalError({
@@ -20,6 +21,15 @@ export default function GlobalError({
             stack: error.stack ?? '',
         });
     }, [error]);
+
+    // WO-029 defect 2: this boundary has a single recovery button, so a chunk
+    // load failure (stale chunk URL after a deploy) previously left the user
+    // with a reset() that can never succeed and no fallback at all. The
+    // decision lives in runRecovery (src/lib/chunk-error.ts, shared with
+    // app/error.tsx).
+    const handleRecover = () => {
+        runRecovery(error, reset, () => window.location.reload());
+    };
 
     const title = resolveRuntimeI18nMessage('common.globalErrorBoundary.title', undefined, 'Critical Error');
     const message = resolveRuntimeI18nMessage('common.globalErrorBoundary.message', undefined, 'The application encountered a critical error and cannot recover automatically.');
@@ -91,7 +101,7 @@ export default function GlobalError({
                             </pre>
                         )}
                         <button
-                            onClick={reset}
+                            onClick={handleRecover}
                             style={{
                                 padding: '10px 24px',
                                 borderRadius: '12px',

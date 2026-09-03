@@ -1,60 +1,19 @@
 'use client';
 
-import { QueryClient, QueryClientProvider, QueryCache, MutationCache } from '@tanstack/react-query';
-import { useState } from 'react';
-import { QUERY_STALE_TIME, QUERY_MAX_RETRIES, QUERY_RETRY_BACKOFF_CAP } from '@/api/constants';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClientInstance, setQueryErrorNotifier } from '@/lib/query-client-instance';
 import { toast } from '@/components/common/Toast';
 
-function getErrorMessage(error: unknown, fallback = 'An error occurred') {
-    if (error instanceof Error && error.message) {
-        return error.message;
-    }
-    if (typeof error === 'object' && error !== null && 'message' in error && typeof error.message === 'string') {
-        return error.message;
-    }
-    return fallback;
-}
+// Attach the UI error notifier (toast) to the shared singleton's cache-level
+// onError handlers. The singleton itself is created with the full retry /
+// staleTime / cache policy in src/lib/query-client-instance.ts — previously it
+// lived in this provider's useState; it moved so the auth store's logout can
+// clear the cache (WO-029 defect 1).
+setQueryErrorNotifier((message) => toast.error(message));
 
 export default function QueryProvider({ children }: { children: React.ReactNode }) {
-    const [queryClient] = useState(
-        () =>
-            new QueryClient({
-                defaultOptions: {
-                    queries: {
-                        staleTime: QUERY_STALE_TIME,
-                        refetchOnWindowFocus: false,
-                        retry: (failureCount, error) => {
-                            if (error instanceof Error && 'code' in error) {
-                                const code = (error as { code: number }).code;
-                                if (code >= 400 && code < 500) return false;
-                            }
-                            return failureCount < QUERY_MAX_RETRIES;
-                        },
-                        retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, QUERY_RETRY_BACKOFF_CAP),
-                    },
-                    mutations: {
-                        retry: false,
-                    },
-                },
-                queryCache: new QueryCache({
-                    onError: (error, query) => {
-                        if (query.meta?.skipGlobalErrorHandler) return;
-                        const message = getErrorMessage(error);
-                        toast.error(message);
-                    },
-                }),
-                mutationCache: new MutationCache({
-                    onError: (error, _variables, _context, mutation) => {
-                        if (mutation.meta?.skipGlobalErrorHandler) return;
-                        const message = getErrorMessage(error);
-                        toast.error(message);
-                    },
-                }),
-            })
-    );
-
     return (
-        <QueryClientProvider client={queryClient}>
+        <QueryClientProvider client={queryClientInstance}>
             {children}
         </QueryClientProvider>
     );
