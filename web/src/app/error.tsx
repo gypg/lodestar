@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { reportError } from '@/lib/error-report';
+import { runRecovery } from '@/lib/chunk-error';
 import { motion } from 'motion/react';
 import { AlertTriangle, RotateCcw, Home } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -15,6 +16,15 @@ export default function ErrorBoundary({
     reset: () => void;
 }) {
     const t = useTranslations('common.errorBoundary');
+    // WO-029 defect 2: after a deploy, a stale tab holds chunk URLs that no
+    // longer exist on the server, so `reset` (re-render of the same JS) can
+    // never fix a chunk-load failure — only a full reload that fetches fresh
+    // HTML with the new manifest can. The chunk-vs-reset decision lives in
+    // runRecovery (src/lib/chunk-error.ts, shared with global-error.tsx).
+    // Non-chunk errors keep `reset` so unsaved form state survives the retry.
+    const handleTryAgain = () => {
+        runRecovery(error, reset, () => window.location.reload());
+    };
 
     useEffect(() => {
         console.error('App Error Boundary caught:', error);
@@ -61,7 +71,7 @@ export default function ErrorBoundary({
 
                     <div className="flex w-full flex-col gap-2 sm:flex-row">
                         <Button
-                            onClick={reset}
+                            onClick={handleTryAgain}
                             className="flex-1 gap-2 rounded-xl"
                             variant="default"
                         >
