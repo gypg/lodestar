@@ -29,6 +29,7 @@ const (
 	TaskWebDAVBackup  = "webdav_backup"
 	TaskErrorLogClean = "error_log_cleanup"
 	TaskSubExpire     = "subscription_expire"
+	TaskCustomerAlert = "customer_alert"
 )
 
 // subExpireInterval 是过期订阅状态回收的周期。
@@ -163,6 +164,17 @@ func Init() {
 	// 过期订阅状态回收。runOnStart：进程重启后立即对账一次，否则一次崩溃就能让
 	// 一批过期订阅多顶着「活跃」显示一个周期。
 	Register(TaskSubExpire, subExpireInterval, true, ExpireSubscriptionsTask)
+
+	// WO-028 定时模型可用度探测。固定短 tick 无条件注册，任务体每轮自检：
+	// model_probe_enabled 关闭（默认）时直接返回——探测是真上游请求（真花钱），
+	// 默认开等于替运营者做花钱的决定；周期 model_probe_interval_hours 同样任务体
+	// 内生效，改动 setting 无需重启（不像 sync_llm 那类读一次注册定终身）。
+	Register(TaskModelProbe, modelProbeTick, false, ModelProbeTask)
+
+	// WO-026 阶段 C 客户预警（低余额/订阅到期，发给客户本人邮箱）。同样固定短
+	// tick + 任务体自检：customer_alert_enabled 默认 false，运营者不开就没有任何
+	// 邮件出去；防重档位见 internal/op/customeralert。
+	Register(TaskCustomerAlert, customerAlertTick, true, CustomerAlertTask)
 }
 
 // ExpireSubscriptionsTask 把已过期但 status 仍为 active 的订阅改成 expired。

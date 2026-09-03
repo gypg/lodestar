@@ -313,6 +313,23 @@ func GetUserSubscription(userID uint, ctx context.Context) (*model.UserSubscript
 	return &sub, nil
 }
 
+// ListActiveUserSubscriptions returns ALL of a user's currently active
+// subscriptions, soonest expiry first (WO-030 defect B). GetUserSubscription
+// keeps its DESC ordering for the single-subscription UI view; alerting needs
+// the full list because a user can legitimately hold several active
+// subscriptions (purchase / admin bind / payment paths all Create unconditionally,
+// user_id is a plain index), and only the soonest one is about to lapse.
+// Callers must not rely on this ordering alone - re-derive the soonest row.
+func ListActiveUserSubscriptions(userID uint, ctx context.Context) ([]model.UserSubscription, error) {
+	now := time.Now().Unix()
+	var subs []model.UserSubscription
+	err := db.GetDB().WithContext(ctx).
+		Where("user_id = ? AND status = ? AND expires_at > ?", userID, model.SubStatusActive, now).
+		Order("expires_at ASC, id ASC").
+		Find(&subs).Error
+	return subs, err
+}
+
 // ListUserSubscriptions returns all subscriptions for a user (active and expired).
 func ListUserSubscriptions(userID uint, ctx context.Context) ([]model.UserSubscription, error) {
 	var subs []model.UserSubscription

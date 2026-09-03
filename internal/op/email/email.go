@@ -133,6 +133,16 @@ func VerifyPasswordReset(email, code string) bool {
 	return verify(NamespaceReset, email, code)
 }
 
+// SendCustom 发送一封自定义正文的客户邮件（WO-026 阶段 C：预警邮件等）。
+// 与验证码邮件共用 SMTP 配置与发送通道；无验证码状态，失败即失败。
+// SMTP 未配置时返回错误——调用方（预警任务）据此决定重试，不丢消息。
+func SendCustom(to, subject, body string) error {
+	if to == "" || !strings.Contains(to, "@") {
+		return errors.New("邮箱格式无效")
+	}
+	return sendMail(normalize(to), subject, body)
+}
+
 func verify(ns, email, code string) bool {
 	e := normalize(email)
 	v, ok := codes.Load(ns + e)

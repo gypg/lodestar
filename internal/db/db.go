@@ -563,6 +563,8 @@ var autoMigrateModels = []any{
 	&model.TwoFABackupCode{},
 	&model.OAuthBinding{},
 	&model.GroupTestResult{},
+	&model.ModelProbeState{},
+	&model.UserAlertState{},
 	&model.ErrorLog{},
 	&migrate.MigrationRecord{},
 }
