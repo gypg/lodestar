@@ -41,12 +41,18 @@ export async function resolve(specifier, context, nextResolve) {
         };
     }
 
+    // notFound 必须在 catch 外声明：末尾的 `cause` 要用它。早先版本直接写
+    // `cause: error`，而 `error` 是 catch 的块作用域变量——于是任何真正解析不了的
+    // 模块都把有用的报错替换成 `ReferenceError: error is not defined`，
+    // 把"包没装"这类问题伪装成加载器自身崩溃。
+    let notFound;
     try {
         return await nextResolve(specifier, context);
     } catch (error) {
         if (error?.code !== 'ERR_MODULE_NOT_FOUND') {
             throw error;
         }
+        notFound = error;
     }
 
     if (specifier.startsWith('@/')) {
@@ -64,5 +70,7 @@ export async function resolve(specifier, context, nextResolve) {
         }
     }
 
-    throw new Error(`ts-alias-loader: cannot resolve '${specifier}' from '${context.parentURL ?? ''}'`, { cause: error });
+    throw new Error(`ts-alias-loader: cannot resolve '${specifier}' from '${context.parentURL ?? ''}'`, {
+        cause: notFound,
+    });
 }

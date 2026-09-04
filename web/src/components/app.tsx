@@ -327,7 +327,17 @@ export function AppContainer() {
         // Waiting is safe here specifically because useCurrentUser has retry:false:
         // isPending clears on success or failure, so this cannot park behind a
         // retry loop while bootstrapComplete holds the full-screen loader.
-        if (currentUserPending) return;
+        //
+        // But it is NOT safe for an API Key session: useCurrentUser is disabled for
+        // those (user.ts — /user/me is JWT-only), and a disabled query's isPending
+        // stays TRUE forever with fetchStatus 'idle'. Without this guard the fix for
+        // "API Key login kicks you out" would just trade it for "API Key login hangs
+        // on the full-screen loader", since bootstrapComplete never flips. isPending
+        // alone cannot tell disabled from in-flight — that is what fetchStatus is for;
+        // both behaviours are pinned in disabled-query-pending.test.ts.
+        // There is no role to wait for here anyway: the API Key branch below prefetches
+        // apikey/stats and reads no permission.
+        if (!isAPIKeyAuth && currentUserPending) return;
 
         if (bootstrapStartedRef.current) return;
         bootstrapStartedRef.current = true;

@@ -288,16 +288,38 @@ export interface CurrentUser {
     used_quota: number;
 }
 
-export function useCurrentUser() {
-    const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-    return useQuery({
-        queryKey: ['user', 'me'],
+/**
+ * /user/me 的 query options。抽成独立函数是为了可测：本仓 node --test 无 DOM、
+ * 无 renderer，测不了 hook，但可以把这份 options 交给真 QueryObserver 观测
+ * "到底有没有发出请求"（见 current-user-gate.test.ts）。
+ *
+ * ★ API Key 会话必须排除，否则密钥登录永远失败：GET /api/v1/user/me 挂在 JWT
+ * 中间件后面（internal/server/handlers/user.go:103），拿 API Key 去打必得 401，
+ * 而 client.ts 的全局 401 分支直接调 logout() ——于是 /apikey/login 刚返回 200、
+ * 会话在几毫秒后被自己清掉，用户看到的是"密钥登录永远登不进"。
+ * 同仓另外两处早已带这个守卫（apikey.ts:72、app.tsx 的 settings 查询），唯此处漏了。
+ *
+ * 配套改动：app.tsx 的 bootstrap 门必须同时排除 API Key 会话——disabled query 的
+ * isPending 恒为 true，只改这里会把"登录即踢出"换成"卡在全屏 loader"。
+ */
+export function getCurrentUserQueryOptions(session: {
+    isAuthenticated: boolean;
+    isAPIKeyAuth: boolean;
+}) {
+    return {
+        queryKey: ['user', 'me'] as const,
         queryFn: async () => apiClient.get<CurrentUser>('/api/v1/user/me'),
-        enabled: isAuthenticated,
+        enabled: session.isAuthenticated && !session.isAPIKeyAuth,
         staleTime: 60_000,
         retry: false,
         refetchOnWindowFocus: false,
-    });
+    };
+}
+
+export function useCurrentUser() {
+    const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+    const isAPIKeyAuth = useAuthStore((s) => s.isAPIKeyAuth);
+    return useQuery(getCurrentUserQueryOptions({ isAuthenticated, isAPIKeyAuth }));
 }
 
 /** staff（admin/editor）见完整控制台；其他（viewer，含商业注册用户）见受限门户 */

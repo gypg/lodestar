@@ -76,10 +76,16 @@ test('bootstrap waits for the role to settle before deciding', () => {
         /isPending:\s*currentUserPending/,
         'app.tsx must read isPending from useCurrentUser to know whether the role has settled',
     );
+    // The guard is deliberately NOT the bare `if (currentUserPending) return;` any
+    // more: useCurrentUser is disabled for API Key sessions (/user/me is JWT-only),
+    // and a disabled query's isPending stays true forever, so the bare form parked
+    // those sessions behind the full-screen loader. It must still wait for a JWT
+    // session, hence "must mention isAPIKeyAuth AND currentUserPending on one line".
     assert.match(
         src,
-        /if\s*\(currentUserPending\)\s*return;/,
-        'the bootstrap effect must return early while the role is still in flight',
+        /if\s*\(\s*!isAPIKeyAuth\s*&&\s*currentUserPending\s*\)\s*return;/,
+        'the bootstrap effect must return early while a JWT role is in flight, but must ' +
+        'not wait on the permanently-pending disabled query of an API Key session',
     );
 
     // The early return only resumes if the flag is a dependency; otherwise bootstrap
