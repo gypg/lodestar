@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { createPortal } from 'react-dom';
 import { CopyIconButton } from '@/components/common/CopyButton';
 import { formatAverageLatency, type LatencyUnitMode } from './latency-format';
+import { isProbeFailed } from './probe-state';
 import { useSettingStore } from '@/stores/setting';
 
 interface ModelItemProps {
@@ -189,7 +190,7 @@ export const ModelItem = memo(function ModelItem({ model, layout = 'grid', laten
                                     </TooltipTrigger>
                                     <TooltipContent key={model.name}>{displayName}</TooltipContent>
                                 </Tooltip>
-                                {model.probe_failed_at ? (
+                                {isProbeFailed(model) ? (
                                     <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-destructive/30 bg-destructive/10 px-2.5 py-0.5 text-[0.68rem] font-medium text-destructive sm:px-3 sm:py-1 sm:text-xs">
                                         <CircleAlert className="size-3 sm:size-3.5" />
                                         {t('card.probeFailed')}

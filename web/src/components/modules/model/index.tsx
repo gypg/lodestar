@@ -11,6 +11,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useSearchStore, useToolbarViewOptionsStore } from '@/components/modules/toolbar';
 import { VirtualizedGrid } from '@/components/common/VirtualizedGrid';
 import { sortModelMarketItems } from './sort';
+import { isProbeFailed } from './probe-state';
 import { ModelMappingPanel } from './ModelMapping';
 import { getModelIcon } from '@/lib/model-icons';
 
@@ -35,8 +36,10 @@ export function Model() {
     // WO-028: models that failed the scheduled probe threshold are hidden from
     // the default view; the toggle reveals them with a visible badge.
     const [showAllProbed, setShowAllProbed] = useState(false);
+    // isProbeFailed，不是 !!m.probe_failed_at：后者把 Go 零值时刻读成"失败"，
+    // 曾导致整个广场默认视图为空 + 横幅谎报（详见 probe-state.ts 的注释）。
     const probedBadCount = useMemo(
-        () => sortedModels.filter((m) => !!m.probe_failed_at).length,
+        () => sortedModels.filter((m) => isProbeFailed(m)).length,
         [sortedModels],
     );
 
@@ -58,7 +61,7 @@ export function Model() {
         }
 
         if (!showAllProbed) {
-            filtered = filtered.filter((m) => !m.probe_failed_at);
+            filtered = filtered.filter((m) => !isProbeFailed(m));
         }
 
         return filtered;

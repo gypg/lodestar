@@ -63,7 +63,10 @@ func ModelMarketGet(ctx context.Context, lastUpdateTime time.Time) (model.ModelM
 	hiddenProbes := modelprobe.HiddenSnapshot()
 	for i := range items {
 		if probedAt, bad := hiddenProbes[strings.ToLower(items[i].Name)]; bad {
-			items[i].ProbeFailedAt = probedAt
+			// 取地址前必须复制到局部变量：probedAt 是循环内的新变量所以本身安全，
+			// 但显式写出来是为了防后来者改成 &hiddenProbes[...]（map 元素不可取址）。
+			failedAt := probedAt
+			items[i].ProbeFailedAt = &failedAt
 		}
 	}
 	resp := model.ModelMarketResponse{
