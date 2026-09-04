@@ -27,6 +27,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Batch 7** (2026-08-14): Internationalize winter-landing, site/index, and BillingExpr components (139 remaining hardcoded strings, down from 817 - 83% complete)
 
 ### 🚀 Features
+- **Scheduled model availability probes** (`bb095e5`, 2026-09-01, [PR #1](https://github.com/gypg/lodestar/pull/1)): 
+  a probe existed but nothing called it on a timer, so a broken model was never 
+  automatically detected. A cron task now runs the group probe hourly (configurable), 
+  queries each routing group for its current live channel, sends a minimal test request, 
+  and records failures. The operator dashboard surfaces groups that failed their last 
+  probe, with the failure time and a truncated reason. The probe respects the 
+  `model_probe_enabled` flag (off by default until real traffic justifies the upstream 
+  cost). Fake 200 responses — where the upstream returns HTTP 200 but an error body — 
+  are now recognised by the probe logic (`87fdaba`): it calls `TransformResponse` and 
+  inspects the returned `InternalLLMResponse.Error`, so a semantic failure is caught 
+  even when the status code looks successful.
+- **Customer balance and subscription alerts** (`d5383e7`, 2026-09-01, [PR #1](https://github.com/gypg/lodestar/pull/1)): 
+  an hourly task now emails customers when their balance crosses a low-water threshold 
+  or when a subscription is about to expire. The thresholds are configurable per alert 
+  type, and each alert is sent at most once per event (tracked via `last_alert_sent_at` / 
+  `last_expiry_alert_days_left`). Notification URLs are SSRF-validated before dialling 
+  (`edf3ea0`), and raw upstream error messages are never forwarded verbatim (`7eaba3f`) — 
+  the notification body is now sanitised to prevent leaking internal topology or tokens. 
+  Requires `customer_alert_enabled` (off by default until there are paying customers).
+- **Customer balance history** (`c486638`, 2026-09-01): the ledger has been written since 
+  WO-017, but only the admin reconciliation endpoint read it. Customers can now see their 
+  own balance history at `GET /api/v1/wallet/history`, returning the most recent ledger 
+  entries for the authenticated user. The response is paginated and excludes admin-only 
+  fields (actor, reason), showing only the delta, kind, timestamp, and reference document.
+- **Password reset flow** (`ababa21` / `4c5e994`, 2026-09-01): a customer who forgot their 
+  password was locked out permanently — the only way to regain access was to ask an admin 
+  to manually reset it. A self-service flow is now available: the login page links to a 
+  forgot-password form, which sends a time-limited reset token via email; the customer 
+  clicks the link, enters a new password, and regains access. The token expires after 1 
+  hour and is single-use. i18n keys were initially placed under `bootstrap.form.forgot` 
+  but the login page reads `common.auth.*`, so they were moved (`4c5e994`) to ensure the 
+  UI renders translated strings rather than key paths.
 - **Site channels are reachable and routable** (`d178199` / `7ebc8f7`, 2026-08-29):
   a projected site channel was both invisible and unusable, for two separate reasons.
   Invisible: projection never set a folder, so every projected channel fell back to
@@ -225,6 +257,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🐛 Bug Fixes
 
 #### Critical (Production Impact)
+- **Query cache persisted across logout** (`33db19c`, 2026-09-01, [PR #1](https://github.com/gypg/lodestar/pull/1)): 
+  logout only reset the zustand auth store, leaving the react-query cache intact. A user 
+  logging out and another logging in on the same browser inherited the first user's 
+  cached API responses — balance, usage, keys, and settings — until those queries 
+  re-fetched or their stale time expired. Logout now calls `queryClient.clear()` to 
+  discard all cached data. The fix also adds an error-boundary recovery for stale chunk 
+  errors: when the boundary catches a chunk-load failure (common after a deployment that 
+  invalidates old JS hashes), the "retry" action now reloads the page rather than 
+  re-throwing, because a chunk 404 cannot be fixed by re-rendering.
+- **Rate-limit middleware consumed the request body** (`2d2e30a`, 2026-09-01): 
+  `EmailCodeRateLimit` reads the JSON body to extract the email address it buckets on, 
+  but `c.Request.Body` is a one-shot reader — once drained, downstream handlers see EOF. 
+  Every endpoint wrapped by this middleware (registration, login, password reset) returned 
+  400 "invalid request body". The middleware now writes the read bytes back into a fresh 
+  `io.NopCloser(bytes.NewReader(...))` before returning, restoring the body for the next 
+  handler in the chain.
 - **Proxy-pool routes were reachable by end customers** (`1e792d2`, 2026-08-31): the
   whole `/api/v1/proxy-pool` group carried only `Auth()`, so any signed-in account —
   including the `user` role a paying visitor receives on registration — reached all of
@@ -680,6 +728,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   error string, so diagnosing a failing channel meant querying the database for a
   payload that was already on screen's doorstep. Failed rows now expose it in a
   collapsible panel.
+
+#### Security
+- **Alert notification SSRF validation** (`edf3ea0`, 2026-09-01, [PR #1](https://github.com/gypg/lodestar/pull/1)): 
+  the alert notification paths dialled an operator-supplied URL with no SSRF checks. An 
+  operator configuring a webhook could have used it to probe internal services, scan the 
+  private network, or exfiltrate data via DNS. Notification URLs are now validated 
+  through the same `utils.IsURLReachable` guard used elsewhere: private IPs (RFC 1918, 
+  loopback, link-local) and non-HTTP(S) schemes are rejected. Applies to both balance 
+  alerts and subscription expiry warnings.
+- **Raw error messages in probe notifications** (`7eaba3f`, 2026-09-01, [PR #1](https://github.com/gypg/lodestar/pull/1)): 
+  probe failure notifications carried `err.Error()` verbatim, truncated to 200 chars. 
+  Upstream errors routinely embed the failed URL, which can contain API keys in query 
+  parameters, or internal hostnames that map the network topology. Notifications now send 
+  only a sanitised summary: the model name, the failure mode (timeout / 4xx / 5xx / 
+  invalid response), and a timestamp. The full error is still logged server-side for 
+  operator diagnosis.
 
 #### Other
 - **Subscription expiry sweep had no caller** (`58aaf9d`, 2026-08-26):
