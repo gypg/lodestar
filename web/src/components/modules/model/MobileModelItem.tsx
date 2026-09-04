@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { createPortal } from 'react-dom';
 import { CopyIconButton } from '@/components/common/CopyButton';
 import { formatAverageLatency, type LatencyUnitMode } from './latency-format';
+import { isProbeFailed } from './probe-state';
 import { useSettingStore } from '@/stores/setting';
 
 interface MobileModelItemProps {
@@ -178,7 +179,7 @@ export const MobileModelItem = memo(function MobileModelItem({ model, latencyUni
                         <span className="inline-flex shrink-0 items-center rounded-full border border-primary/12 bg-card px-1.5 py-px text-[0.58rem] font-semibold text-primary">
                             {providerLabel}
                         </span>
-                        {model.probe_failed_at ? (
+                        {isProbeFailed(model) ? (
                             <span className="inline-flex shrink-0 items-center rounded-full border border-destructive/30 bg-destructive/10 px-1.5 py-px text-[0.58rem] font-medium text-destructive">
                                 {t('card.probeFailed')}
                             </span>

@@ -47,8 +47,17 @@ type ModelMarketItem struct {
 	RequestFailed    int64                `json:"request_failed"`
 	Channels         []ModelMarketChannel `json:"channels"`
 	// ProbeFailedAt 由定时探测任务回灌（WO-028）：连续失败达到阈值时为最近一次
-	// 探测失败的时刻，零值 = 从未探测或当前健康。呈现层专用，不影响路由。
-	ProbeFailedAt time.Time `json:"probe_failed_at,omitempty"`
+	// 探测失败的时刻，nil = 从未探测或当前健康。呈现层专用，不影响路由。
+	//
+	// ★ 必须是指针。`omitempty` 对非指针 time.Time 无效（结构体永远不算 empty），
+	// 早先的 `time.Time` 版本让每个健康模型都序列化出
+	// `"probe_failed_at":"0001-01-01T00:00:00Z"`，而前端判的是 truthiness
+	// （index.tsx / Item.tsx / MobileModelItem.tsx），非空字符串为真 → 广场默认
+	// 视图把**全部**模型判为探测失败并隐藏，横幅还报出"N 个模型连续探测失败"。
+	// 生产实测：探测开关为 false、model_probe_states 零行（从未探测），
+	// 却有 94 个模型被隐藏，含真实出活过的 Qwen3-Max。
+	// 本 struct 的 TableName() 返回 "-"（纯响应体，不落库），故改指针无需迁移。
+	ProbeFailedAt *time.Time `json:"probe_failed_at,omitempty"`
 }
 
 type ModelMarketSummary struct {

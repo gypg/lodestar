@@ -76,10 +76,21 @@ test('bootstrap waits for the role to settle before deciding', () => {
         /isPending:\s*currentUserPending/,
         'app.tsx must read isPending from useCurrentUser to know whether the role has settled',
     );
+    // The guard is deliberately NOT the bare `if (currentUserPending) return;` any
+    // more: useCurrentUser is disabled for API Key sessions (/user/me is JWT-only),
+    // and a disabled query's isPending stays true forever, so the bare form parked
+    // those sessions behind the full-screen loader. It must still wait for a JWT
+    // session, hence "must mention isAPIKeyAuth AND currentUserPending on one line".
+    // 两种顺序都接受。`&&` 可交换，`currentUserPending && !isAPIKeyAuth` 与
+    // `!isAPIKeyAuth && currentUserPending` 语义完全等价；WO-034 的对抗验收实测到
+    // 早先只认前一种写法的正则会把后一种**正确实现判红**——把合法等价形式判失败
+    // 是脆，不是严。这里守的是"两个条件必须同时出现在这个早退判断里"，
+    // 而不是它们的书写次序。
     assert.match(
         src,
-        /if\s*\(currentUserPending\)\s*return;/,
-        'the bootstrap effect must return early while the role is still in flight',
+        /if\s*\(\s*(?:!isAPIKeyAuth\s*&&\s*currentUserPending|currentUserPending\s*&&\s*!isAPIKeyAuth)\s*\)\s*return;/,
+        'the bootstrap effect must return early while a JWT role is in flight, but must ' +
+        'not wait on the permanently-pending disabled query of an API Key session',
     );
 
     // The early return only resumes if the flag is a dependency; otherwise bootstrap
