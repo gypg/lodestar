@@ -35,6 +35,26 @@ test('unix epoch zero is not a failure', () => {
     assert.equal(isProbeFailed({ probe_failed_at: '1970-01-01T00:00:00Z' }), false);
 });
 
+/**
+ * 这条是唯一能走到 `parsed > 0` 那一行、且解析结果恰为 0 的输入。
+ *
+ * 没有它，把最后一行削弱成 `parsed >= 0` 完全观测不到（WO-034 实测：该削弱型变异
+ * 在 7/7 全绿下存活）——因为其它纪元写法都被上面的字符串前缀提前拦掉了，
+ * 测试集里没有任何输入能触达那个比较。前缀不匹配 + Date.parse 恰好为 0 是这条的关键：
+ * '1970-01-01T08:00:00+08:00' 就是纪元本身在 UTC+8 的写法。
+ *
+ * 语义上它同样必须判"不失败"：那是零值，不是一次真实的探测失败。
+ */
+test('epoch expressed with a timezone offset is not a failure (pins the > 0 boundary)', () => {
+    assert.equal(Date.parse('1970-01-01T08:00:00+08:00'), 0, 'precondition: this input parses to exactly 0');
+    assert.equal(
+        isProbeFailed({ probe_failed_at: '1970-01-01T08:00:00+08:00' }),
+        false,
+        'epoch zero is a zero value, not a real probe failure — and this is the only input that ' +
+        'reaches the final comparison with a parse result of exactly 0, so `>= 0` must not pass here',
+    );
+});
+
 test('unparseable value is not a failure (never hide a usable model on a bad value)', () => {
     assert.equal(isProbeFailed({ probe_failed_at: 'not-a-date' }), false);
 });

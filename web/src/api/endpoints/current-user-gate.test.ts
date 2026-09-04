@@ -112,9 +112,32 @@ test('useCurrentUser is wired to getCurrentUserQueryOptions', async () => {
         'useCurrentUser must build its options via getCurrentUserQueryOptions, or the ' +
         'behavioural tests above stop covering the real call site',
     );
+
+    // 实参必须是从 store 读来的那两个变量，写成简写形态。
+    //
+    // 只断言"body 里出现 isAPIKeyAuth 字样"是不够的：WO-034 的对抗验收找到一个真绕过——
+    //     useQuery(getCurrentUserQueryOptions({ isAuthenticated: true, isAPIKeyAuth: false }))
+    // 硬编码两个值，既是直接调用形态（过上面那条正则）、又含 isAPIKeyAuth 键名
+    //（过旧的宽松断言），而运行时守卫恒真、查询恒发，原缺陷原样回归，四条测试全绿。
+    // 上面那些行为测试也抓不到它：它们直接调 options 函数，不经过这个 hook。
+    // 所以这里钉的是**参数来源**而不只是调用形态。
     assert.match(
         body,
-        /isAPIKeyAuth/,
-        'useCurrentUser must read isAPIKeyAuth from the store and pass it through',
+        /getCurrentUserQueryOptions\(\{\s*isAuthenticated,\s*isAPIKeyAuth\s*\}\)/,
+        'useCurrentUser must pass the two store values through as shorthand properties. ' +
+        'Hardcoding them (e.g. `{ isAuthenticated: true, isAPIKeyAuth: false }`) satisfies a ' +
+        'looser check while defeating the guard at runtime',
+    );
+
+    // 且这两个值必须真的来自 store，不是同名局部常量。
+    assert.match(
+        body,
+        /useAuthStore\(\(s\) => s\.isAPIKeyAuth\)/,
+        'isAPIKeyAuth must be read from the auth store',
+    );
+    assert.match(
+        body,
+        /useAuthStore\(\(s\) => s\.isAuthenticated\)/,
+        'isAuthenticated must be read from the auth store',
     );
 });
