@@ -10,7 +10,9 @@ import (
 	"time"
 
 	"github.com/gypg/lodestar/internal/model"
+	"github.com/gypg/lodestar/internal/op/channel"
 	"github.com/gypg/lodestar/internal/op/setting"
+	"github.com/gypg/lodestar/internal/utils/xstrings"
 )
 
 const (
@@ -265,6 +267,15 @@ func loadAIRouteServiceConfigs() ([]model.AIRouteServiceConfig, error) {
 		return services, nil
 	}
 
+	// Local mode derives the analysis service straight from this site's own
+	// channels, so the operator never hand-fills base_url/api_key for it and a
+	// bare model choice is enough to run. Checked after the explicit service
+	// pool (which is an explicit operator override) and before the legacy
+	// three-piece credentials, which only external mode should need.
+	if mode, _ := setting.GetString(model.SettingKeyAIRouteSourceMode); strings.TrimSpace(mode) == model.AIRouteSourceModeLocal {
+		return loadLocalAIRouteServices()
+	}
+
 	baseURL, err := setting.GetString(model.SettingKeyAIRouteBaseURL)
 	if err != nil || strings.TrimSpace(baseURL) == "" {
 		return nil, fmt.Errorf("AI路由模型配置不完整")
@@ -303,4 +314,106 @@ func NormalizeAIRouteServiceName(cfg model.AIRouteServiceConfig, ordinal int) st
 	}
 
 	return fmt.Sprintf("service-%d", ordinal)
+}
+
+// loadLocalAIRouteServices builds the analysis service from this site's own
+// channels. The channel cache is loaded with Preload("Keys"), so List already
+// carries base URLs and keys — no extra queries.
+func loadLocalAIRouteServices() ([]model.AIRouteServiceConfig, error) {
+	channels, err := channel.List(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("读取本站渠道失败: %w", err)
+	}
+
+	preferred, _ := setting.GetString(model.SettingKeyAIRouteModel)
+	return buildLocalAIRouteServices(channels, strings.TrimSpace(preferred))
+}
+
+// buildLocalAIRouteServices picks the analysis service from the given channels.
+//
+// With a preferred model it must be served by an enabled channel; silently
+// swapping in a different model would run the analysis with credentials the
+// operator never saw, so a missing mapping is an error naming the model.
+// With no preference (setting never chosen) the first usable model in channel
+// order wins — deterministic, and only a fallback: the panel auto-picks the
+// lowest-latency model into the setting well before the task runs.
+func buildLocalAIRouteServices(channels []model.Channel, preferredModel string) ([]model.AIRouteServiceConfig, error) {
+	if preferredModel != "" {
+		for i := range channels {
+			if svc, ok := localServiceFromChannel(&channels[i], preferredModel); ok {
+				return []model.AIRouteServiceConfig{svc}, nil
+			}
+		}
+		return nil, fmt.Errorf("本站渠道中没有支持模型 %q 的启用渠道（需启用且带地址与密钥）", preferredModel)
+	}
+
+	for i := range channels {
+		ch := &channels[i]
+		if !ch.Enabled {
+			continue
+		}
+		for _, modelName := range xstrings.SplitTrimCompact(",", ch.Model, ch.CustomModel) {
+			if svc, ok := localServiceFromChannel(ch, modelName); ok {
+				return []model.AIRouteServiceConfig{svc}, nil
+			}
+		}
+	}
+	return nil, fmt.Errorf("本站渠道中没有可用的分析模型（需启用且带地址与密钥）")
+}
+
+// localServiceFromChannel turns a channel into an analysis service for the
+// given model. Matching is case-insensitive against the channel's comma list,
+// but the service carries the channel's own spelling — that is the name the
+// upstream actually knows. Requires a non-empty base URL and one enabled key.
+func localServiceFromChannel(ch *model.Channel, modelName string) (model.AIRouteServiceConfig, bool) {
+	if ch == nil || !ch.Enabled {
+		return model.AIRouteServiceConfig{}, false
+	}
+	target := strings.ToLower(strings.TrimSpace(modelName))
+	if target == "" {
+		return model.AIRouteServiceConfig{}, false
+	}
+
+	servedModel := ""
+	for _, served := range xstrings.SplitTrimCompact(",", ch.Model, ch.CustomModel) {
+		if strings.ToLower(served) == target {
+			servedModel = served
+			break
+		}
+	}
+	if servedModel == "" {
+		return model.AIRouteServiceConfig{}, false
+	}
+
+	baseURL := ""
+	for _, base := range ch.BaseUrls {
+		if trimmed := strings.TrimSpace(base.URL); trimmed != "" {
+			baseURL = trimmed
+			break
+		}
+	}
+
+	apiKey := ""
+	for _, key := range ch.Keys {
+		if key.Enabled && strings.TrimSpace(key.ChannelKey) != "" {
+			apiKey = strings.TrimSpace(key.ChannelKey)
+			break
+		}
+	}
+
+	if baseURL == "" || apiKey == "" {
+		return model.AIRouteServiceConfig{}, false
+	}
+
+	name := strings.TrimSpace(ch.Name)
+	if name == "" {
+		name = fmt.Sprintf("local-channel-%d", ch.ID)
+	}
+
+	return model.AIRouteServiceConfig{
+		Name:    fmt.Sprintf("%s (%s)", name, servedModel),
+		BaseURL: baseURL,
+		APIKey:  apiKey,
+		Model:   servedModel,
+	}, true
 }

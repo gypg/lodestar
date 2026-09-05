@@ -485,12 +485,13 @@
         "saved": "保存成功",
         "modeLocal": "本站模型",
         "modeExternal": "外部连接",
-        "autoChannelNote": "自动使用本站渠道 {name} 的配置",
         "autoSaved": "已自动保存",
         "noChannelFound": "未找到可用渠道",
-        "channelIncomplete": "渠道配置不完整，请补全地址与密钥",
+        "autoPick": "自动选择",
+        "autoPickedNote": "已自动选择延时最低的可用模型 {name}",
+        "autoLocalNote": "分析调用直接使用本站渠道",
         "switchToExternal": "切换到外部连接",
-        "localIncompleteHint": "无法从本站渠道推导出地址与密钥，本站模型方式暂时无法完成配置。切换到外部连接可手动填写这两项，已选模型会保留。"
+        "localModelUnavailableHint": "本站渠道中没有支持该模型的启用渠道（渠道需启用且已配置地址与密钥）。切换到外部连接可手动填写，已选模型会保留。"
       }
     },
     "evaluation": {

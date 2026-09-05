@@ -67,56 +67,41 @@ test('unknown wire values fall back to external instead of throwing or returning
 /*
  * isLocalSetupIncomplete.
  *
- * 第二轮报修（同一个界面，第一轮修复上线前）：本站模式下依旧「没有保存按钮 + 依旧
- * 提示需配置」。根因是第一轮的逃生出口只挂在 channelLookupFailed 上，而那个标志是
- * 交互产生的、挂载即复位 false —— 重新打开页面时，历史遗留的不完整配置既不显示成功
- * 提示也不显示出口，只剩一个下拉框，而横幅继续报需配置。判定必须从值本身推导。
+ * 语义随实现演进：最初"不完整"指本站模式没推导出 base_url/api_key（当时分析凭据要
+ * 从渠道推导后写进三件套）。现在后端在 local 模式下直接从服务该模型的渠道构造分析
+ * 服务，凭据永不需要手填 —— 唯一无法运行的情况是"所选模型没有任何启用渠道支撑"。
+ * 判定必须从值本身推导：那个状态要在下次打开页面时被识别，而不是只在交互瞬间可见。
  */
 const base = {
     mode: 'local' as const,
     model: 'stepfun-ai/step-3.7-flash',
-    baseURL: 'https://example.com/v1',
-    apiKey: 'sk-live',
-    lookupInFlight: false,
+    hasEnabledChannel: true,
 };
 
-test('an incomplete local setup is recognised on arrival, not only on interaction', () => {
-    // This is the reported state: model persisted, credentials never derived.
-    assert.equal(isLocalSetupIncomplete({ ...base, baseURL: '', apiKey: '' }), true);
-    assert.equal(isLocalSetupIncomplete({ ...base, baseURL: '' }), true);
-    assert.equal(isLocalSetupIncomplete({ ...base, apiKey: '' }), true);
-});
-
-test('whitespace-only credentials count as missing', () => {
-    assert.equal(isLocalSetupIncomplete({ ...base, baseURL: '   ' }), true);
-    assert.equal(isLocalSetupIncomplete({ ...base, apiKey: '\t' }), true);
-});
-
-test('a complete local setup raises nothing', () => {
+test('a local model backed by an enabled channel is complete', () => {
     assert.equal(isLocalSetupIncomplete(base), false);
 });
 
-test('an untouched local panel raises nothing', () => {
-    // No model picked yet is untouched, not broken -- the dropdown is the
-    // obvious next move and a warning there would be noise.
-    assert.equal(isLocalSetupIncomplete({ ...base, model: '', baseURL: '', apiKey: '' }), false);
-    assert.equal(isLocalSetupIncomplete({ ...base, model: '  ', baseURL: '', apiKey: '' }), false);
+test('a local model with no enabled channel is recognised on arrival', () => {
+    // This is the reported state: a model persisted that no channel serves.
+    // The backend would fail the task with "no usable channel"; the panel must
+    // show the escape hatch instead.
+    assert.equal(isLocalSetupIncomplete({ ...base, hasEnabledChannel: false }), true);
 });
 
-test('nothing is raised while the channel lookup is still running', () => {
-    // Credentials are legitimately empty mid-flight; complaining here would
-    // flash the notice on every successful pick.
-    assert.equal(
-        isLocalSetupIncomplete({ ...base, baseURL: '', apiKey: '', lookupInFlight: true }),
-        false,
-    );
+test('an untouched local panel raises nothing', () => {
+    // No model picked yet is untouched, not broken -- the dropdown (or the
+    // automatic lowest-latency pick) is the obvious next move and a warning
+    // there would be noise.
+    assert.equal(isLocalSetupIncomplete({ ...base, model: '' }), false);
+    assert.equal(isLocalSetupIncomplete({ ...base, model: '  ' }), false);
 });
 
 test('external mode is never judged by this rule', () => {
     // External mode renders its own fields and save button, so empty values
     // there are just an unfinished form the operator can see and fill.
     assert.equal(
-        isLocalSetupIncomplete({ ...base, mode: 'external', baseURL: '', apiKey: '' }),
+        isLocalSetupIncomplete({ ...base, mode: 'external', hasEnabledChannel: false }),
         false,
     );
 });

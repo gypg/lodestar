@@ -485,12 +485,13 @@
         "saved": "Saved successfully",
         "modeLocal": "Local Model",
         "modeExternal": "External Connection",
-        "autoChannelNote": "Auto-configured from channel: {name}",
         "autoSaved": "Auto-saved",
         "noChannelFound": "No available channel found",
-        "channelIncomplete": "Channel configuration is incomplete; please fill in the base URL and key",
+        "autoPick": "Auto pick",
+        "autoPickedNote": "Auto-selected the lowest-latency available model {name}",
+        "autoLocalNote": "Analysis calls run directly through this site's own channel",
         "switchToExternal": "Switch to external connection",
-        "localIncompleteHint": "The base URL and key could not be derived from a local channel, so local-model mode cannot finish this setup. Switching to an external connection lets you enter both by hand; the selected model is kept."
+        "localModelUnavailableHint": "No enabled channel on this site serves this model (a channel must be enabled with a base URL and a key). Switch to an external connection to fill both in by hand; the selected model is kept."
       }
     },
     "evaluation": {

@@ -31,31 +31,23 @@ export function resolveAIRouteSourceMode(
 }
 
 /**
- * Whether local mode is holding a model it cannot actually run with.
+ * Whether local mode is holding a model the site cannot actually run.
  *
- * The readiness banner needs base_url, api_key and model together, but local
- * mode only renders a model dropdown — the other two are meant to be derived
- * from the channel. When that derivation produced nothing, the panel used to
- * show no notice and no button on a later visit, because the only signal was an
- * interaction-time flag that resets on mount. The banner then stayed up with
- * nothing on screen to act on.
+ * In local mode the backend derives base_url/api_key straight from the channel
+ * that serves the chosen model, so the old "needs base_url and api_key too"
+ * check no longer applies. The only way a picked model cannot run is when no
+ * enabled channel serves it — that is what this reports, so the panel can show
+ * the escape hatch instead of a setup that would fail at task time.
  *
- * Derived from the values themselves rather than from that flag, so a setup left
- * incomplete by an earlier session is recognised on arrival.
+ * An empty model is "not chosen yet", not "incomplete": the dropdown (or the
+ * automatic lowest-latency pick) is the obvious next move without extra noise.
  */
 export function isLocalSetupIncomplete(state: {
     mode: AIRouteSourceMode;
     model: string;
-    baseURL: string;
-    apiKey: string;
-    lookupInFlight: boolean;
+    hasEnabledChannel: boolean;
 }): boolean {
     if (state.mode !== LOCAL) return false;
-    // Nothing picked yet is not "incomplete" — it is untouched, and the dropdown
-    // is the obvious next move without extra noise.
     if (state.model.trim() === '') return false;
-    // A lookup in flight will fill these in; complaining mid-flight would flash
-    // the notice on every successful pick.
-    if (state.lookupInFlight) return false;
-    return state.baseURL.trim() === '' || state.apiKey.trim() === '';
+    return !state.hasEnabledChannel;
 }

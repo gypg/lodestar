@@ -6,6 +6,7 @@ import { Activity, Clock, Orbit, Radar, Route, Settings } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { apiClient } from '@/api/client';
 import { useAnalyticsEvaluationRuntime } from '@/api/endpoints/analytics';
+import { useModelChannelList } from '@/api/endpoints/model';
 import { useGenerateAIRoute, useAIRouteHistory, useGroupList } from '@/api/endpoints/group';
 import { useSettingList, SettingKey } from '@/api/endpoints/setting';
 import { toast } from '@/components/common/Toast';
@@ -14,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { ObservatorySection, StatusBadge } from './shared';
 import { AIRouteConfig } from './AIRouteConfig';
 import { GroupTestInline } from './GroupTestInline';
+import { resolveAIRouteSourceMode } from './ai-route-source-mode';
 
 function getStatusTone(status?: string) {
     switch (status) {
@@ -91,6 +93,7 @@ export function Evaluation() {
     const runtime = useAnalyticsEvaluationRuntime();
     const { data: groups } = useGroupList();
     const { data: settings } = useSettingList();
+    const { data: modelChannels } = useModelChannelList();
     const { data: aiRouteHistory } = useAIRouteHistory();
 
     // Check if /api/v1/group/test/history exists
@@ -133,14 +136,20 @@ export function Evaluation() {
         return { total, withItems, empty, endpointTypes: endpointTypes.size };
     }, [groups]);
 
-    // AI route configuration check
+    // AI route configuration check, per source mode: local mode runs on the
+    // serving channel's own credentials, so a chosen model backed by an enabled
+    // channel is enough there; external mode still needs all three fields.
     const aiRouteConfigured = useMemo(() => {
         if (!settings) return false;
+        const model = settings.find((s) => s.key === SettingKey.AIRouteModel)?.value?.trim() ?? '';
+        if (resolveAIRouteSourceMode(settings) === 'local') {
+            if (!model) return false;
+            return (modelChannels ?? []).some((item) => item.name === model && item.enabled);
+        }
         const baseURL = settings.find((s) => s.key === SettingKey.AIRouteBaseURL)?.value?.trim();
         const apiKey = settings.find((s) => s.key === SettingKey.AIRouteAPIKey)?.value?.trim();
-        const model = settings.find((s) => s.key === SettingKey.AIRouteModel)?.value?.trim();
         return Boolean(baseURL && apiKey && model);
-    }, [settings]);
+    }, [settings, modelChannels]);
 
     const generateAIRoute = useGenerateAIRoute();
     const lastAiRouteTask = aiRouteHistory?.[0];

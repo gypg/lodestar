@@ -1,9 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
-import { KeyRound, Link2, Save, Check, Server, Globe } from 'lucide-react';
+import { KeyRound, Link2, Save, Check, Server, Globe, Zap } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { apiClient } from '@/api/client';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -17,8 +16,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { SettingKey, useSetSetting, useSettingList } from '@/api/endpoints/setting';
-import { useModelList, useModelChannelList } from '@/api/endpoints/model';
-import { useChannelList, type Channel } from '@/api/endpoints/channel';
+import { useModelList, useModelChannelList, useModelMarket } from '@/api/endpoints/model';
 import { getModelIcon } from '@/lib/model-icons';
 import { toast } from '@/components/common/Toast';
 import { cn } from '@/lib/utils';
@@ -31,8 +29,8 @@ export function AIRouteConfig({ compact }: { compact?: boolean }) {
     const { data: settings } = useSettingList();
     const setSetting = useSetSetting();
     const { data: models } = useModelList();
-    const { data: channels } = useChannelList();
     const { data: modelChannels } = useModelChannelList();
+    const { data: modelMarket } = useModelMarket();
 
     const [mode, setMode] = useState<Mode>('external');
     const [baseURL, setBaseURL] = useState('');
@@ -49,12 +47,10 @@ export function AIRouteConfig({ compact }: { compact?: boolean }) {
 
     const [saving, setSaving] = useState(false);
     const [justSaved, setJustSaved] = useState(false);
-    const [autoChannelName, setAutoChannelName] = useState<string | null>(null);
     const [channelLookupFailed, setChannelLookupFailed] = useState(false);
-    // The channel lookup is async, so base_url/api_key are legitimately empty
-    // while it runs. Without this the "cannot finish here" notice would flash on
-    // every successful selection.
-    const [lookupInFlight, setLookupInFlight] = useState(false);
+    // Local mode auto-fills the lowest-latency available model once per visit;
+    // after that the operator's own choice (or the save button) is in charge.
+    const autoPickedRef = useRef(false);
 
     // Group models by provider for the dropdown
     const modelsByProvider = useMemo(() => {
@@ -184,140 +180,92 @@ export function AIRouteConfig({ compact }: { compact?: boolean }) {
     };
 
     /**
-     * Persist base_url, api_key, and model settings after resolving channel details.
+     * Whether an enabled channel serves the given model. In local mode the
+     * backend derives base_url/api_key from exactly that channel, so this — not
+     * hand-filled credentials — is what makes a picked model runnable.
      */
-    const persistChannelSettings = useCallback(
-        (resolvedBaseURL: string, resolvedAPIKey: string, modelName: string) => {
-            setBaseURL(resolvedBaseURL);
-            setAPIKey(resolvedAPIKey);
-
-            const batchUpdates: Array<{ key: string; value: string; ref: MutableRefObject<string> }> = [];
-            if (resolvedBaseURL !== initialBaseURL.current) {
-                batchUpdates.push({ key: SettingKey.AIRouteBaseURL, value: resolvedBaseURL, ref: initialBaseURL });
-            }
-            if (resolvedAPIKey !== initialAPIKey.current) {
-                batchUpdates.push({ key: SettingKey.AIRouteAPIKey, value: resolvedAPIKey, ref: initialAPIKey });
-            }
-            if (modelName !== initialModel.current) {
-                batchUpdates.push({ key: SettingKey.AIRouteModel, value: modelName, ref: initialModel });
-            }
-
-            if (batchUpdates.length === 0) return;
-
-            let completed = 0;
-            let failed = false;
-
-            for (const update of batchUpdates) {
-                setSetting.mutate(
-                    { key: update.key, value: update.value },
-                    {
-                        onSuccess: () => {
-                            update.ref.current = update.value;
-                            completed++;
-                            if (completed === batchUpdates.length && !failed) {
-                                toast.success(t('aiRoute.config.saved'));
-                            }
-                        },
-                        onError: () => {
-                            failed = true;
-                            toast.error(t('states.empty'));
-                        },
-                    },
-                );
-            }
+    const modelHasEnabledChannel = useCallback(
+        (name: string) => {
+            const trimmed = name.trim();
+            if (!trimmed) return false;
+            return (modelChannels ?? []).some((item) => item.name === trimmed && item.enabled);
         },
-        [setSetting, t],
+        [modelChannels],
     );
 
     /**
-     * Find which channel serves the given model, then auto-fill base_url and api_key
-     * and persist all three settings.
+     * Pick the lowest-latency runnable model from the model market: served by an
+     * enabled channel, not flagged by the scheduled probe, sorted by measured
+     * latency. Models without latency data only back up the sort when nothing
+     * has been measured yet.
      */
-    const handleLocalModelSelect = async (modelName: string) => {
+    const autoPickLocalModel = useCallback((): string | null => {
+        const candidates = (modelMarket?.items ?? []).filter(
+            (item) => !item.probe_failed_at && item.channels.some((c) => c.enabled),
+        );
+        if (candidates.length === 0) return null;
+        const withLatency = candidates
+            .filter((item) => item.average_latency_ms > 0)
+            .sort((a, b) => a.average_latency_ms - b.average_latency_ms);
+        const best = withLatency[0] ?? candidates[0];
+        return best?.name ?? null;
+    }, [modelMarket]);
+
+    /** Apply a local-mode model choice: validate, but persist only on save. */
+    const applyLocalModelChoice = (modelName: string) => {
         setModel(modelName);
+        if (!modelHasEnabledChannel(modelName)) {
+            setChannelLookupFailed(true);
+            toast.warning(t('aiRoute.config.noChannelFound'));
+            return;
+        }
         setChannelLookupFailed(false);
-        setLookupInFlight(true);
-        try {
-            await runLocalModelLookup(modelName);
-        } finally {
-            setLookupInFlight(false);
-        }
     };
 
-    const runLocalModelLookup = async (modelName: string) => {
+    /** Local-mode model dropdown selection. Persisted via the save button. */
+    const handleLocalModelSelect = (modelName: string) => {
+        autoPickedRef.current = true;
+        applyLocalModelChoice(modelName);
+    };
 
-        // Find the channel that serves this model via modelChannels list
-        const mc = (modelChannels ?? []).find(
-            (item) => item.name === modelName && item.enabled,
-        );
-
-        if (!mc) {
-            // No channel mapping found; just save the model name
-            saveSingle(SettingKey.AIRouteModel, modelName, initialModel);
-            setAutoChannelName(null);
-            setChannelLookupFailed(true);
+    /** Re-run the automatic lowest-latency pick on demand. */
+    const handleAutoPick = () => {
+        const picked = autoPickLocalModel();
+        if (!picked) {
             toast.warning(t('aiRoute.config.noChannelFound'));
             return;
         }
-
-        // First try: find the full channel record from the cached channel list
-        const channelRecord = (channels ?? []).find(
-            (ch) => ch.raw.id === mc.channel_id,
-        );
-        let channel: Channel | undefined = channelRecord?.raw;
-
-        // Second try: if cached list lookup failed or returned empty base_urls/keys,
-        // fetch the channel directly from the API
-        if (!channel || (channel.base_urls.length === 0 && channel.keys.length === 0)) {
-            try {
-                const freshChannel = await apiClient.get<Channel>(`/api/v1/channel/${mc.channel_id}`);
-                if (freshChannel) {
-                    channel = {
-                        ...freshChannel,
-                        base_urls: freshChannel.base_urls ?? [],
-                        custom_header: freshChannel.custom_header ?? [],
-                        keys: freshChannel.keys ?? [],
-                    };
-                }
-            } catch (e) { console.error(e);
-                // Direct API fetch failed; will fall through to warning below
-            }
-        }
-
-        if (!channel) {
-            saveSingle(SettingKey.AIRouteModel, modelName, initialModel);
-            setAutoChannelName(null);
-            setChannelLookupFailed(true);
-            toast.warning(t('aiRoute.config.noChannelFound'));
-            return;
-        }
-
-        const resolvedBaseURL = channel.base_urls?.[0]?.url ?? '';
-        const resolvedAPIKey = channel.keys?.[0]?.channel_key ?? '';
-        const channelName = channel.name || mc.channel_name;
-
-        setAutoChannelName(channelName);
-
-        if (!resolvedBaseURL || !resolvedAPIKey) {
-            // Channel found but base_url or api_key is empty -- still save what we have and warn
-            saveSingle(SettingKey.AIRouteModel, modelName, initialModel);
-            setChannelLookupFailed(true);
-            toast.warning(
-                t('aiRoute.config.channelIncomplete'),
-            );
-            return;
-        }
-
-        persistChannelSettings(resolvedBaseURL, resolvedAPIKey, modelName);
+        autoPickedRef.current = true;
+        applyLocalModelChoice(picked);
+        toast.success(t('aiRoute.config.autoPickedNote', { name: picked }));
     };
+
+    // Entering local mode with no model chosen: fill in the lowest-latency
+    // model automatically, once. Market data may still be loading on the first
+    // render, so the effect re-runs when it arrives.
+    useEffect(() => {
+        if (mode !== 'local') {
+            autoPickedRef.current = false;
+            return;
+        }
+        if (autoPickedRef.current || model.trim() !== '') return;
+        const picked = autoPickLocalModel();
+        if (!picked) return;
+        autoPickedRef.current = true;
+        setModel(picked);
+        setChannelLookupFailed(!modelHasEnabledChannel(picked));
+        toast.success(t('aiRoute.config.autoPickedNote', { name: picked }));
+    }, [mode, model, autoPickLocalModel, modelHasEnabledChannel, t]);
 
     const localSetupIncomplete = isLocalSetupIncomplete({
         mode,
         model,
-        baseURL,
-        apiKey,
-        lookupInFlight,
+        hasEnabledChannel: modelHasEnabledChannel(model),
     });
+
+    // Green confirmation only when the chosen model is actually persisted.
+    const localModelSaved =
+        mode === 'local' && model.trim() !== '' && model === initialModel.current && !channelLookupFailed;
 
     const fieldClass = compact ? 'text-sm' : '';
     const labelClass = cn('text-xs font-medium text-muted-foreground', compact && 'text-[11px]');
@@ -353,11 +301,23 @@ export function AIRouteConfig({ compact }: { compact?: boolean }) {
                 </div>
             </div>
 
-            {/* Local mode: model dropdown only, auto-saves via channel lookup */}
+            {/* Local mode: model dropdown + auto lowest-latency pick + save button.
+                Credentials are derived server-side from the serving channel. */}
             {mode === 'local' && (
                 <>
                     <div className="space-y-1.5">
-                        <label className={labelClass}>{t('aiRoute.config.model')}</label>
+                        <div className="flex items-center justify-between">
+                            <label className={labelClass}>{t('aiRoute.config.model')}</label>
+                            <Button
+                                variant="ghost"
+                                size={compact ? 'sm' : 'default'}
+                                onClick={handleAutoPick}
+                                className={cn('h-6 gap-1 rounded-lg px-2 text-muted-foreground', compact && 'h-5 text-[10px]')}
+                            >
+                                <Zap className={cn(compact ? 'h-3 w-3' : 'h-3.5 w-3.5')} />
+                                {t('aiRoute.config.autoPick')}
+                            </Button>
+                        </div>
                         <Select value={model} onValueChange={handleLocalModelSelect}>
                             <SelectTrigger className={cn('rounded-lg', compact && 'h-8')}>
                                 <SelectValue placeholder={t('aiRoute.config.modelPlaceholder')} />
@@ -376,28 +336,26 @@ export function AIRouteConfig({ compact }: { compact?: boolean }) {
                             </SelectContent>
                         </Select>
                     </div>
-                    {autoChannelName && (
+                    {localModelSaved && (
                         <div className={cn(
                             'flex items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2',
                             compact ? 'text-[10px]' : 'text-xs'
                         )}>
                             <Check className={cn('shrink-0 text-emerald-600', compact ? 'h-3 w-3' : 'h-3.5 w-3.5')} />
                             <span className="text-emerald-700 dark:text-emerald-300">
-                                {t('aiRoute.config.autoSaved')} · {t('aiRoute.config.autoChannelNote', { name: autoChannelName })}
+                                {t('aiRoute.config.autoSaved')} · {t('aiRoute.config.autoLocalNote')}
                             </span>
                         </div>
                     )}
-                    {/* A failed channel lookup leaves base_url and api_key empty, and
-                        local mode has no fields for them -- so the "needs configuring"
-                        banner would stay up with nothing here to act on. Offer the one
-                        move that can finish the setup, and actually perform it.
-                        Keyed off the values, not just the interaction flag: that flag
-                        resets on mount, so a setup left incomplete earlier showed
-                        neither this notice nor any button on the next visit. */}
+                    {/* A model no enabled channel serves cannot run: the backend
+                        would have nothing to derive credentials from. Keyed off the
+                        values, not interaction flags, so a setup left broken is
+                        recognised again on the next visit. Offer the one move that
+                        can finish the setup, and actually perform it. */}
                     {(channelLookupFailed || localSetupIncomplete) && (
                         <div className={cn('space-y-2 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2')}>
                             <p className={cn('text-amber-700 dark:text-amber-400', compact ? 'text-[10px]' : 'text-xs')}>
-                                {t('aiRoute.config.localIncompleteHint')}
+                                {t('aiRoute.config.localModelUnavailableHint')}
                             </p>
                             <Button
                                 variant="outline"
@@ -410,6 +368,21 @@ export function AIRouteConfig({ compact }: { compact?: boolean }) {
                             </Button>
                         </div>
                     )}
+                    <div className={cn('flex items-center gap-2', compact ? 'pt-1' : 'pt-2')}>
+                        <Button
+                            size={compact ? 'sm' : 'default'}
+                            onClick={saveAll}
+                            disabled={!hasChanges || saving}
+                            className={cn(compact && 'h-7 text-xs')}
+                        >
+                            {justSaved ? (
+                                <Check className={cn('mr-1.5', compact ? 'h-3 w-3' : 'h-4 w-4')} />
+                            ) : (
+                                <Save className={cn('mr-1.5', compact ? 'h-3 w-3' : 'h-4 w-4')} />
+                            )}
+                            {justSaved ? t('aiRoute.config.saved') : t('aiRoute.config.save')}
+                        </Button>
+                    </div>
                 </>
             )}
 
