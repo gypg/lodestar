@@ -14,7 +14,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { resolveAIRouteSourceMode } from './ai-route-source-mode.ts';
+import { resolveAIRouteSourceMode, isLocalSetupIncomplete } from './ai-route-source-mode.ts';
 
 const KEY = 'ai_route_source_mode';
 
@@ -65,6 +65,63 @@ test('unknown wire values fall back to external instead of throwing or returning
 });
 
 /*
+ * isLocalSetupIncomplete.
+ *
+ * 第二轮报修（同一个界面，第一轮修复上线前）：本站模式下依旧「没有保存按钮 + 依旧
+ * 提示需配置」。根因是第一轮的逃生出口只挂在 channelLookupFailed 上，而那个标志是
+ * 交互产生的、挂载即复位 false —— 重新打开页面时，历史遗留的不完整配置既不显示成功
+ * 提示也不显示出口，只剩一个下拉框，而横幅继续报需配置。判定必须从值本身推导。
+ */
+const base = {
+    mode: 'local' as const,
+    model: 'stepfun-ai/step-3.7-flash',
+    baseURL: 'https://example.com/v1',
+    apiKey: 'sk-live',
+    lookupInFlight: false,
+};
+
+test('an incomplete local setup is recognised on arrival, not only on interaction', () => {
+    // This is the reported state: model persisted, credentials never derived.
+    assert.equal(isLocalSetupIncomplete({ ...base, baseURL: '', apiKey: '' }), true);
+    assert.equal(isLocalSetupIncomplete({ ...base, baseURL: '' }), true);
+    assert.equal(isLocalSetupIncomplete({ ...base, apiKey: '' }), true);
+});
+
+test('whitespace-only credentials count as missing', () => {
+    assert.equal(isLocalSetupIncomplete({ ...base, baseURL: '   ' }), true);
+    assert.equal(isLocalSetupIncomplete({ ...base, apiKey: '\t' }), true);
+});
+
+test('a complete local setup raises nothing', () => {
+    assert.equal(isLocalSetupIncomplete(base), false);
+});
+
+test('an untouched local panel raises nothing', () => {
+    // No model picked yet is untouched, not broken -- the dropdown is the
+    // obvious next move and a warning there would be noise.
+    assert.equal(isLocalSetupIncomplete({ ...base, model: '', baseURL: '', apiKey: '' }), false);
+    assert.equal(isLocalSetupIncomplete({ ...base, model: '  ', baseURL: '', apiKey: '' }), false);
+});
+
+test('nothing is raised while the channel lookup is still running', () => {
+    // Credentials are legitimately empty mid-flight; complaining here would
+    // flash the notice on every successful pick.
+    assert.equal(
+        isLocalSetupIncomplete({ ...base, baseURL: '', apiKey: '', lookupInFlight: true }),
+        false,
+    );
+});
+
+test('external mode is never judged by this rule', () => {
+    // External mode renders its own fields and save button, so empty values
+    // there are just an unfinished form the operator can see and fill.
+    assert.equal(
+        isLocalSetupIncomplete({ ...base, mode: 'external', baseURL: '', apiKey: '' }),
+        false,
+    );
+});
+
+/*
  * Wiring assertions.
  *
  * The behavioural tests above pass just as well when AIRouteConfig never calls
@@ -99,6 +156,21 @@ test('the toggle persists instead of only moving local state', () => {
         componentSource,
         /key:\s*SettingKey\.AIRouteSourceMode/,
         'handleModeChange must write the AIRouteSourceMode setting',
+    );
+});
+
+test('the escape hatch is gated on the values, not only the interaction flag', () => {
+    // Gating on channelLookupFailed alone is exactly the second reported bug:
+    // that flag is false on mount, so a previously-broken setup showed nothing.
+    assert.match(
+        componentSource,
+        /\(channelLookupFailed \|\| localSetupIncomplete\)/,
+        'the notice must also render for a setup that arrives incomplete',
+    );
+    assert.match(
+        componentSource,
+        /isLocalSetupIncomplete\(\{/,
+        'AIRouteConfig must derive incompleteness from the current values',
     );
 });
 

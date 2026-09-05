@@ -29,3 +29,33 @@ export function resolveAIRouteSourceMode(
     const raw = settings.find((item) => item.key === SettingKey.AIRouteSourceMode)?.value;
     return raw === LOCAL || raw === EXTERNAL ? raw : EXTERNAL;
 }
+
+/**
+ * Whether local mode is holding a model it cannot actually run with.
+ *
+ * The readiness banner needs base_url, api_key and model together, but local
+ * mode only renders a model dropdown — the other two are meant to be derived
+ * from the channel. When that derivation produced nothing, the panel used to
+ * show no notice and no button on a later visit, because the only signal was an
+ * interaction-time flag that resets on mount. The banner then stayed up with
+ * nothing on screen to act on.
+ *
+ * Derived from the values themselves rather than from that flag, so a setup left
+ * incomplete by an earlier session is recognised on arrival.
+ */
+export function isLocalSetupIncomplete(state: {
+    mode: AIRouteSourceMode;
+    model: string;
+    baseURL: string;
+    apiKey: string;
+    lookupInFlight: boolean;
+}): boolean {
+    if (state.mode !== LOCAL) return false;
+    // Nothing picked yet is not "incomplete" — it is untouched, and the dropdown
+    // is the obvious next move without extra noise.
+    if (state.model.trim() === '') return false;
+    // A lookup in flight will fill these in; complaining mid-flight would flash
+    // the notice on every successful pick.
+    if (state.lookupInFlight) return false;
+    return state.baseURL.trim() === '' || state.apiKey.trim() === '';
+}

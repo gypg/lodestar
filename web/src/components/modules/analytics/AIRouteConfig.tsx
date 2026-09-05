@@ -22,7 +22,7 @@ import { useChannelList, type Channel } from '@/api/endpoints/channel';
 import { getModelIcon } from '@/lib/model-icons';
 import { toast } from '@/components/common/Toast';
 import { cn } from '@/lib/utils';
-import { resolveAIRouteSourceMode, type AIRouteSourceMode } from './ai-route-source-mode';
+import { resolveAIRouteSourceMode, isLocalSetupIncomplete, type AIRouteSourceMode } from './ai-route-source-mode';
 
 type Mode = AIRouteSourceMode;
 
@@ -51,6 +51,10 @@ export function AIRouteConfig({ compact }: { compact?: boolean }) {
     const [justSaved, setJustSaved] = useState(false);
     const [autoChannelName, setAutoChannelName] = useState<string | null>(null);
     const [channelLookupFailed, setChannelLookupFailed] = useState(false);
+    // The channel lookup is async, so base_url/api_key are legitimately empty
+    // while it runs. Without this the "cannot finish here" notice would flash on
+    // every successful selection.
+    const [lookupInFlight, setLookupInFlight] = useState(false);
 
     // Group models by provider for the dropdown
     const modelsByProvider = useMemo(() => {
@@ -232,6 +236,15 @@ export function AIRouteConfig({ compact }: { compact?: boolean }) {
     const handleLocalModelSelect = async (modelName: string) => {
         setModel(modelName);
         setChannelLookupFailed(false);
+        setLookupInFlight(true);
+        try {
+            await runLocalModelLookup(modelName);
+        } finally {
+            setLookupInFlight(false);
+        }
+    };
+
+    const runLocalModelLookup = async (modelName: string) => {
 
         // Find the channel that serves this model via modelChannels list
         const mc = (modelChannels ?? []).find(
@@ -297,6 +310,14 @@ export function AIRouteConfig({ compact }: { compact?: boolean }) {
 
         persistChannelSettings(resolvedBaseURL, resolvedAPIKey, modelName);
     };
+
+    const localSetupIncomplete = isLocalSetupIncomplete({
+        mode,
+        model,
+        baseURL,
+        apiKey,
+        lookupInFlight,
+    });
 
     const fieldClass = compact ? 'text-sm' : '';
     const labelClass = cn('text-xs font-medium text-muted-foreground', compact && 'text-[11px]');
@@ -369,8 +390,11 @@ export function AIRouteConfig({ compact }: { compact?: boolean }) {
                     {/* A failed channel lookup leaves base_url and api_key empty, and
                         local mode has no fields for them -- so the "needs configuring"
                         banner would stay up with nothing here to act on. Offer the one
-                        move that can finish the setup, and actually perform it. */}
-                    {channelLookupFailed && (
+                        move that can finish the setup, and actually perform it.
+                        Keyed off the values, not just the interaction flag: that flag
+                        resets on mount, so a setup left incomplete earlier showed
+                        neither this notice nor any button on the next visit. */}
+                    {(channelLookupFailed || localSetupIncomplete) && (
                         <div className={cn('space-y-2 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2')}>
                             <p className={cn('text-amber-700 dark:text-amber-400', compact ? 'text-[10px]' : 'text-xs')}>
                                 {t('aiRoute.config.localIncompleteHint')}
