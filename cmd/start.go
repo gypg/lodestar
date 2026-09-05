@@ -44,6 +44,9 @@ var startCmd = &cobra.Command{
 			return err
 		}
 		log.SetLevel(conf.AppConfig.Log.Level)
+		if err := validateCriticalConfig(); err != nil {
+			return err
+		}
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -213,6 +216,27 @@ func generateEphemeralEncryptionKey() (string, error) {
 }
 
 const allowEphemeralEncryptionKeyFlag = "allow-ephemeral-encryption-key"
+
+// validateCriticalConfig performs early validation of configuration values that
+// are known to cause hard-to-diagnose failures if misconfigured. Only checks
+// that must pass before any subsystem initializes; comprehensive validation
+// lives in the validate command.
+func validateCriticalConfig() error {
+	// Catch common mistakes with comma-separated list configs
+	proxies := conf.AppConfig.Server.TrustedProxies
+	for i, proxy := range proxies {
+		trimmed := strings.TrimSpace(proxy)
+		if trimmed != proxy && proxy != "" {
+			return fmt.Errorf(
+				"server.trusted_proxies[%d] has leading/trailing whitespace (%q); "+
+					"this will cause Gin to reject the CIDR and fail to start. "+
+					"Remove spaces from the list or use array notation in config",
+				i, proxy,
+			)
+		}
+	}
+	return nil
+}
 
 func init() {
 	startCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is ./data/config.json)")

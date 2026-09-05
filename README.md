@@ -90,6 +90,8 @@ docker compose up -d
 # 5. 访问 http://localhost:8080 初始化管理员
 ```
 
+> **遇到问题？** 运行 `docker compose exec lodestar lodestar validate` 快速诊断配置问题。详见 [故障排查指南](docs/TROUBLESHOOTING.md)。
+
 ### 🐳 Docker 单容器
 
 ```bash
@@ -239,6 +241,7 @@ curl https://your-lodestar-domain/v1/chat/completions \
 
 ## 📖 文档
 
+- [故障排查指南](docs/TROUBLESHOOTING.md) — 常见配置问题、错误诊断、环境变量参考 ⭐
 - [部署指南](docs/DEPLOY.md) — Docker / 二进制 / 源码构建 + 环境变量 + 反代配置
 - [监控手册](docs/MONITORING.md) — 健康检查 + 指标 + 告警
 - [备份指南](docs/BACKUP.md) — 数据库与配置备份策略
