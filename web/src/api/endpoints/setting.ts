@@ -86,6 +86,7 @@ export const SettingKey = {
     AIRouteTimeoutSeconds: 'ai_route_timeout_seconds',
     AIRouteParallelism: 'ai_route_parallelism',
     AIRouteServices: 'ai_route_services',
+    AIRouteSourceMode: 'ai_route_source_mode',
     StatsTimezoneOffset: 'stats_timezone_offset',
     JWTDefaultExpiryMinutes: 'jwt_default_expiry_minutes',
     JWTRememberMeExpiryDays: 'jwt_remember_me_expiry_days',

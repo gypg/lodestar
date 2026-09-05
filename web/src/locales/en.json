@@ -489,7 +489,8 @@
         "autoSaved": "Auto-saved",
         "noChannelFound": "No available channel found",
         "channelIncomplete": "Channel configuration is incomplete; please fill in the base URL and key",
-        "switchToExternal": "Switched to external service"
+        "switchToExternal": "Switch to external connection",
+        "localIncompleteHint": "The base URL and key could not be derived from a local channel, so local-model mode cannot finish this setup. Switching to an external connection lets you enter both by hand; the selected model is kept."
       }
     },
     "evaluation": {

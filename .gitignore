@@ -75,6 +75,7 @@ web/yarn.lock
 node_modules/
 web/out/
 web/node_modules/
+lodestar
 lodestar.exe
 *.exe
 run.log

@@ -22,8 +22,9 @@ import { useChannelList, type Channel } from '@/api/endpoints/channel';
 import { getModelIcon } from '@/lib/model-icons';
 import { toast } from '@/components/common/Toast';
 import { cn } from '@/lib/utils';
+import { resolveAIRouteSourceMode, type AIRouteSourceMode } from './ai-route-source-mode';
 
-type Mode = 'external' | 'local';
+type Mode = AIRouteSourceMode;
 
 export function AIRouteConfig({ compact }: { compact?: boolean }) {
     const t = useTranslations('analytics');
@@ -41,6 +42,10 @@ export function AIRouteConfig({ compact }: { compact?: boolean }) {
     const initialBaseURL = useRef('');
     const initialAPIKey = useRef('');
     const initialModel = useRef('');
+    // Tracks the persisted mode so a reload of the settings query does not undo
+    // a toggle the operator just made, and so the toggle is only written when it
+    // actually changes.
+    const initialMode = useRef<Mode | null>(null);
 
     const [saving, setSaving] = useState(false);
     const [justSaved, setJustSaved] = useState(false);
@@ -78,7 +83,39 @@ export function AIRouteConfig({ compact }: { compact?: boolean }) {
             queueMicrotask(() => setModel(modelSetting.value));
             initialModel.current = modelSetting.value;
         }
+        // Restore the source toggle. Without this the switch reset to "external"
+        // on every mount while the model name loaded back from settings, so a
+        // local-mode setup rendered as an external one and read as the toggle
+        // flipping itself. Only applied once: later refetches of the settings
+        // list must not overwrite a toggle the operator just moved.
+        if (initialMode.current === null) {
+            const persisted = resolveAIRouteSourceMode(settings);
+            initialMode.current = persisted;
+            queueMicrotask(() => setMode(persisted));
+        }
     }, [settings]);
+
+    /**
+     * Persist the source toggle. Kept separate from the credential fields
+     * because it is written on interaction rather than on save, and because a
+     * failure here has to surface: a toggle that silently fails to persist
+     * reappears on the other setting after a reload.
+     */
+    const handleModeChange = (next: Mode) => {
+        setMode(next);
+        if (initialMode.current === next) return;
+        setSetting.mutate(
+            { key: SettingKey.AIRouteSourceMode, value: next },
+            {
+                onSuccess: () => {
+                    initialMode.current = next;
+                },
+                onError: () => {
+                    toast.error(t('states.empty'));
+                },
+            },
+        );
+    };
 
     const saveSingle = (key: string, value: string, initialRef: MutableRefObject<string>) => {
         if (value === initialRef.current) return;
@@ -286,7 +323,7 @@ export function AIRouteConfig({ compact }: { compact?: boolean }) {
                     </span>
                     <Switch
                         checked={mode === 'local'}
-                        onCheckedChange={(checked) => setMode(checked ? 'local' : 'external')}
+                        onCheckedChange={(checked) => handleModeChange(checked ? 'local' : 'external')}
                         className={compact ? 'scale-75' : ''}
                     />
                     <span className={cn('text-muted-foreground', compact ? 'text-[10px]' : 'text-xs')}>
@@ -329,10 +366,25 @@ export function AIRouteConfig({ compact }: { compact?: boolean }) {
                             </span>
                         </div>
                     )}
+                    {/* A failed channel lookup leaves base_url and api_key empty, and
+                        local mode has no fields for them -- so the "needs configuring"
+                        banner would stay up with nothing here to act on. Offer the one
+                        move that can finish the setup, and actually perform it. */}
                     {channelLookupFailed && (
-                        <p className={cn('text-amber-600 dark:text-amber-400', compact ? 'text-[10px]' : 'text-xs')}>
-                            {t('aiRoute.config.switchToExternal')}
-                        </p>
+                        <div className={cn('space-y-2 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2')}>
+                            <p className={cn('text-amber-700 dark:text-amber-400', compact ? 'text-[10px]' : 'text-xs')}>
+                                {t('aiRoute.config.localIncompleteHint')}
+                            </p>
+                            <Button
+                                variant="outline"
+                                size={compact ? 'sm' : 'default'}
+                                onClick={() => handleModeChange('external')}
+                                className={cn('rounded-lg', compact && 'h-7 text-xs')}
+                            >
+                                <Globe className={cn('mr-1.5', compact ? 'h-3 w-3' : 'h-4 w-4')} />
+                                {t('aiRoute.config.switchToExternal')}
+                            </Button>
+                        </div>
                     )}
                 </>
             )}

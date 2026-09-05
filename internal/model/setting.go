@@ -55,6 +55,7 @@ const (
 	SettingKeyAIRouteTimeoutSeconds                SettingKey = "ai_route_timeout_seconds"                 // AI路由分析单次请求超时（秒）
 	SettingKeyAIRouteParallelism                   SettingKey = "ai_route_parallelism"                     // AI路由分析批次最大并发数
 	SettingKeyAIRouteServices                      SettingKey = "ai_route_services"                        // AI路由分析服务池(JSON)
+	SettingKeyAIRouteSourceMode                    SettingKey = "ai_route_source_mode"                     // AI路由分析取用来源："local"（本站渠道）或 "external"（外部服务）
 	SettingKeyStatsTimezoneOffset                  SettingKey = "stats_timezone_offset"                    // 统计时区偏移（小时），当前为整型偏移；未来计划新增 stats_timezone (IANA) 配置项，此处为定义与校验入口
 	SettingKeyJWTDefaultExpiryMinutes              SettingKey = "jwt_default_expiry_minutes"               // 默认JWT过期时间（分钟）
 	SettingKeyJWTRememberMeExpiryDays              SettingKey = "jwt_remember_me_expiry_days"              // 记住我JWT过期时间（天）
@@ -134,6 +135,12 @@ const (
 	SettingKeyCustomerAlertEnabled                 SettingKey = "customer_alert_enabled"           // 面向客户的低余额/到期预警邮件开关（默认关闭：给客户发邮件的决定不替运营者做）
 	SettingKeyCustomerAlertBalanceThreshold        SettingKey = "customer_alert_balance_threshold" // 低余额预警阈值（USD），0=关闭该维度
 	SettingKeyCustomerAlertExpiryDays              SettingKey = "customer_alert_expiry_days"       // 订阅到期提前预警天数，0=关闭该维度
+)
+
+// Accepted values for SettingKeyAIRouteSourceMode.
+const (
+	AIRouteSourceModeLocal    = "local"    // 分析模型取自本站渠道，地址与密钥由渠道推导
+	AIRouteSourceModeExternal = "external" // 分析模型取自外部服务，地址与密钥手工填写
 )
 
 type Setting struct {
@@ -370,6 +377,14 @@ func (s *Setting) Validate() error {
 	case SettingKeyRelayLogKeepEnabled, SettingKeySemanticCacheEnabled, SettingKeyPIIRedactionEnabled, SettingKeyTurnstileEnabled, SettingKeyGuardrailEnabled, SettingKeyImageBedEnabled, SettingKeyRateLimitHoldEnabled, SettingKeyModelProbeEnabled:
 		if s.Value != "true" && s.Value != "false" {
 			return fmt.Errorf("setting value must be true or false")
+		}
+		return nil
+	case SettingKeyAIRouteSourceMode:
+		// The UI restores its source toggle from this value, so an unrecognised
+		// string would silently fall back to one branch and contradict what the
+		// operator picked. Empty is accepted as "never chosen".
+		if s.Value != "" && s.Value != AIRouteSourceModeLocal && s.Value != AIRouteSourceModeExternal {
+			return fmt.Errorf("ai route source mode must be %q or %q", AIRouteSourceModeLocal, AIRouteSourceModeExternal)
 		}
 		return nil
 	case SettingKeyProxyURL, SettingKeySemanticCacheEmbeddingBaseURL, SettingKeyAIRouteBaseURL, SettingKeyImageBedEndpoint:

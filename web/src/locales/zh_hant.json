@@ -489,7 +489,8 @@
         "autoSaved": "已自動儲存",
         "noChannelFound": "找不到可用渠道",
         "channelIncomplete": "渠道設定不完整，請補齊位址與密鑰",
-        "switchToExternal": "已切換為外部服務"
+        "switchToExternal": "切換到外部連線",
+        "localIncompleteHint": "無法從本站渠道推導出位址與密鑰，本站模型方式暫時無法完成設定。切換到外部連線可手動填寫這兩項，已選模型會保留。"
       }
     },
     "evaluation": {

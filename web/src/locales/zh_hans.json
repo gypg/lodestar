@@ -489,7 +489,8 @@
         "autoSaved": "已自动保存",
         "noChannelFound": "未找到可用渠道",
         "channelIncomplete": "渠道配置不完整，请补全地址与密钥",
-        "switchToExternal": "已切换为外部服务"
+        "switchToExternal": "切换到外部连接",
+        "localIncompleteHint": "无法从本站渠道推导出地址与密钥，本站模型方式暂时无法完成配置。切换到外部连接可手动填写这两项，已选模型会保留。"
       }
     },
     "evaluation": {

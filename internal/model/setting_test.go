@@ -213,3 +213,52 @@ func TestProxySchemeValidatorsAgree(t *testing.T) {
 		})
 	}
 }
+
+// TestSettingValidateAIRouteSourceMode 钉死来源开关的取值域。
+//
+// 这个键的唯一读者是分析中心的来源开关：前端按值恢复 local/external。任何第三种
+// 字符串都会让恢复逻辑落进 else 分支显示成"外部连接"，与运营者选的相反 —— 而这正是
+// 这批修复要消灭的症状，所以写入端必须先把它挡住，不能只靠前端兜底。
+// 空串是合法的"从未选过"，用于首次进入时不写脏值。
+func TestSettingValidateAIRouteSourceMode(t *testing.T) {
+	tests := []struct {
+		name    string
+		value   string
+		wantErr bool
+	}{
+		{name: "local", value: AIRouteSourceModeLocal},
+		{name: "external", value: AIRouteSourceModeExternal},
+		{name: "never chosen", value: ""},
+		{name: "unknown word", value: "hybrid", wantErr: true},
+		{name: "wrong case", value: "Local", wantErr: true},
+		{name: "padded", value: " local", wantErr: true},
+		{name: "boolean lookalike", value: "true", wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			setting := Setting{Key: SettingKeyAIRouteSourceMode, Value: tt.value}
+
+			err := setting.Validate()
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("Validate(%q) error = %v, wantErr = %v", tt.value, err, tt.wantErr)
+			}
+		})
+	}
+}
+
+// TestAIRouteSourceModeConstantsMatchWireValues 钉死常量的字面值。
+//
+// 前端 SettingKey.AIRouteSourceMode 写的是同样两个字符串，两端靠字面量对齐而非共享
+// 类型。把常量改名不会破坏编译，但会让已存的行读不回来，所以这里断言字面值本身。
+func TestAIRouteSourceModeConstantsMatchWireValues(t *testing.T) {
+	if AIRouteSourceModeLocal != "local" {
+		t.Fatalf("AIRouteSourceModeLocal = %q, want \"local\"", AIRouteSourceModeLocal)
+	}
+	if AIRouteSourceModeExternal != "external" {
+		t.Fatalf("AIRouteSourceModeExternal = %q, want \"external\"", AIRouteSourceModeExternal)
+	}
+	if SettingKeyAIRouteSourceMode != "ai_route_source_mode" {
+		t.Fatalf("SettingKeyAIRouteSourceMode = %q, want \"ai_route_source_mode\"", SettingKeyAIRouteSourceMode)
+	}
+}
