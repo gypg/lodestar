@@ -11,6 +11,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🐛 Bug Fixes
+
+#### Critical (Production Impact)
+- **API Key sessions logged themselves out immediately** (`1c02634`, 2026-09-04, [PR #2](https://github.com/gypg/lodestar/pull/2)): 
+  a customer signing in with an API key never got in. `/api/v1/apikey/login` answered 
+  200, but `/api/v1/user/me` fired immediately afterward (gated only on `isAuthenticated`, 
+  which was true for API Key sessions) and returned 401 because the route sits behind JWT 
+  middleware. The global 401 handler turned that into `logout()`, so the session erased 
+  itself before the page finished rendering — key login read as "wrong key" no matter which 
+  key was used. The query is now disabled for API Key sessions, and the bootstrap gate no 
+  longer waits on a query that will never resolve. Found during browser walkthrough of PR #1, 
+  reproduced twice in production.
+- **Zero timestamp hid every model in the market** (`ad5c93f`, 2026-09-04, [PR #2](https://github.com/gypg/lodestar/pull/2)): 
+  the model market's default view was empty and its banner claimed "94 models failed 
+  consecutive probes", while probing was switched off and the probe state table held zero 
+  rows. `ProbeFailedAt` was a non-pointer `time.Time` tagged `omitempty`, and `omitempty` 
+  does nothing for a struct: every healthy model carried `"probe_failed_at":"0001-01-01T00:00:00Z"` 
+  over the wire. All three frontend call sites tested that field for truthiness, and a 
+  non-empty string is truthy, so every model counted as a probe failure. The feature was 
+  inverted end to end. The field is now `*time.Time` (matching the other ten time fields 
+  in the package), and the frontend rejects zero timestamps, epoch spellings, blank strings, 
+  and unparseable values — preferring to miss a badge over hiding a working model. Found 
+  while verifying WO-033, which had recorded these symptoms as expected behaviour.
+
+#### Testing
+- **Four test weaknesses in the production fixes** (`f4c6116`, 2026-09-04, [PR #2](https://github.com/gypg/lodestar/pull/2)): 
+  adversarial review of the two fixes above found four real weaknesses in the tests, not 
+  in the production code. The "healthy model" assertion was supposed to fail when 
+  `ProbeFailedAt` reverted to a value type, but the sibling test's pointer syntax made 
+  the package fail to compile instead — and a compile error is not a kill. The wiring test 
+  only pinned the call shape, so hardcoding `isAPIKeyAuth: false` kept all tests green 
+  while the runtime gate was permanently true. The `parsed >= 0` comparison survived because 
+  no input reached it with a parse result of exactly 0. The bootstrap-gate regex demanded 
+  one operand order. All four independently reproduced; all four now closed.
+
 ### 🌍 Internationalization
 - **Batch 10 — completion** (2026-08-14): Internationalize the remaining user-facing
   labels in site-channel views, request-rewrite controls, and the self-hosted
