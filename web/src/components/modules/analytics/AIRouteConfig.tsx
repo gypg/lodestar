@@ -183,12 +183,17 @@ export function AIRouteConfig({ compact }: { compact?: boolean }) {
      * Whether an enabled channel serves the given model. In local mode the
      * backend derives base_url/api_key from exactly that channel, so this — not
      * hand-filled credentials — is what makes a picked model runnable.
+     * Case-insensitive on purpose: the model registry lowercases names while
+     * channels keep the upstream's own spelling, so `qwen3-max` and `Qwen3-Max`
+     * are the same model.
      */
     const modelHasEnabledChannel = useCallback(
         (name: string) => {
-            const trimmed = name.trim();
+            const trimmed = name.trim().toLowerCase();
             if (!trimmed) return false;
-            return (modelChannels ?? []).some((item) => item.name === trimmed && item.enabled);
+            return (modelChannels ?? []).some(
+                (item) => item.enabled && item.name.trim().toLowerCase() === trimmed,
+            );
         },
         [modelChannels],
     );
@@ -197,7 +202,8 @@ export function AIRouteConfig({ compact }: { compact?: boolean }) {
      * Pick the lowest-latency runnable model from the model market: served by an
      * enabled channel, not flagged by the scheduled probe, sorted by measured
      * latency. Models without latency data only back up the sort when nothing
-     * has been measured yet.
+     * has been measured yet. The channel's own spelling wins (display_name) so
+     * what gets saved matches what the upstream knows.
      */
     const autoPickLocalModel = useCallback((): string | null => {
         const candidates = (modelMarket?.items ?? []).filter(
@@ -208,7 +214,8 @@ export function AIRouteConfig({ compact }: { compact?: boolean }) {
             .filter((item) => item.average_latency_ms > 0)
             .sort((a, b) => a.average_latency_ms - b.average_latency_ms);
         const best = withLatency[0] ?? candidates[0];
-        return best?.name ?? null;
+        if (!best) return null;
+        return best.display_name?.trim() || best.name;
     }, [modelMarket]);
 
     /** Apply a local-mode model choice: validate, but persist only on save. */

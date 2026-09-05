@@ -139,12 +139,16 @@ export function Evaluation() {
     // AI route configuration check, per source mode: local mode runs on the
     // serving channel's own credentials, so a chosen model backed by an enabled
     // channel is enough there; external mode still needs all three fields.
+    // Case-insensitive: the registry lowercases model names while channels keep
+    // the upstream's own spelling.
     const aiRouteConfigured = useMemo(() => {
         if (!settings) return false;
-        const model = settings.find((s) => s.key === SettingKey.AIRouteModel)?.value?.trim() ?? '';
+        const model = settings.find((s) => s.key === SettingKey.AIRouteModel)?.value?.trim().toLowerCase() ?? '';
         if (resolveAIRouteSourceMode(settings) === 'local') {
             if (!model) return false;
-            return (modelChannels ?? []).some((item) => item.name === model && item.enabled);
+            return (modelChannels ?? []).some(
+                (item) => item.enabled && item.name.trim().toLowerCase() === model,
+            );
         }
         const baseURL = settings.find((s) => s.key === SettingKey.AIRouteBaseURL)?.value?.trim();
         const apiKey = settings.find((s) => s.key === SettingKey.AIRouteAPIKey)?.value?.trim();
