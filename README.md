@@ -20,6 +20,7 @@
 
 ## ✨ 特性
 
+### 路由与负载均衡
 - 🔀 **多渠道聚合** — 连接多个 LLM 供应商，统一管理
 - 🔑 **多 Key 支持** — 单渠道多 Key，自动轮换
 - ⚡ **智能选路** — 多端点自动选择延迟最低的
@@ -29,26 +30,42 @@
 - 🔄 **协议转换** — OpenAI Chat / OpenAI Responses / Anthropic / Gemini / DeepSeek / MiMo 格式互转
 - 🌐 **多 Provider** — 内置 OpenAI 兼容 / Anthropic / Cloudflare / Gemini / 火山引擎 / MiMo 渠道
 - 🖼️ **全端点中转** — Chat / Images / Audio / Video / Music / Embeddings / Rerank / Moderations
-- 🧾 **API Key 治理** — 模型白名单 / 限额 / RPM·TPM / per-model 配额 / IP 白名单
-- 🔐 **角色权限** — admin / editor / viewer 三角色服务端权限
-- 🔑 **WebAuthn / Passkey** — 无密码登录 + 可配置 RP
-- 🔒 **2FA 两步验证** — TOTP 支持，登录时强制校验
-- 🚨 **告警通知** — 错误率 / 成本 / 配额 / 渠道宕机告警，支持 Webhook / Gotify / 邮件 / Telegram / 飞书 / 钉钉 / 企业微信 / ntfy
-- 💎 **模型广场** — 统一模型目录，含定价 / 渠道覆盖 / 延迟 / 成功率，按供应商筛选
-- 🔃 **模型同步** — 自动同步渠道可用模型列表
+
+### 监控与运维
+- 🔍 **定时模型探测** — 可配置的自动探测任务，及时发现失败渠道，识别假 200 响应
+- 🚨 **客户余额告警** — 余额不足与订阅到期提醒，支持 Webhook / Gotify / 邮件 / Telegram / 飞书 / 钉钉 / 企业微信 / ntfy
 - 📊 **分析中心** — 概览 / 供应商·模型·Key 利用率 / 路由健康 / 延迟分布（按模型） / 语义缓存 / Provider Prompt Cache
 - 🛠️ **运维审计** — 遥测 / 配额 / 健康 / 系统 / 审计面板 + 管理写操作审计日志
+- 💎 **模型广场** — 统一模型目录，含定价 / 渠道覆盖 / 延迟 / 成功率 / 探测状态，按供应商筛选
+- 🔃 **模型同步** — 自动同步渠道可用模型列表
+
+### 访问控制与安全
+- 🧾 **API Key 治理** — 模型白名单 / 限额 / RPM·TPM / per-model 配额 / IP 白名单 / 会话隔离
+- 🔐 **角色权限** — admin / editor / viewer 三角色服务端 RBAC
+- 🔑 **WebAuthn / Passkey** — 无密码登录 + 可配置 RP
+- 🔒 **2FA 两步验证** — TOTP 支持，登录时强制校验
+- 🔄 **密码重置** — 邮件验证码 + 安全令牌机制
+
+### 性能与存储
 - 🧠 **语义缓存** — Embedding 向量缓存，支持流式和非流式请求，运行时状态和效果指标
 - 🖼️ **图床集成** — 生成图片自动上传外部图床 + 联通测试
+- ☁️ **WebDAV 备份** — 自动云备份 + 可配置调度 + 一键恢复
+- 💾 **运行时状态持久化** — Auto 策略窗口、熔断器状态持久化到数据库
+- 🗄️ **多数据库** — SQLite / PostgreSQL / MySQL，支持运行时迁移
+
+### 集成与定制
 - 🛰️ **站点管理（Hub）** — 连接 New API / One API / Sub2API 等上游，多账户 / 自动同步 / 自动签到 / 余额监控
 - 🔁 **模型映射** — 全局模型名重写，精确 / 通配 / 正则匹配，优先级排序
-- ☁️ **WebDAV 备份** — 自动云备份 + 可配置调度 + 一键恢复
 - 🔑 **API 凭据配置** — 可复用 Base URL + API Key 配置，含健康探针
 - 📤 **CLI 配置导出** — 生成 Claude Code / Codex / Gemini CLI / Cherry Studio 配置片段
 - 🧭 **可配置导航** — 控制台页面顺序和可见性持久化，跨浏览器同步
-- 💾 **运行时状态持久化** — Auto 策略窗口、熔断器状态持久化到数据库
 - 🎨 **每用户主题** — 5 套内置主题（含 ❄ 冬日），OKLCH 实时换肤，API 可上传自定义主题
-- 🗄️ **多数据库** — SQLite / PostgreSQL / MySQL，支持运行时迁移
+
+### 商业化支持（可选）
+- 💰 **余额系统** — 用户余额管理 / 消费历史 / 兑换码充值
+- 📦 **订阅管理** — 按月订阅 / 额度池 / 到期续订
+- 💳 **支付接入** — Stripe / 易支付集成（需配置）
+- 🧮 **精确计费** — 按 token / 图片 / 音频 / 视频分别计费，防透支保护
 
 ## 🚀 快速开始
 
@@ -263,11 +280,13 @@ curl https://your-lodestar-domain/v1/chat/completions \
 ## 🔐 安全
 
 - **非 root 运行**：Docker 镜像以 UID/GID `1000` 运行
-- **密钥加密**：`LODESTAR_SECURITY_ENCRYPTION_KEY` 以 AES-256-GCM 加密存储 8 个敏感设置项（Stripe/易支付/SMTP/Turnstile/GitHub OAuth/AI 路由/图床）、API 凭证档案与远端站点凭据；渠道 API Key 目前明文存储
+- **密钥加密**：`LODESTAR_SECURITY_ENCRYPTION_KEY` 以 AES-256-GCM 加密存储敏感设置项（Stripe/易支付/SMTP/Turnstile/GitHub OAuth/AI 路由/图床）、API 凭证档案与远端站点凭据
 - **JWT 过期**：可配置 Token 过期时间 + Remember Me 长期 Token
 - **审计日志**：所有管理写操作自动记录
 - **PII 脱敏**：响应关键词过滤 + Relay 日志敏感信息脱敏
 - **输入检查**：Guardrail 热路径输入内容安全检查
+- **会话隔离**：API Key 登录与 JWT 登录独立身份验证流程
+- **防透支保护**：并发请求计费锁 + 非有限值配置守卫
 
 如发现安全漏洞，请通过 [Security Advisories](https://github.com/gypg/lodestar/security/advisories) 报告。
 
