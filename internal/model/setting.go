@@ -221,6 +221,9 @@ func DefaultSettings() []Setting {
 		{Key: SettingKeyAIRouteTimeoutSeconds, Value: "180"},
 		{Key: SettingKeyAIRouteParallelism, Value: "3"},
 		{Key: SettingKeyAIRouteServices, Value: "[]"},
+		// 必须有种子行：SetString 先查缓存，查不到直接返回 "setting not found"，
+		// handler 转成 500 —— 没有种子的键根本写不进来。空串 = 从未选过。
+		{Key: SettingKeyAIRouteSourceMode, Value: ""},
 		{Key: SettingKeyStatsTimezoneOffset, Value: "0"},
 		{Key: SettingKeyJWTDefaultExpiryMinutes, Value: "15"},    // 默认15分钟
 		{Key: SettingKeyJWTRememberMeExpiryDays, Value: "30"},    // 默认30天

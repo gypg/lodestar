@@ -1,6 +1,12 @@
 package model
 
-import "testing"
+import (
+	"go/ast"
+	"go/parser"
+	"go/token"
+	"strconv"
+	"testing"
+)
 
 func TestSettingValidateAlertNotifyLanguage(t *testing.T) {
 	tests := []struct {
@@ -211,6 +217,83 @@ func TestProxySchemeValidatorsAgree(t *testing.T) {
 				t.Fatalf("SettingKeyProxyURL Validate(%q) error = %v, wantErr = %v", raw, settingErr, tt.wantErr)
 			}
 		})
+	}
+}
+
+// TestEverySettingKeyHasASeedRow 抓「新键没有种子行」这一整类缺陷。
+//
+// op/setting.SetString 第一步就是查缓存，查不到直接 return "setting not found"，
+// handler 把它转成 500 —— 而那条路径不打日志。所以一个只加了常量和值域校验、忘了加
+// 种子行的新键，表现是：前端请求确实发出、服务端稳定 500、库里永远没有这一行、日志
+// 里没有任何线索。ai_route_source_mode 就是这样漏过去的：既有的
+// TestDefaultSettingSeedsValidate 只校验「已列出的种子是否合法」，对「该列却没列」
+// 完全是盲的。
+//
+// 用 go/ast 读本包源码枚举常量块，而不是靠人工维护清单 —— 人工清单会和这个缺陷一起漏。
+// 例外必须在这里写明理由，否则加一个只读键就得改测试。
+func TestEverySettingKeyHasASeedRow(t *testing.T) {
+	// 只读键：仅经 GetBool/GetString 读取且失败时回落到代码内默认值，从不经设置 API 写入，
+	// 因此不需要种子行。放进这里前必须确认：前端无引用、无任何 SetString/SetInt 调用点。
+	readOnlyKeys := map[SettingKey]string{
+		SettingKeyRetryEmptyOutput: "只读：internal/relay/type.go isRetryEmptyOutputEnabled 用 GetBool 读，出错回落 true；前端零引用",
+	}
+
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "setting.go", nil, 0)
+	if err != nil {
+		t.Fatalf("parse setting.go: %v", err)
+	}
+
+	declared := make([]SettingKey, 0, 128)
+	ast.Inspect(file, func(n ast.Node) bool {
+		spec, ok := n.(*ast.ValueSpec)
+		if !ok {
+			return true
+		}
+		// 只收 `SettingKeyXxx SettingKey = "..."` 这种声明
+		ident, ok := spec.Type.(*ast.Ident)
+		if !ok || ident.Name != "SettingKey" {
+			return true
+		}
+		for i, name := range spec.Names {
+			if i >= len(spec.Values) {
+				continue
+			}
+			lit, ok := spec.Values[i].(*ast.BasicLit)
+			if !ok || lit.Kind != token.STRING {
+				continue
+			}
+			_ = name
+			unquoted, err := strconv.Unquote(lit.Value)
+			if err != nil {
+				continue
+			}
+			declared = append(declared, SettingKey(unquoted))
+		}
+		return true
+	})
+
+	if len(declared) < 100 {
+		// 解析失效会让这个测试静默变成空转绿。
+		t.Fatalf("only parsed %d setting keys out of setting.go; the AST walk is broken, not the seeds", len(declared))
+	}
+
+	seeded := make(map[SettingKey]bool, len(DefaultSettings()))
+	for _, s := range DefaultSettings() {
+		seeded[s.Key] = true
+	}
+
+	for _, key := range declared {
+		if seeded[key] {
+			continue
+		}
+		if reason, allowed := readOnlyKeys[key]; allowed {
+			t.Logf("%s 无种子行，已登记为只读键：%s", key, reason)
+			continue
+		}
+		t.Errorf("setting key %q has no row in DefaultSettings(); writing it through /api/v1/setting/set will fail with "+
+			"\"setting not found\" and surface as HTTP 500 with nothing in the logs. Add a seed row, or register it as "+
+			"read-only in this test with a justification.", key)
 	}
 }
 
