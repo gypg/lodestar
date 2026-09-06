@@ -58,7 +58,18 @@ type RelayMetrics struct {
 	// 容忍，但 TPM 扣减与计费重复会真实多扣，故此处统一挡住第二次。
 	// 一次请求只在一个 goroutine 内收尾，无需加锁。
 	saved bool
+
+	// usageMissing 标记上游交付了内容但响应里没有 usage 对象（WO-040 ①）。
+	// 此时 token/成本无处可算，ChargeKey 对 cost<=0 会静默免单——但这是有交付的
+	// 请求，必须显式告警让运维去追上游，而不是无声漏收。由 SetInternalResponse
+	// 设置，Save 里据此打出显式免单决策日志。
+	usageMissing bool
 }
+
+// UsageMissingObserver 是计费观测钩子（同 billing.CallRecorder 范式）：当一次
+// 响应"有内容交付但缺 usage"时触发，供接线测试断言生产调用点真的走到了守卫。
+// 生产环境为 nil，只落告警日志。
+var UsageMissingObserver func(apiKeyID int, requestModel string)
 
 func NewRelayMetrics(apiKeyID int, requestModel string, requestedEndpointType string, matchedGroupEndpointType string, clientIP string, req *transformerModel.InternalLLMRequest) *RelayMetrics {
 	return &RelayMetrics{
@@ -79,7 +90,22 @@ func (m *RelayMetrics) SetInternalResponse(resp *transformerModel.InternalLLMRes
 	m.InternalResponse = resp
 	m.ActualModel = actualModel
 
-	if resp == nil || resp.Usage == nil {
+	if resp == nil {
+		return
+	}
+	if resp.Usage == nil {
+		// WO-040 ①：有内容交付（非零载荷）但上游没给 usage。token/成本无处
+		// 可算，也不能凭空发明保底价（定价语义是禁区）——结果必然是 ChargeKey
+		// 对 cost<=0 静默免单。这里必须显式：打告警 + 触发观测钩子 + 立标记，
+		// 让 Save 把免单决策写进日志，而不是无声漏收。
+		if !isFake200Response(resp) {
+			m.usageMissing = true
+			log.Warnf("upstream delivered content without usage — request completes unbilled: model=%s, api_key_id=%d, choices=%d",
+				m.RequestModel, m.APIKeyID, len(resp.Choices))
+			if UsageMissingObserver != nil {
+				UsageMissingObserver(m.APIKeyID, m.RequestModel)
+			}
+		}
 		return
 	}
 
@@ -231,6 +257,13 @@ func (m *RelayMetrics) Save(success bool, err error, attempts []model.ChannelAtt
 	// Lodestar commercial: deduct this request's USD cost from the key owner's balance (no-op unless commercial_mode on).
 	// chargeable=false 的两类场景见函数开头的假 200 计费层守卫。
 	if chargeable {
+		// WO-040 ①：usage 缺失的交付请求会走到这里但 cost=0（ChargeKey 内部
+		// 对 cost<=0 免单）。免单本身是唯一可信的决策（无 usage 无法定价），
+		// 但必须是显式的——这条日志就是那个决策的落点。
+		if m.usageMissing {
+			log.Warnf("billing skipped: content was delivered but upstream usage is missing (charge=0) — chase the upstream: model=%s, api_key_id=%d",
+				m.RequestModel, m.APIKeyID)
+		}
 		billing.ChargeKeyWithExpr(m.APIKeyID, m.RequestModel, int(m.Stats.InputToken), int(m.Stats.OutputToken), globalStats.InputCost+globalStats.OutputCost, ctx)
 	}
 
