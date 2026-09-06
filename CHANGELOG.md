@@ -11,9 +11,68 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🚀 Features
+- **Local-mode AI route analysis runs on this site's own channels** (`ced315f`,
+  2026-09-05): choosing a local model for route analysis used to mean deriving
+  `base_url` and `api_key` out of the serving channel and writing them into the
+  legacy three-piece settings — a step that failed silently and left the panel
+  unusable. The backend now builds the analysis service straight from the enabled
+  channel serving the chosen model, checked before the legacy credential
+  fallback, so a bare model choice is enough to run. The model is matched
+  case-insensitively while the service keeps the channel's own spelling, since
+  upstream capitalisation drifts and an exact-match lookup silently found
+  nothing. Local mode gains a save button and an automatic lowest-latency pick,
+  and the readiness banner is evaluated per source mode rather than always
+  demanding all three credentials. Verified end to end in production: an analysis
+  completed with 25 routes across 24 groups and 54 route items.
+
 ### 🐛 Bug Fixes
 
 #### Critical (Production Impact)
+- **The AI route source toggle could not be written at all** (`7cbec8b` /
+  `cfcb8db` / `e93a3f4`, 2026-09-05): picking a local analysis model showed no
+  save button, never cleared the "needs configuring" banner, and claimed the
+  setup had "switched to an external service" — while choosing an external
+  connection raised no complaint. Four defects stacked up.
+  The toggle was never persisted: `mode` was plain component state defaulting to
+  external, so every mount reset the switch while the model name loaded back from
+  settings, leaving a local selection rendered as an external one. It now
+  round-trips through a new `ai_route_source_mode` setting.
+  The failure copy described something that never happened — the branch rendered
+  "switched to external service" while no code path on it called `setMode`. It is
+  now an action label on a button that performs the switch.
+  Local mode was a dead end: the escape hatch was gated on an interaction-time
+  flag that resets on mount, so a setup left incomplete by an earlier session
+  showed neither a notice nor a button while the banner stayed up. The notice is
+  now derived from the values themselves.
+  Above all, the key could not be written even once. `op/setting.SetString` reads
+  the cache first and returns "setting not found" for a key it has never seen,
+  which the handler turns into a bare `InternalError` — so a key with a constant
+  and a validation branch but no row in `DefaultSettings()` answered 500 with
+  nothing in the logs. Browser verification caught this: request sent, 500
+  returned, no row, no log line. `RefreshCache` backfills the missing seed into an
+  existing database on startup, so no migration is needed.
+  The gap that let it ship is that `TestDefaultSettingSeedsValidate` only checks
+  that the seeds already listed are valid — it is blind to a key that should have
+  been listed. Replaced with a class-level test that walks `setting.go` with
+  `go/ast`, enumerates every declared `SettingKey`, and requires each to have a
+  seed row or be registered read-only with a justification. One legitimate
+  exception exists (`retry_empty_output`).
+- **Route-analysis progress was invisible and the model list was unusable**
+  (`24ae2a4`, 2026-09-05): starting an analysis left the card reading "idle" with
+  "no AI route task" forever. Two causes: the evaluation page wrote the task id
+  under `lodestar-ai-route-task` while the runtime read
+  `lodestar.ai-route-progress` — the keys never matched, so a task started from
+  that page was invisible to the very component meant to display it — and a
+  same-page `sessionStorage` write raises no event, so the runtime only re-read on
+  window focus. Writes now go through the shared storage helper, which dispatches
+  a sync event the runtime listens for. Separately, the local-mode dropdown was
+  fed from the whole model registry: 91 entries of which 32 were served by no
+  channel, so picking one led straight to "no usable channel". It now lists only
+  models a channel actually serves (91 → 59 here). An empty analysis response was
+  also treated as terminal, failing a whole batch on one blank reply; it is now
+  retryable, with same-service retry allowed once every service is excluded and
+  capped at three attempts.
 - **API Key sessions logged themselves out immediately** (`1c02634`, 2026-09-04, [PR #2](https://github.com/gypg/lodestar/pull/2)): 
   a customer signing in with an API key never got in. `/api/v1/apikey/login` answered 
   200, but `/api/v1/user/me` fired immediately afterward (gated only on `isAuthenticated`, 
