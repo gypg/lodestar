@@ -11,6 +11,7 @@ import { useGenerateAIRoute, useAIRouteHistory, useGroupList } from '@/api/endpo
 import { useSettingList, SettingKey } from '@/api/endpoints/setting';
 import { toast } from '@/components/common/Toast';
 import { useNavStore } from '@/components/modules/navbar';
+import { writeStoredAIRouteTask } from '@/components/modules/group/task-storage';
 import { Button } from '@/components/ui/button';
 import { ObservatorySection, StatusBadge } from './shared';
 import { AIRouteConfig } from './AIRouteConfig';
@@ -233,10 +234,15 @@ export function Evaluation() {
                                             { scope: 'table' },
                                             {
                                                 onSuccess: (progress) => {
-                                                    sessionStorage.setItem('lodestar-ai-route-task', JSON.stringify({
-                                                        progressId: progress.id,
-                                                        timestamp: Date.now(),
-                                                    }));
+                                                    // Must go through the shared task-storage
+                                                    // writer: the runtime reads the
+                                                    // 'lodestar.ai-route-progress' key and
+                                                    // needs its sync event to observe a
+                                                    // task started on this page.
+                                                    writeStoredAIRouteTask({
+                                                        id: progress.id,
+                                                        scope: 'table',
+                                                    });
                                                     toast.success(t('evaluation.aiRoute.started'));
                                                 },
                                                 onError: (error: Error) => {

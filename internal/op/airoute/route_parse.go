@@ -2,11 +2,17 @@ package airoute
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/gypg/lodestar/internal/model"
 )
+
+// errAIRouteEmptyResult marks an empty model output. Unlike a malformed
+// payload, emptiness is often transient (the model answered nothing for this
+// prompt), so callers treat it as retryable.
+var errAIRouteEmptyResult = errors.New("AI返回结果为空")
 
 // ---------- AI response parsing ----------
 
@@ -14,7 +20,7 @@ func normalizeAIMessageContent(content any) (string, error) {
 	switch value := content.(type) {
 	case string:
 		if strings.TrimSpace(value) == "" {
-			return "", fmt.Errorf("AI返回结果为空")
+			return "", errAIRouteEmptyResult
 		}
 		return value, nil
 	case []any:
@@ -30,18 +36,18 @@ func normalizeAIMessageContent(content any) (string, error) {
 		}
 		result := strings.TrimSpace(builder.String())
 		if result == "" {
-			return "", fmt.Errorf("AI返回结果为空")
+			return "", errAIRouteEmptyResult
 		}
 		return result, nil
 	default:
-		return "", fmt.Errorf("AI返回结果为空")
+		return "", errAIRouteEmptyResult
 	}
 }
 
 func parseAIRouteResponseContent(content string) (model.AIRouteResponse, error) {
 	content = strings.TrimSpace(content)
 	if content == "" {
-		return model.AIRouteResponse{}, fmt.Errorf("AI返回结果为空")
+		return model.AIRouteResponse{}, errAIRouteEmptyResult
 	}
 
 	candidates := extractAIRouteJSONCandidates(content)

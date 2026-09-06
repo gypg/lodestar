@@ -24,6 +24,10 @@ const (
 	aiRouteResponseMaxSize     = 2 << 20
 	defaultAIRouteRetryBackoff = 10 * time.Second
 	aiRouteMaxTokens           = 4096
+	// Cap on same-bucket attempts once every service is excluded. Exists so a
+	// single-service pool can retry transient failures (empty model outputs)
+	// without risking an endless loop.
+	aiRouteMaxAttemptsPerBucket = 3
 )
 
 type aiRoutePromptModelInput struct {
@@ -618,10 +622,17 @@ func generateAIRoutesForBucket(
 
 		exclude[lease.Index] = struct{}{}
 		if len(exclude) >= serviceCount {
-			if tracker != nil {
-				tracker.FailBatch(batchIndex, bucket, lease.Service.Name, attempt, callErr.Error())
+			// Every service is excluded. With one service (the common
+			// local-mode case) there is nowhere to rotate to, so retryable
+			// failures — notably transient empty model outputs — get a
+			// bounded same-service retry instead of an immediate give-up.
+			if !outcome.Retryable || attempt >= aiRouteMaxAttemptsPerBucket {
+				if tracker != nil {
+					tracker.FailBatch(batchIndex, bucket, lease.Service.Name, attempt, callErr.Error())
+				}
+				return nil, callErr
 			}
-			return nil, callErr
+			delete(exclude, lease.Index)
 		}
 
 		nextLease, nextErr := servicePool.Next(ctx, lease, hint, exclude, callErr)

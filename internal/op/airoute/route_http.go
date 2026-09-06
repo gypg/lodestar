@@ -301,11 +301,22 @@ func generateAIRoutesForBucketWithService(
 		return nil, fmt.Errorf("AI返回结果不是合法JSON")
 	}
 	if len(completionResp.Choices) == 0 {
-		return nil, nil
+		// The model answered with no candidates at all — usually transient
+		// rather than a configuration problem, so let the bucket retry.
+		return nil, &aiRouteCallError{
+			Retryable: true,
+			Message:   "AI 未返回任何候选结果",
+		}
 	}
 
 	content, err := normalizeAIMessageContent(completionResp.Choices[0].Message.Content)
 	if err != nil {
+		if errors.Is(err, errAIRouteEmptyResult) {
+			return nil, &aiRouteCallError{
+				Retryable: true,
+				Message:   err.Error(),
+			}
+		}
 		return nil, err
 	}
 

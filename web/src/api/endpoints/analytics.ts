@@ -16,6 +16,7 @@ import {
     clearStoredGroupTestTask,
     readStoredAIRouteTask,
     readStoredGroupTestTask,
+    TASK_STORAGE_SYNC_EVENT,
     type StoredAIRouteTask,
     type StoredGroupTestTask,
 } from '@/components/modules/group/task-storage';
@@ -154,8 +155,15 @@ export function useAnalyticsEvaluationRuntime(): AnalyticsEvaluationRuntime {
             setGroupTestTask(readStoredGroupTestTask());
         };
 
+        // The storage event only fires in other tabs, so without the explicit
+        // sync event a task started on this very page would stay invisible
+        // until the window lost and regained focus.
         window.addEventListener('focus', syncFromStorage);
-        return () => window.removeEventListener('focus', syncFromStorage);
+        window.addEventListener(TASK_STORAGE_SYNC_EVENT, syncFromStorage);
+        return () => {
+            window.removeEventListener('focus', syncFromStorage);
+            window.removeEventListener(TASK_STORAGE_SYNC_EVENT, syncFromStorage);
+        };
     }, []);
 
     const aiRouteProgressQuery = useGenerateAIRouteProgress(aiRouteTask?.id ?? null);

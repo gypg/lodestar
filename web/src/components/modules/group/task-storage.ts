@@ -5,6 +5,21 @@ import type { AIRouteScope } from '@/api/endpoints/group';
 const AI_ROUTE_PROGRESS_STORAGE_KEY = 'lodestar.ai-route-progress';
 const GROUP_TEST_PROGRESS_STORAGE_KEY = 'lodestar.group-test-progress';
 
+/**
+ * Fired on window whenever a stored task changes. sessionStorage writes are
+ * invisible to listeners in the same tab (the storage event only fires in
+ * other tabs), so components polling a stored task id need this explicit
+ * signal to pick up a task started elsewhere on the page.
+ */
+export const TASK_STORAGE_SYNC_EVENT = 'lodestar:task-storage-sync';
+
+function notifyTaskStorageSync() {
+    if (typeof window === 'undefined') {
+        return;
+    }
+    window.dispatchEvent(new Event(TASK_STORAGE_SYNC_EVENT));
+}
+
 export type StoredAIRouteTask = {
     id: string;
     scope: AIRouteScope;
@@ -101,6 +116,7 @@ export function readStoredAIRouteTask() {
 
 export function writeStoredAIRouteTask(task: StoredAIRouteTask) {
     writeStoredTask(AI_ROUTE_PROGRESS_STORAGE_KEY, task);
+    notifyTaskStorageSync();
 }
 
 export function clearStoredAIRouteTask(id?: string) {
@@ -113,6 +129,7 @@ export function clearStoredAIRouteTask(id?: string) {
     if (current?.id === id) {
         removeStoredTask(AI_ROUTE_PROGRESS_STORAGE_KEY);
     }
+    notifyTaskStorageSync();
 }
 
 export function matchesStoredAIRouteTask(task: StoredAIRouteTask | null, scope: AIRouteScope, groupId: number) {
@@ -133,6 +150,7 @@ export function readStoredGroupTestTask() {
 
 export function writeStoredGroupTestTask(task: StoredGroupTestTask) {
     writeStoredTask(GROUP_TEST_PROGRESS_STORAGE_KEY, task);
+    notifyTaskStorageSync();
 }
 
 export function clearStoredGroupTestTask(id?: string) {
@@ -145,6 +163,7 @@ export function clearStoredGroupTestTask(id?: string) {
     if (current?.id === id) {
         removeStoredTask(GROUP_TEST_PROGRESS_STORAGE_KEY);
     }
+    notifyTaskStorageSync();
 }
 
 export function matchesStoredGroupTestTask(task: StoredGroupTestTask | null, groupId?: number) {

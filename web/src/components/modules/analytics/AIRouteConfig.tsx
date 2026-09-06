@@ -63,7 +63,26 @@ export function AIRouteConfig({ compact }: { compact?: boolean }) {
         return buckets;
     }, [models]);
 
-    // Load saved settings on mount
+    // Local mode must only offer models the site's channels actually serve: the
+    // registry also lists names no channel provides, and picking one of those
+    // can only end in the "no channel found" dead end. Falls back to the full
+    // registry when the channel mapping has not loaded.
+    const localModelOptions = useMemo(() => {
+        const served = (modelChannels ?? []).filter((item) => item.enabled);
+        if (served.length === 0) return modelsByProvider;
+        const buckets: Record<string, string[]> = {};
+        for (const item of served) {
+            const { label } = getModelIcon(item.name);
+            const key = label || 'Other';
+            (buckets[key] ??= []).push(item.name);
+        }
+        return buckets;
+    }, [modelChannels, modelsByProvider]);
+
+    // Load saved settings on mount. Field values are re-applied on every
+    // settings refetch, but only when the field holds no unsaved edit — a
+    // background refetch must not silently discard what the operator just
+    // picked but has not saved yet.
     useEffect(() => {
         if (!settings) return;
 
@@ -71,15 +90,15 @@ export function AIRouteConfig({ compact }: { compact?: boolean }) {
         const apiKeySetting = settings.find((item) => item.key === SettingKey.AIRouteAPIKey);
         const modelSetting = settings.find((item) => item.key === SettingKey.AIRouteModel);
 
-        if (baseURLSetting) {
+        if (baseURLSetting && baseURL === initialBaseURL.current) {
             queueMicrotask(() => setBaseURL(baseURLSetting.value));
             initialBaseURL.current = baseURLSetting.value;
         }
-        if (apiKeySetting) {
+        if (apiKeySetting && apiKey === initialAPIKey.current) {
             queueMicrotask(() => setAPIKey(apiKeySetting.value));
             initialAPIKey.current = apiKeySetting.value;
         }
-        if (modelSetting) {
+        if (modelSetting && model === initialModel.current) {
             queueMicrotask(() => setModel(modelSetting.value));
             initialModel.current = modelSetting.value;
         }
@@ -93,7 +112,7 @@ export function AIRouteConfig({ compact }: { compact?: boolean }) {
             initialMode.current = persisted;
             queueMicrotask(() => setMode(persisted));
         }
-    }, [settings]);
+    }, [settings, baseURL, apiKey, model]);
 
     /**
      * Persist the source toggle. Kept separate from the credential fields
@@ -330,7 +349,7 @@ export function AIRouteConfig({ compact }: { compact?: boolean }) {
                                 <SelectValue placeholder={t('aiRoute.config.modelPlaceholder')} />
                             </SelectTrigger>
                             <SelectContent>
-                                {Object.entries(modelsByProvider).map(([provider, providerModels]) => (
+                                {Object.entries(localModelOptions).map(([provider, providerModels]) => (
                                     <SelectGroup key={provider}>
                                         <SelectLabel>{provider}</SelectLabel>
                                         {providerModels.map((m) => (
