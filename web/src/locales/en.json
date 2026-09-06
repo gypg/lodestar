@@ -38,7 +38,6 @@
       "password": "Admin password",
       "passwordPlaceholder": "Enter admin password",
       "passwordHint": "Password must be at least 12 characters long."
-    
     },
     "actions": {
       "refresh": "Refresh status",
@@ -1226,7 +1225,6 @@
   },
   "setting": {
     "apiKey": {
-      "title": "API Keys & Endpoints",
       "page": {
         "count": "{count, plural, =0 {No keys} other {# keys}}",
         "searchPlaceholder": "Search by name or tag",
@@ -1319,7 +1317,8 @@
         "updateError": "Update failed",
         "deleteSuccess": "Deleted successfully",
         "deleteError": "Delete failed"
-      }
+      },
+      "title": "API Keys & Endpoints"
     },
     "apiUsageGuide": {
       "title": "API Usage Guide",
@@ -3922,5 +3921,15 @@
   },
   "banner": {
     "closeAnnouncement": "Close announcement"
+  },
+  "apiKey": {
+    "createdOnce": {
+      "title": "API key created",
+      "body": "Copy and store your key now — the full value cannot be viewed again after this dialog closes.",
+      "copy": "Copy",
+      "copied": "Copied",
+      "onceWarning": "This is the only time the full key is shown. After refreshing or leaving the page only the masked form remains — keep it safe.",
+      "done": "I've saved it"
+    }
   }
 }

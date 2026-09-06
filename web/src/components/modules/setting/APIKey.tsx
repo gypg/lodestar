@@ -32,6 +32,7 @@ import { useStatsAPIKey } from '@/api/endpoints/stats';
 import { cn } from '@/lib/utils';
 import { toast } from '@/components/common/Toast';
 import { CopyIconButton } from '@/components/common/CopyButton';
+import { CreatedKeyDialog } from '@/components/common/created-key-dialog';
 import type { ApiError } from '@/api/types';
 
 /**
@@ -893,6 +894,7 @@ function APIKeyPanelBase({
     const deletePrefix = `${idPrefix}-delete-`;
 
     const [isAdding, setIsAdding] = useState(false);
+    const [createdSecret, setCreatedSecret] = useState<string | null>(null);
     const [viewingStats, setViewingStats] = useState<{ apiKey: APIKey; layoutId: string } | null>(null);
     const [editingKey, setEditingKey] = useState<{ apiKey: APIKey; layoutId: string } | null>(null);
     const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -934,8 +936,10 @@ function APIKeyPanelBase({
 
     const handleCreate = useCallback((data: Omit<APIKey, 'id'>) => {
         createAPIKey.mutate(data, {
-            onSuccess: () => {
+            onSuccess: (created) => {
                 toast.success(t('apiKey.toast.createSuccess'));
+                // WO-040 ⑥：完整 key 仅此一次展示（服务端只在创建响应里返回）。
+                setCreatedSecret(created.api_key);
                 setIsAdding(false);
             },
             onError: (error) => {
@@ -1059,6 +1063,7 @@ function APIKeyPanelBase({
                     </AnimatePresence>
                 )}
             </div>
+            <CreatedKeyDialog secret={createdSecret} onClose={() => setCreatedSecret(null)} />
         </div>
     );
 }

@@ -17,6 +17,7 @@ import {
     FilterX,
     CircleSlash,
 } from 'lucide-react';
+import { CreatedKeyDialog } from '@/components/common/created-key-dialog';
 import { PageWrapper } from '@/components/common/PageWrapper';
 import { Input } from '@/components/ui/input';
 import {
@@ -274,6 +275,7 @@ export function APIKeyPage() {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editingKey, setEditingKey] = useState<APIKey | null>(null);
     const [deletingId, setDeletingId] = useState<number | null>(null);
+    const [createdSecret, setCreatedSecret] = useState<string | null>(null);
 
     const statsById = useMemo(() => {
         const map = new Map<number, StatsAPIKeyFormatted>();
@@ -338,8 +340,10 @@ export function APIKeyPage() {
             });
         } else {
             createAPIKey.mutate(data, {
-                onSuccess: () => {
+                onSuccess: (created) => {
                     toast.success(t('apiKey.toast.createSuccess'));
+                    // WO-040 ⑥：完整 key 仅此一次展示（服务端只在创建响应里返回）。
+                    setCreatedSecret(created.api_key);
                     setDialogOpen(false);
                 },
                 onError: (err) => {
@@ -556,6 +560,7 @@ export function APIKeyPage() {
                     />
                 </DialogContent>
             </Dialog>
+            <CreatedKeyDialog secret={createdSecret} onClose={() => setCreatedSecret(null)} />
         </div>
     );
 }

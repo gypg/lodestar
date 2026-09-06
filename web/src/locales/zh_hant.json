@@ -38,7 +38,6 @@
       "password": "管理員密碼",
       "passwordPlaceholder": "請輸入管理員密碼",
       "passwordHint": "密碼長度至少 12 個字元。"
-    
     },
     "actions": {
       "refresh": "重新整理狀態",
@@ -1226,7 +1225,6 @@
   },
   "setting": {
     "apiKey": {
-      "title": "API 密鑰及端點",
       "page": {
         "count": "{count, plural, =0 {暫無密鑰} other {# 個密鑰}}",
         "searchPlaceholder": "按名稱或標籤搜尋",
@@ -1319,7 +1317,8 @@
         "updateError": "更新失敗",
         "deleteSuccess": "刪除成功",
         "deleteError": "刪除失敗"
-      }
+      },
+      "title": "API 密鑰及端點"
     },
     "apiUsageGuide": {
       "title": "API 使用指南",
@@ -3922,5 +3921,15 @@
   },
   "banner": {
     "closeAnnouncement": "關閉公告"
+  },
+  "apiKey": {
+    "createdOnce": {
+      "title": "API 金鑰已建立",
+      "body": "請立即複製保存你的金鑰——關閉本彈窗後將無法再次查看完整內容。",
+      "copy": "複製",
+      "copied": "已複製",
+      "onceWarning": "這是唯一一次展示完整金鑰的機會。重新整理或離開頁面後只能看到掩碼，請妥善保管。",
+      "done": "我已儲存"
+    }
   }
 }

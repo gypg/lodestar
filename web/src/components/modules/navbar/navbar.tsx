@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { motion, useReducedMotion } from "motion/react"
 import { cn } from "@/lib/utils"
 import { useNavStore, type NavItem } from "@/components/modules/navbar"
@@ -9,7 +9,8 @@ import { usePreload } from "@/route/use-preload"
 import { ENTRANCE_VARIANTS } from "@/lib/animations/fluid-transitions"
 import { useTranslations } from "next-intl"
 import { useIsMobile } from "@/hooks/use-mobile"
-import { useCurrentUser, isStaffRole } from "@/api/endpoints/user"
+import { useCurrentUser } from "@/api/endpoints/user"
+import { hasPermission } from "@/lib/permissions"
 import { useQuery } from "@tanstack/react-query"
 import { apiClient } from "@/api/client"
 import type { BootstrapStatusResponse } from "@/api/endpoints/bootstrap"
@@ -50,8 +51,9 @@ export function NavBar() {
     const lightweightMotion = isMobile || reduceMotion
     const [pressedItem, setPressedItem] = useState<string | null>(null)
     const { data: me } = useCurrentUser()
-    // 角色未知时不限制（避免管理员加载瞬间误藏管理项）
-    const restrictToPortal = me !== undefined && !isStaffRole(me.role)
+    // 角色未知时不限制（避免管理员加载瞬间误藏管理项）。
+    // WO-040 ⑥：判定用权限不用角色名——user 角色无 channels:read，只能进客户门户。
+    const restrictToPortal = me !== undefined && !hasPermission(me.role, 'channels:read')
     const { data: bootstrap } = useQuery({
         queryKey: ['bootstrap', 'status'],
         queryFn: async () => apiClient.get<BootstrapStatusResponse>('/api/v1/bootstrap/status', undefined, false),
@@ -65,6 +67,17 @@ export function NavBar() {
         []
     )
     const allRouteIds = useMemo(() => ROUTES.map((r) => r.id as NavItem), [])
+    // WO-040 ⑥：残留的 nav-storage 可能把 activeItem 指向上一身份（如管理员）
+    // 才有权访问的页面，restrictToPortal 下导航里没有它，主区域却仍渲染并报
+    // 「权限不足」。登录身份就绪后校验一次，不匹配回落主页。
+    useEffect(() => {
+        if (!restrictToPortal) return;
+        const portalSet = new Set(isCommercial ? USER_PORTAL_NAV_COMMERCIAL : USER_PORTAL_NAV);
+        if (!portalSet.has(activeItem)) {
+            setActiveItem('home');
+        }
+    }, [restrictToPortal, isCommercial, activeItem, setActiveItem])
+
     const orderedRoutes = useMemo(() => {
         let items: NavItem[]
         if (restrictToPortal) {
