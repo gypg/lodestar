@@ -53,8 +53,13 @@ func getPublicOverview(c *gin.Context) {
 	description, _ := setting.GetString(model.SettingKeySiteDescription)
 	announcement, _ := setting.GetString(model.SettingKeySiteAnnouncement)
 	footer, _ := setting.GetString(model.SettingKeySiteFooter)
+	// WO-040 ⑦-1：model/setting.go 声明四个合法值 photo|classic|color4bg|pretext。
+	// 旧代码把 != "color4bg" 一律收敛成 photo，classic/pretext 永远到不了前端，
+	// home/index.tsx 的报刊风分支不可达。未知/空值仍回退 photo。
 	ambient, _ := setting.GetString(model.SettingKeyLandingAmbientMode)
-	if ambient != "color4bg" {
+	switch ambient {
+	case "classic", "color4bg", "pretext":
+	default:
 		ambient = "photo"
 	}
 	bannerOn, _ := setting.GetBool(model.SettingKeySiteBannerEnabled)
