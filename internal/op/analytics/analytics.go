@@ -68,8 +68,57 @@ type analyticsFailureAggregateRow struct {
 }
 
 // AnalyticsOverviewGet returns aggregate analytics for the given range.
-// When userID is non-nil, only that user's API keys are counted (multi-tenant isolation).
+// When userID is non-nil, the whole overview is scoped to that user's API keys
+// (multi-tenant isolation, WO-040 ②):
+//   - usage metrics come from the user's keys' cumulative stats (stats_daily has
+//     no user dimension, and StatsAPIKey has no per-day series — the range
+//     degrades to a lifetime figure, an isolation-for-precision trade-off);
+//   - fallback rate counts only the user's relay_logs;
+//   - provider/model counts are zeroed (site scale must not leak);
+//   - API key count covers only the user's own keys.
+//
+// userID == nil keeps the site-wide behaviour for staff.
 func AnalyticsOverviewGet(ctx context.Context, r model.AnalyticsRange, userID *uint) (*model.AnalyticsOverview, error) {
+	if userID != nil {
+		return analyticsOverviewGetScoped(ctx, r, *userID)
+	}
+	return analyticsOverviewGetSiteWide(ctx, r)
+}
+
+func analyticsOverviewGetScoped(ctx context.Context, r model.AnalyticsRange, userID uint) (*model.AnalyticsOverview, error) {
+	apiKeys, err := apikey.ListByUser(userID, ctx)
+	if err != nil {
+		return nil, err
+	}
+	apiKeyIDs := make([]int, 0, len(apiKeys))
+	apiKeyCount := 0
+	for _, apiKey := range apiKeys {
+		apiKeyIDs = append(apiKeyIDs, apiKey.ID)
+		if apiKey.Enabled {
+			apiKeyCount++
+		}
+	}
+
+	// StatsAPIKey is a cumulative counter (no per-day series): the range does
+	// not filter this figure. Isolation first, precision second (WO-040 ②).
+	metrics := stats.APIKeysAggregate(apiKeyIDs)
+
+	// Site scale (provider/model counts) is hidden from customers: both derive
+	// from the channel table, which is staff-only information.
+	logSummary, err := loadAnalyticsSummary(ctx, r, apiKeyIDs)
+	if err != nil {
+		return nil, err
+	}
+	fallbackRate := 0.0
+	if logSummary.RequestCount > 0 {
+		fallbackRate = (float64(logSummary.FallbackCount) / float64(logSummary.RequestCount)) * 100
+	}
+
+	overview := buildAnalyticsOverview(metrics, 0, apiKeyCount, 0, fallbackRate)
+	return &overview, nil
+}
+
+func analyticsOverviewGetSiteWide(ctx context.Context, r model.AnalyticsRange) (*model.AnalyticsOverview, error) {
 	daily, err := stats.GetDaily(ctx)
 	if err != nil {
 		return nil, err
@@ -82,13 +131,7 @@ func AnalyticsOverviewGet(ctx context.Context, r model.AnalyticsRange, userID *u
 		return nil, err
 	}
 
-	// Multi-tenant: scope API key count to the user's own keys when userID is set.
-	var apiKeys []model.APIKey
-	if userID != nil {
-		apiKeys, err = apikey.ListByUser(*userID, ctx)
-	} else {
-		apiKeys, err = apikey.List(ctx)
-	}
+	apiKeys, err := apikey.List(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +155,7 @@ func AnalyticsOverviewGet(ctx context.Context, r model.AnalyticsRange, userID *u
 		}
 	}
 
-	logSummary, err := loadAnalyticsSummary(ctx, r)
+	logSummary, err := loadAnalyticsSummary(ctx, r, nil)
 	if err != nil {
 		return nil, err
 	}

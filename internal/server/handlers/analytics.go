@@ -67,6 +67,16 @@ func init() {
 		)
 }
 
+// canSeeSiteWideAnalytics reports whether the caller may see site-wide
+// analytics. Decided by permission, not by role name: anyone holding
+// channels:read is staff-side (admin / editor / viewer — a viewer is a
+// read-only staff member), while user-role customers hold neither
+// channels:read nor any other staff permission and must only ever see their
+// own key-scoped numbers (WO-040 ②).
+func canSeeSiteWideAnalytics(c *gin.Context) bool {
+	return auth.HasPermission(c.GetString("user_role"), auth.PermChannelsRead)
+}
+
 func getAnalyticsOverview(c *gin.Context) {
 	analyticsRange, ok := parseAnalyticsRange(c)
 	if !ok {
@@ -89,6 +99,12 @@ func getAnalyticsOverview(c *gin.Context) {
 }
 
 func getAnalyticsUtilization(c *gin.Context) {
+	// WO-040 ②：渠道/站点维度的分析对客户返回空集——这些数字来自全站，
+	// 对客户既无意义也泄露站点规模（判定用权限，user 无 channels:read）。
+	if !canSeeSiteWideAnalytics(c) {
+		resp.Success(c, nil)
+		return
+	}
 	analyticsRange, ok := parseAnalyticsRange(c)
 	if !ok {
 		return
@@ -103,6 +119,12 @@ func getAnalyticsUtilization(c *gin.Context) {
 }
 
 func getAnalyticsEvaluation(c *gin.Context) {
+	// WO-040 ②：渠道/站点维度的分析对客户返回空集——这些数字来自全站，
+	// 对客户既无意义也泄露站点规模（判定用权限，user 无 channels:read）。
+	if !canSeeSiteWideAnalytics(c) {
+		resp.Success(c, nil)
+		return
+	}
 	data, err := analytics.AnalyticsEvaluationGet(c.Request.Context())
 	if err != nil {
 		resp.InternalError(c)
@@ -112,6 +134,12 @@ func getAnalyticsEvaluation(c *gin.Context) {
 }
 
 func getAnalyticsGroupHealth(c *gin.Context) {
+	// WO-040 ②：渠道/站点维度的分析对客户返回空集——这些数字来自全站，
+	// 对客户既无意义也泄露站点规模（判定用权限，user 无 channels:read）。
+	if !canSeeSiteWideAnalytics(c) {
+		resp.Success(c, nil)
+		return
+	}
 	data, err := analytics.AnalyticsGroupHealthGet(c.Request.Context())
 	if err != nil {
 		resp.InternalError(c)
@@ -121,6 +149,12 @@ func getAnalyticsGroupHealth(c *gin.Context) {
 }
 
 func getAnalyticsProviderBreakdown(c *gin.Context) {
+	// WO-040 ②：渠道/站点维度的分析对客户返回空集——这些数字来自全站，
+	// 对客户既无意义也泄露站点规模（判定用权限，user 无 channels:read）。
+	if !canSeeSiteWideAnalytics(c) {
+		resp.Success(c, nil)
+		return
+	}
 	analyticsRange, ok := parseAnalyticsRange(c)
 	if !ok {
 		return
@@ -135,6 +169,12 @@ func getAnalyticsProviderBreakdown(c *gin.Context) {
 }
 
 func getAnalyticsModelBreakdown(c *gin.Context) {
+	// WO-040 ②：渠道/站点维度的分析对客户返回空集——这些数字来自全站，
+	// 对客户既无意义也泄露站点规模（判定用权限，user 无 channels:read）。
+	if !canSeeSiteWideAnalytics(c) {
+		resp.Success(c, nil)
+		return
+	}
 	analyticsRange, ok := parseAnalyticsRange(c)
 	if !ok {
 		return
@@ -149,6 +189,12 @@ func getAnalyticsModelBreakdown(c *gin.Context) {
 }
 
 func getAnalyticsChannelModel(c *gin.Context) {
+	// WO-040 ②：渠道/站点维度的分析对客户返回空集——这些数字来自全站，
+	// 对客户既无意义也泄露站点规模（判定用权限，user 无 channels:read）。
+	if !canSeeSiteWideAnalytics(c) {
+		resp.Success(c, nil)
+		return
+	}
 	analyticsRange, ok := parseAnalyticsRange(c)
 	if !ok {
 		return
@@ -172,6 +218,12 @@ func getAnalyticsChannelModel(c *gin.Context) {
 }
 
 func getAnalyticsAutoStrategy(c *gin.Context) {
+	// WO-040 ②：渠道/站点维度的分析对客户返回空集——这些数字来自全站，
+	// 对客户既无意义也泄露站点规模（判定用权限，user 无 channels:read）。
+	if !canSeeSiteWideAnalytics(c) {
+		resp.Success(c, nil)
+		return
+	}
 	var groupID *int
 	if v := c.Query("group_id"); v != "" {
 		n, err := strconv.Atoi(v)
@@ -191,6 +243,12 @@ func getAnalyticsAutoStrategy(c *gin.Context) {
 }
 
 func getAnalyticsAPIKeyBreakdown(c *gin.Context) {
+	// WO-040 ②：渠道/站点维度的分析对客户返回空集——这些数字来自全站，
+	// 对客户既无意义也泄露站点规模（判定用权限，user 无 channels:read）。
+	if !canSeeSiteWideAnalytics(c) {
+		resp.Success(c, nil)
+		return
+	}
 	analyticsRange, ok := parseAnalyticsRange(c)
 	if !ok {
 		return
@@ -205,6 +263,12 @@ func getAnalyticsAPIKeyBreakdown(c *gin.Context) {
 }
 
 func getAnalyticsLatencyDistribution(c *gin.Context) {
+	// WO-040 ②：渠道/站点维度的分析对客户返回空集——这些数字来自全站，
+	// 对客户既无意义也泄露站点规模（判定用权限，user 无 channels:read）。
+	if !canSeeSiteWideAnalytics(c) {
+		resp.Success(c, nil)
+		return
+	}
 	analyticsRange, ok := parseAnalyticsRange(c)
 	if !ok {
 		return
@@ -219,6 +283,12 @@ func getAnalyticsLatencyDistribution(c *gin.Context) {
 }
 
 func getAnalyticsLatencyModels(c *gin.Context) {
+	// WO-040 ②：渠道/站点维度的分析对客户返回空集——这些数字来自全站，
+	// 对客户既无意义也泄露站点规模（判定用权限，user 无 channels:read）。
+	if !canSeeSiteWideAnalytics(c) {
+		resp.Success(c, nil)
+		return
+	}
 	analyticsRange, ok := parseAnalyticsRange(c)
 	if !ok {
 		return
@@ -232,6 +302,12 @@ func getAnalyticsLatencyModels(c *gin.Context) {
 }
 
 func getAnalyticsModelLatency(c *gin.Context) {
+	// WO-040 ②：渠道/站点维度的分析对客户返回空集——这些数字来自全站，
+	// 对客户既无意义也泄露站点规模（判定用权限，user 无 channels:read）。
+	if !canSeeSiteWideAnalytics(c) {
+		resp.Success(c, nil)
+		return
+	}
 	analyticsRange, ok := parseAnalyticsRange(c)
 	if !ok {
 		return

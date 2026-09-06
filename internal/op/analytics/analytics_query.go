@@ -15,7 +15,9 @@ import (
 )
 
 // loadAnalyticsSummary aggregates request count and fallback count from DB + in-memory cache.
-func loadAnalyticsSummary(ctx context.Context, r model.AnalyticsRange) (*analyticsSummaryRow, error) {
+// apiKeyIDs 为空时统计全站；非空时只统计这些 API key 的请求（WO-040 ② 多租户隔离，
+// relay_logs 无 user_id 列，唯一可用关联是 request_api_key_id）。
+func loadAnalyticsSummary(ctx context.Context, r model.AnalyticsRange, apiKeyIDs []int) (*analyticsSummaryRow, error) {
 	startUnix := analyticsRangeStartUnix(r, stats.Now())
 	row := &analyticsSummaryRow{}
 
@@ -34,16 +36,31 @@ func loadAnalyticsSummary(ctx context.Context, r model.AnalyticsRange) (*analyti
 		if startUnix != nil {
 			query = query.Where("time >= ?", *startUnix)
 		}
+		if len(apiKeyIDs) > 0 {
+			query = query.Where("request_api_key_id IN ?", apiKeyIDs)
+		}
 		if err := query.Scan(row).Error; err != nil {
 			return nil, err
 		}
 	}
 
+	var keySet map[int]struct{}
+	if len(apiKeyIDs) > 0 {
+		keySet = make(map[int]struct{}, len(apiKeyIDs))
+		for _, id := range apiKeyIDs {
+			keySet[id] = struct{}{}
+		}
+	}
 	cache, lock := relaylog.GetCacheAndLock()
 	lock.Lock()
 	for _, logItem := range cache {
 		if startUnix != nil && logItem.Time < *startUnix {
 			continue
+		}
+		if keySet != nil {
+			if _, ok := keySet[logItem.RequestAPIKeyID]; !ok {
+				continue
+			}
 		}
 		row.RequestCount++
 		if logItem.TotalAttempts > 1 {

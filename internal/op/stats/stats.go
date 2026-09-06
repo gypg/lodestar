@@ -587,6 +587,28 @@ func APIKeyList() []model.StatsAPIKey {
 	return apiKeys
 }
 
+// APIKeysAggregate sums the cumulative per-key stats of the given key IDs
+// (unknown/missing keys contribute zero). StatsAPIKey is a lifetime counter
+// with no per-day series, so this is a lifetime figure rather than a
+// range-filtered one — the multi-tenant overview deliberately trades range
+// precision for isolation (WO-040 ②): stats_daily has no user dimension.
+func APIKeysAggregate(ids []int) model.StatsMetrics {
+	var total model.StatsMetrics
+	for _, id := range ids {
+		s, ok := apiKeyCache.Get(id)
+		if !ok {
+			continue
+		}
+		total.RequestSuccess += s.RequestSuccess
+		total.RequestFailed += s.RequestFailed
+		total.InputToken += s.InputToken
+		total.OutputToken += s.OutputToken
+		total.InputCost += s.InputCost
+		total.OutputCost += s.OutputCost
+	}
+	return total
+}
+
 // ChannelList returns all cached channel statistics.
 func ChannelList() []model.StatsChannel {
 	channels := make([]model.StatsChannel, 0, channelCache.Len())
