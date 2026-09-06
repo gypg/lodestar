@@ -205,6 +205,20 @@ func (m *RelayMetrics) Save(success bool, err error, attempts []model.ChannelAtt
 
 	useTimeMs := duration.Milliseconds()
 
+	// WO-040 ③：显示的成本 = 扣走的钱。ChargeKeyWithExpr 在模型配了计费表达
+	// 式时用表达式结果覆盖上游成本，但日志 / relayLog.Cost / per-key 统计原来
+	// 记的全是上游定价——配了表达式的模型账单数字与真实扣款对不上。这里预先
+	// 算出实扣额并写回 m.Stats（media 路径 mediaCost 的同款形状）：此后统计管
+	// 道、日志、relayLog.Cost、ChargeKey 用的都是同一个数。
+	// 没有表达式时保持上游定价；usageMissing 时 tokens=0，表达式的按次固定费
+	// 仍会收取（第 1 轮测试钉死的语义），纯 token 表达式则自然为 0。
+	billedCost := m.Stats.InputCost + m.Stats.OutputCost
+	if exprCost, _, ok := billing.ComputeExprCost(m.RequestModel, int(m.Stats.InputToken), int(m.Stats.OutputToken)); ok {
+		billedCost = exprCost
+		m.Stats.InputCost = billedCost
+		m.Stats.OutputCost = 0
+	}
+
 	globalStats := model.StatsMetrics{
 		WaitTime:    useTimeMs,
 		InputToken:  m.Stats.InputToken,
@@ -264,7 +278,10 @@ func (m *RelayMetrics) Save(success bool, err error, attempts []model.ChannelAtt
 			log.Warnf("billing skipped: content was delivered but upstream usage is missing (charge=0) — chase the upstream: model=%s, api_key_id=%d",
 				m.RequestModel, m.APIKeyID)
 		}
-		billing.ChargeKeyWithExpr(m.APIKeyID, m.RequestModel, int(m.Stats.InputToken), int(m.Stats.OutputToken), globalStats.InputCost+globalStats.OutputCost, ctx)
+		// WO-040 ③：成本已按表达式语义定稿（billedCost），直调 ChargeKey——
+		// 再走 WithExpr 会二次求值表达式（media 路径 BUG-004 的同款教训）。
+		// usageMissing 时 billedCost=0，ChargeKey 对 0 免单（显式决策）。
+		billing.ChargeKey(m.APIKeyID, billedCost, ctx)
 	}
 
 	// Post-check TPM deduction: deduct the request's actual token usage from the
