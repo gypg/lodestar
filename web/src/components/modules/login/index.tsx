@@ -401,6 +401,7 @@ export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
                           type="button"
                           variant="outline"
                           onClick={onSendCode}
+                          loading={sendCodeMutation.isPending}
                           disabled={sendCodeMutation.isPending || !email.trim()}
                           className="h-12 shrink-0 rounded-xl"
                         >
@@ -507,6 +508,7 @@ export function LoginForm({ onLoginSuccess }: { onLoginSuccess?: () => void }) {
 
               <Button
                 type="submit"
+                loading={isPending}
                 disabled={isPending}
                 className="w-full h-12 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-all active:scale-[0.98]"
               >

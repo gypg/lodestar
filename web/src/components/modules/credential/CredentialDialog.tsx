@@ -128,7 +128,7 @@ export function CredentialDialog({ open, onOpenChange, editing }: CredentialDial
                 </div>
                 <DialogFooter>
                     <Button variant="outline" onClick={() => onOpenChange(false)}>{t('cancel')}</Button>
-                    <Button onClick={handleSubmit} disabled={isPending}>
+                    <Button onClick={handleSubmit} loading={isPending} disabled={isPending}>
                         {isPending ? t('saving') : (isEditing ? t('save') : t('create'))}
                     </Button>
                 </DialogFooter>

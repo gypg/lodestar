@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Database, Download, Upload, AlertTriangle, Loader2, Check, X } from 'lucide-react';
+import { Database, Download, Upload, AlertTriangle, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -190,12 +190,12 @@ export function SettingBackup() {
                 </div>
 
                 <div className="flex flex-col gap-2 sm:flex-row">
-                    <Button type="button" variant="outline" className="w-full sm:flex-1 rounded-xl" onClick={onTestDatabase} disabled={testDatabase.isPending || migrateDatabase.isPending}>
-                        {testDatabase.isPending ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
+                    <Button type="button" variant="outline" className="w-full sm:flex-1 rounded-xl" onClick={onTestDatabase} loading={testDatabase.isPending} disabled={testDatabase.isPending || migrateDatabase.isPending}>
+                        <Check className="size-4" />
                         {t('backup.migration.testButton')}
                     </Button>
-                    <Button type="button" variant="destructive" className="w-full sm:flex-1 rounded-xl" onClick={onMigrateDatabase} disabled={migrateDatabase.isPending || testDatabase.isPending}>
-                        {migrateDatabase.isPending ? <Loader2 className="size-4 animate-spin" /> : <Database className="size-4" />}
+                    <Button type="button" variant="destructive" className="w-full sm:flex-1 rounded-xl" onClick={onMigrateDatabase} loading={migrateDatabase.isPending} disabled={migrateDatabase.isPending || testDatabase.isPending}>
+                        <Database className="size-4" />
                         {migrateDatabase.isPending ? t('backup.migration.migrating') : t('backup.migration.button')}
                     </Button>
                 </div>
@@ -259,9 +259,10 @@ export function SettingBackup() {
                     variant="destructive"
                     className="w-full rounded-xl"
                     onClick={onImport}
+                    loading={importDB.isPending}
                     disabled={importDB.isPending}
                 >
-                    {importDB.isPending ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+                    <Upload className="size-4" />
                     {importDB.isPending ? t('backup.import.importing') : t('backup.import.button')}
                 </Button>
 

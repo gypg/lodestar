@@ -226,27 +226,30 @@ export function SettingWebDAV() {
                     variant="default"
                     className="rounded-xl flex-1"
                     onClick={onSave}
+                    loading={updateConfig.isPending}
                     disabled={updateConfig.isPending}
                 >
-                    {updateConfig.isPending ? <Loader2 className="size-4 animate-spin" /> : <Cloud className="size-4" />}
+                    <Cloud className="size-4" />
                     {t('webdav.save')}
                 </Button>
                 <Button
                     variant="outline"
                     className="rounded-xl"
                     onClick={onTest}
+                    loading={testConnection.isPending}
                     disabled={testConnection.isPending}
                 >
-                    {testConnection.isPending ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
+                    <RefreshCw className="size-4" />
                     {t('webdav.test')}
                 </Button>
                 <Button
                     variant="outline"
                     className="rounded-xl"
                     onClick={onBackup}
+                    loading={triggerBackup.isPending}
                     disabled={triggerBackup.isPending || !enabled}
                 >
-                    {triggerBackup.isPending ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+                    <Upload className="size-4" />
                     {t('webdav.backupNow')}
                 </Button>
             </div>

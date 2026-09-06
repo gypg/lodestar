@@ -206,6 +206,7 @@ export function FirstRunSetup() {
                     <Button 
                       type="submit" 
                       className="flex-1 h-12 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90  transition-all active:scale-[0.98]" 
+                      loading={isPending}
                       disabled={isPending}
                     >
                       {isPending ? t('actions.submitting') : t('actions.submit')}

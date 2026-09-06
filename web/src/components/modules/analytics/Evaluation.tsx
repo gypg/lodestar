@@ -228,6 +228,7 @@ export function Evaluation() {
                                     variant="default"
                                     size="sm"
                                     className="rounded-lg"
+                                    loading={generateAIRoute.isPending}
                                     disabled={generateAIRoute.isPending || aiRouteStatus === 'running'}
                                     onClick={() => {
                                         generateAIRoute.mutate(

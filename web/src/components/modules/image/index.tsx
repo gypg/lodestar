@@ -8,7 +8,7 @@ Lodestar — 生图工坊（消费级，思路源自 SAPI ImagePlayground，UI �
 */
 
 import { useEffect, useMemo, useState } from 'react';
-import { ImageIcon, Download, Loader2, Trash2 } from 'lucide-react';
+import { ImageIcon, Download, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useAPIKeyList } from '@/api/endpoints/apikey';
 import { usePublicOverview } from '@/api/endpoints/public';
@@ -114,8 +114,8 @@ export function ImageStudio() {
                     placeholder={t('promptPlaceholder')}
                     className="flex-1 resize-none rounded-lg border border-border/40 bg-background p-2.5 text-sm outline-none focus:border-primary/50"
                 />
-                <Button type="button" onClick={() => void generate()} disabled={loading || !prompt.trim() || !selectedKey} className="h-11">
-                    {loading ? <Loader2 className="size-4 animate-spin" /> : <ImageIcon className="size-4" />} {t('generate')}
+                <Button type="button" onClick={() => void generate()} loading={loading} disabled={loading || !prompt.trim() || !selectedKey} className="h-11">
+                    <ImageIcon className="size-4" /> {t('generate')}
                 </Button>
             </div>
 

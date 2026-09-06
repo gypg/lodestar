@@ -1,6 +1,7 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
+import { Loader2 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
@@ -42,10 +43,20 @@ function Button({
   variant = "default",
   size = "default",
   asChild = false,
+  loading = false,
+  disabled,
+  children,
   ...props
 }: React.ComponentProps<"button"> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean
+    /**
+     * WO-039 2.1: shows a spinner, disables the button and keeps children
+     * rendered. Call sites drop their hand-written spinner and keep the
+     * leading icon — the same-size spinner takes its slot, so the button
+     * width does not jump.
+     */
+    loading?: boolean
   }) {
   const Comp = asChild ? Slot : "button"
 
@@ -54,9 +65,20 @@ function Button({
       data-slot="button"
       data-variant={variant}
       data-size={size}
+      data-loading={loading || undefined}
+      disabled={asChild ? disabled : loading || disabled}
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
-    />
+    >
+      {loading && !asChild ? (
+        <>
+          <Loader2 className="animate-spin" aria-hidden="true" />
+          {children}
+        </>
+      ) : (
+        children
+      )}
+    </Comp>
   )
 }
 

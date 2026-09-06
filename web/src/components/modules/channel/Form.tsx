@@ -42,7 +42,7 @@ import { toast } from '@/components/common/Toast';
 import { cn } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { RefreshCw, X, Plus, FlaskConical, CheckCircle2, AlertTriangle, Trash2, Sparkles, Orbit, Layers3, KeyRound, Cable, Search, Check, ListFilter, ChevronRight } from 'lucide-react';
+import { RefreshCw, X, Plus, CheckCircle2, AlertTriangle, Trash2, Sparkles, Orbit, Layers3, KeyRound, Cable, Search, Check, ListFilter, ChevronRight } from 'lucide-react';
 import { getModelIcon } from '@/lib/model-icons';
 
 export interface ChannelKeyFormItem {
@@ -938,14 +938,11 @@ export function ChannelForm({
                         variant="ghost"
                         size="sm"
                         onClick={handleTestChannel}
+                        loading={testChannel.isPending}
                         disabled={testChannel.isPending || !(formData.base_urls?.some((u) => u.url.trim()) && formData.keys?.some((k) => k.channel_key.trim()))}
                         className="h-6 px-2 text-xs text-muted-foreground/50 hover:text-muted-foreground hover:bg-transparent"
                     >
-                        {testChannel.isPending ? (
-                            <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
-                        ) : (
-                            <FlaskConical className="h-3 w-3 mr-1" />
-                        )}
+                        <RefreshCw className="h-3 w-3 mr-1" />
                         {t('test.button')}
                     </Button>
                     <Button
@@ -1480,6 +1477,7 @@ export function ChannelForm({
                 )}
                 <Button
                     type="submit"
+                    loading={isPending}
                     disabled={isPending}
                     className="h-12 w-full rounded-lg sm:flex-1"
                 >

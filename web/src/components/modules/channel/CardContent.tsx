@@ -13,7 +13,6 @@ import {
     ShieldCheck,
     ShieldAlert,
     Stethoscope,
-    Loader2
 } from 'lucide-react';
 import {
     useUpdateChannel,
@@ -543,13 +542,12 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
                             <div className="mt-4 shrink-0 space-y-3">
                                 <Button
                                     onClick={handleCheckKeys}
+                                    loading={checkChannelKeys.isPending}
                                     disabled={checkChannelKeys.isPending || channel.keys.length === 0}
                                     variant="outline"
                                     className="h-11 w-full rounded-lg"
                                 >
-                                    {checkChannelKeys.isPending
-                                        ? <Loader2 className="size-4 animate-spin" />
-                                        : <Stethoscope className="size-4" />}
+                                    <Stethoscope className="size-4" />
                                     {checkChannelKeys.isPending ? t('actions.checking') : t('actions.checkKeys')}
                                 </Button>
 
