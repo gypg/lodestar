@@ -71,8 +71,18 @@ export function SettingWallet() {
                 toast.success(t('setting.wallet.toast.redeemed', { credited: d.credited }));
                 setCode('');
             },
-            onError: (e) =>
-                toast.error(e instanceof Error ? e.message : t('setting.wallet.toast.redeemFailed')),
+            onError: (e) => {
+                // The backend answers 400 with a bare English string for the two
+                // ordinary cases a customer can hit (unknown code / code already
+                // redeemed). Map those to readable copy and let anything else
+                // fall through verbatim.
+                const msg = e instanceof Error ? e.message : '';
+                if (msg.includes('already-used') || msg.toLowerCase().includes('invalid')) {
+                    toast.error(t('setting.wallet.toast.invalidCode'));
+                    return;
+                }
+                toast.error(msg || t('setting.wallet.toast.redeemFailed'));
+            },
         });
     };
 

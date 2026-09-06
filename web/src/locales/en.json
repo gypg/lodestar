@@ -2159,6 +2159,7 @@
       "toast": {
         "redeemed": "Topped up, +${credited}",
         "redeemFailed": "Redemption failed",
+        "invalidCode": "Invalid or already-used code",
         "invalidAmount": "Enter a valid amount",
         "topupFailed": "Could not start payment (an admin must configure it first)",
         "stripeFailed": "Could not start the Stripe payment (an admin must configure Stripe first)",

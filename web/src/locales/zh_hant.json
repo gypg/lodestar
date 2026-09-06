@@ -2159,6 +2159,7 @@
       "toast": {
         "redeemed": "充值成功，+${credited}",
         "redeemFailed": "兌換失敗",
+        "invalidCode": "兌換碼無效或已被使用",
         "invalidAmount": "請輸入有效金額",
         "topupFailed": "發起支付失敗（需管理員配置支付）",
         "stripeFailed": "Stripe 支付發起失敗（需管理員配置 Stripe）",

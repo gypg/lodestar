@@ -41,7 +41,13 @@ export function useRedeemCode() {
     return useMutation({
         mutationFn: async (code: string) =>
             apiClient.post<{ credited: number }>('/api/v1/wallet/redeem', { code }),
-        onSuccess: () => qc.invalidateQueries({ queryKey: ['wallet', 'balance'] }),
+        onSuccess: () => {
+            // The ledger must refresh together with the balance: otherwise the
+            // wallet keeps showing "暂无流水记录" for a redeem that just landed
+            // (WO-038 S3) until an unrelated refetch happens.
+            qc.invalidateQueries({ queryKey: ['wallet', 'balance'] });
+            qc.invalidateQueries({ queryKey: ['wallet', 'ledger'] });
+        },
     });
 }
 
