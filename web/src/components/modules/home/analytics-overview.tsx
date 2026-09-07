@@ -26,6 +26,8 @@ import { EASING } from '@/lib/animations/fluid-transitions';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn, formatCount, formatMoney } from '@/lib/utils';
 import { useHomeViewStore, type OverviewMetricKey, type OverviewRange } from './store';
+import { useCurrentUser } from '@/api/endpoints/user';
+import { hasPermission } from '@/lib/permissions';
 
 const RANGE_OPTIONS: readonly OverviewRange[] = ['7d', '30d', '90d'];
 
@@ -45,6 +47,13 @@ export function HomeAnalyticsOverview() {
     const t = useTranslations('home.overview');
     const range = useHomeViewStore((state) => state.overviewRange);
     const setRange = useHomeViewStore((state) => state.setOverviewRange);
+    // WO-040 ②: for customers the backend scopes the usage metrics to their own
+    // keys via StatsAPIKey, which is a cumulative counter with no per-day series
+    // -- the range cannot filter it. Showing the selector anyway would render
+    // four cards that never move when the tabs are clicked, so it is staff-only.
+    // Decided by permission, mirroring canSeeSiteWideAnalytics on the backend.
+    const { data: currentUser } = useCurrentUser();
+    const mayPickRange = hasPermission(currentUser?.role, 'channels:read');
     const metricOrder = useHomeViewStore((state) => state.overviewMetricOrder);
     const hiddenMetrics = useHomeViewStore((state) => state.overviewHiddenMetrics);
     const setOverviewMetricHidden = useHomeViewStore((state) => state.setOverviewMetricHidden);
@@ -229,15 +238,17 @@ export function HomeAnalyticsOverview() {
                         </PopoverContent>
                     </Popover>
 
-                    <Tabs value={range} onValueChange={(value) => setRange(value as OverviewRange)}>
-                        <TabsList className="w-max rounded-lg border border-border bg-card p-1">
-                            {RANGE_OPTIONS.map((option) => (
-                                <TabsTrigger key={option} value={option}>
-                                    {t(`range.${option}`)}
-                                </TabsTrigger>
-                            ))}
-                        </TabsList>
-                    </Tabs>
+                    {mayPickRange && (
+                        <Tabs value={range} onValueChange={(value) => setRange(value as OverviewRange)}>
+                            <TabsList className="w-max rounded-lg border border-border bg-card p-1">
+                                {RANGE_OPTIONS.map((option) => (
+                                    <TabsTrigger key={option} value={option}>
+                                        {t(`range.${option}`)}
+                                    </TabsTrigger>
+                                ))}
+                            </TabsList>
+                        </Tabs>
+                    )}
                 </div>
             </div>
 
