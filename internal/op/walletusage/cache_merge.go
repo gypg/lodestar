@@ -35,6 +35,21 @@ import (
 // off OR the log DB is unavailable, returns ok=false and the caller short-
 // circuits to an empty/zero result without touching the DB.
 func loadUserLogsMerged(uid uint, cutoff int64, ctx context.Context) (logs []model.RelayLog, chartAvailable bool, err error) {
+	keys, err := apikey.ListByUser(uid, ctx)
+	if err != nil {
+		return nil, false, err
+	}
+	ids := make([]int, 0, len(keys))
+	for _, k := range keys {
+		ids = append(ids, k.ID)
+	}
+	return loadLogsMergedByIDs(ids, cutoff, ctx)
+}
+
+// loadLogsMergedByIDs is the key-ID variant of loadUserLogsMerged (WO-042):
+// the stats family handlers carry explicit API key IDs (from the caller's own
+// keys), not a user id, so the merge must be reusable without a uid lookup.
+func loadLogsMergedByIDs(apiKeyIDs []int, cutoff int64, ctx context.Context) (logs []model.RelayLog, chartAvailable bool, err error) {
 	enabled, err := setting.GetBool(model.SettingKeyRelayLogKeepEnabled)
 	if err != nil {
 		return nil, false, err
@@ -42,16 +57,12 @@ func loadUserLogsMerged(uid uint, cutoff int64, ctx context.Context) (logs []mod
 	if !enabled {
 		return nil, false, nil
 	}
-	keys, err := apikey.ListByUser(uid, ctx)
-	if err != nil {
-		return nil, false, err
-	}
-	if len(keys) == 0 {
+	if len(apiKeyIDs) == 0 {
 		return []model.RelayLog{}, true, nil
 	}
-	idSet := make(map[int]struct{}, len(keys))
-	for _, k := range keys {
-		idSet[k.ID] = struct{}{}
+	idSet := make(map[int]struct{}, len(apiKeyIDs))
+	for _, k := range apiKeyIDs {
+		idSet[k] = struct{}{}
 	}
 
 	// 1) Cache snapshot: the not-yet-flushed tail. These are the rows total_cost
