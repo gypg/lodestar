@@ -139,13 +139,40 @@ func shouldTryAdapterFallback(result attemptResult, adapterIndex, attemptCount i
 	if result.Success || result.Written || adapterIndex >= attemptCount-1 {
 		return false
 	}
-	// 只有路由级失败（换候选）才值得换一种出站 adapter 格式再打一次。
+	// 路由级失败（换候选）值得换一种出站 adapter 格式再打一次。
+	if result.Decision.Scope == ScopeNextChannel {
+		return true
+	}
+	// 其余范围默认不换 adapter：
 	//   - ScopeNone：400 类客户端错误（如 context_length_exceeded）。请求本身就不合法，
 	//     换 adapter 只会再挨一次同样的 400，还会推迟把上游错误体回给下游。
 	//   - ScopeSameChannel：Key 级失败。换 adapter 用的还是同一把 Key，
 	//     只是在正常的换 Key 重试之前白加一次延迟。
 	//   - ScopeAbortAll：已经往客户端写出过字节，任何重试都不安全。
-	return result.Decision.Scope == ScopeNextChannel
+	// 例外：Responses/Chat 协议形态不匹配的 400（如 tool 历史转换后上游报
+	// "No tool output found for tool call"）不是用户 prompt 写错，换下一个
+	// adapter（通常 Response→Chat）可能立刻恢复。其它 400 与 Key 级失败仍不换。
+	return isOutboundAdapterFormatMismatch(result.Decision.Code, result.Err)
+}
+
+// isOutboundAdapterFormatMismatch 识别「当前出站 adapter 的 wire 形态」导致的
+// 上游 400，而不是通用客户端错误。匹配要保持窄，防止任意 invalid_request 被重试。
+func isOutboundAdapterFormatMismatch(statusCode int, err error) bool {
+	if statusCode != http.StatusBadRequest || err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	for _, needle := range []string{
+		"no tool output found for tool call",
+		"no tool output found for function call",
+		"invalid 'input[",
+		"function_call_output",
+	} {
+		if strings.Contains(msg, needle) {
+			return true
+		}
+	}
+	return false
 }
 func isZenCandidateChannelAllowed(requestModel string, channelType outbound.OutboundType, isEmbeddingRequest bool) bool {
 	preferred := detectZenPreferredChannelTypes(requestModel, isEmbeddingRequest)
@@ -810,6 +837,15 @@ func (ra *relayAttempt) handleStreamResponse(ctx context.Context, response *http
 			case <-ctx.Done():
 				return
 			}
+			// OpenAI 兼容 SSE 的流结束标志：收到 [DONE] 即代表上游流已结束。
+			// 部分上游发完 [DONE] 后保持连接不关闭，若继续等 EOF 会一直阻塞，
+			// 最终由客户端正常断开触发 clientDone 被误判为失败（进而 key 冷却/
+			// 熔断，误伤健康渠道）。检查放在转发之后：[DONE] 先经主循环正常
+			// 转换并写给客户端，再主动结束读取（defer close(results) 让主循环
+			// 走正常结束路径）。
+			if strings.TrimSpace(ev.Data) == "[DONE]" {
+				return
+			}
 		}
 	}()
 
@@ -829,6 +865,13 @@ func (ra *relayAttempt) handleStreamResponse(ctx context.Context, response *http
 		select {
 		case <-clientDone:
 			if ra.streamSession == nil {
+				// 客户端断开。若已向客户端写出内容，视为正常完成——客户端已
+				// 拿到输出并主动关闭连接，不应记为失败，否则会触发 key 冷却/
+				// 熔断，误伤健康渠道。
+				if ra.c.Writer.Written() {
+					log.Infof("client disconnected after content written, treating as completed")
+					return nil
+				}
 				log.Infof("client disconnected, stopping stream")
 				return errClientDisconnected
 			}

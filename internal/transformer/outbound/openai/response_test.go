@@ -145,3 +145,84 @@ func TestConvertToResponsesRequest_PreservesValidReasoningEffort(t *testing.T) {
 		t.Fatalf("expected reasoning effort high, got %q", got.Reasoning.Effort)
 	}
 }
+
+// WO-043：转换器硬化。历史 function_call / function_call_output 标 status=completed，
+// 空 content 的 assistant 消息不再生成 output_text——两者都是严格 Responses 网关
+// "No tool output found for tool call" 400 的根因。
+
+func TestConvertAssistantMessageToResponses_MarksToolCallsCompletedAndSkipsEmptyContent(t *testing.T) {
+	empty := ""
+	msg := model.Message{
+		Role:    "assistant",
+		Content: model.MessageContent{Content: &empty},
+		ToolCalls: []model.ToolCall{
+			{
+				ID: "call_01_test",
+				Function: model.FunctionCall{
+					Name:      "terminal",
+					Arguments: `{"command":"ls"}`,
+				},
+			},
+		},
+	}
+
+	items := convertAssistantMessageToResponses(msg)
+	if len(items) != 1 {
+		t.Fatalf("expected only function_call item (no empty message), got %#v", items)
+	}
+	if items[0].Type != "function_call" {
+		t.Fatalf("type = %q, want function_call", items[0].Type)
+	}
+	if items[0].CallID != "call_01_test" {
+		t.Fatalf("call_id = %q", items[0].CallID)
+	}
+	if items[0].Status == nil || *items[0].Status != "completed" {
+		t.Fatalf("status = %#v, want completed", items[0].Status)
+	}
+}
+
+func TestConvertAssistantMessageToResponses_KeepsNonEmptyTextMessage(t *testing.T) {
+	msg := model.Message{
+		Role:    "assistant",
+		Content: model.MessageContent{Content: strPtr("done")},
+	}
+	items := convertAssistantMessageToResponses(msg)
+	if len(items) != 1 || items[0].Type != "message" {
+		t.Fatalf("expected one message item, got %#v", items)
+	}
+}
+
+func TestConvertAssistantMessageToResponses_TrimsWhitespaceOnlyContent(t *testing.T) {
+	msg := model.Message{
+		Role:    "assistant",
+		Content: model.MessageContent{Content: strPtr("   \n\t ")},
+		ToolCalls: []model.ToolCall{
+			{ID: "call_x", Function: model.FunctionCall{Name: "f", Arguments: "{}"}},
+		},
+	}
+	items := convertAssistantMessageToResponses(msg)
+	for _, it := range items {
+		if it.Type == "message" {
+			t.Fatalf("whitespace-only content must not produce a message item, got %#v", items)
+		}
+	}
+}
+
+func TestConvertToolMessageToResponses_MarksOutputCompleted(t *testing.T) {
+	toolCallID := "call_01_test"
+	msg := model.Message{
+		Role:       "tool",
+		ToolCallID: &toolCallID,
+		Content:    model.MessageContent{Content: strPtr(`{"ok":true}`)},
+	}
+	item := convertToolMessageToResponses(msg)
+	if item.Type != "function_call_output" {
+		t.Fatalf("type = %q", item.Type)
+	}
+	if item.Status == nil || *item.Status != "completed" {
+		t.Fatalf("status = %#v, want completed", item.Status)
+	}
+	if item.CallID != toolCallID {
+		t.Fatalf("call_id = %q", item.CallID)
+	}
+}

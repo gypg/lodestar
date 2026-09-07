@@ -64,6 +64,75 @@ func TestShouldTryAdapterFallback_StopConditions(t *testing.T) {
 	})
 }
 
+// TestShouldTryAdapterFallback_AllowsResponsesToolHistoryMismatch — WO-043。
+// Responses tool 历史转换后，严格 Responses 网关报 "No tool output found for tool call"
+// 的格式性 400：不是用户 prompt 写错，换下一个 adapter（Response→Chat）可能立刻恢复。
+// 错误串用 relay 真实格式（handleForwardResponse 的 upstream error: %d: %s）。
+func TestShouldTryAdapterFallback_AllowsResponsesToolHistoryMismatch(t *testing.T) {
+	result := attemptResult{
+		Success:  false,
+		Written:  false,
+		Decision: RetryDecision{Scope: ScopeNone, Reason: "bad request, client error", Code: 400, IsError: true},
+		Err:      errors.New(`channel foo adapter=response attempt 1/4: upstream error: 400: {"error":{"message":"No tool output found for tool call call_01_abc.","type":"invalid_request_error"}}`),
+	}
+
+	if !shouldTryAdapterFallback(result, 0, 2) {
+		t.Fatal("expected Responses tool-history 400 to allow adapter fallback to chat")
+	}
+	if shouldTryAdapterFallback(result, 1, 2) {
+		t.Fatal("expected last adapter attempt to stop even on format mismatch")
+	}
+}
+
+// TestShouldTryAdapterFallback_SkipsGenericInvalidRequest — WO-043。
+// 普通 400 invalid_request（如 context_length_exceeded、未知字段）必须保持终态，
+// 立刻把上游错误体回给下游，不允许因格式性回退被重试。
+func TestShouldTryAdapterFallback_SkipsGenericInvalidRequest(t *testing.T) {
+	tests := []struct {
+		name string
+		err  error
+	}{
+		{name: "context length exceeded", err: errors.New(`upstream error: 400: {"error":{"message":"输入内容过长","code":"context_length_exceeded"}}`)},
+		{name: "unknown field", err: errors.New(`upstream error: 400: {"error":{"message":"invalid_request_error: unknown field","type":"invalid_request_error"}}`)},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := attemptResult{
+				Success:  false,
+				Written:  false,
+				Decision: RetryDecision{Scope: ScopeNone, Reason: "bad request, client error", Code: 400, IsError: true},
+				Err:      tt.err,
+			}
+			if shouldTryAdapterFallback(result, 0, 2) {
+				t.Error("expected generic 400 invalid_request to stay terminal")
+			}
+		})
+	}
+}
+
+// TestIsOutboundAdapterFormatMismatch — WO-043。窄匹配判据本身：钉死 needle 集
+// 与「非 400 一律不匹配」，防止判据被加宽成任意 invalid_request 重试。
+func TestIsOutboundAdapterFormatMismatch(t *testing.T) {
+	if !isOutboundAdapterFormatMismatch(400, errors.New("No tool output found for function call abc")) {
+		t.Fatal("expected function_call wording to match")
+	}
+	if !isOutboundAdapterFormatMismatch(400, errors.New("Invalid 'input[3].call_id': empty")) {
+		t.Fatal("expected Invalid 'input[ to match")
+	}
+	if !isOutboundAdapterFormatMismatch(400, errors.New(`upstream error: 400: {"error":{"message":"function_call_output missing"}}`)) {
+		t.Fatal("expected function_call_output wording to match")
+	}
+	if isOutboundAdapterFormatMismatch(400, errors.New("context_length_exceeded")) {
+		t.Fatal("context length must not match format mismatch")
+	}
+	if isOutboundAdapterFormatMismatch(500, errors.New("No tool output found for tool call x")) {
+		t.Fatal("non-400 must not match")
+	}
+	if isOutboundAdapterFormatMismatch(400, nil) {
+		t.Fatal("nil error must not match")
+	}
+}
+
 // TestIsLLMRequestFormat_IncludesAnthropic — R-6。
 // Anthropic Messages 用的是同一套内部 Messages/Content 结构，对 OpenAI 类渠道
 // 完全可以做 chat↔responses 降级。漏判它会让 Claude Code 这类 Anthropic 客户端

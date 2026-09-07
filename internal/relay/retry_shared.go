@@ -2,6 +2,7 @@ package relay
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -266,8 +267,16 @@ func retryWithChannels(
 					return
 				}
 
+				// Client disconnected — stop all retries immediately without
+				// recording failure hints, circuit-breaker failures, or attempting
+				// further channels. The client chose to stop, not the channel.
+				// 必须先于熔断记录判断：client disconnected 的 Decision.Scope 为
+				// ScopeAbortAll，若照常执行 OnFailure 会把正常流结束误记为连续
+				// 失败，触发误熔断。OnFinalFailure 分支仍会如实记录 metrics。
+				clientDisconnected := errors.Is(fwdResult.Err, errClientDisconnected)
+
 				// Record failure stats
-				if fwdResult.Decision.Scope == ScopeNextChannel || fwdResult.Decision.Scope == ScopeAbortAll {
+				if !clientDisconnected && (fwdResult.Decision.Scope == ScopeNextChannel || fwdResult.Decision.Scope == ScopeAbortAll) {
 					cbs.OnFailure(channel, usedKey, resolvedModel)
 				}
 
@@ -278,7 +287,7 @@ func retryWithChannels(
 				// now and recorded only if the wait budget later runs out.
 				holdingRateLimit := shouldHoldOnRateLimit(rateLimitHoldCfg, fwdResult.Decision) &&
 					canContinueRateLimitHold(rateLimitHoldCfg, rateLimitHoldWaited)
-				if !holdingRateLimit {
+				if !holdingRateLimit && !clientDisconnected {
 					recordFailureHint(channel.ID, usedKey.ID, resolvedModel, fwdResult.Decision, fwdResult.Err, ratelimitCooldown)
 				}
 
