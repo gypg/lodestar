@@ -3102,6 +3102,7 @@
     "database": "資料庫操作失敗",
     "authenticationFailed": "認證失敗",
     "tooManyRequests": "請求過多",
+    "passwordTooWeak": "新密碼至少需要 12 個字符",
     "permissionDenied": "權限不足",
     "channelNotFound": "供應源不存在",
     "groupNotFound": "分組不存在",

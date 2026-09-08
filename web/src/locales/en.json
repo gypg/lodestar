@@ -3102,6 +3102,7 @@
     "database": "Database operation failed",
     "authenticationFailed": "Authentication failed",
     "tooManyRequests": "Too many requests",
+    "passwordTooWeak": "New password must be at least 12 characters",
     "permissionDenied": "Permission denied",
     "channelNotFound": "Channel not found",
     "groupNotFound": "Group not found",

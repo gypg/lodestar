@@ -3102,6 +3102,7 @@
     "database": "数据库操作失败",
     "authenticationFailed": "认证失败",
     "tooManyRequests": "请求过多",
+    "passwordTooWeak": "新密码至少需要 12 个字符",
     "permissionDenied": "权限不足",
     "channelNotFound": "渠道不存在",
     "groupNotFound": "分组不存在",

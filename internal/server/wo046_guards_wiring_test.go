@@ -198,6 +198,41 @@ func TestWO046ChangePasswordSucceeds(t *testing.T) {
 	}
 }
 
+// WO-047 走查 B-1：短新密码的拒绝形态必须是 400 + i18n key，不是 500「数据库失败」。
+// 强度闸本体（WO-045 顺手 7）只在 op 层接过，handler 没识别 ErrBootstrapCredentials →
+// 落 500。该 handler 的测试此前只有 op 层（TestChangePasswordEnforcesStrength）——
+// 又一例「测试守错了地方」。
+func TestWO047ChangePasswordWeakNewPasswordIs400(t *testing.T) {
+	engine, _, _ := initWO046Env(t)
+	u := dbmodel.User{Username: "wo047-weak-" + t.Name(), Password: "old-password-wo047", Role: dbmodel.UserRoleUser, Quota: 1}
+	if err := u.HashPassword(); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.GetDB().Create(&u).Error; err != nil {
+		t.Fatal(err)
+	}
+	token, _, err := serverauth.GenerateJWTToken(60, u.ID, u.Role)
+	if err != nil {
+		t.Fatal(err)
+	}
+	middleware.ClearLoginFailures("chpw:192.0.2.1")
+	t.Cleanup(func() { middleware.ClearLoginFailures("chpw:192.0.2.1") })
+	code, body := wo046Request(engine, http.MethodPost, "/api/v1/user/change-password", token,
+		`{"old_password":"old-password-wo047","new_password":"short12"}`)
+	if code != http.StatusBadRequest {
+		t.Fatalf("weak new password = %d %s, want 400 — a validation rejection must not surface as a 500 database failure", code, body)
+	}
+	if !strings.Contains(body, "passwordTooWeak") && !strings.Contains(body, "at least 12") {
+		t.Fatalf("400 body must carry the passwordTooWeak message key or the reason, got: %s", body)
+	}
+	// 对照：正确旧密码 + 合法新密码仍成功（上面分支不误伤）。
+	code2, body2 := wo046Request(engine, http.MethodPost, "/api/v1/user/change-password", token,
+		`{"old_password":"old-password-wo047","new_password":"new-password-012345"}`)
+	if code2 != http.StatusOK {
+		t.Fatalf("valid change after weak rejection = %d %s, want 200", code2, body2)
+	}
+}
+
 // ── 守卫 1：QuotaAdmit 调用点 + MaxCost 静态检查 ──
 // 走 /v1/models（APIKeyAuth 生产链）。两道闸必须分别打各自的独有行为，
 // 否则删掉任一道另一道都兜住（变异存活）：

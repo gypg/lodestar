@@ -86,7 +86,15 @@ export function SettingAccount() {
                     toast.success(t('account.password.success'));
                     setTimeout(() => logout(), LOGOUT_DELAY_MS);
                 },
-                onError: () => {
+                onError: (error) => {
+                    // WO-047 走查 B-1：400 = 新密码不合强度——后端已带
+                    // errors.passwordTooWeak，client 会按当前语言翻译，直接展示原因；
+                    // 其余（401 旧密码错等）保持统一失败文案，不透传英文原文。
+                    const apiCode = (error as { code?: number }).code;
+                    if (apiCode === 400 && error instanceof Error && error.message) {
+                        toast.error(error.message);
+                        return;
+                    }
                     toast.error(t('account.password.failed'));
                 },
             }

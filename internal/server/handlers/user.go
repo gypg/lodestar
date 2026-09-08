@@ -425,6 +425,13 @@ func changePassword(c *gin.Context) {
 			resp.Error(c, http.StatusUnauthorized, resp.ErrUnauthorized)
 			return
 		}
+		// WO-047 走查 B-1：强度闸（WO-045 顺手 7）的拒绝此前落到 500「数据库失败」
+		// ——闸生效但形态错误，误导用户并污染错误日志。与 changeUsername 的用户
+		// 错误映射同构：400 + i18n key（前端 resolveRuntimeI18nMessage 自动翻译）。
+		if errors.Is(err, usr.ErrBootstrapCredentials) {
+			resp.ErrorWithKey(c, http.StatusBadRequest, err.Error(), "errors.passwordTooWeak", nil)
+			return
+		}
 		resp.Error(c, http.StatusInternalServerError, resp.ErrDatabase)
 		return
 	}
