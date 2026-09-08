@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 )
@@ -16,7 +17,8 @@ func RecordKeyModelCooldown(keyID int, modelName string) {
 	if keyID == 0 || modelName == "" {
 		return
 	}
-	k := fmt.Sprintf("%d:%s", keyID, modelName)
+	// model 段小写归一化（octopus #238），与查询侧同函数天然一致。
+	k := fmt.Sprintf("%d:%s", keyID, strings.ToLower(modelName))
 	keyModelCooldown.Store(k, time.Now().Unix())
 }
 
@@ -25,7 +27,7 @@ func IsKeyModelOnCooldown(keyID int, modelName string, cooldownSec int) bool {
 	if keyID == 0 || modelName == "" || cooldownSec <= 0 {
 		return false
 	}
-	k := fmt.Sprintf("%d:%s", keyID, modelName)
+	k := fmt.Sprintf("%d:%s", keyID, strings.ToLower(modelName))
 	val, ok := keyModelCooldown.Load(k)
 	if !ok {
 		return false

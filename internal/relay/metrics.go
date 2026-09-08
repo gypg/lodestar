@@ -110,26 +110,40 @@ func (m *RelayMetrics) SetInternalResponse(resp *transformerModel.InternalLLMRes
 	}
 
 	usage := resp.Usage
-	m.Stats.InputToken = usage.PromptTokens
-	m.Stats.OutputToken = usage.CompletionTokens
-
-	modelPrice := price.GetLLMPrice(actualModel)
-	if modelPrice == nil {
-		return
+	// 上游负 usage 钳制（octopus #243）：恶意/被污染上游可返回负 token，
+	// 负 token × 正单价 = 负 cost，统计被"反向充值"——auth 中间件的
+	// MaxCost/MaxTokens 判据吃的就是这套统计，冲销后配额永不触顶。
+	// media 路径早有同款钳制（media_usage.go clampFields），这里是主 LLM
+	// 路径补齐。钳制只影响记账：回给客户端的 resp.Usage 保持原样。
+	if usage.PromptTokens < 0 || usage.CompletionTokens < 0 {
+		log.Warnf("upstream reported negative usage, clamped to zero: model=%s, api_key_id=%d, prompt=%d, completion=%d",
+			actualModel, m.APIKeyID, usage.PromptTokens, usage.CompletionTokens)
 	}
+	promptTokens := clampNonNegative(usage.PromptTokens)
+	completionTokens := clampNonNegative(usage.CompletionTokens)
 	if usage.PromptTokensDetails == nil {
 		usage.PromptTokensDetails = &transformerModel.PromptTokensDetails{
 			CachedTokens: 0,
 		}
 	}
-	if usage.AnthropicUsage {
-		m.Stats.InputCost = (float64(usage.PromptTokensDetails.CachedTokens)*modelPrice.CacheRead +
-			float64(usage.PromptTokens)*modelPrice.Input +
-			float64(usage.CacheCreationInputTokens)*modelPrice.CacheWrite) * 1e-6
-	} else {
-		m.Stats.InputCost = (float64(usage.PromptTokensDetails.CachedTokens)*modelPrice.CacheRead + float64(usage.PromptTokens-usage.PromptTokensDetails.CachedTokens)*modelPrice.Input) * 1e-6
+	cachedTokens := clampNonNegative(usage.PromptTokensDetails.CachedTokens)
+	cacheCreationTokens := clampNonNegative(usage.CacheCreationInputTokens)
+
+	m.Stats.InputToken = promptTokens
+	m.Stats.OutputToken = completionTokens
+
+	modelPrice := price.GetLLMPrice(actualModel)
+	if modelPrice == nil {
+		return
 	}
-	m.Stats.OutputCost = float64(usage.CompletionTokens) * modelPrice.Output * 1e-6
+	if usage.AnthropicUsage {
+		m.Stats.InputCost = (float64(cachedTokens)*modelPrice.CacheRead +
+			float64(promptTokens)*modelPrice.Input +
+			float64(cacheCreationTokens)*modelPrice.CacheWrite) * 1e-6
+	} else {
+		m.Stats.InputCost = (float64(cachedTokens)*modelPrice.CacheRead + float64(promptTokens-cachedTokens)*modelPrice.Input) * 1e-6
+	}
+	m.Stats.OutputCost = float64(completionTokens) * modelPrice.Output * 1e-6
 }
 
 // SetTPM records the effective per-minute token quota for this request.

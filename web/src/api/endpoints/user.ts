@@ -108,17 +108,19 @@ export const useAuthStore = create<AuthState>()(
             checkAuth: async () => {
                 const { token, expireAt, isAPIKeyAuth } = get();
 
-                if (!token) {
+                // octopus #240：JWT 不落 localStorage，刷新后内存 token 为
+                // null 但 HttpOnly cookie 仍在——照样探测 status 恢复会话；
+                // cookie 失效由 401 统一走 logout。API Key 模式没有 cookie，
+                // key 就是凭证，本地没有即未登录。
+                if (isAPIKeyAuth && !token) {
                     set({ isAuthenticated: false, isLoading: false });
                     return;
                 }
 
-                // API Key 不检查本地过期时间
-                if (!isAPIKeyAuth) {
-                    if (!expireAt || Date.now() >= new Date(expireAt).getTime()) {
-                        get().logout();
-                        return;
-                    }
+                // 内存 token（登录后的同一 JS 会话）可先本地判过期，省一次探测。
+                if (!isAPIKeyAuth && token && expireAt && Date.now() >= new Date(expireAt).getTime()) {
+                    get().logout();
+                    return;
                 }
 
                 try {
@@ -188,11 +190,15 @@ export const useAuthStore = create<AuthState>()(
         }),
         {
             name: 'auth-storage',
-            partialize: (state) => ({
-                token: state.token,
-                expireAt: state.expireAt,
-                isAPIKeyAuth: state.isAPIKeyAuth,
-            })
+            // octopus #240：JWT 不再落 localStorage（XSS 可读）——JWT 走
+            // HttpOnly cookie（服务端 extractToken cookie-first），刷新后由
+            // checkAuth 探测 /user/status 恢复会话。API Key 模式例外：key
+            // 本身就是用户自填的凭证，persist 它是那个模式的功能本身。
+            partialize: (state) => (
+                state.isAPIKeyAuth
+                    ? { isAPIKeyAuth: true as const, token: state.token }
+                    : { isAPIKeyAuth: false as const }
+            )
         }
     )
 );

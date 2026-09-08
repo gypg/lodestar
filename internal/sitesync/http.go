@@ -15,6 +15,11 @@ import (
 	"github.com/gypg/lodestar/internal/op"
 )
 
+// outboundBodyLimit caps any sitesync outbound response read (octopus #242):
+// unbounded io.ReadAll on an editor-configurable base_url turns a malicious or
+// compromised site into an OOM lever. 64MB covers even huge model catalogs.
+const outboundBodyLimit = 64 << 20
+
 func siteHTTPClient(ctx context.Context, siteRecord *model.Site, accounts ...*model.SiteAccount) (*http.Client, error) {
 	if siteRecord == nil {
 		return nil, fmt.Errorf("site is nil")
@@ -101,7 +106,8 @@ func requestJSONWithLoginHeaders(ctx context.Context, siteRecord *model.Site, me
 
 	newCookie := anyRouterMergeSetCookiePairs(cookieHeader, resp.Header.Values("Set-Cookie"))
 
-	bodyBytes, err := io.ReadAll(resp.Body)
+	// octopus #242：出站响应读取一律套上限，超大响应/gzip 炸弹防 OOM。
+	bodyBytes, err := io.ReadAll(io.LimitReader(resp.Body, outboundBodyLimit))
 	if err != nil {
 		return nil, newCookie, err
 	}
@@ -156,7 +162,7 @@ func requestJSON(ctx context.Context, siteRecord *model.Site, method string, req
 	}
 	defer resp.Body.Close()
 
-	bodyBytes, err := io.ReadAll(resp.Body)
+	bodyBytes, err := io.ReadAll(io.LimitReader(resp.Body, outboundBodyLimit))
 	if err != nil {
 		return nil, err
 	}

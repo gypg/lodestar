@@ -147,7 +147,7 @@ func TestLogin_2FAWithValidCodeIssuesToken(t *testing.T) {
 		t.Fatalf("expected a token with valid 2FA code; data=%v", data)
 	}
 
-	valid, _, role := auth.VerifyJWTToken(tok)
+	valid, _, role, _ := auth.VerifyJWTToken(tok)
 	if !valid {
 		t.Fatal("token issued after 2FA is invalid")
 	}

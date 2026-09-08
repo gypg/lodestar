@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/gypg/lodestar/internal/db"
 	"github.com/gypg/lodestar/internal/model"
@@ -87,11 +88,16 @@ func ResetPassword(addr, code, newPassword string, ctx context.Context) error {
 	if err := u.HashPassword(); err != nil {
 		return fmt.Errorf("failed to hash new password: %w", err)
 	}
-	if err := db.GetDB().WithContext(ctx).Model(&u).Update("password", u.Password).Error; err != nil {
+	// 与 ChangePassword 同款：改密即吊销改密前签发的 JWT（octopus #227）。
+	if err := db.GetDB().WithContext(ctx).Model(&u).Updates(map[string]any{
+		"password":            u.Password,
+		"password_changed_at": time.Now().Unix(),
+	}).Error; err != nil {
 		return fmt.Errorf("failed to update password: %w", err)
 	}
 	if adminCache.ID == u.ID {
 		adminCache.Password = u.Password
+		adminCache.PasswordChangedAt = time.Now().Unix()
 	}
 	return nil
 }

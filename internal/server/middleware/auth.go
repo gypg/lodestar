@@ -44,7 +44,7 @@ func Auth() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		valid, userID, role := auth.VerifyJWTToken(token)
+		valid, userID, role, claimsIssuedAt := auth.VerifyJWTToken(token)
 		if !valid {
 			// If the token came from a cookie, clear the stale cookie so the
 			// client falls back to the login flow cleanly.
@@ -68,6 +68,17 @@ func Auth() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
+		// 密码吊销（octopus #227）：改密/重置密码会打 User.PasswordChangedAt，
+		// 签发早于该时间戳的 JWT 一律作废——改密后旧 token（含 remember-me
+		// 的 90 天长票）不能再冒用账号。PasswordChangedAt=0（从未改密）恒通过。
+		// IssuedAt 为零的极端 token 同样拒（无法证明晚于改密）。
+		if currentUser.PasswordChangedAt > 0 {
+			if claimsIssuedAt == 0 || claimsIssuedAt < currentUser.PasswordChangedAt {
+				resp.Error(c, http.StatusUnauthorized, resp.ErrUnauthorized)
+				c.Abort()
+				return
+			}
+		}
 		role = currentUser.Role
 		if role == "" {
 			role = model.UserRoleViewer
@@ -85,15 +96,18 @@ func SetJWTCookie(c *gin.Context, token string, maxAge int) {
 	if token == "" {
 		maxAge = -1
 	}
+	// secure 跟随实际服务协议：直连 TLS 或可信代理转发的 X-Forwarded-Proto
+	// 为 https 时置位（octopus #240）；明文 HTTP 的本地/LAN 自用不受影响。
+	secure := c.Request.TLS != nil || c.GetHeader("X-Forwarded-Proto") == "https"
 	c.SetSameSite(http.SameSiteLaxMode)
 	c.SetCookie(
 		JWTCookieName,
 		token,
 		maxAge,
-		"/",   // path
-		"",    // domain (empty = current host)
-		false, // secure (set true when serving over HTTPS)
-		true,  // httpOnly
+		"/",    // path
+		"",     // domain (empty = current host)
+		secure, // secure (https only)
+		true,   // httpOnly
 	)
 }
 
@@ -152,11 +166,26 @@ func APIKeyAuth() gin.HandlerFunc {
 			return
 		}
 		statsAPIKey := stats.APIKeyGet(apiKeyObj.ID)
-		if apiKeyObj.MaxCost > 0 && apiKeyObj.MaxCost < statsAPIKey.StatsMetrics.OutputCost+statsAPIKey.StatsMetrics.InputCost {
+		// MaxCost 准入（octopus #234）：静态检查是 check-then-act——并发 N 个
+		// 请求会在首个请求结算前全部通过，配额被突破 N×单请求成本。改为
+		// in-flight 准入（与下方钱包准入同构）：headroom = MaxCost - 已结算，
+		// 已有 in-flight 时按 max_expected_request_cost 估算占额。旋钮未配置
+		// 时估算=全部余量，配额 key 并发退化为串行（安全默认）。
+		// 释放挂 defer，所有退出路径（含 panic/断开）都归还。MaxTokens 无
+		// 每请求估算旋钮，保持结算后检查（诚实记录于 WO-044 回执）。
+		usedCost := statsAPIKey.StatsMetrics.OutputCost + statsAPIKey.StatsMetrics.InputCost
+		if apiKeyObj.MaxCost > 0 && apiKeyObj.MaxCost <= usedCost {
 			resp.Error(c, http.StatusUnauthorized, "API key has reached the max cost")
 			c.Abort()
 			return
 		}
+		quotaRelease, quotaOK := billing.QuotaAdmit(apiKeyObj.ID, apiKeyObj.MaxCost, usedCost)
+		if !quotaOK {
+			resp.Error(c, http.StatusUnauthorized, "API key max cost budget is reserved by in-flight requests")
+			c.Abort()
+			return
+		}
+		defer quotaRelease()
 		// Token 用量上限：累计 Token = 输入 + 输出，超限则拒绝
 		if apiKeyObj.MaxTokens > 0 {
 			usedTokens := statsAPIKey.StatsMetrics.InputToken + statsAPIKey.StatsMetrics.OutputToken

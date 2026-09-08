@@ -411,6 +411,13 @@ func (s *Setting) Validate() error {
 			if parsedURL.Host == "" {
 				return fmt.Errorf("semantic cache embedding base URL must have a host")
 			}
+			// octopus #237：embedding 出站携带全量对话文本，目标是用户可控
+			// URL——与 WebDAV base_url 同一威胁模型（settings:write，editor
+			// 也持有），必须过同一道 SSRF 校验。只拦写边界：存量配置不受
+			// 影响（本验证器只在写入时触发），已配置内网地址的部署不被打断。
+			if err := xurl.AssertSafeURL(strings.TrimSuffix(strings.TrimSpace(s.Value), "/")); err != nil {
+				return fmt.Errorf("semantic cache embedding base URL is not allowed: %w", err)
+			}
 			return nil
 		}
 		if s.Key == SettingKeyAIRouteBaseURL {

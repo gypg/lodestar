@@ -66,19 +66,26 @@ func GenerateJWTToken(expiresMin int, userID uint, role string) (string, string,
 	return token, claims.ExpiresAt.Format(time.RFC3339), nil
 }
 
-// VerifyJWTToken validates the JWT and returns the user identity in claims.
-func VerifyJWTToken(token string) (bool, uint, string) {
+// VerifyJWTToken validates the JWT and returns the user identity in claims,
+// plus the token's IssuedAt as Unix seconds (0 when absent). The caller (auth
+// middleware) compares it against User.PasswordChangedAt to revoke tokens
+// issued before a password change (octopus #227).
+func VerifyJWTToken(token string) (bool, uint, string, int64) {
 	claims := &jwtClaims{}
 	jwtToken, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
 		return []byte(conf.AppConfig.Auth.JWTSecret), nil
 	}, jwt.WithValidMethods([]string{"HS256"}))
 	if err != nil || !jwtToken.Valid {
-		return false, 0, ""
+		return false, 0, "", 0
 	}
 	if claims.Role == "" || claims.UserID == 0 {
-		return false, 0, ""
+		return false, 0, "", 0
 	}
-	return true, claims.UserID, claims.Role
+	var issuedAt int64
+	if claims.IssuedAt != nil {
+		issuedAt = claims.IssuedAt.Unix()
+	}
+	return true, claims.UserID, claims.Role, issuedAt
 }
 
 func GenerateAPIKey() string {

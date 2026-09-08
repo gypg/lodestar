@@ -259,7 +259,7 @@ func doVerifyRequest(ctx context.Context, method, url, apiKey string, payload in
 	}
 	defer resp.Body.Close()
 
-	respBody, err := io.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20)) // octopus #242
 	if err != nil {
 		return "", fmt.Errorf("read response: %w", err)
 	}

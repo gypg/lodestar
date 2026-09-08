@@ -15,7 +15,7 @@ import (
 func init() {
 	router.NewGroupRouter("/api/v1/audit").
 		Use(middleware.Auth()).
-		Use(middleware.RequirePermission(auth.PermLogsRead)).
+		Use(middleware.RequirePermission(auth.PermAuditRead)).
 		AddRoute(
 			router.NewRoute("/list", http.MethodGet).
 				Handle(listAuditLogs),

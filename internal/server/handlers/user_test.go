@@ -102,7 +102,7 @@ func TestCreateUserThenLoginAsCreatedUser(t *testing.T) {
 		t.Fatal("created user login token is empty")
 	}
 
-	valid, userID, role := auth.VerifyJWTToken(tokenValue)
+	valid, userID, role, _ := auth.VerifyJWTToken(tokenValue)
 	if !valid {
 		t.Fatal("created user token is invalid")
 	}

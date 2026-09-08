@@ -34,8 +34,10 @@ type circuitEntry struct {
 var globalBreaker sync.Map // key: string -> value: *circuitEntry
 
 // circuitKey 生成熔断器键：channelID:channelKeyID:modelName
+// model 段统一小写（octopus #238）：zen/ 路由的模型段保留客户端原始大小写，
+// 键若不归一化，Zen/FOO 与 zen/foo 是两个熔断器，轮换大小写即可绕过熔断。
 func circuitKey(channelID, keyID int, modelName string) string {
-	return fmt.Sprintf("%d:%d:%s", channelID, keyID, modelName)
+	return fmt.Sprintf("%d:%d:%s", channelID, keyID, strings.ToLower(modelName))
 }
 
 // getOrCreateEntry 获取或创建熔断器条目

@@ -31,6 +31,12 @@ type User struct {
 	UsedQuota float64 `gorm:"type:double precision;default:0;column:used_quota" json:"used_quota"`
 	// Lodestar commercial: optional email (verified at registration when required).
 	Email string `gorm:"type:varchar(256)" json:"email,omitempty"`
+	// Unix time of the last password change; 0 = never changed. The auth
+	// middleware compares a JWT's IssuedAt against this to reject tokens
+	// issued before a password change (octopus #227: JWT had no revocation).
+	// Login-flow refresh reissues tokens after the change, so only sessions
+	// from before it die — an explicit logout on other devices is not needed.
+	PasswordChangedAt int64 `gorm:"default:0" json:"-"`
 }
 
 type UserLogin struct {

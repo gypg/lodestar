@@ -85,7 +85,7 @@ func isStaffRequest(c *gin.Context) bool {
 	if token == "" {
 		return false
 	}
-	valid, userID, role := auth.VerifyJWTToken(strings.TrimPrefix(token, "Bearer "))
+	valid, userID, role, _ := auth.VerifyJWTToken(strings.TrimPrefix(token, "Bearer "))
 	if !valid || userID == 0 {
 		return false
 	}

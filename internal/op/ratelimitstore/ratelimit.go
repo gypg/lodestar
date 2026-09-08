@@ -15,7 +15,9 @@ var (
 )
 
 func rateLimitKey(apiKeyID int, modelName string) string {
-	return fmt.Sprintf("%d:%s", apiKeyID, modelName)
+	// model 段小写归一化（octopus #238）：大小写变体共享同一个限流桶，
+	// 防止轮换大小写绕过 RPM/TPM 限额。
+	return fmt.Sprintf("%d:%s", apiKeyID, strings.ToLower(modelName))
 }
 
 // retryAfterSeconds converts a bucket's refill deadline into RFC 9110

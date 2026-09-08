@@ -27,6 +27,7 @@ export type Permission =
     | 'settings:write'
     | 'logs:read'
     | 'logs:write'
+    | 'audit:read'
     | 'stats:read'
     | 'users:read'
     | 'users:write'
@@ -42,6 +43,7 @@ export const ROLE_PERMISSIONS: Record<string, readonly Permission[]> = {
         'apikeys:read', 'apikeys:write',
         'settings:read', 'settings:write',
         'logs:read', 'logs:write',
+        'audit:read',
         'stats:read',
         'users:read', 'users:write',
         'sites:read', 'sites:write',
@@ -53,6 +55,7 @@ export const ROLE_PERMISSIONS: Record<string, readonly Permission[]> = {
         'apikeys:read', 'apikeys:write',
         'settings:read', 'settings:write',
         'logs:read', 'logs:write',
+        'audit:read',
         'stats:read',
         'sites:read', 'sites:write',
         'subscriptions:read', 'subscriptions:write',

@@ -129,8 +129,8 @@ func (c *WebDAVClient) List(remotePath string) ([]WebDAVFile, error) {
 		return nil, fmt.Errorf("服务器返回错误: %d %s", resp.StatusCode, resp.Status)
 	}
 
-	// 读取响应
-	respBody, err := io.ReadAll(resp.Body)
+	// 读取响应。PROPFIND 目录清单可能很长，16MB 封顶（octopus #242）。
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 16<<20))
 	if err != nil {
 		return nil, fmt.Errorf("读取响应失败: %w", err)
 	}
@@ -166,7 +166,7 @@ func (c *WebDAVClient) Upload(remotePath string, data []byte) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= 400 {
-		body, _ := io.ReadAll(resp.Body)
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 4<<20)) // octopus #242
 		return fmt.Errorf("服务器返回错误: %d %s - %s", resp.StatusCode, resp.Status, string(body))
 	}
 
@@ -199,7 +199,8 @@ func (c *WebDAVClient) Download(remotePath string) ([]byte, error) {
 		return nil, fmt.Errorf("服务器返回错误: %d %s", resp.StatusCode, resp.Status)
 	}
 
-	data, err := io.ReadAll(resp.Body)
+	// 备份本体下载：上限取宽（1GB）只防失控响应，不破正常恢复（octopus #242）。
+	data, err := io.ReadAll(io.LimitReader(resp.Body, 1<<30))
 	if err != nil {
 		return nil, fmt.Errorf("读取数据失败: %w", err)
 	}

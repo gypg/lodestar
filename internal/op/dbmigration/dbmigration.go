@@ -10,6 +10,8 @@ import (
 	"github.com/gypg/lodestar/internal/db"
 	"github.com/gypg/lodestar/internal/model"
 	"github.com/gypg/lodestar/internal/op/backup"
+
+	"time"
 )
 
 type SaveDatabaseConfigFunc func(dbType, path string) error
@@ -89,7 +91,24 @@ func validateSQLitePath(path string) error {
 	return nil
 }
 
+// testProbeDuration 是连通性测试的目标耗时（octopus #231）：connection refused
+// 立即返回而开放端口挂到 TCP 超时，响应时序差异构成内网端口扫描 oracle。失败路径
+// 统一睡满此时长再返回，扫端口与测真库的时间特征相同；成功更快是正向信号（测
+// 自己的库本来就该快），可接受。
+const testProbeDuration = 5 * time.Second
+
 func TestConnection(ctx context.Context, req model.DatabaseMigrationRequest) error {
+	start := time.Now()
+	defer func() {
+		// 无论成败，把响应时长垫到 testProbeDuration。
+		if elapsed := time.Since(start); elapsed < testProbeDuration {
+			select {
+			case <-time.After(testProbeDuration - elapsed):
+			case <-ctx.Done():
+			}
+		}
+	}()
+
 	req, err := ValidateRequest(req)
 	if err != nil {
 		return err
@@ -103,7 +122,10 @@ func TestConnection(ctx context.Context, req model.DatabaseMigrationRequest) err
 		return err
 	}
 	defer sqlDB.Close()
-	return sqlDB.PingContext(ctx)
+
+	pingCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	return sqlDB.PingContext(pingCtx)
 }
 
 func Migrate(ctx context.Context, req model.DatabaseMigrationRequest) (*model.DatabaseMigrationResult, error) {

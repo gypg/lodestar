@@ -221,12 +221,11 @@ func webauthnErrorMessage(err error) string {
 	case errors.Is(err, wa.ErrTooManySessions):
 		return "Too many pending Passkey logins, please retry shortly"
 	default:
+		// octopus #226：default 分支原样回显 err.Error()，而 user-not-found 与
+		// 凭据校验失败在这里是不同文案——未认证方可枚举用户 ID（userHandle 即
+		// 用户 ID 十进制串）。细节只进日志，对外统一泛化文案。
 		log.Warnf("webauthn error: %v", err)
-		msg := err.Error()
-		if msg == "" {
-			return "Passkey authentication failed"
-		}
-		return msg
+		return "Passkey authentication failed"
 	}
 }
 

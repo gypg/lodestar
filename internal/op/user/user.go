@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
+	"time"
 	"unicode/utf8"
 
 	"github.com/gypg/lodestar/internal/conf"
@@ -140,7 +142,17 @@ func deleteLegacyAdmin(targetUsername string) error {
 	return nil
 }
 
+// bootstrapMu serializes BootstrapCreate（octopus #225）。原实现是纯
+// check-then-create：count 全表判未初始化后 Create，两步之间无原子保护，
+// 并发请求（不同用户名）可双双通过检查并各自建出 admin——unique(username)
+// 只挡同名。Lodestar 文档化单实例部署，进程内互斥即完备（多实例下还剩
+// unique(username) 与"第二个 admin 需要不同用户名"的窗口，本单不扩）。
+var bootstrapMu sync.Mutex
+
 func BootstrapCreate(username, password string) error {
+	bootstrapMu.Lock()
+	defer bootstrapMu.Unlock()
+
 	if err := validateManagedCredentials(username, password); err != nil {
 		return err
 	}
@@ -236,11 +248,19 @@ func ChangePassword(userID uint, oldPassword, newPassword string) error {
 		return fmt.Errorf("failed to hash new password: %w", err)
 	}
 
-	if err := db.GetDB().Model(&user).Update("password", user.Password).Error; err != nil {
+	// PasswordChangedAt 让 auth 中间件拒掉改密前签发的 JWT（octopus #227：
+	// 旧 token 无吊销，remember-me 最长 90 天仍有效）。本会话的客户端会在
+	// 改密成功后重新登录/刷新 token，新 token 的 IssuedAt 晚于此时间戳。
+	if err := db.GetDB().Model(&user).Updates(map[string]any{
+		"password":            user.Password,
+		"password_changed_at": time.Now().Unix(),
+	}).Error; err != nil {
 		return fmt.Errorf("failed to update password: %w", err)
 	}
+	user.PasswordChangedAt = time.Now().Unix()
 	if adminCache.ID == user.ID {
 		adminCache.Password = user.Password
+		adminCache.PasswordChangedAt = user.PasswordChangedAt
 	}
 	return nil
 }

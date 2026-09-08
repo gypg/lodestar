@@ -252,6 +252,12 @@ func importDB(c *gin.Context) {
 }
 
 func testDatabaseConnection(c *gin.Context) {
+	// octopus #231：数据库迁移是基础设施级破坏性操作，editor 的 settings:write
+	// 不再够——仅 admin 可触达目标为任意 DSN 的连通性测试/迁移。
+	if c.GetString("user_role") != model.UserRoleAdmin {
+		resp.Error(c, http.StatusForbidden, "admin role required")
+		return
+	}
 	var req model.DatabaseMigrationRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		resp.Error(c, http.StatusBadRequest, resp.ErrInvalidJSON)
@@ -266,6 +272,11 @@ func testDatabaseConnection(c *gin.Context) {
 }
 
 func migrateDatabase(c *gin.Context) {
+	// 同 testDatabaseConnection：admin-only（octopus #231）。
+	if c.GetString("user_role") != model.UserRoleAdmin {
+		resp.Error(c, http.StatusForbidden, "admin role required")
+		return
+	}
 	var req model.DatabaseMigrationRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		resp.Error(c, http.StatusBadRequest, resp.ErrInvalidJSON)

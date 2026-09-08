@@ -81,6 +81,7 @@ func init() {
 		).
 		AddRoute(
 			router.NewRoute("/change-password", http.MethodPost).
+				Use(middleware.ChangePasswordRateLimit()).
 				Handle(changePassword),
 		).
 		AddRoute(
@@ -415,14 +416,19 @@ func changePassword(c *gin.Context) {
 		return
 	}
 	currentUserID := uint(c.GetInt("user_id"))
+	// old-password 爆破限流（octopus #227）：失败计数走 ChangePasswordRateLimit
+	// 的独立命名空间，与 /login 不互锁；成功清零。
+	chpwKey := c.GetString("login_rate_limit_key")
 	if err := usr.ChangePassword(currentUserID, user.OldPassword, user.NewPassword); err != nil {
 		if strings.Contains(err.Error(), "incorrect old password") {
+			middleware.RecordLoginFailure(chpwKey, time.Now())
 			resp.Error(c, http.StatusUnauthorized, resp.ErrUnauthorized)
 			return
 		}
 		resp.Error(c, http.StatusInternalServerError, resp.ErrDatabase)
 		return
 	}
+	middleware.ClearLoginFailures(chpwKey)
 	resp.Success(c, "password changed successfully")
 }
 

@@ -192,6 +192,30 @@ func LoginRateLimit() gin.HandlerFunc {
 	}
 }
 
+// ChangePasswordRateLimit returns a gin middleware enforcing per-IP limits on
+// the change-password endpoint (octopus #227: old-password brute force had no
+// throttle at all). It reuses the login limiter's storage/thresholds but under
+// a distinct key namespace — a change-password lockout must not also lock the
+// same IP out of /login (and vice versa).
+func ChangePasswordRateLimit() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		key := c.ClientIP()
+		if key == "" {
+			key = c.RemoteIP()
+		}
+		if key != "" {
+			key = "chpw:" + key
+		}
+		if isLoginBlocked(key, time.Now()) {
+			resp.Error(c, http.StatusTooManyRequests, resp.ErrTooManyRequests)
+			c.Abort()
+			return
+		}
+		c.Set("login_rate_limit_key", key)
+		c.Next()
+	}
+}
+
 // RecordLoginFailure increments the failed-login counter for the given key.
 func RecordLoginFailure(key string, now time.Time) {
 	if key == "" {
