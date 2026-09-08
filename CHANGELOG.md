@@ -29,6 +29,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🐛 Bug Fixes
 
 #### Critical (Production Impact)
+- **Per-model quota keys written in mixed case were silently ignored**
+  (`WO-046`, 2026-09-08): `per_model_quota_json` is a free-text field, and an
+  operator pasting the upstream's own spelling (`{"GPT-4":{"rpm":10}}`) had the
+  limit silently dropped — the lookup normalized the request side only, so the
+  config key never matched and requests fell back to the looser key-level rate.
+  The config map is now rebuilt with the same normalization on both sides.
+  Follow-up wiring tests also pin the four WO-044 guards that were implemented
+  but untested at the call site: the per-key MaxCost admission (both its static
+  and in-flight legs, each asserted by its own distinct rejection message so
+  deleting one gate cannot be masked by the other), the audit `audit:read`
+  permission gate, the change-password rate limit, and the admin-only database
+  migration endpoints — all verified by six mutations, all killed.
 - **Upstream could wash out quota limits with letter-case rotation, and
   negative usage could reverse-charge quota accounting** (`f1f5287` /
   `68148ef` / `54f3b3d`, 2026-09-08): three security batches ported from the

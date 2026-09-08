@@ -202,10 +202,18 @@ func resolveAPIRateLimit(modelName string, c *gin.Context) (rpm int, tpm int) {
 		return
 	}
 
-	// 两侧都归一化（octopus #238 收尾，WO-045 阻断 4）：WO-044 只小写了桶键，
-	// 查找还用客户端原串——先到的变体 miss 回落 key 级 RPM 建桶，per-model
-	// 限额被大小写轮换连累全 key 失效。
-	q, ok := quotas[normalizeModelKey(modelName)]
+	// 两侧都归一化（octopus #238 收尾，WO-045 阻断 4 + WO-046 配置侧）：
+	// WO-044 只小写了桶键，查找还用客户端原串——先到的变体 miss 回落 key 级
+	// RPM 建桶，per-model 限额被大小写轮换连累全 key 失效。配置侧（map key）
+	// 同样必须归一化：per_model_quota_json 是 UI 自由文本，运营者按上游文档
+	// 原样写 "GPT-4" 合法——只归一化请求侧时该配置被静默忽略（WO-045 复验
+	// 探针证实）。重建一次 map，撞键时后写覆盖（用户自己写大小写变体本来就
+	// 是同义重复）。
+	norm := make(map[string]perModelQuota, len(quotas))
+	for k, v := range quotas {
+		norm[normalizeModelKey(k)] = v
+	}
+	q, ok := norm[normalizeModelKey(modelName)]
 	if ok {
 		if q.RPM > 0 {
 			rpm = q.RPM
