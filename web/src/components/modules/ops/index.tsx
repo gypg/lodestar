@@ -10,12 +10,18 @@ import { Health } from './Health';
 import { System } from './System';
 import { Audit } from './Audit';
 import { PortalHealthStrip } from '@/components/modules/setting/PortalHealthStrip';
+import { useCurrentUser } from '@/api/endpoints/user';
+import { hasPermission } from '@/lib/permissions';
 
 type OpsTab = 'telemetry' | 'quota' | 'health' | 'system' | 'audit';
 
 export function Ops() {
     const t = useTranslations('ops');
     const [activeTab, setActiveTab] = useState<OpsTab>('telemetry');
+    // WO-045 顺手 6：Audit tab 只对持 audit:read 的角色渲染（admin/editor）。
+    // viewer 持 settings:read 进得了 ops，无条件渲染就是死入口（点进去 403）。
+    const { data: currentUser } = useCurrentUser();
+    const maySeeAudit = hasPermission(currentUser?.role, 'audit:read');
 
     return (
         <PageWrapper className="h-full min-h-0 overflow-y-auto overscroll-contain space-y-6 pb-3 md:pb-4 rounded-t-xl">
@@ -28,7 +34,7 @@ export function Ops() {
                             <TabsTrigger value="quota">{t('tabs.quota')}</TabsTrigger>
                             <TabsTrigger value="health">{t('tabs.health')}</TabsTrigger>
                             <TabsTrigger value="system">{t('tabs.system')}</TabsTrigger>
-                            <TabsTrigger value="audit">{t('tabs.audit')}</TabsTrigger>
+                            {maySeeAudit && <TabsTrigger value="audit">{t('tabs.audit')}</TabsTrigger>}
                         </TabsList>
                     </div>
                 </section>
@@ -46,9 +52,11 @@ export function Ops() {
                     <TabsContent value="system">
                         <System />
                     </TabsContent>
-                    <TabsContent value="audit">
-                        <Audit />
-                    </TabsContent>
+                    {maySeeAudit && (
+                        <TabsContent value="audit">
+                            <Audit />
+                        </TabsContent>
+                    )}
                 </TabsContents>
             </Tabs>
         </PageWrapper>

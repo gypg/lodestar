@@ -235,6 +235,11 @@ func Create(req model.UserCreateRequest, ctx context.Context) error {
 }
 
 func ChangePassword(userID uint, oldPassword, newPassword string) error {
+	// 强度闸（WO-045 顺手 7）：注释一直声称注册/改密/重置共用，实际这条没接
+	// ——空串都能被 bcrypt 收下。先校验再验旧密码，弱密码不烧登录尝试。
+	if err := validatePasswordStrength(newPassword); err != nil {
+		return err
+	}
 	user, err := GetByID(userID, context.Background())
 	if err != nil {
 		return fmt.Errorf("user not found: %w", err)

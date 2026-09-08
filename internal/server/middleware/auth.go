@@ -73,7 +73,9 @@ func Auth() gin.HandlerFunc {
 		// 的 90 天长票）不能再冒用账号。PasswordChangedAt=0（从未改密）恒通过。
 		// IssuedAt 为零的极端 token 同样拒（无法证明晚于改密）。
 		if currentUser.PasswordChangedAt > 0 {
-			if claimsIssuedAt == 0 || claimsIssuedAt < currentUser.PasswordChangedAt {
+			// <=（WO-045 顺手 5）：< 在 Unix 秒粒度下留一秒窗口——同秒签发的 token 在
+			// 改密后仍存活，而成功登录不限流，可被主动轮询命中。
+			if claimsIssuedAt == 0 || claimsIssuedAt <= currentUser.PasswordChangedAt {
 				resp.Error(c, http.StatusUnauthorized, resp.ErrUnauthorized)
 				c.Abort()
 				return

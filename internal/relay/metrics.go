@@ -141,7 +141,12 @@ func (m *RelayMetrics) SetInternalResponse(resp *transformerModel.InternalLLMRes
 			float64(promptTokens)*modelPrice.Input +
 			float64(cacheCreationTokens)*modelPrice.CacheWrite) * 1e-6
 	} else {
-		m.Stats.InputCost = (float64(cachedTokens)*modelPrice.CacheRead + float64(promptTokens-cachedTokens)*modelPrice.Input) * 1e-6
+		// uncached 段钳的是**减法结果**（对齐 media_usage.go 的 promptText 钳法）：
+		// cached 是 prompt 的子集，但被污染的上游可报 cached > prompt（两者各自
+		// ≥0，四路字段钳全部 no-op），裸减法出负、乘上 Input(>CacheRead) 整段为负
+		// ——CC 验收探针实测 gpt-4o 上 prompt=10/cached=100 → InputCost=-0.0001。
+		uncached := clampNonNegative(promptTokens - cachedTokens)
+		m.Stats.InputCost = (float64(cachedTokens)*modelPrice.CacheRead + float64(uncached)*modelPrice.Input) * 1e-6
 	}
 	m.Stats.OutputCost = float64(completionTokens) * modelPrice.Output * 1e-6
 }

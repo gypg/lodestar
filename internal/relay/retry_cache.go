@@ -149,7 +149,9 @@ func newFailureHintCache() *failureHintCache {
 var globalFailureHintCache = newFailureHintCache()
 
 func failureHintKey(channelID, keyID int, modelName string) string {
-	return fmt.Sprintf("%d:%d:%s", channelID, keyID, strings.TrimSpace(modelName))
+	// 与 statsKey/桶键同口径（WO-045 阻断 4）：大小写分裂的冷却提示会让
+	// 已 429 的 key 被换大小写再锤。
+	return fmt.Sprintf("%d:%d:%s", channelID, keyID, normalizeModelKey(modelName))
 }
 
 // shardIndex returns the shard index for a given key using FNV-1a hash.

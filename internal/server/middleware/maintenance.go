@@ -81,11 +81,15 @@ func MaintenanceGuard() gin.HandlerFunc {
 // (admin or editor). Anonymous or non-staff requests return false. Token
 // parse failures are treated as non-staff (fail closed under maintenance).
 func isStaffRequest(c *gin.Context) bool {
-	token := c.GetHeader("Authorization")
+	// 必须走 extractToken（cookie-first，与 Auth() 同一条）：WO-044 #240 把
+	// JWT 撤出 localStorage 后，管理员刷新页面内存 token 为 null、Authorization
+	// 头不再发，会话只剩 HttpOnly cookie。这里若只读头，维护模式下管理员连
+	// 关维护的写请求都会被 503（WO-045 阻断 3）。
+	token := extractToken(c)
 	if token == "" {
 		return false
 	}
-	valid, userID, role, _ := auth.VerifyJWTToken(strings.TrimPrefix(token, "Bearer "))
+	valid, userID, role, _ := auth.VerifyJWTToken(token)
 	if !valid || userID == 0 {
 		return false
 	}

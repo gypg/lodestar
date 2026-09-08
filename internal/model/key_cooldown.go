@@ -12,14 +12,19 @@ import (
 // is cooled down, not the key globally.
 var keyModelCooldown sync.Map // key: "keyID:model" -> value: int64 (unix timestamp of 429)
 
+// keyModelCooldownKey 生成冷却键：keyID:model。三处（Record/Is/Clear）必须走
+// 同一条构造——model 段小写归一化（octopus #238），漏一处就是 WO-045 阻断 2
+// 那种「Clear 是 no-op」的回归。
+func keyModelCooldownKey(keyID int, modelName string) string {
+	return fmt.Sprintf("%d:%s", keyID, strings.ToLower(modelName))
+}
+
 // RecordKeyModelCooldown records a 429 cooldown for a specific (keyID, model) pair.
 func RecordKeyModelCooldown(keyID int, modelName string) {
 	if keyID == 0 || modelName == "" {
 		return
 	}
-	// model 段小写归一化（octopus #238），与查询侧同函数天然一致。
-	k := fmt.Sprintf("%d:%s", keyID, strings.ToLower(modelName))
-	keyModelCooldown.Store(k, time.Now().Unix())
+	keyModelCooldown.Store(keyModelCooldownKey(keyID, modelName), time.Now().Unix())
 }
 
 // IsKeyModelOnCooldown checks if a specific (keyID, model) pair is still in cooldown.
@@ -27,7 +32,7 @@ func IsKeyModelOnCooldown(keyID int, modelName string, cooldownSec int) bool {
 	if keyID == 0 || modelName == "" || cooldownSec <= 0 {
 		return false
 	}
-	k := fmt.Sprintf("%d:%s", keyID, strings.ToLower(modelName))
+	k := keyModelCooldownKey(keyID, modelName)
 	val, ok := keyModelCooldown.Load(k)
 	if !ok {
 		return false
@@ -46,7 +51,7 @@ func ClearKeyModelCooldown(keyID int, modelName string) {
 	if keyID == 0 || modelName == "" {
 		return
 	}
-	keyModelCooldown.Delete(fmt.Sprintf("%d:%s", keyID, modelName))
+	keyModelCooldown.Delete(keyModelCooldownKey(keyID, modelName))
 }
 
 // CleanupKeyModelCooldown removes expired cooldown entries.

@@ -202,7 +202,11 @@ func resolveAPIRateLimit(modelName string, c *gin.Context) (rpm int, tpm int) {
 		return
 	}
 
-	if q, ok := quotas[modelName]; ok {
+	// 两侧都归一化（octopus #238 收尾，WO-045 阻断 4）：WO-044 只小写了桶键，
+	// 查找还用客户端原串——先到的变体 miss 回落 key 级 RPM 建桶，per-model
+	// 限额被大小写轮换连累全 key 失效。
+	q, ok := quotas[normalizeModelKey(modelName)]
+	if ok {
 		if q.RPM > 0 {
 			rpm = q.RPM
 		}
@@ -211,6 +215,13 @@ func resolveAPIRateLimit(modelName string, c *gin.Context) (rpm int, tpm int) {
 		}
 	}
 	return
+}
+
+// normalizeModelKey 归一化限流键的 model 段：TrimSpace + ToLower。桶键
+// （ratelimitstore.rateLimitKey）、per-model 配额查找、failureHintKey 必须
+// 走同一条——大小写/空白变体共享同一桶、命中同一条 per-model 限额与冷却提示。
+func normalizeModelKey(s string) string {
+	return strings.ToLower(strings.TrimSpace(s))
 }
 
 func resolveCandidateModelName(requestModel string, item dbmodel.GroupItem) string {

@@ -169,3 +169,24 @@ func TestResetPasswordNamespaceIsolation(t *testing.T) {
 		t.Fatal("a register-namespace code must NOT authorize a password reset")
 	}
 }
+
+// WO-045 顺手 7：ChangePassword 必须走与注册/重置同一条强度闸。此前注释声称
+// 共用但实现没接——空串都能被 bcrypt 收下。
+func TestChangePasswordEnforcesStrength(t *testing.T) {
+	realEmail, _ := setupPasswordResetTest(t)
+	// setupPasswordResetTest 建的用户密码是 "password123456"（13 字符）。
+	u := model.User{}
+	if err := db.GetDB().Where("email = ?", realEmail).First(&u).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	// 弱新密码（<12 字符）必须被拒。
+	if err := ChangePassword(u.ID, "password123456", "short12"); err == nil {
+		t.Fatal("weak new password accepted — ChangePassword must run validatePasswordStrength")
+	}
+
+	// 合法新密码照常成功。
+	if err := ChangePassword(u.ID, "password123456", "new-strong-password-wo045"); err != nil {
+		t.Fatalf("valid new password rejected: %v", err)
+	}
+}
