@@ -29,6 +29,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🐛 Bug Fixes
 
 #### Critical (Production Impact)
+- **Upstream could wash out quota limits with letter-case rotation, and
+  negative usage could reverse-charge quota accounting** (`f1f5287` /
+  `68148ef` / `54f3b3d`, 2026-09-08): three security batches ported from the
+  upstream octopus security audit, each acceptance-verified with call-site
+  mutations. (1) The relay no longer counts a client disconnect as channel
+  failure (healthy channels were being circuit-broken by normal stream ends),
+  stops hanging on upstreams that send `[DONE]` without closing the stream,
+  and lets format-specific Responses 400s fall back to the Chat adapter.
+  (2) Negative upstream usage is clamped at every leg including the derived
+  `prompt-cached` subtraction — a `cached > prompt` report used to produce a
+  negative cost, which reverse-charged the MaxCost gate and made the request
+  free; per-key MaxCost admission now reserves in-flight slots so concurrent
+  requests cannot all pass before the first settles; change-password gained a
+  rate limit and JWT revocation (tokens issued before a password change are
+  rejected); the audit log moved behind a dedicated `audit:read` permission
+  (admin/editor); breaker, 429-cooldown and rate-limit keys are now
+  case-insensitive on both the bucket and the per-model quota lookup; page
+  numbers are capped; admin-plane outbound reads are size-limited; the
+  semantic-cache embedding base URL is validated at the write boundary; the
+  database migration test endpoints are admin-only. (3) The JWT left
+  localStorage for an HttpOnly cookie, and the maintenance guard now reads
+  the same cookie-first token source so an admin who reloads mid-maintenance
+  can still turn maintenance off.
 - **The AI route source toggle could not be written at all** (`7cbec8b` /
   `cfcb8db` / `e93a3f4`, 2026-09-05): picking a local analysis model showed no
   save button, never cleared the "needs configuring" banner, and claimed the
