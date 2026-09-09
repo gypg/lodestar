@@ -29,6 +29,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🐛 Bug Fixes
 
 #### Critical (Production Impact)
+- **Rejecting a weak new password reported a database failure** (`7d03632`,
+  2026-09-08): the change-password strength gate refused passwords shorter
+  than 12 characters, but the handler recognized only a wrong old password
+  and funneled every other error into the 500 database-failure branch — so a
+  plain validation rejection reached the client as "Database operation
+  failed" and was recorded as a server fault in the error log. The handler
+  now maps the validation error to 400 with a translated reason, mirroring
+  how the change-username endpoint already reports its user errors, and the
+  account page surfaces that reason instead of a generic failure toast.
+  Caught by a production walkthrough; the operator-visible behaviour is
+  unchanged for every other failure mode.
 - **Per-model quota keys written in mixed case were silently ignored**
   (`WO-046`, 2026-09-08): `per_model_quota_json` is a free-text field, and an
   operator pasting the upstream's own spelling (`{"GPT-4":{"rpm":10}}`) had the

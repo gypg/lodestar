@@ -182,3 +182,56 @@ is standard for email notification configs. No benefit from normalization.
    `api_keys.supported_models` and `api_keys.excluded_channels` in the same
    migration batch since they share the same junction table pattern and many
    of the same code paths.
+
+---
+
+## N-37: Global Middleware Mounting Is Not Test-Guarded
+
+**Assessed:** 2026-09-08 · **Priority:** P3 (structural, no current defect)
+
+### Summary
+
+Removing a global middleware registration from `server.Start()` — for example
+`r.Use(middleware.MaintenanceGuard())` — does not turn any test red. The whole
+suite still passes. This was found by deliberately mutating that line during
+an acceptance review: every guard's *behaviour* is covered, but the fact that
+the guard is *mounted at all* is not.
+
+### Why the gap exists
+
+Two properties combine:
+
+1. `getProductionEngine` (test helper) only runs `router.RegisterAll`, which
+   registers route groups. The global middleware chain lives in
+   `server.Start()` and is not part of that helper.
+2. `RegisterAll` ends with `registeredRouters = nil` — it is single-use, so a
+   test cannot build the full production route table a second time.
+
+So middleware tests necessarily assemble a minimal engine themselves
+(`gin.New()` + the middleware under test), which verifies behaviour but can
+never observe whether production actually mounts it.
+
+### Impact
+
+A refactor that accidentally drops a global middleware — maintenance gating,
+security headers, CORS, audit logging of management writes — ships green. The
+blast radius depends on which one: losing `MaintenanceGuard` means maintenance
+mode stops gating writes; losing `AuditManagementWrite` means management
+mutations stop being recorded.
+
+### Possible fixes (none implemented)
+
+- Extract the global chain into a named, testable builder
+  (`buildGlobalMiddleware() []gin.HandlerFunc`) and assert its contents by
+  identity in a unit test. Cheapest option; asserts the list, not the wiring.
+- Make `RegisterAll` idempotent (or add a reset for tests) so a test can build
+  the real engine end to end. Larger change, touches route registration.
+- A source-level assertion over `server.go` (the pattern already used by
+  `permissions.test.ts` and `overview-range-scope.test.ts` on the frontend).
+  Brittle but cheap and honest about what it checks.
+
+### Why it is P3 and not higher
+
+No current defect: all global middleware is mounted correctly today, and the
+mounting lines are short, adjacent, and rarely touched. This is a *detection*
+gap, not a live fault.
