@@ -2864,6 +2864,8 @@
         "saving": "Saving...",
         "delete": "Delete",
         "confirmDelete": "Confirm Delete",
+        "deleteChannelTitle": "Delete channel",
+        "deleteChannelDescription": "This permanently deletes the channel \"{name}\" along with its keys, group routes and stats. This cannot be undone.",
         "deleting": "Deleting...",
         "checkKeys": "Check All Keys",
         "checking": "Checking...",

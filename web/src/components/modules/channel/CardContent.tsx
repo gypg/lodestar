@@ -62,7 +62,12 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
     const checkChannelKeys = useCheckChannelKeys();
     const { data: settings } = useSettingList();
     const [isEditing, setIsEditing] = useState(false);
-    const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+    // WO-049：渠道删除的确认从"同位置二次点击"（isConfirmingDelete）改为
+    // 独立 AlertDialog。原实现点击删除后按钮原位变成"确认删除"，自动化/快速
+    // 连点会把它当成同一个按钮再次按下 → 直接硬删（2026-09-09 WO-048 视觉
+    // 验证时误删了生产唯一渠道）。渠道删除会级联 keys / group_items / stats，
+    // 是不可再生资源，值得一道真正的模态确认 + 渠道名回显。
+    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
     // 检查全部 Key 后的结果；当 passed === false 表示全部 Key 都不可用，
     // 此时弹出确认对话框允许直接删除该渠道。
     const [checkResult, setCheckResult] = useState<TestChannelSummary | null>(null);
@@ -213,15 +218,7 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
     };
 
     const handleDeleteClick = () => {
-        if (!isConfirmingDelete) {
-            setIsConfirmingDelete(true);
-            return;
-        }
-
-        setIsOpen(false);
-        setTimeout(() => {
-            deleteChannel.mutate(channel.id);
-        }, 300);
+        setDeleteConfirmOpen(true);
     };
 
     const handleCheckKeys = async () => {
@@ -569,11 +566,11 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
 
                                 <div className="grid gap-3 sm:grid-cols-2">
                                 <Button
-                                    onClick={() => (isConfirmingDelete ? setIsConfirmingDelete(false) : setIsEditing(true))}
-                                    variant={isConfirmingDelete ? 'secondary' : 'default'}
+                                    onClick={() => setIsEditing(true)}
+                                    variant="default"
                                     className="h-12 w-full rounded-lg"
                                 >
-                                    {isConfirmingDelete ? t('actions.cancel') : t('actions.edit')}
+                                    {t('actions.edit')}
                                 </Button>
                                 <Button
                                     onClick={handleDeleteClick}
@@ -581,12 +578,8 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
                                     variant="destructive"
                                     className="h-12 w-full rounded-lg"
                                 >
-                                    <Trash2 className={`size-4 transition-transform ${isConfirmingDelete ? 'scale-110' : ''}`} />
-                                    {deleteChannel.isPending
-                                        ? t('actions.deleting')
-                                        : isConfirmingDelete
-                                            ? t('actions.confirmDelete')
-                                            : t('actions.delete')}
+                                    <Trash2 className="size-4" />
+                                    {deleteChannel.isPending ? t('actions.deleting') : t('actions.delete')}
                                 </Button>
                                 </div>
                             </div>
@@ -629,6 +622,38 @@ export function CardContent({ channel, stats }: { channel: Channel; stats: Stats
                             }}
                         >
                             {deleteChannel.isPending ? t('actions.deleting') : t('actions.deleteUnavailable')}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* WO-049：渠道删除的模态确认。渠道名回显让操作者看清要删的是哪一个；
+                "删除"→"确认删除"两步都在独立弹窗里，不会因为按钮原位变脸而被
+                连点直删。 */}
+            <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+                <AlertDialogContent className="rounded-xl">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{t('actions.deleteChannelTitle')}</AlertDialogTitle>
+                        <AlertDialogDescription className="whitespace-pre-line">
+                            {t('actions.deleteChannelDescription', { name: channel.name })}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={deleteChannel.isPending}>
+                            {t('actions.cancel')}
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            disabled={deleteChannel.isPending}
+                            onClick={(event) => {
+                                event.preventDefault();
+                                setDeleteConfirmOpen(false);
+                                setIsOpen(false);
+                                setTimeout(() => {
+                                    deleteChannel.mutate(channel.id);
+                                }, 300);
+                            }}
+                        >
+                            {deleteChannel.isPending ? t('actions.deleting') : t('actions.confirmDelete')}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
