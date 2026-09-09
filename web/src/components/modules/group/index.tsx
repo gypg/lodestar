@@ -134,6 +134,10 @@ export function Group() {
                     getItemKey={(group, index) => group.id ?? `group-${index}`}
                     renderItem={(group) => <GroupListItem group={group} />}
                     bottomPaddingClassName="pb-3 md:pb-4"
+                    // 本页展开分组后有成员模型的拖拽排序（ItemList 的 Droppable/Draggable
+                    // 就在虚拟行内）。transform 定位会劫持拖拽元素的 fixed 参照系导致
+                    // 不跟手，所以这里必须用 inset（octopus PR #252）。
+                    rowPositioning="inset"
                 />
             </section>
         </div>

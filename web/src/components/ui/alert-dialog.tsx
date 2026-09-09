@@ -8,6 +8,7 @@ import { buttonVariants } from "@/components/ui/button"
 import {
   DIALOG_CONTENT_CLASS,
   DIALOG_OVERLAY_CLASS,
+  DIALOG_POSITIONER_CLASS,
 } from "@/components/ui/dialog"
 
 function AlertDialog({
@@ -55,14 +56,19 @@ function AlertDialogContent({
   return (
     <AlertDialogPortal>
       <AlertDialogOverlay />
-      <AlertDialogPrimitive.Content
-        data-slot="alert-dialog-content"
-        className={cn(
-          DIALOG_CONTENT_CLASS,
-          className
-        )}
-        {...props}
-      />
+      {/* 与 Dialog 同构：居中放在 positioner 层，Content 自身不带 transform
+          （octopus PR #252）。DIALOG_CONTENT_CLASS 已不再自带定位，缺了这层
+          wrapper 弹窗会变成不居中的静态块。 */}
+      <div className={DIALOG_POSITIONER_CLASS}>
+        <AlertDialogPrimitive.Content
+          data-slot="alert-dialog-content"
+          className={cn(
+            DIALOG_CONTENT_CLASS,
+            className
+          )}
+          {...props}
+        />
+      </div>
     </AlertDialogPortal>
   )
 }

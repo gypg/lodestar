@@ -37,6 +37,18 @@ interface VirtualizedGridProps<T> {
     reachEndEnabled?: boolean;
     reachEndOffset?: number;
     bottomPaddingClassName?: string;
+    /**
+     * 虚拟行的定位方式（octopus PR #252）。
+     *
+     * 默认 `'transform'`：用 `translateY` 定位，性能最好（合成层，不触发重排）。
+     * 但 transform 会创建 containing block，把后代 `position: fixed` 的参照系从视口
+     * 劫持到该行 —— `@hello-pangea/dnd` 拖起元素时正是用 fixed + 视口坐标定位的，
+     * 于是拖动不跟手，且越靠列表下方（translateY 越大）偏差越大。
+     *
+     * 页面内有 DnD 拖拽排序时必须传 `'inset'`：改用 `top` 定位，不创建 containing
+     * block。代价是每行位置变化会触发重排，所以**只在需要 dnd 的页面开启**。
+     */
+    rowPositioning?: 'transform' | 'inset';
 }
 
 function getColumnsForWidth(
@@ -66,6 +78,9 @@ export function VirtualizedGrid<T>({
     reachEndEnabled = false,
     reachEndOffset = 1,
     bottomPaddingClassName = 'pb-3 md:pb-4',
+    // 默认保持 transform：本组件有 6 个消费方，只有分组页需要 dnd，
+    // 其余页面不该为此丢掉合成层定位的性能。
+    rowPositioning = 'transform',
 }: VirtualizedGridProps<T>) {
     'use no memo';
 
@@ -169,9 +184,13 @@ export function VirtualizedGrid<T>({
                                         data-index={virtualRow.index}
                                         ref={rowVirtualizer.measureElement}
                                         className="absolute left-0 top-0 w-full"
-                                        style={{
-                                            transform: `translateY(${virtualRow.start}px)`,
-                                        }}
+                                        style={
+                                            // transform 会创建 containing block 并劫持后代
+                                            // position:fixed（dnd 拖拽元素）的参照系，见 rowPositioning。
+                                            rowPositioning === 'inset'
+                                                ? { top: `${virtualRow.start}px` }
+                                                : { transform: `translateY(${virtualRow.start}px)` }
+                                        }
                                     >
                                         {footer}
                                     </div>
@@ -189,9 +208,13 @@ export function VirtualizedGrid<T>({
                                     data-index={virtualRow.index}
                                     ref={rowVirtualizer.measureElement}
                                     className="absolute left-0 top-0 w-full"
-                                    style={{
-                                        transform: `translateY(${virtualRow.start}px)`,
-                                    }}
+                                    style={
+                                        // 同上：dnd 页面必须走 inset，否则拖拽元素的 fixed
+                                        // 参照系被本行劫持，越靠下偏差越大。
+                                        rowPositioning === 'inset'
+                                            ? { top: `${virtualRow.start}px` }
+                                            : { transform: `translateY(${virtualRow.start}px)` }
+                                    }
                                 >
                                     <div
                                         className="grid"

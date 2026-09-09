@@ -186,7 +186,9 @@ export function SettingOrder() {
                                                 ref={draggableProvided.innerRef}
                                                 {...draggableProvided.draggableProps}
                                                 className={cn(
-                                                    'flex items-center gap-3 rounded-lg border-border/30 bg-card px-3 py-3 shadow-sm transition-[transform,border-color,box-shadow]',
+                                                    // 同 Appearance：transform 不进过渡，否则 dnd 每帧的位置更新
+                                                    // 被过渡追赶导致拖拽滞后（octopus PR #252）。
+                                                    'flex items-center gap-3 rounded-lg border-border/30 bg-card px-3 py-3 shadow-sm transition-[border-color,box-shadow]',
                                                     snapshot.isDragging && 'border-primary/40 shadow-md'
                                                 )}
                                                 style={draggableProvided.draggableProps.style}

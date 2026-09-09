@@ -9,8 +9,20 @@ import { cn } from "@/lib/utils"
 const DIALOG_OVERLAY_CLASS =
   "fixed inset-0 z-50 bg-black/20 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
 
+// 居中 wrapper（octopus PR #252）：定位与居中都放在这一层，它自身**不带**
+// transform/translate。原先居中靠 Content 自己的 `translate-x/y-[-50%]`，
+// 而 transform 会创建 containing block，把后代 position:fixed 的参照系从视口
+// 劫持到弹窗 —— dnd 拖起元素时正是用 fixed 定位，于是选项飞出弹窗被 overflow
+// 裁掉（表现为"长按后选项消失"）。
+//
+// ★ 本常量与 DIALOG_CONTENT_CLASS 必须成对使用：Content 已不再自带定位，
+// 单独用 DIALOG_CONTENT_CLASS 会得到一个不居中的静态块。
+// alert-dialog.tsx 复用这两个常量，改动要同步。
+const DIALOG_POSITIONER_CLASS =
+  "fixed inset-0 z-50 grid place-items-center overflow-y-auto p-4"
+
 const DIALOG_CONTENT_CLASS =
-  "fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-1rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-xl border border-border bg-card p-6 shadow-md duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:max-w-lg"
+  "relative grid w-full max-w-[calc(100%-1rem)] gap-4 rounded-xl border border-border bg-card p-6 shadow-md duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:max-w-lg"
 
 function Dialog({
   ...props
@@ -63,25 +75,27 @@ function DialogContent({
   return (
     <DialogPortal data-slot="dialog-portal">
       <DialogOverlay />
-      <DialogPrimitive.Content
-        data-slot="dialog-content"
-        className={cn(
-          DIALOG_CONTENT_CLASS,
-          className
-        )}
-        {...props}
-      >
-        {children}
-        {showCloseButton && (
-          <DialogPrimitive.Close
-            data-slot="dialog-close"
-            className="ring-offset-background absolute top-4 right-4 rounded-md border border-border bg-card p-2 sm:p-1.5 opacity-80 transition-all duration-150 hover:opacity-100 hover:bg-muted focus:ring-2 focus:ring-offset-2 focus:outline-hidden focus:ring-ring data-[state=open]:bg-accent/15 data-[state=open]:text-muted-foreground disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
-          >
-            <XIcon />
-            <span className="sr-only">Close</span>
-          </DialogPrimitive.Close>
-        )}
-      </DialogPrimitive.Content>
+      <div className={DIALOG_POSITIONER_CLASS}>
+        <DialogPrimitive.Content
+          data-slot="dialog-content"
+          className={cn(
+            DIALOG_CONTENT_CLASS,
+            className
+          )}
+          {...props}
+        >
+          {children}
+          {showCloseButton && (
+            <DialogPrimitive.Close
+              data-slot="dialog-close"
+              className="ring-offset-background absolute top-4 right-4 rounded-md border border-border bg-card p-2 sm:p-1.5 opacity-80 transition-all duration-150 hover:opacity-100 hover:bg-muted focus:ring-2 focus:ring-offset-2 focus:outline-hidden focus:ring-ring data-[state=open]:bg-accent/15 data-[state=open]:text-muted-foreground disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
+            >
+              <XIcon />
+              <span className="sr-only">Close</span>
+            </DialogPrimitive.Close>
+          )}
+        </DialogPrimitive.Content>
+      </div>
     </DialogPortal>
   )
 }
@@ -148,4 +162,5 @@ export {
   DialogTrigger,
   DIALOG_CONTENT_CLASS,
   DIALOG_OVERLAY_CLASS,
+  DIALOG_POSITIONER_CLASS,
 }

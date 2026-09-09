@@ -189,7 +189,10 @@ function NavigationPreferences() {
                                                     ref={draggableProvided.innerRef}
                                                     {...draggableProvided.draggableProps}
                                                     className={cn(
-                                                        'flex items-center justify-between gap-3 rounded-lg border-border/30 bg-card px-3 py-3 shadow-sm transition-[transform,border-color,box-shadow]',
+                                                        // transform 不进过渡（octopus PR #252）：dnd 每帧用 transform
+                                                        // 更新拖拽位置，若它带过渡就会被动画追赶 → 持续滞后、不跟手。
+                                                        // border/shadow 的高亮过渡保留（那是拖起时的视觉反馈）。
+                                                        'flex items-center justify-between gap-3 rounded-lg border-border/30 bg-card px-3 py-3 shadow-sm transition-[border-color,box-shadow]',
                                                         snapshot.isDragging && 'border-primary/40 shadow-md'
                                                     )}
                                                     style={draggableProvided.draggableProps.style as React.CSSProperties}
