@@ -29,6 +29,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🐛 Bug Fixes
 
 #### Critical (Production Impact)
+- **Dragging items in several lists lagged or vanished, and channel deletion
+  deleted without a real confirmation** (`30db7ad` / `159912b`, 2026-09-09):
+  the drag-and-drop library lifts an item with `position: fixed` and viewport
+  coordinates, but three of our ancestors carried a transform that created a
+  containing block — the virtualized grid positioned rows with `translateY`
+  (the group page's member list lives inside those rows), the sortable rows in
+  Appearance and SettingOrder had `transform` in their own transition, and the
+  dialog centred itself with translate. All three diverted the dragged item's
+  frame, so it drifted the further down the list it sat and flew out of its
+  dialog. The grid now takes a positioning mode (the group page opts into top
+  positioning; every other consumer keeps the composited default), the
+  sortable rows drop the transform transition, and dialog centring moved to a
+  transform-free wrapper — including the shared class dialog and alert-dialog
+  both consume. Separately, the channel delete flipped to a modal confirmation
+  that echoes the channel name: the previous same-position double-click guard
+  let an automation delete the only production channel (recovered from the
+  site projection), and an irreplaceable cascade delete deserves more than a
+  button that quietly relabels itself.
 - **Rejecting a weak new password reported a database failure** (`7d03632`,
   2026-09-08): the change-password strength gate refused passwords shorter
   than 12 characters, but the handler recognized only a wrong old password
