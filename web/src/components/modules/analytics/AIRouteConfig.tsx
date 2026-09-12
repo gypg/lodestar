@@ -68,7 +68,7 @@ export function AIRouteConfig({ compact }: { compact?: boolean }) {
     // can only end in the "no channel found" dead end. Falls back to the full
     // registry when the channel mapping has not loaded.
     const localModelOptions = useMemo(() => {
-        const served = (modelChannels ?? []).filter((item) => item.enabled);
+        const served = modelChannels ?? [];
         if (served.length === 0) return modelsByProvider;
         const buckets: Record<string, string[]> = {};
         for (const item of served) {
