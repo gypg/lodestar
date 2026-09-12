@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { RotateCcw, Sparkles, Waves } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useAutoGroupModels } from '@/api/endpoints/group';
@@ -35,42 +35,37 @@ export function AutoGroupButton({ variant = 'ghost', className, forceMode = fals
     const icon = isForce ? <RotateCcw className="size-4" /> : <Sparkles className="size-4" />;
     const label = isForce ? t('actions.forceRegroup') : t('actions.autoGroup');
 
-    const summary = useMemo(() => {
-        const result = autoGroup.data;
-        if (!result) return '';
-        const parts = [t('toast.autoGroupSuccess', {
-            created: result.created_groups,
-            skipped: result.skipped_existing_groups,
-        })];
-        if (result.deleted_groups > 0) {
-            parts.push(t('toast.autoGroupDeleted', { deleted: result.deleted_groups }));
-        }
-        return parts.join(' ');
-    }, [autoGroup.data, t]);
-
-    const details = useMemo(() => {
-        const result = autoGroup.data;
-        if (!result) return '';
-        return t('toast.autoGroupSuccessDescription', {
-            models: result.total_models_seen,
-            candidates: result.total_candidates,
-            created: result.created_groups,
-            skippedExisting: result.skipped_existing_groups,
-            skippedCovered: result.skipped_covered_models,
-        });
-    }, [autoGroup.data, t]);
-
     const handleConfirm = useCallback(() => {
         autoGroup.mutate(isForce || undefined, {
-            onSuccess: () => {
+            onSuccess: (result) => {
                 setOpen(false);
+
+                // Build summary message from the result
+                const parts = [t('toast.autoGroupSuccess', {
+                    created: result.created_groups,
+                    skipped: result.skipped_existing_groups,
+                })];
+                if (result.deleted_groups > 0) {
+                    parts.push(t('toast.autoGroupDeleted', { deleted: result.deleted_groups }));
+                }
+                const summary = parts.join(' ');
+
+                // Build details message from the result
+                const details = t('toast.autoGroupSuccessDescription', {
+                    models: result.total_models_seen,
+                    candidates: result.total_candidates,
+                    created: result.created_groups,
+                    skippedExisting: result.skipped_existing_groups,
+                    skippedCovered: result.skipped_covered_models,
+                });
+
                 toast.success(summary, { description: details });
             },
             onError: (error) => {
                 toast.error(t('toast.autoGroupFailed'), { description: error.message });
             },
         });
-    }, [autoGroup, isForce, summary, details, t]);
+    }, [autoGroup, isForce, t]);
 
     return (
         <AlertDialog open={open} onOpenChange={setOpen}>
