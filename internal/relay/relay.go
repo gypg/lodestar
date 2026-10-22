@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -241,6 +240,24 @@ func resolveCandidateModelName(requestModel string, item dbmodel.GroupItem) stri
 	return item.ModelName
 }
 
+// apiKeyAllowsModel 报告 API Key 的模型白名单是否放行 requestModel
+// （WO-052，对齐上游 84fb2d9a）。
+//
+// 白名单语义与 LLM 路径的历史行为完全一致：空串=不限；逗号分隔、逐项 trim、
+// 精确匹配（大小写敏感）。抽成 helper 是为了让 media/utility 端点共享同一
+// 份判定，两条路径不再各写一套而漂移。
+func apiKeyAllowsModel(supportedModels string, requestModel string) bool {
+	if supportedModels == "" {
+		return true
+	}
+	for _, supported := range strings.Split(supportedModels, ",") {
+		if strings.TrimSpace(supported) == requestModel {
+			return true
+		}
+	}
+	return false
+}
+
 // buildConditionContext assembles the request metadata used by condition-based
 // group routing. Every field the evaluator knows about must be populated here:
 // an unset field is indistinguishable from a genuinely empty value, which turns
@@ -290,16 +307,10 @@ func Handler(endpointType string, inboundType inbound.InboundType, c *gin.Contex
 	}
 	// ── End guardrail input check ──────────────────────────────────────
 
-	supportedModels := c.GetString("supported_models")
-	if supportedModels != "" {
-		supportedModelsArray := strings.Split(supportedModels, ",")
-		for i := range supportedModelsArray {
-			supportedModelsArray[i] = strings.TrimSpace(supportedModelsArray[i])
-		}
-		if !slices.Contains(supportedModelsArray, internalRequest.Model) {
-			resp.Error(c, http.StatusBadRequest, "model not supported")
-			return
-		}
+	// API Key 模型白名单（WO-052 起与 media 端点共享 apiKeyAllowsModel）。
+	if !apiKeyAllowsModel(c.GetString("supported_models"), internalRequest.Model) {
+		resp.Error(c, http.StatusBadRequest, "model not supported")
+		return
 	}
 
 	requestModel := internalRequest.Model

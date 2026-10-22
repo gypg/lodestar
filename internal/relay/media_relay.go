@@ -87,6 +87,15 @@ func MediaHandler(endpointType MediaEndpointType, c *gin.Context) {
 		return
 	}
 
+	// API Key 模型白名单（WO-052，对齐上游 84fb2d9a）：此前只有 LLM 对话路径
+	// 检查 supported_models，media/utility 端点完全绕过——限定 gpt-4o 的 key
+	// 仍能打 gpt-image-1，白名单与计费口径双双失守。multipart 与 JSON 端点
+	// 的模型名都已在上方提取完毕，此处统一拦截。
+	if !apiKeyAllowsModel(c.GetString("supported_models"), requestModel) {
+		resp.Error(c, http.StatusBadRequest, "model not supported")
+		return
+	}
+
 	apiKeyID := c.GetInt("api_key_id")
 	clientIP := c.ClientIP()
 	startTime := time.Now()
