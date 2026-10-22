@@ -1015,6 +1015,35 @@ func GroupItemList(groupID int, ctx context.Context) ([]model.GroupItem, error) 
 	return items, nil
 }
 
+// RemoveChannelItemsFromCache 从所有缓存组中剔除指向 channelID 的 items 并重建索引。
+//
+// 渠道删除的善后（WO-051，对齐上游 c4bb0ad8）：channel.Delete 的事务会把 group_items
+// 行从 DB 删掉，但内存里的 groupCache/groupMap 不会自动失效。删除后到下一次
+// 全量刷新之间，relay 每次请求都会从 stale 索引里捞出已删渠道作为候选，
+// 再在 ch.Get 处 not found 被跳过——无效候选 + 日志噪音。
+//
+// 不能用「查 DB 找受影响组」的方式（getAffectedGroupIDs 曾是 return nil 的占位）：
+// 事务提交后受影响的 group_items 行已经没了，DB 查不出线索，只能从缓存侧剔除。
+func RemoveChannelItemsFromCache(channelID int) {
+	changed := false
+	for id, group := range groupCache.GetAll() {
+		items := make([]model.GroupItem, 0, len(group.Items))
+		for _, item := range group.Items {
+			if item.ChannelID != channelID {
+				items = append(items, item)
+			}
+		}
+		if len(items) != len(group.Items) {
+			group.Items = NormalizeItems(items)
+			groupCache.Set(id, group)
+			changed = true
+		}
+	}
+	if changed {
+		RebuildIndexes()
+	}
+}
+
 func RefreshAllCache(ctx context.Context) error {
 	groups := []model.Group{}
 	if err := db.GetDB().WithContext(ctx).

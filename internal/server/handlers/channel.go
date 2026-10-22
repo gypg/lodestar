@@ -293,11 +293,13 @@ func deleteChannel(c *gin.Context) {
 		resp.Error(c, http.StatusBadRequest, resp.ErrInvalidParam)
 		return
 	}
-	if err := ch.Delete(idNum, c.Request.Context()); err != nil {
+	// 走 op.ChannelDel 统一入口（WO-051）：内层 ch.Delete 只清渠道自身的 DB 行和
+	// chCache/keyCache，会漏掉 balancer 清理钩子、组缓存剔除、空 channel-group
+	// 清理和孤儿模型回收。ChannelDel 内部已含 stats.OnChannelDeleted。
+	if err := op.ChannelDel(idNum, c.Request.Context()); err != nil {
 		resp.InternalError(c)
 		return
 	}
-	st.OnChannelDeleted(idNum)
 	resp.Success(c, nil)
 }
 func fetchModel(c *gin.Context) {

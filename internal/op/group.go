@@ -76,9 +76,6 @@ func GroupItemList(groupID int, ctx context.Context) ([]model.GroupItem, error) 
 	return group.GroupItemList(groupID, ctx)
 }
 
-// groupRefreshCacheByID is called from within the op package
-func groupRefreshCacheByID(id int, ctx context.Context) error { return group.RefreshCacheByID(id, ctx) }
-
 // groupRefreshCacheByIDs is called from within the op package
 func groupRefreshCacheByIDs(ids []int, ctx context.Context) error {
 	return group.RefreshCacheByIDs(ids, ctx)
@@ -97,6 +94,11 @@ func normalizeGroupItems(items []model.GroupItem) []model.GroupItem {
 
 // groupRefreshCache is called from cache.go (same package)
 func groupRefreshCache(ctx context.Context) error { return group.RefreshAllCache(ctx) }
+
+// GroupRemoveChannelItemsFromCache is called by ChannelDel (same package)
+func GroupRemoveChannelItemsFromCache(channelID int) {
+	group.RemoveChannelItemsFromCache(channelID)
+}
 
 func init() {
 	groupRegexMatchersByEndpoint = group.GetRegexMatchers()

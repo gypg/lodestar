@@ -245,6 +245,14 @@ type RetryDecision struct {
 	Reason  string     // 决策原因（日志用）
 	Code    int        // HTTP 状态码（0 表示非 HTTP 错误）
 	IsError bool       // 是否是错误（非成功）
+
+	// SkipFailureAccounting 标记本次失败不是渠道故障（客户端主动断连等），
+	// 因此不计入熔断器连续失败与 Auto 策略统计（WO-051，对齐上游 23fbd527）。
+	// 主链路的断连豁免由 retry_shared 按 errClientDisconnected 哨兵执行；
+	// media 路径没有该哨兵（写失败只是 EPIPE 包装错误），改由
+	// markClientCancelIfGone 在 Decision 上打此标记。零值 false 保持
+	// 全部现存构造点语义不变。
+	SkipFailureAccounting bool
 }
 
 // String 返回决策的描述字符串，用于日志
@@ -253,6 +261,35 @@ func (d RetryDecision) String() string {
 		return d.Scope.String()
 	}
 	return fmt.Sprintf("%s (%s)", d.Scope.String(), d.Reason)
+}
+
+// markClientCancelIfGone 在客户端已断开时把 decision 标记为「不计入渠道故障」
+// （WO-051，对齐上游 23fbd527 同名函数的语义）。
+//
+// media 路径的写失败（EPIPE）会被 ClassifyRelayError 按网络错误归为
+// ScopeNextChannel（触发无谓的换渠道重试）或按 written 归为 ScopeAbortAll，
+// 两者都会记熔断——而客户端主动停止不是渠道的错。该函数在写失败的错误
+// 语义已经产生之后补一道判定：真正承载客户端连接生命周期的 context 是
+// gin 的 c.Request.Context()（media 路径的 operationCtx 基于 Background，
+// 与客户端断连完全解耦，见 context.go），所以查它。
+//
+// err 为 nil 时不做任何处理：成功路径不该被打上失败豁免标记。
+func markClientCancelIfGone(decision *RetryDecision, clientCtx context.Context, err error) {
+	if decision == nil || err == nil {
+		return
+	}
+	if decision.SkipFailureAccounting {
+		return
+	}
+	if clientCtx != nil && clientCtx.Err() != nil {
+		decision.SkipFailureAccounting = true
+		// Reason 只在「明显是故障归类」时改写为断连；classifyNonHTTPError 的
+		// 兜底分支会把错误全文放进 Reason（含 "broken pipe" 字样），保留它
+		// 比替换更有诊断价值。
+		if decision.Reason == "" || decision.Reason == "network error" || decision.Reason == "stream response already written before failure" {
+			decision.Reason = "client disconnected"
+		}
+	}
 }
 
 // ClassifyRelayError 根据状态码和错误类型返回重试决策

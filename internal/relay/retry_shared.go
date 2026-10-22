@@ -273,7 +273,11 @@ func retryWithChannels(
 				// 必须先于熔断记录判断：client disconnected 的 Decision.Scope 为
 				// ScopeAbortAll，若照常执行 OnFailure 会把正常流结束误记为连续
 				// 失败，触发误熔断。OnFinalFailure 分支仍会如实记录 metrics。
-				clientDisconnected := errors.Is(fwdResult.Err, errClientDisconnected)
+				//
+				// 主链路（LLM）靠 errClientDisconnected 哨兵；media 路径没有哨兵，
+				// 由 markClientCancelIfGone 在 Decision 上打 SkipFailureAccounting
+				//（WO-051）。两处信号在这里汇成同一个守卫。
+				clientDisconnected := errors.Is(fwdResult.Err, errClientDisconnected) || fwdResult.Decision.SkipFailureAccounting
 
 				// Record failure stats
 				if !clientDisconnected && (fwdResult.Decision.Scope == ScopeNextChannel || fwdResult.Decision.Scope == ScopeAbortAll) {

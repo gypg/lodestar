@@ -191,6 +191,14 @@ func MediaHandler(endpointType MediaEndpointType, c *gin.Context) {
 				written := c.Writer.Written()
 				decision := ClassifyRelayError(statusCode, fwdErr, written)
 
+				// 客户端断连豁免（WO-051，对齐上游 23fbd527）。
+				// media 路径的写失败（EPIPE）会把 statusCode 置 0，ClassifyRelayError
+				// 只能按 EPIPE→网络错误→ScopeNextChannel 或 written→ScopeAbortAll 归类，
+				// 把客户端主动停止误判为上游故障：前者记熔断并触发无谓的换渠道重试，
+				// 后者记熔断。判定必须查 c.Request.Context()——operationCtx 基于
+				// Background 与客户端断连解耦（context.go）。
+				markClientCancelIfGone(&decision, c.Request.Context(), fwdErr)
+
 				usedKey.StatusCode = statusCode
 				usedKey.LastUseTimeStamp = time.Now().Unix()
 

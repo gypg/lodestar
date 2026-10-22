@@ -14,6 +14,20 @@ import (
 const (
 	// shortTaskTimeout 后台任务使用的短超时时间（延迟探测、模型同步）
 	shortTaskTimeout = 30 * time.Second
+
+	// defaultResponseHeaderTimeout 是 default 档（relay 转发/长任务）等待响应头的
+	// 超时（WO-051，对齐上游 e8c6a0ef）。
+	//
+	// 历史bug：这一档曾是 http.Client.Timeout = 600s。Client.Timeout 的语义覆盖
+	// 整个 response body 的读取过程（stdlib net/http 明文 "will interrupt reading
+	// of the Response.Body"），计时器在 Do 返回后仍在运行——于是超过 10 分钟的流式
+	// SSE 响应被从流中间砍断：客户端收不到 [DONE]，relay 侧看到普通读取错误而非
+	// 断连哨兵，还会计入熔断。深度 reasoning 模型的长输出完全可能超 10 分钟。
+	//
+	// 现改为 Client.Timeout = 0（不限）+ Transport.ResponseHeaderTimeout：后者只
+	// 覆盖「等响应头」阶段，不影响流式 body 读取，同时仍能防住「上游连响应头都
+	// 不给」的挂死。
+	defaultResponseHeaderTimeout = 600 * time.Second
 )
 
 var (
@@ -176,7 +190,15 @@ func clonedDefaultTransport() (*http.Transport, error) {
 }
 
 func newHTTPClientNoProxy() (*http.Client, error) {
-	return newHTTPClientNoProxyWithTimeout(600 * time.Second)
+	// default 档：不限总时长（流式 body 可能远超 600s），只限等响应头。
+	// 见 defaultResponseHeaderTimeout 的注释。
+	cloned, err := clonedDefaultTransport()
+	if err != nil {
+		return nil, err
+	}
+	cloned.Proxy = nil
+	cloned.ResponseHeaderTimeout = defaultResponseHeaderTimeout
+	return &http.Client{Transport: cloned}, nil
 }
 
 func newHTTPClientNoProxyWithTimeout(timeout time.Duration) (*http.Client, error) {
@@ -189,7 +211,18 @@ func newHTTPClientNoProxyWithTimeout(timeout time.Duration) (*http.Client, error
 }
 
 func newHTTPClientCustomProxy(proxyURLStr string) (*http.Client, error) {
-	return newHTTPClientCustomProxyWithTimeout(proxyURLStr, 600*time.Second)
+	// default 档：同 newHTTPClientNoProxy，不限总时长，只限等响应头。
+	cloned, err := clonedDefaultTransport()
+	if err != nil {
+		return nil, err
+	}
+	cloned.ResponseHeaderTimeout = defaultResponseHeaderTimeout
+
+	if err := proxydial.Apply(cloned, proxyURLStr); err != nil {
+		return nil, err
+	}
+
+	return &http.Client{Transport: cloned}, nil
 }
 
 func newHTTPClientCustomProxyWithTimeout(proxyURLStr string, timeout time.Duration) (*http.Client, error) {

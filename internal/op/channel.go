@@ -89,12 +89,11 @@ func ChannelDel(id int, ctx context.Context) error {
 		hook(id)
 	}
 
-	// Refresh affected group caches (in op package, from group.go)
-	for _, groupID := range getAffectedGroupIDs(id, ctx) {
-		if err := groupRefreshCacheByID(groupID, ctx); err != nil {
-			log.Warnf("failed to refresh group cache for group %d: %v", groupID, err)
-		}
-	}
+	// 从内存组缓存剔除指向本渠道的 items 并重建索引（WO-051）。
+	// channel.Delete 的事务已把 group_items 行从 DB 删掉，但 groupCache/groupMap
+	// 不会自动失效；不剔的话 relay 会继续捞出已删渠道当无效候选。
+	// 不能反向「查 DB 找受影响组」：事务提交后行已不存在，DB 查不出线索。
+	GroupRemoveChannelItemsFromCache(id)
 
 	// Clean up channel key cache
 	for _, k := range ch.Keys {
@@ -166,11 +165,6 @@ func reclaimOrphanedModels(names []string, ctx context.Context) error {
 	}
 	ModelMarketInvalidateCache()
 	log.Infof("reclaimed %d orphaned model(s) from the registry after channel deletion", len(orphaned))
-	return nil
-}
-
-func getAffectedGroupIDs(id int, ctx context.Context) []int {
-	// This is a minimal implementation; the original logic was in ChannelDel's transaction
 	return nil
 }
 
