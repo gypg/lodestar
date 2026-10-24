@@ -181,14 +181,15 @@ func KeySaveDB(ctx context.Context) error {
 
 	if err := db.GetDB().WithContext(ctx).Clauses(clause.OnConflict{
 		Columns: []clause.Column{{Name: "id"}},
+		// KeyUpdate 的调用方只有 relay 的用量/状态回写（成功与失败路径）。
+		// 这里若回写 channel_key/enabled/remark，一次普通请求的用量落库
+		// 就会把并发落库的手工换绑整个覆盖掉——缓存里的 key 是请求开始时
+		// 的快照，不是此刻数据库的权威值。因此只许更新用量列；key 本体的
+		// 变更走管理更新路径（channel.Update / 站点投影），它们自己会刷缓存。
 		DoUpdates: clause.AssignmentColumns([]string{
-			"channel_id",
-			"enabled",
-			"channel_key",
 			"status_code",
 			"last_use_time_stamp",
 			"total_cost",
-			"remark",
 		}),
 	}).Create(&keys).Error; err != nil {
 		keyCacheNeedUpdateLock.Lock()

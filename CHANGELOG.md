@@ -29,6 +29,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🐛 Bug Fixes
 
 #### Critical (Production Impact)
+- **A single request's usage writeback could silently revert a manual key
+  rotation** (2026-10-25): relay's key usage path (`KeyUpdate` -> `KeySaveDB`)
+  persisted the whole cached key row — including `channel_key`, `enabled`, and
+  `remark` — via `ON CONFLICT ... DO UPDATE`. The cache holds a snapshot from
+  when the request started, not the database's current value, so any key
+  rotated while the instance was running got clobbered back to the old value
+  by the very next request (bit an operator twice in production before it was
+  diagnosed). The conflict update now touches only the usage columns
+  (`status_code`, `last_use_time_stamp`, `total_cost`); key material changes
+  go through the management update paths, which refresh the cache themselves.
 - **Gemini models on tiny max_tokens budgets were rejected as empty output**
   (2026-10-25): a connectivity probe sends `{"max_tokens": 1}` and Gemini-family
   upstreams spend that budget on safety/thinking prefixes, answering 200 with
