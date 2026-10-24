@@ -114,6 +114,42 @@ func TestIsEmptyOutputResponse_Fake200Guard(t *testing.T) {
 			},
 			expected: false, // 有 CompletionTokens，不应标记为空
 		},
+		{
+			name: "length-finished empty output is legal (client-set budget exhausted)",
+			resp: &model.InternalLLMResponse{
+				ID: "length-empty",
+				Choices: []model.Choice{
+					{
+						Index:        0,
+						Message:      &model.Message{},
+						FinishReason: strPtr("length"),
+					},
+				},
+				EmbeddingData: nil,
+				Usage: &model.Usage{
+					CompletionTokens: 0,
+				},
+			},
+			expected: false, // Gemini 系在 max_tokens 极小时预算被前置消耗耗尽：合法空输出
+		},
+		{
+			name: "non-length finish reason with empty output stays flagged",
+			resp: &model.InternalLLMResponse{
+				ID: "stop-empty",
+				Choices: []model.Choice{
+					{
+						Index:        0,
+						Message:      &model.Message{},
+						FinishReason: strPtr("stop"),
+					},
+				},
+				EmbeddingData: nil,
+				Usage: &model.Usage{
+					CompletionTokens: 0,
+				},
+			},
+			expected: true, // stop + 零内容仍是可疑空输出（保持原有重试语义）
+		},
 	}
 
 	for _, tt := range tests {

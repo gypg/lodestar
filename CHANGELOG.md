@@ -29,6 +29,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🐛 Bug Fixes
 
 #### Critical (Production Impact)
+- **Gemini models on tiny max_tokens budgets were rejected as empty output**
+  (2026-10-25): a connectivity probe sends `{"max_tokens": 1}` and Gemini-family
+  upstreams spend that budget on safety/thinking prefixes, answering 200 with
+  `completion_tokens=0`, no content, and `finish_reason=length`. That is the
+  natural semantics of a client-set budget, but the empty-output guard flagged
+  it as a suspicious empty response: retries burned, keys cooled down, and the
+  client saw a 502 while the same request through the upstream's own gateway
+  returned 200. `finish_reason=length` now marks the response as a legal
+  truncated output — delivered as-is, no retry, no breaker accounting. The
+  fake-200 defense is untouched: it fires only when both choices and embedding
+  data are absent, which a length-finished choice can never be.
 - **Dragging items in several lists lagged or vanished, and channel deletion
   deleted without a real confirmation** (`30db7ad` / `159912b`, 2026-09-09):
   the drag-and-drop library lifts an item with `position: fixed` and viewport

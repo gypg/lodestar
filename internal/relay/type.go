@@ -117,6 +117,16 @@ func isEmptyOutputResponse(resp *model.InternalLLMResponse) bool {
 	if len(resp.Choices) == 0 {
 		return false
 	}
+	// finish_reason=length 表示输出被客户端设定的 max_tokens 预算截断。
+	// 预算极小时（如连通性探测的 max_tokens=1），Gemini 系模型的前置
+	// safety/thinking 消耗会把可见 token 吃光，得到 200 + completion_tokens=0
+	// + 无 content 的合法响应。这是请求语义的自然结果，不是渠道故障，
+	// 不能计入空输出重试/熔断，否则探测类客户端会看到假 502。
+	for _, choice := range resp.Choices {
+		if choice.FinishReason != nil && *choice.FinishReason == "length" {
+			return false
+		}
+	}
 	if resp.Usage != nil && resp.Usage.CompletionTokens > 0 {
 		return false
 	}
