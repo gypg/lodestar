@@ -123,6 +123,57 @@ func ListWindows(ctx context.Context, subscriptionID int) ([]WindowState, error)
 	return out, nil
 }
 
+// EffectiveWindowRemaining returns the tightest rolling-window headroom for
+// the user's active subscription, plus the unix time at which the tightest
+// EXHAUSTED window resets (0 when nothing blocks).
+//
+// This is the admission gate's source of truth — it reads the DB rows with
+// rollover applied, so it is correct after a restart, on any instance, and for
+// windows seeded out-of-band. The in-memory RecordWindowBlock cache only
+// pre-answers the exact case DrawFromPool already saw.
+func EffectiveWindowRemaining(userID uint, ctx context.Context) (remaining float64, blockedUntil int64, err error) {
+	sub, err := activePoolSubscription(userID, ctx)
+	if err != nil || sub == nil {
+		return math.Inf(1), 0, err
+	}
+	var plan model.SubscriptionPlan
+	if err := db.GetDB().WithContext(ctx).First(&plan, sub.PlanID).Error; err != nil {
+		return math.Inf(1), 0, nil // plan lookup failure must not block the wallet
+	}
+	if plan.Window4hLimit <= 0 && plan.WindowWeeklyLimit <= 0 {
+		return math.Inf(1), 0, nil
+	}
+	now := time.Now()
+	remaining = math.Inf(1)
+	for _, kind := range []string{model.SubWindow4h, model.SubWindowWeekly} {
+		if planWindowLimit(&plan, kind) <= 0 {
+			continue
+		}
+		var row model.SubscriptionWindow
+		err := db.GetDB().WithContext(ctx).
+			Where("subscription_id = ? AND kind = ?", sub.ID, kind).
+			First(&row).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			continue // window row appears on first draw; no spend yet means full headroom
+		}
+		if err != nil {
+			return math.Inf(1), 0, nil // read failure must not block the wallet
+		}
+		period, _ := windowPeriod(kind)
+		start, used, _ := rolledWindow(&row, period, now)
+		headroom := row.LimitUSD - used
+		if headroom < remaining {
+			remaining = headroom
+		}
+		if headroom <= 0 {
+			if resetAt := start + int64(period.Seconds()); resetAt > blockedUntil {
+				blockedUntil = resetAt
+			}
+		}
+	}
+	return remaining, blockedUntil, nil
+}
+
 // AdjustWindow moves a window's used amount by delta (negative = grant back).
 // The window rolls first, so an adjustment lands in the current period.
 // Returns the applied state.

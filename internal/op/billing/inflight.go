@@ -111,6 +111,12 @@ func WindowBlockedUntil(apiKeyID int, ctx context.Context) int64 {
 	if err != nil || key.UserID == 0 {
 		return 0
 	}
+	// DB state first: correct across restarts, instances, and out-of-band
+	// window writes. The in-memory record is a fast path for the exact case
+	// DrawFromPool already refused.
+	if _, blocked, err := subscription.EffectiveWindowRemaining(key.UserID, ctx); err == nil && blocked > 0 {
+		return blocked
+	}
 	return subscription.WindowBlockUntil(key.UserID)
 }
 
@@ -134,6 +140,11 @@ func AcquireForKey(apiKeyID int, ctx context.Context) (release func(), ok bool) 
 	// the pool may have room, but the plan's window forbids spend until it
 	// resets. Refused here (not in ChargeKey) so the client gets a clean 429
 	// before any upstream request is made.
+	// EffectiveWindowRemaining reads DB rows (restart-safe, instance-safe),
+	// falling back to the in-memory record DrawFromPool populated.
+	if _, blocked, err := subscription.EffectiveWindowRemaining(key.UserID, ctx); err == nil && blocked > 0 {
+		return noopRelease, false
+	}
 	if blockedUntil := subscription.WindowBlockUntil(key.UserID); blockedUntil > 0 {
 		return noopRelease, false
 	}

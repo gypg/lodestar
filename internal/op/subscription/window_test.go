@@ -157,3 +157,40 @@ func TestWeeklyWindowComposes(t *testing.T) {
 		t.Fatalf("total drawn = %v, want 80 (weekly cap)", total)
 	}
 }
+
+// The admission gate must read the DB rows, not the in-memory block record:
+// a window seeded out-of-band (admin SQL, another instance, or before a
+// restart) must refuse without waiting for DrawFromPool to populate the cache.
+// This exact gap let a request through in the first production verification.
+func TestEffectiveWindowRemainingSeesOutOfBandState(t *testing.T) {
+	ctx := setupWindowTestDB(t)
+	plan := model.SubscriptionPlan{
+		Name: "oob", Price: 10, QuotaAmount: 100,
+		Window4hLimit: 2, Enabled: true, EnabledSet: true,
+	}
+	sub := seedWindowSubscription(t, ctx, 11, plan)
+
+	// Seed the window full WITHOUT calling DrawWindowed (out-of-band).
+	now := time.Now().Unix()
+	if err := db.GetDB().Create(&model.SubscriptionWindow{
+		SubscriptionID: sub.ID,
+		Kind:           model.SubWindow4h,
+		LimitUSD:       2,
+		WindowStart:    now,
+		Used:           2,
+		UpdatedAt:      now,
+	}).Error; err != nil {
+		t.Fatalf("seed full window: %v", err)
+	}
+
+	remaining, blockedUntil, err := EffectiveWindowRemaining(sub.UserID, ctx)
+	if err != nil {
+		t.Fatalf("EffectiveWindowRemaining: %v", err)
+	}
+	if remaining != 0 {
+		t.Fatalf("remaining = %v, want 0 (window is full)", remaining)
+	}
+	if blockedUntil <= now {
+		t.Fatalf("blockedUntil = %v, want future reset", blockedUntil)
+	}
+}
