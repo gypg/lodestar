@@ -56,7 +56,7 @@ func TestHiddenSnapshotNilWhenDisabled(t *testing.T) {
 	}
 
 	// 即使库里已有失败计数，关闭开关也不隐藏任何模型。
-	RecordProbeResult(context.Background(), "g-bad", false)
+	_, _ = RecordProbeResult(context.Background(), "g-bad", false)
 	if hidden := HiddenSnapshot(); len(hidden) != 0 {
 		t.Fatalf("HiddenSnapshot() with probe disabled = %v, want empty: presentation must fall back to pre-probe behaviour when probing is off", hidden)
 	}
@@ -69,7 +69,7 @@ func TestThresholdThreeHidesOnlyOnThirdRound(t *testing.T) {
 	setProbeSetting(t, model.SettingKeyModelProbeEnabled, "true")
 	setProbeSetting(t, model.SettingKeyModelProbeFailThreshold, "3")
 
-	if notify := RecordProbeResult(ctx, "g3", false); notify {
+	if notify, _ := RecordProbeResult(ctx, "g3", false); notify {
 		t.Fatal("round 1: RecordProbeResult() notify = true, want false")
 	}
 	hiddenAfterOne := HiddenSnapshot()
@@ -77,14 +77,14 @@ func TestThresholdThreeHidesOnlyOnThirdRound(t *testing.T) {
 		t.Fatalf("after round 1 HiddenSnapshot() = %v, want empty: 1 failure must NOT hide (this is the M-B3 killer leg)", hiddenAfterOne)
 	}
 
-	if notify := RecordProbeResult(ctx, "g3", false); notify {
+	if notify, _ := RecordProbeResult(ctx, "g3", false); notify {
 		t.Fatal("round 2: RecordProbeResult() notify = true, want false")
 	}
 	if hidden := HiddenSnapshot(); len(hidden) != 0 {
 		t.Fatalf("after round 2 HiddenSnapshot() = %v, want empty: 2 failures must NOT hide", hidden)
 	}
 
-	if notify := RecordProbeResult(ctx, "g3", false); !notify {
+	if notify, _ := RecordProbeResult(ctx, "g3", false); !notify {
 		t.Fatal("round 3: RecordProbeResult() notify = false, want true: crossing the threshold must trigger the operator notification")
 	}
 	hiddenAfterThreshold := HiddenSnapshot()
@@ -94,7 +94,7 @@ func TestThresholdThreeHidesOnlyOnThirdRound(t *testing.T) {
 	MarkNotified(ctx, "g3")
 
 	// 后续失败轮次不再重复通知（T-B8 的状态机半边）。
-	if notify := RecordProbeResult(ctx, "g3", false); notify {
+	if notify, _ := RecordProbeResult(ctx, "g3", false); notify {
 		t.Fatal("round 4: RecordProbeResult() notify = true, want false: same failure episode must notify only once")
 	}
 }
@@ -105,8 +105,8 @@ func TestThresholdThreeHidesOnlyOnThirdRound(t *testing.T) {
 func TestStateSnapshotSortedAndDefensive(t *testing.T) {
 	ctx := setupProbeTestDB(t)
 
-	RecordProbeResult(ctx, "zeta-model", false)
-	RecordProbeResult(ctx, "alpha-model", true)
+	_, _ = RecordProbeResult(ctx, "zeta-model", false)
+	_, _ = RecordProbeResult(ctx, "alpha-model", true)
 
 	rows := StateSnapshot()
 	if len(rows) != 2 {
@@ -125,6 +125,45 @@ func TestStateSnapshotSortedAndDefensive(t *testing.T) {
 	}
 }
 
+// WO-056 escalation: at 3x threshold, RecordProbeResult flags the
+// persistent-fault escalation exactly once per failure episode; recovery
+// re-arms it. Both legs are required — without the re-arm leg, a model that
+// flaps (fails 9 rounds, recovers, fails again) would never escalate twice.
+func TestEscalationArmsOncePerEpisode(t *testing.T) {
+	ctx := setupProbeTestDB(t)
+	setProbeSetting(t, model.SettingKeyModelProbeEnabled, "true")
+	setProbeSetting(t, model.SettingKeyModelProbeFailThreshold, "3")
+
+	escalatedRounds := 0
+	for i := 1; i <= 10; i++ {
+		_, escalate := RecordProbeResult(ctx, "g-esc", false)
+		if escalate {
+			escalatedRounds++
+			MarkEscalated(ctx, "g-esc")
+		}
+	}
+	if escalatedRounds != 1 {
+		t.Fatalf("escalations = %d, want exactly 1 (rounds 3x threshold=9 only)", escalatedRounds)
+	}
+
+	// Recovery resets the escalation marker.
+	if _, escalate := RecordProbeResult(ctx, "g-esc", true); escalate {
+		t.Fatal("recovery must not escalate")
+	}
+
+	escalatedRounds = 0
+	for i := 1; i <= 9; i++ {
+		_, escalate := RecordProbeResult(ctx, "g-esc", false)
+		if escalate {
+			escalatedRounds++
+			MarkEscalated(ctx, "g-esc")
+		}
+	}
+	if escalatedRounds != 1 {
+		t.Fatalf("post-recovery escalations = %d, want 1 (recovery must re-arm escalation)", escalatedRounds)
+	}
+}
+
 // T-B6 成功重置计数：失败 2 轮 + 成功 1 轮 + 失败 1 轮 → 不隐藏（也没通知）。
 func TestSuccessResetsConsecutiveFailures(t *testing.T) {
 	ctx := setupProbeTestDB(t)
@@ -132,15 +171,15 @@ func TestSuccessResetsConsecutiveFailures(t *testing.T) {
 	setProbeSetting(t, model.SettingKeyModelProbeFailThreshold, "3")
 
 	for i := 0; i < 2; i++ {
-		if notify := RecordProbeResult(ctx, "g6", false); notify {
+		if notify, _ := RecordProbeResult(ctx, "g6", false); notify {
 			t.Fatalf("failure round %d: notify = true, want false", i+1)
 		}
 	}
-	if notify := RecordProbeResult(ctx, "g6", true); notify {
+	if notify, _ := RecordProbeResult(ctx, "g6", true); notify {
 		t.Fatal("success round: notify = true, want false")
 	}
 	// 成功后必须真正清零：只差这一轮失败就得从 0 重新数。
-	if notify := RecordProbeResult(ctx, "g6", false); notify {
+	if notify, _ := RecordProbeResult(ctx, "g6", false); notify {
 		t.Fatal("post-success failure: notify = true, want false: a success must reset the counter, otherwise 2 fails + success + 1 fail wrongly hides")
 	}
 	if hidden := HiddenSnapshot(); len(hidden) != 0 {
@@ -156,7 +195,7 @@ func TestCountSurvivesRestart(t *testing.T) {
 	setProbeSetting(t, model.SettingKeyModelProbeFailThreshold, "3")
 
 	for i := 0; i < 3; i++ {
-		_ = RecordProbeResult(ctx, "g7", false)
+		_, _ = RecordProbeResult(ctx, "g7", false)
 	}
 	hiddenBeforeRestart := HiddenSnapshot()
 	if _, ok := hiddenBeforeRestart["g7"]; !ok {
@@ -179,20 +218,20 @@ func TestNotifyOncePerEpisode(t *testing.T) {
 	setProbeSetting(t, model.SettingKeyModelProbeFailThreshold, "3")
 
 	for i := 0; i < 2; i++ {
-		_ = RecordProbeResult(ctx, "g8", false)
+		_, _ = RecordProbeResult(ctx, "g8", false)
 	}
-	if notify := RecordProbeResult(ctx, "g8", false); !notify {
+	if notify, _ := RecordProbeResult(ctx, "g8", false); !notify {
 		t.Fatal("round 3: notify = false, want true (precondition)")
 	}
 	MarkNotified(ctx, "g8")
-	if notify := RecordProbeResult(ctx, "g8", false); notify {
+	if notify, _ := RecordProbeResult(ctx, "g8", false); notify {
 		t.Fatal("round 4 after MarkNotified: notify = true, want false: one failure episode must notify exactly once")
 	}
 
 	// 恢复后再坏：新一轮失败必须能重新通知。
-	_ = RecordProbeResult(ctx, "g8", true)
+	_, _ = RecordProbeResult(ctx, "g8", true)
 	for i := 0; i < 3; i++ {
-		notify := RecordProbeResult(ctx, "g8", false)
+		notify, _ := RecordProbeResult(ctx, "g8", false)
 		if i < 2 && notify {
 			t.Fatalf("new episode failure round %d: notify = true, want false", i+1)
 		}
@@ -232,7 +271,7 @@ func TestProbeStateTableOnlyHasProbeRows(t *testing.T) {
 	ctx := setupProbeTestDB(t)
 	setProbeSetting(t, model.SettingKeyModelProbeEnabled, "true")
 
-	_ = RecordProbeResult(ctx, "g10", false)
+	_, _ = RecordProbeResult(ctx, "g10", false)
 	var count int64
 	if err := db.GetDB().Model(&model.ModelProbeState{}).Count(&count).Error; err != nil {
 		t.Fatalf("count model_probe_states: %v", err)

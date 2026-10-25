@@ -92,8 +92,14 @@ func ModelProbeTask() {
 			lastFailed = result
 		}
 
-		if notifyNeeded := modelprobe.RecordProbeResult(ctx, group.Name, modelPassed); notifyNeeded {
-			notifyModelProbeFailure(ctx, group.Name, lastFailed)
+		notifyNeeded, escalateNeeded := modelprobe.RecordProbeResult(ctx, group.Name, modelPassed)
+		if notifyNeeded {
+			notifyModelProbeFailure(ctx, group.Name, lastFailed, false)
+		}
+		if escalateNeeded {
+			// WO-056 持续故障升级：失败已达阈值 3 倍仍未恢复，提示管理员
+			// 人工处置（禁用模型 / 修渠道 / 加入跳过列表）。
+			notifyModelProbeFailure(ctx, group.Name, lastFailed, true)
 		}
 	}
 }
@@ -131,7 +137,7 @@ func probeGroupOnce(ctx context.Context, group *model.Group) (*helper.GroupModel
 // 不新建通道。内容只含模型名/失败轮数/错误类别摘要（helper.SanitizeProbeNotifyMessage，
 // WO-031）——不带渠道 key、不带上游 base_url；该承诺由摘要函数的类别白名单保证，
 // 原始 err 文本（可能含完整 URL 与 ?key= 凭据）只留服务端日志。
-func notifyModelProbeFailure(ctx context.Context, groupName string, result helper.GroupModelTestResult) {
+func notifyModelProbeFailure(ctx context.Context, groupName string, result helper.GroupModelTestResult, escalated bool) {
 	channels, err := alert.NotifChannelList(ctx)
 	if err != nil {
 		log.Warnf("model probe notify: failed to list notification channels: %v", err)
@@ -144,7 +150,7 @@ func notifyModelProbeFailure(ctx context.Context, groupName string, result helpe
 		return
 	}
 
-	message := buildModelProbeNotifyMessage(groupName, result, resolveAlertNotifyLanguage())
+	message := buildModelProbeNotifyMessage(groupName, result, resolveAlertNotifyLanguage(), escalated)
 	sentAny := false
 	for i := range channels {
 		payload := helper.AlertWebhookPayload{
@@ -163,7 +169,11 @@ func notifyModelProbeFailure(ctx context.Context, groupName string, result helpe
 		sentAny = true
 	}
 	if sentAny {
-		modelprobe.MarkNotified(ctx, groupName)
+		if escalated {
+			modelprobe.MarkEscalated(ctx, groupName)
+		} else {
+			modelprobe.MarkNotified(ctx, groupName)
+		}
 	}
 }
 
@@ -176,15 +186,26 @@ func notifyModelProbeFailure(ctx context.Context, groupName string, result helpe
 // NotifyMessage 直接拼原文的路径，改这里之外都进不了 transport）。生产零改动。
 var sendProbeNotification = helper.SendNotification
 
-func buildModelProbeNotifyMessage(groupName string, result helper.GroupModelTestResult, language string) string {
+func buildModelProbeNotifyMessage(groupName string, result helper.GroupModelTestResult, language string, escalated bool) string {
 	threshold := fmt.Sprintf("%d", modelprobe.FailThresholdOr(modelProbeFailThresholdDefault))
 	lastErr := helper.SanitizeProbeNotifyMessage(result.Message)
 	message := fmt.Sprintf("model %q failed %s consecutive probe rounds; last error: %s", groupName, threshold, lastErr)
+	if escalated {
+		message = fmt.Sprintf("[persistent fault] model %q still failing at 3x the threshold; manual action required (disable the model or fix its channel); last error: %s", groupName, lastErr)
+	}
 	switch normalizeAlertNotifyLanguage(language) {
 	case "zh-Hans":
-		message = fmt.Sprintf("模型 %q 已连续 %s 轮探测失败；最近错误：%s", groupName, threshold, lastErr)
+		if escalated {
+			message = fmt.Sprintf("【持续故障】模型 %q 失败已达到阈值 3 倍仍未恢复，需人工处置（禁用模型或修复渠道）；最近错误：%s", groupName, lastErr)
+		} else {
+			message = fmt.Sprintf("模型 %q 已连续 %s 轮探测失败；最近错误：%s", groupName, threshold, lastErr)
+		}
 	case "zh-Hant":
-		message = fmt.Sprintf("模型 %q 已連續 %s 輪探測失敗；最近錯誤：%s", groupName, threshold, lastErr)
+		if escalated {
+			message = fmt.Sprintf("【持續故障】模型 %q 失敗已達到閾值 3 倍仍未恢復，需人工處置（停用模型或修復渠道）；最近錯誤：%s", groupName, lastErr)
+		} else {
+			message = fmt.Sprintf("模型 %q 已連續 %s 輪探測失敗；最近錯誤：%s", groupName, threshold, lastErr)
+		}
 	}
 	return message
 }

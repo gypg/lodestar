@@ -201,18 +201,21 @@ func SkipGroups() (map[string]struct{}, error) {
 }
 
 // RecordProbeResult 写一轮探测结果：成功归零计数（对称性，工单 3.3），失败 +1。
-// 返回 true 表示"这一失败 episode 尚未通知过且已跨过阈值"，调用方据此发通知；
-// 通知确认送达后由调用方调 MarkNotified（防重收口，工单 3.4）。
-func RecordProbeResult(ctx context.Context, groupName string, passed bool) (notify bool) {
+// 返回 (notify, escalate)：
+//   - notify: 这一失败 episode 尚未通知过且已跨过阈值（调用方发常规告警，
+//     送达后调 MarkNotified 防重）；
+//   - escalate: 失败已达阈值的 3 倍且本 episode 尚未升级过（WO-056 持续故障
+//     升级，送达后调 MarkEscalated 防重）。恢复时两者随计数一起归零。
+func RecordProbeResult(ctx context.Context, groupName string, passed bool) (notify, escalate bool) {
 	name := strings.TrimSpace(groupName)
 	if name == "" {
-		return false
+		return false, false
 	}
 
 	threshold, err := FailThreshold()
 	if err != nil {
 		log.Warnf("model probe: failed to read fail threshold, skip counting: %v", err)
-		return false
+		return false, false
 	}
 
 	packageState.mu.Lock()
@@ -226,6 +229,7 @@ func RecordProbeResult(ctx context.Context, groupName string, passed bool) (noti
 		st.ConsecutiveFailures = 0
 		// 成功即结案：新一轮失败episode必须能重新触发通知，旧标记不能吞掉它。
 		st.LastNotifiedFails = 0
+		st.EscalatedAt = time.Time{}
 	} else {
 		st.ConsecutiveFailures++
 	}
@@ -237,11 +241,14 @@ func RecordProbeResult(ctx context.Context, groupName string, passed bool) (noti
 		// 通知发送失败时计数下一轮就涨过阈值，== 判定会让重试永远轮空。
 		notify = true
 	}
+	if !passed && st.ConsecutiveFailures >= 3*threshold && st.EscalatedAt.IsZero() {
+		escalate = true
+	}
 	snapshot := *st
 	packageState.mu.Unlock()
 
 	persist(ctx, &snapshot)
-	return notify
+	return notify, escalate
 }
 
 // MarkNotified 在通知确认送达后调用。发送失败不调用——下一轮 RecordProbeResult
@@ -259,6 +266,23 @@ func MarkNotified(ctx context.Context, groupName string) {
 	snapshot := *st
 	packageState.mu.Unlock()
 
+	persist(ctx, &snapshot)
+}
+
+// MarkEscalated 在持续故障升级通知确认送达后调用（与 MarkNotified 同防重模式）。
+func MarkEscalated(ctx context.Context, groupName string) {
+	name := strings.TrimSpace(groupName)
+	packageState.mu.Lock()
+	ensureLoadedLocked()
+	st, ok := packageState.states[name]
+	if !ok {
+		packageState.mu.Unlock()
+		return
+	}
+	st.EscalatedAt = time.Now()
+	st.UpdatedAt = time.Now()
+	snapshot := *st
+	packageState.mu.Unlock()
 	persist(ctx, &snapshot)
 }
 

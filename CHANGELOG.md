@@ -12,6 +12,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### 🚀 Features
+- **Probe-hidden models are no longer routing candidates** (2026-10-25):
+  the scheduled probe could flag a model as dead but the router kept
+  serving it — clients burned retries against upstreams that were failing
+  34% of a 118-model catalogue. Group lookup now skips probe-hidden
+  groups and keeps searching (a working regex fallback still wins), so a
+  hidden model answers as a clean not-found instead of a wall of failures.
+  With probing disabled the hidden snapshot is nil and routing is
+  byte-for-byte unchanged. Persistent faults also escalate: at 3x the
+  failure threshold the probe fires a one-time "manual action required"
+  notification per failure episode (tracked via a new escalation marker
+  that recovery re-arms), reusing the existing alert channels.
 - **Subscription plans gain optional rolling spend windows** (2026-10-25):
   a plan can now cap spend inside a 4-hour rolling window and/or a weekly
   one, on top of the total pool. Windows anchor at the subscription's start

@@ -23,6 +23,12 @@ import (
 	"gorm.io/gorm/clause"
 )
 
+// hiddenSnapshot is the probe-hidden-group source for routing. Injectable in
+// tests; production always reads modelprobe.HiddenSnapshot(), which returns
+// nil when probing is disabled — so routing is byte-for-byte unchanged for
+// operators who never turn probing on.
+var hiddenSnapshot = modelprobe.HiddenSnapshot
+
 var groupCache = cache.New[int, model.Group](16)
 var groupMap = cache.New[string, model.Group](16)
 
@@ -600,22 +606,37 @@ func GroupGet(id int, ctx context.Context) (*model.Group, error) {
 func GroupGetEnabledMapByEndpoint(endpointType string, name string, ctx context.Context) (model.Group, error) {
 	endpointType = model.NormalizeEndpointType(endpointType)
 
+	// WO-056: probe-hidden groups are not routing candidates. A model whose
+	// scheduled probe has failed the configured consecutive rounds is dead
+	// upstream — serving it burns client retries against a wall. Skip it and
+	// keep looking (a working regex fallback may still exist). When probing is
+	// off, hiddenSnapshot() is nil and this block is a no-op.
+	hidden := hiddenSnapshot()
+
 	lookupOrder := conversationEndpointLookupOrder(endpointType, name)
 	if len(lookupOrder) == 0 {
 		lookupOrder = []string{endpointType}
 	}
 
 	for _, candidateEndpointType := range lookupOrder {
-		if group, ok := findGroupByEndpoint(candidateEndpointType, name); ok {
+		if group, ok := findGroupByEndpoint(candidateEndpointType, name); ok && !isHiddenGroup(hidden, group.Name) {
 			return finalizeMatchedGroup(group), nil
 		}
 	}
 	if endpointType != model.EndpointTypeAll {
-		if group, ok := findGroupByEndpoint(model.EndpointTypeAll, name); ok {
+		if group, ok := findGroupByEndpoint(model.EndpointTypeAll, name); ok && !isHiddenGroup(hidden, group.Name) {
 			return finalizeMatchedGroup(group), nil
 		}
 	}
 	return model.Group{}, fmt.Errorf("group not found")
+}
+
+func isHiddenGroup(hidden map[string]time.Time, groupName string) bool {
+	if len(hidden) == 0 {
+		return false
+	}
+	_, bad := hidden[strings.ToLower(strings.TrimSpace(groupName))]
+	return bad
 }
 
 func GroupGetEnabledMap(name string, ctx context.Context) (model.Group, error) {

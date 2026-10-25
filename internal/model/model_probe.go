@@ -16,7 +16,11 @@ type ModelProbeState struct {
 	ConsecutiveFailures int       `json:"consecutive_failures" gorm:"not null;default:0"`
 	LastProbedAt        time.Time `json:"last_probed_at"`
 	LastNotifiedFails   int       `json:"last_notified_fails" gorm:"not null;default:0"`
-	UpdatedAt           time.Time `json:"updated_at"`
+	// EscalatedAt marks that the "persistent fault" escalation notification
+	// (3x threshold) has fired for the current failure episode. Reset together
+	// with the failure counter on recovery; one escalation per episode.
+	EscalatedAt time.Time `json:"escalated_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 func (ModelProbeState) TableName() string { return "model_probe_states" }

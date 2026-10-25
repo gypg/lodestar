@@ -3,10 +3,45 @@ package group
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/gypg/lodestar/internal/model"
 	"github.com/gypg/lodestar/internal/op/channel"
 )
+
+// WO-056: probe-hidden groups must stop being routing candidates. The whole
+// point of probing is that a 34%-failure-rate model list stops being served
+// to users as if it worked. Three legs, all required:
+//  1. hidden group => "group not found" semantics (client gets a clean 404
+//     instead of burning retries against a dead upstream)
+//  2. probing disabled => identical behaviour to before WO-056 (nil snapshot)
+//  3. a hidden exact-match group must not shadow a working regex fallback
+
+func TestProbeHiddenGroupNotRouted(t *testing.T) {
+	groupCache.Clear()
+	groupCache.Set(10, model.Group{
+		ID:           10,
+		Name:         "dead-model",
+		EndpointType: model.EndpointTypeAll,
+		Items:        []model.GroupItem{{ID: 1, GroupID: 10, ChannelID: 1, ModelName: "dead-model"}},
+	})
+	RebuildIndexes()
+	// No hidden snapshot (probing off) => routing unchanged.
+	hiddenSnapshot = func() map[string]time.Time { return nil }
+	g, err := GroupGetEnabledMapByEndpoint(model.EndpointTypeAll, "dead-model", context.Background())
+	if err != nil || g.ID != 10 {
+		t.Fatalf("probing off: got (%v, %v), want group 10 routed as before WO-056", g.ID, err)
+	}
+
+	// Hidden => not routed.
+	hiddenSnapshot = func() map[string]time.Time {
+		return map[string]time.Time{"dead-model": time.Now()}
+	}
+	t.Cleanup(func() { hiddenSnapshot = nil })
+	if _, err := GroupGetEnabledMapByEndpoint(model.EndpointTypeAll, "dead-model", context.Background()); err == nil {
+		t.Fatal("hidden group routed: want 'group not found' semantics so the client gets a clean 404")
+	}
+}
 
 func TestGroupListModel_EmptyGroupNotListed(t *testing.T) {
 	groupCache.Clear()

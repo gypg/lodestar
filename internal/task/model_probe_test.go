@@ -278,7 +278,7 @@ func TestModelProbeNotifyMessageNoSensitiveInfo(t *testing.T) {
 		"forged-success", "Bearer", "\n",
 	}
 	for _, lang := range []string{"en", "zh-Hans", "zh-Hant"} {
-		msg := buildModelProbeNotifyMessage("m1", result, lang)
+		msg := buildModelProbeNotifyMessage("m1", result, lang, false)
 		for _, frag := range forbidden {
 			if strings.Contains(msg, frag) {
 				t.Fatalf("lang %s: notify message leaks %q (message=%q): outbound must carry only the safe category", lang, frag, msg)
@@ -361,7 +361,7 @@ func TestNotifyModelProbeFailureTransportPayloadSanitized(t *testing.T) {
 		Passed:    false,
 		Message:   `Get "https://generativelanguage.googleapis.com/v1beta/models/gemini:generateContent?key=AIzaSyFAKEKEY000000000000000000": dial tcp: lookup generativelanguage.googleapis.com: no such host`,
 	}
-	notifyModelProbeFailure(ctx, "g-leak", malicious)
+	notifyModelProbeFailure(ctx, "g-leak", malicious, false)
 
 	got := spy.all()
 	if len(got) == 0 {
