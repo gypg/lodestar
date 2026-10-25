@@ -99,6 +99,32 @@ func TestThresholdThreeHidesOnlyOnThirdRound(t *testing.T) {
 	}
 }
 
+// StateSnapshot feeds the settings panel. It must return a sorted, defensive
+// copy: mutating the returned rows must never reach packageState (the panel
+// renders rows, persist() owns writes), and ordering makes the UI stable.
+func TestStateSnapshotSortedAndDefensive(t *testing.T) {
+	ctx := setupProbeTestDB(t)
+
+	RecordProbeResult(ctx, "zeta-model", false)
+	RecordProbeResult(ctx, "alpha-model", true)
+
+	rows := StateSnapshot()
+	if len(rows) != 2 {
+		t.Fatalf("rows = %d, want 2", len(rows))
+	}
+	if rows[0].GroupName != "alpha-model" || rows[1].GroupName != "zeta-model" {
+		t.Fatalf("order = [%s, %s], want alphabetical", rows[0].GroupName, rows[1].GroupName)
+	}
+
+	rows[0].ConsecutiveFailures = 99
+	again := StateSnapshot()
+	for _, row := range again {
+		if row.ConsecutiveFailures == 99 {
+			t.Fatal("StateSnapshot returned a reference into package state: caller mutation leaked in")
+		}
+	}
+}
+
 // T-B6 成功重置计数：失败 2 轮 + 成功 1 轮 + 失败 1 轮 → 不隐藏（也没通知）。
 func TestSuccessResetsConsecutiveFailures(t *testing.T) {
 	ctx := setupProbeTestDB(t)

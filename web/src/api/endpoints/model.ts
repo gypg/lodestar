@@ -156,6 +156,32 @@ export function useModelMarket(enabled = true) {
 }
 
 /**
+ * Scheduled model-probe states. Feeds the settings panel's status table
+ * (last probed time, consecutive failures, hidden). Sits behind
+ * settings:read like the market -- pass enabled:false for non-staff UI.
+ */
+export interface ModelProbeState {
+    group_name: string;
+    consecutive_failures: number;
+    last_probed_at: string;
+    last_notified_fails: number;
+    updated_at: string;
+}
+
+export function useModelProbeStates(enabled = true) {
+    return useQuery({
+        enabled,
+        queryKey: ['models', 'probe-states'],
+        queryFn: async () => {
+            const data = await apiClient.get<ModelProbeState[]>('/api/v1/model/probe-states');
+            return Array.isArray(data) ? data : [];
+        },
+        refetchInterval: REFETCH_INTERVAL_CONFIG,
+        refetchOnMount: 'always',
+    });
+}
+
+/**
  * 更新 LLM 模型 Hook
  * 
  * @example

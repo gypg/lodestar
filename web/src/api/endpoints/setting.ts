@@ -84,6 +84,12 @@ export const SettingKey = {
     AIRouteAPIKey: 'ai_route_api_key',
     AIRouteModel: 'ai_route_model',
     AIRouteTimeoutSeconds: 'ai_route_timeout_seconds',
+    // Scheduled model probing (WO-053): backend keys already exist (WO-028),
+    // surfaced here for the settings panel.
+    ModelProbeEnabled: 'model_probe_enabled',
+    ModelProbeIntervalHours: 'model_probe_interval_hours',
+    ModelProbeFailThreshold: 'model_probe_fail_threshold',
+    ModelProbeSkipGroups: 'model_probe_skip_groups',
     AIRouteParallelism: 'ai_route_parallelism',
     AIRouteServices: 'ai_route_services',
     AIRouteSourceMode: 'ai_route_source_mode',

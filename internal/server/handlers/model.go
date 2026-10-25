@@ -12,6 +12,7 @@ import (
 	"github.com/gypg/lodestar/internal/op/channel"
 	"github.com/gypg/lodestar/internal/op/group"
 	"github.com/gypg/lodestar/internal/op/llm"
+	"github.com/gypg/lodestar/internal/op/modelprobe"
 	"github.com/gypg/lodestar/internal/price"
 	"github.com/gypg/lodestar/internal/server/auth"
 	"github.com/gypg/lodestar/internal/server/middleware"
@@ -61,6 +62,13 @@ func init() {
 			router.NewRoute("/last-update-time", http.MethodGet).
 				Handle(getLastUpdateTime),
 		).
+		// Probe states for the settings panel: read-only rows that carry no
+		// upstream secrets (group name, timestamps, failure counters), safe
+		// for settings:read.
+		AddRoute(
+			router.NewRoute("/probe-states", http.MethodGet).
+				Handle(getModelProbeStates),
+		).
 		// /capabilities is registered separately below: it is the one route in this
 		// group that end customers legitimately need, and it carries nothing that
 		// justifies settings:read.
@@ -109,6 +117,10 @@ func init() {
 			router.NewRoute("/models", http.MethodGet).
 				Handle(getModelList),
 		)
+}
+
+func getModelProbeStates(c *gin.Context) {
+	resp.Success(c, modelprobe.StateSnapshot())
 }
 
 func getModelList(c *gin.Context) {

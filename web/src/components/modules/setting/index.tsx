@@ -6,7 +6,7 @@ import {
     Sun, User, Database, RotateCcw, Zap, Wand2,
     ScrollText, Monitor, RefreshCw, ChevronsUpDown,
     Info, Sparkles, FolderX, Cloud, ShieldAlert, Eraser, Fingerprint,
-    Shield, Bot,
+    Shield, Bot, Activity,
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { SettingAppearance } from './Appearance';
@@ -29,6 +29,7 @@ import { SettingPurgeUnavailableModels } from './PurgeUnavailableModels';
 import { SettingResponseFilter } from './ResponseFilter';
 import { SettingTwoFA } from './TwoFA';
 import { SettingAIRoute } from './AIRoute';
+import { SettingModelProbe } from './ModelProbe';
 import { DEFAULT_SETTING_ORDER } from './SettingOrder';
 import { useCurrentUser } from '@/api/endpoints/user';
 import { hasPermission, type Permission } from '@/lib/permissions';
@@ -70,6 +71,7 @@ const SETTING_ITEM_DEFS: SettingItemDef[] = [
     { id: 'system',            icon: <Monitor className="h-5 w-5" />,           titleKey: 'system.title',         component: <SettingSystem />, requires: 'settings:write' },
     { id: 'llmsync',           icon: <RefreshCw className="h-5 w-5" />,        titleKey: 'llmSync.title',        component: <SettingLLMSync />, requires: 'settings:write' },
     { id: 'circuit-breaker',   icon: <Zap className="h-5 w-5" />,              titleKey: 'circuitBreaker.title', component: <SettingCircuitBreaker />, requires: 'settings:write' },
+    { id: 'model-probe',       icon: <Activity className="h-5 w-5" />,         titleKey: 'modelProbe.title',     component: <SettingModelProbe />, requires: 'settings:write' },
     { id: 'response-filter',   icon: <ShieldAlert className="h-5 w-5" />,      titleKey: 'responseFilter.title', component: <SettingResponseFilter />, requires: 'settings:write' },
     { id: 'image-bed',         icon: <Cloud className="h-5 w-5" />,             titleKey: 'imageBed.title',       component: <SettingImageBed />, requires: 'settings:write' },
     // Writes WebAuthnRPID/RPName/Origins -- deployment config, not the user's own

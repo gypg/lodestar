@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -122,6 +123,24 @@ func HiddenSnapshot() map[string]time.Time {
 		}
 	}
 	return hidden
+}
+
+// StateSnapshot returns a copy of every probe state row, sorted by group name.
+//
+// Read-only: the settings panel uses it to show per-model probe status
+// (last probed time, consecutive failures, hidden). Callers must not mutate
+// the returned rows -- persist() owns all writes.
+func StateSnapshot() []model.ModelProbeState {
+	packageState.mu.RLock()
+	defer packageState.mu.RUnlock()
+	ensureLoadedLocked()
+	out := make([]model.ModelProbeState, 0, len(packageState.states))
+	for _, st := range packageState.states {
+		row := *st
+		out = append(out, row)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].GroupName < out[j].GroupName })
+	return out
 }
 
 // FailThreshold 返回连续失败阈值 setting（默认 3，工单 3.3 要求可配置）。

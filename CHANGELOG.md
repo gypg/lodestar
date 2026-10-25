@@ -12,6 +12,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### 🚀 Features
+- **Admin panel for the scheduled model-availability probe** (2026-10-25):
+  the probe backend shipped earlier (task registration, per-group probing,
+  fake-200 detection, consecutive-failure hiding, alerts) but its four
+  settings keys had no UI, so an operator could not actually turn it on. The
+  Settings page gains a Model Probe panel: a master switch (probing sends
+  real paid requests, so it stays off until explicitly enabled), the probe
+  interval in hours, the failure threshold, a skipped-models list, and a
+  live status table showing each model's channel coverage, consecutive
+  failures, and last probe time. A new read-only
+  `GET /api/v1/model/probe-states` endpoint feeds the table and sits behind
+  settings:read, pinned by source-level route assertions.
 - **Local-mode AI route analysis runs on this site's own channels** (`ced315f`,
   2026-09-05): choosing a local model for route analysis used to mean deriving
   `base_url` and `api_key` out of the serving channel and writing them into the

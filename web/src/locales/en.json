@@ -2272,6 +2272,40 @@
         "strictPriority": "Approximation note: the reference implementation's StrictPriority (always try the healthiest first) has no direct equivalent in Lodestar; Failover — priority order, fall back on failure — is the closest match.",
         "leastInflight": "Approximation note: LeastInflight selection and racing fan-out have no equivalent in Lodestar, and racing fan-out is deliberately not introduced here; Random mode with a short cooldown approximates the low-latency goal."
       }
+    },
+    "modelProbe": {
+      "title": "Model Availability Probe",
+      "enabled": {
+        "label": "Scheduled probing",
+        "hint": "Sends a tiny real request per model on a schedule and hides models that keep failing. Costs real upstream money, so it is off until you turn it on."
+      },
+      "interval": {
+        "label": "Probe interval (hours)",
+        "hint": "How often each model is probed. Changes take effect on the next probe tick without a restart.",
+        "invalid": "Interval must be between 1 and 168 hours."
+      },
+      "threshold": {
+        "label": "Failure threshold",
+        "hint": "Consecutive failed rounds before a model is hidden from the market. Recovery is automatic on the next pass.",
+        "invalid": "Threshold must be between 1 and 10."
+      },
+      "skip": {
+        "label": "Skipped models",
+        "hint": "Models excluded from probing (for example expensive ones you only want tested by hand). Click a chip to remove it.",
+        "placeholder": "Model name to skip",
+        "add": "Add"
+      },
+      "status": {
+        "title": "Probe status",
+        "hint": "Per-model probe state. The market hides a model once its consecutive failures reach the threshold.",
+        "model": "Model",
+        "channels": "Channels",
+        "failures": "Consecutive failures",
+        "lastProbed": "Last probed",
+        "hidden": "hidden",
+        "never": "Never probed",
+        "empty": "No models yet."
+      }
     }
   },
   "group": {
