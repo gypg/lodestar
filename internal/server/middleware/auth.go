@@ -3,6 +3,7 @@ package middleware
 import (
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -209,6 +210,19 @@ func APIKeyAuth() gin.HandlerFunc {
 		// c.Next(), so the deferred call runs after the whole chain unwinds.
 		release, canPay := billing.AcquireForKey(apiKeyObj.ID, c.Request.Context())
 		if !canPay {
+			// A blocked subscription rolling window is a rate limit, not a
+			// funding problem: answer 429 with the reset time so well-behaved
+			// clients back off until then instead of being told to top up.
+			if blockedUntil := billing.WindowBlockedUntil(apiKeyObj.ID, c.Request.Context()); blockedUntil > 0 {
+				retryAfter := int(blockedUntil - time.Now().Unix())
+				if retryAfter < 1 {
+					retryAfter = 1
+				}
+				c.Header("Retry-After", strconv.Itoa(retryAfter))
+				resp.Error(c, http.StatusTooManyRequests, "subscription spend window exhausted, retry after window reset")
+				c.Abort()
+				return
+			}
 			resp.Error(c, http.StatusPaymentRequired, "insufficient balance, please top up")
 			c.Abort()
 			return

@@ -19,6 +19,7 @@ Admin routes (subscriptions:write):
 
 import (
 	"errors"
+	"math"
 	"net/http"
 	"strconv"
 
@@ -47,6 +48,10 @@ func init() {
 		AddRoute(
 			router.NewRoute("/purchase", http.MethodPost).
 				Handle(purchaseWithBalance),
+		).
+		AddRoute(
+			router.NewRoute("/self/windows", http.MethodGet).
+				Handle(getSelfWindows),
 		)
 
 	// Admin routes — require subscriptions:write
@@ -77,6 +82,14 @@ func init() {
 		AddRoute(
 			router.NewRoute("/subscriptions", http.MethodGet).
 				Handle(adminListSubscriptions),
+		).
+		AddRoute(
+			router.NewRoute("/windows", http.MethodGet).
+				Handle(adminListWindows),
+		).
+		AddRoute(
+			router.NewRoute("/windows/adjust", http.MethodPost).
+				Handle(adminAdjustWindow),
 		)
 }
 
@@ -89,6 +102,22 @@ func listPlans(c *gin.Context) {
 		return
 	}
 	resp.Success(c, plans)
+}
+
+func getSelfWindows(c *gin.Context) {
+	userID := uint(c.GetInt("user_id"))
+	sub, err := subop.GetUserSubscription(userID, c.Request.Context())
+	if err != nil || sub == nil {
+		// No active subscription means no windows either — not an error.
+		resp.Success(c, []subop.WindowState{})
+		return
+	}
+	windows, err := subop.ListWindows(c.Request.Context(), sub.ID)
+	if err != nil {
+		resp.InternalError(c)
+		return
+	}
+	resp.Success(c, windows)
 }
 
 func getSelfSubscription(c *gin.Context) {
@@ -157,6 +186,11 @@ func adminCreatePlan(c *gin.Context) {
 		resp.Error(c, http.StatusBadRequest, "price cannot be negative")
 		return
 	}
+	if math.IsNaN(plan.Window4hLimit) || math.IsInf(plan.Window4hLimit, 0) || plan.Window4hLimit < 0 ||
+		math.IsNaN(plan.WindowWeeklyLimit) || math.IsInf(plan.WindowWeeklyLimit, 0) || plan.WindowWeeklyLimit < 0 {
+		resp.Error(c, http.StatusBadRequest, "window limits must be finite and non-negative")
+		return
+	}
 	if plan.Currency == "" {
 		plan.Currency = "USD"
 	}
@@ -176,17 +210,19 @@ func adminCreatePlan(c *gin.Context) {
 
 func adminUpdatePlan(c *gin.Context) {
 	var req struct {
-		ID              int      `json:"id"`
-		Name            string   `json:"name"`
-		Desc            string   `json:"description"`
-		Price           *float64 `json:"price"`
-		Currency        string   `json:"currency"`
-		DurationType    string   `json:"duration_type"`
-		DurationDays    *int     `json:"duration_days"`
-		CustomDurationS *int64   `json:"custom_duration_s"`
-		QuotaAmount     *float64 `json:"quota_amount"`
-		Enabled         *bool    `json:"enabled"`
-		SortOrder       *int     `json:"sort_order"`
+		ID                int      `json:"id"`
+		Name              string   `json:"name"`
+		Desc              string   `json:"description"`
+		Price             *float64 `json:"price"`
+		Currency          string   `json:"currency"`
+		DurationType      string   `json:"duration_type"`
+		DurationDays      *int     `json:"duration_days"`
+		CustomDurationS   *int64   `json:"custom_duration_s"`
+		QuotaAmount       *float64 `json:"quota_amount"`
+		Window4hLimit     *float64 `json:"window_4h_limit"`
+		WindowWeeklyLimit *float64 `json:"window_weekly_limit"`
+		Enabled           *bool    `json:"enabled"`
+		SortOrder         *int     `json:"sort_order"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil || req.ID <= 0 {
 		resp.Error(c, http.StatusBadRequest, resp.ErrInvalidParam)
@@ -220,6 +256,20 @@ func adminUpdatePlan(c *gin.Context) {
 	}
 	if req.QuotaAmount != nil {
 		updates["quota_amount"] = *req.QuotaAmount
+	}
+	if req.Window4hLimit != nil {
+		if math.IsNaN(*req.Window4hLimit) || math.IsInf(*req.Window4hLimit, 0) || *req.Window4hLimit < 0 {
+			resp.Error(c, http.StatusBadRequest, "window_4h_limit must be finite and non-negative")
+			return
+		}
+		updates["window_4h_limit"] = *req.Window4hLimit
+	}
+	if req.WindowWeeklyLimit != nil {
+		if math.IsNaN(*req.WindowWeeklyLimit) || math.IsInf(*req.WindowWeeklyLimit, 0) || *req.WindowWeeklyLimit < 0 {
+			resp.Error(c, http.StatusBadRequest, "window_weekly_limit must be finite and non-negative")
+			return
+		}
+		updates["window_weekly_limit"] = *req.WindowWeeklyLimit
 	}
 	if req.Enabled != nil {
 		updates["enabled"] = *req.Enabled
@@ -282,4 +332,44 @@ func adminListSubscriptions(c *gin.Context) {
 		return
 	}
 	resp.Success(c, subs)
+}
+
+func adminListWindows(c *gin.Context) {
+	subID := 0
+	if raw := c.Query("subscription_id"); raw != "" {
+		v, err := strconv.Atoi(raw)
+		if err != nil || v < 0 {
+			resp.Error(c, http.StatusBadRequest, resp.ErrInvalidParam)
+			return
+		}
+		subID = v
+	}
+	windows, err := subop.ListWindows(c.Request.Context(), subID)
+	if err != nil {
+		resp.InternalError(c)
+		return
+	}
+	resp.Success(c, windows)
+}
+
+func adminAdjustWindow(c *gin.Context) {
+	var req struct {
+		SubscriptionID int     `json:"subscription_id"`
+		Kind           string  `json:"kind"`
+		DeltaUSD       float64 `json:"delta_usd"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil || req.SubscriptionID <= 0 || req.DeltaUSD == 0 {
+		resp.Error(c, http.StatusBadRequest, resp.ErrInvalidParam)
+		return
+	}
+	if req.Kind != model.SubWindow4h && req.Kind != model.SubWindowWeekly {
+		resp.Error(c, http.StatusBadRequest, "kind must be 4h or weekly")
+		return
+	}
+	state, err := subop.AdjustWindow(c.Request.Context(), req.SubscriptionID, req.Kind, req.DeltaUSD)
+	if err != nil {
+		resp.InternalError(c)
+		return
+	}
+	resp.Success(c, state)
 }

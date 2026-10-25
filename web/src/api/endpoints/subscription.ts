@@ -13,6 +13,9 @@ export interface SubscriptionPlan {
     duration_days: number;
     custom_duration_s?: number;
     quota_amount: number;
+    /** Rolling spend windows (USD); 0 = disabled. */
+    window_4h_limit?: number;
+    window_weekly_limit?: number;
     enabled: boolean;
     sort_order?: number;
     created_at: number;
@@ -47,6 +50,17 @@ export interface UserSubscription {
     status: SubscriptionStatus;
     source: string;
     created_at: number;
+}
+
+export interface SubscriptionWindowState {
+    subscription_id: number;
+    kind: '4h' | 'weekly';
+    limit_usd: number;
+    window_start: number;
+    used: number;
+    remaining: number;
+    resets_at: number;
+    updated_at: number;
 }
 
 // ── User hooks ────────────────────────────────────────────────────────────────
@@ -153,5 +167,41 @@ export function useBindSubscription() {
         mutationFn: async (data: { user_id: number; plan_id: number }) =>
             apiClient.post<UserSubscription>('/api/v1/subscription/admin/bind', data),
         onSuccess: () => qc.invalidateQueries({ queryKey: ['subscription', 'admin', 'subscriptions'] }),
+    });
+}
+
+/** Admin-only: rolling-window states for one subscription (0 = all). */
+export function useAdminWindows(subscriptionID: number, enabled = true) {
+    return useQuery({
+        enabled,
+        queryKey: ['subscription', 'admin', 'windows', subscriptionID],
+        queryFn: async () =>
+            apiClient.get<SubscriptionWindowState[]>(
+                `/api/v1/subscription/admin/windows?subscription_id=${subscriptionID}`,
+            ),
+        refetchOnWindowFocus: false,
+    });
+}
+
+/** Admin-only: move a window's used amount by delta USD (negative = grant back). */
+export function useAdjustWindow() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: async (data: { subscription_id: number; kind: '4h' | 'weekly'; delta_usd: number }) =>
+            apiClient.post<SubscriptionWindowState>('/api/v1/subscription/admin/windows/adjust', data),
+        onSuccess: () => qc.invalidateQueries({ queryKey: ['subscription', 'admin', 'windows'] }),
+    });
+}
+
+/** Own rolling-window states; empty when the plan has no windows. */
+export function useSelfWindows(enabled = true) {
+    return useQuery({
+        enabled,
+        queryKey: ['subscription', 'self', 'windows'],
+        queryFn: async () => {
+            const data = await apiClient.get<SubscriptionWindowState[]>('/api/v1/subscription/self/windows');
+            return Array.isArray(data) ? data : [];
+        },
+        refetchInterval: 60_000,
     });
 }

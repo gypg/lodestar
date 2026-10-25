@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
     CreditCard,
     Loader,
@@ -25,6 +25,7 @@ import {
     useUpdatePlan,
     useDeletePlan,
     useBindSubscription,
+    useSelfWindows,
     type SubscriptionPlan,
     type UserSubscription,
 } from '@/api/endpoints/subscription';
@@ -159,6 +160,100 @@ function MySubscriptionCard({ sub }: { sub: UserSubscription }) {
     );
 }
 
+// ── User: circular rolling-window gauge ──────────────────────────────────────
+
+function WindowGauge({
+    used,
+    limit,
+    resetsAt,
+    title,
+}: {
+    used: number;
+    limit: number;
+    resetsAt: number;
+    title: string;
+}) {
+    const t = useTranslations('subscription');
+    const [nowSec, setNowSec] = useState(() => Math.floor(Date.now() / 1000));
+    useEffect(() => {
+        const timer = setInterval(() => setNowSec(Math.floor(Date.now() / 1000)), 30_000);
+        return () => clearInterval(timer);
+    }, []);
+    const pct = limit > 0 ? Math.min((used / limit) * 100, 100) : 0;
+    const R = 52;
+    const C = 2 * Math.PI * R;
+    const danger = pct >= 100;
+    const warn = pct >= 80 && !danger;
+    const stroke = danger ? 'hsl(var(--destructive))' : warn ? '#e6b858' : 'hsl(var(--primary))';
+    const remainSec = Math.max(resetsAt - nowSec, 0);
+    const countdown = remainSec > 0
+        ? remainSec >= 3600
+            ? `${Math.floor(remainSec / 3600)}h ${Math.floor((remainSec % 3600) / 60)}m`
+            : `${Math.floor(remainSec / 60)}m`
+        : t('window.resetNow');
+
+    return (
+        <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+            <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">{title}</span>
+                {danger && <Badge variant="destructive">{t('window.exhausted')}</Badge>}
+            </div>
+            <div className="flex items-center gap-4">
+                <svg viewBox="0 0 120 120" className="h-28 w-28 shrink-0 -rotate-90">
+                    <circle cx="60" cy="60" r={R} fill="none" strokeWidth="10" className="stroke-muted" />
+                    <circle
+                        cx="60"
+                        cy="60"
+                        r={R}
+                        fill="none"
+                        strokeWidth="10"
+                        stroke={stroke}
+                        strokeLinecap="round"
+                        strokeDasharray={C}
+                        strokeDashoffset={C - (C * pct) / 100}
+                        className="transition-all duration-500"
+                    />
+                </svg>
+                <div className="min-w-0 space-y-1.5 text-sm">
+                    <div className="text-2xl font-bold tabular-nums">{pct.toFixed(0)}%</div>
+                    <div className="text-muted-foreground tabular-nums">
+                        {t('window.used')} {formatQuota(used)}
+                    </div>
+                    <div className="text-muted-foreground tabular-nums">
+                        {t('window.limit')} {formatQuota(limit)}
+                    </div>
+                    <div className="text-muted-foreground tabular-nums">
+                        {t('window.remaining')} {formatQuota(Math.max(limit - used, 0))}
+                    </div>
+                </div>
+            </div>
+            <div className="flex items-center justify-between border-t border-border/50 pt-2 text-xs text-muted-foreground">
+                <span>{t('window.resetsIn')} {countdown}</span>
+                <span>{new Date(resetsAt * 1000).toLocaleString()}</span>
+            </div>
+        </div>
+    );
+}
+
+function SelfWindows() {
+    const t = useTranslations('subscription');
+    const { data: windows } = useSelfWindows();
+    if (!windows || windows.length === 0) return null;
+    return (
+        <div className="grid gap-4 md:grid-cols-2">
+            {windows.map((w) => (
+                <WindowGauge
+                    key={`${w.subscription_id}-${w.kind}`}
+                    used={w.used}
+                    limit={w.limit_usd}
+                    resetsAt={w.resets_at}
+                    title={w.kind === '4h' ? t('window.fourHour') : t('window.weekly')}
+                />
+            ))}
+        </div>
+    );
+}
+
 // ── Admin: plan editor form ───────────────────────────────────────────────────
 
 function PlanForm({
@@ -177,6 +272,8 @@ function PlanForm({
     const [price, setPrice] = useState(initial?.price?.toString() ?? '');
     const [duration, setDuration] = useState(initial?.duration_days?.toString() ?? '');
     const [quota, setQuota] = useState(initial?.quota_amount?.toString() ?? '');
+    const [window4h, setWindow4h] = useState(initial?.window_4h_limit?.toString() ?? '0');
+    const [windowWeekly, setWindowWeekly] = useState(initial?.window_weekly_limit?.toString() ?? '0');
     const [description, setDescription] = useState(initial?.description ?? '');
     const [enabled, setEnabled] = useState(initial?.enabled ?? true);
 
@@ -187,6 +284,8 @@ function PlanForm({
             price: Number(price),
             duration_days: Number(duration),
             quota_amount: Number(quota),
+            window_4h_limit: Number(window4h) || 0,
+            window_weekly_limit: Number(windowWeekly) || 0,
             description: description.trim() || undefined,
             enabled,
             sort_order: initial?.sort_order ?? 0,
@@ -227,6 +326,30 @@ function PlanForm({
                         placeholder={t('admin.form.durationPlaceholder')}
                         className="rounded-xl"
                     />
+                </label>
+                <label className="grid gap-1">
+                    <span className="text-xs font-medium text-muted-foreground">{t('admin.form.window4h')}</span>
+                    <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={window4h}
+                        onChange={(e) => setWindow4h(e.target.value)}
+                        className="rounded-xl"
+                    />
+                    <span className="text-[11px] text-muted-foreground">{t('admin.form.windowHint')}</span>
+                </label>
+                <label className="grid gap-1">
+                    <span className="text-xs font-medium text-muted-foreground">{t('admin.form.windowWeekly')}</span>
+                    <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={windowWeekly}
+                        onChange={(e) => setWindowWeekly(e.target.value)}
+                        className="rounded-xl"
+                    />
+                    <span className="text-[11px] text-muted-foreground">{t('admin.form.windowHint')}</span>
                 </label>
                 <label className="grid gap-1">
                     <span className="text-xs font-medium text-muted-foreground">{t('admin.form.quota')}</span>
@@ -495,7 +618,10 @@ export function Subscription() {
             {tab === 'my' && (
                 <div className="space-y-4">
                     {mySub ? (
-                        <MySubscriptionCard sub={mySub} />
+                        <>
+                            <MySubscriptionCard sub={mySub} />
+                            <SelfWindows />
+                        </>
                     ) : (
                         <div className="rounded-xl border border-dashed border-border/35 bg-card px-6 py-10 text-center text-sm text-muted-foreground">
                             {t('noSubscription')}

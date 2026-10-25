@@ -3525,7 +3525,10 @@
         "durationPlaceholder": "30",
         "quota": "配额",
         "quotaPlaceholder": "1000000",
-        "enabled": "启用"
+        "enabled": "启用",
+        "window4h": "4 小时窗口限额（美元）",
+        "windowWeekly": "每周窗口限额（美元）",
+        "windowHint": "0 表示不启用该窗口"
       },
       "actions": {
         "edit": "编辑",
@@ -3542,6 +3545,16 @@
         "noSubscriptions": "暂无订阅记录",
         "new": "新建绑定"
       }
+    },
+    "window": {
+      "fourHour": "4 小时窗口",
+      "weekly": "每周窗口",
+      "used": "已用",
+      "limit": "限额",
+      "remaining": "剩余",
+      "resetsIn": "重置倒计时",
+      "resetNow": "即将重置",
+      "exhausted": "已耗尽"
     }
   },
   "imageStudio": {

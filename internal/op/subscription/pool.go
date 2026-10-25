@@ -116,6 +116,26 @@ func DrawFromPool(userID uint, amount float64, ctx context.Context) (float64, er
 		if sub == nil {
 			return 0, nil
 		}
+		// Plans with rolling windows route through DrawWindowed: the window
+		// caps the draw and a blocked remainder must NOT reach the wallet.
+		// The plan lookup inside decides; a plan with no windows configured
+		// behaves identically to the legacy path below.
+		var plan model.SubscriptionPlan
+		if err := db.GetDB().WithContext(ctx).First(&plan, sub.PlanID).Error; err == nil {
+			if plan.Window4hLimit > 0 || plan.WindowWeeklyLimit > 0 {
+				drawn, blockedUntil, werr := DrawWindowed(ctx, sub, amount)
+				if werr != nil {
+					return 0, werr
+				}
+				if blockedUntil > 0 && drawn < amount {
+					// Record the block for the admission gate (429 +
+					// Retry-After). Best-effort: a lost record only means the
+					// gate re-computes headroom on the next request.
+					RecordWindowBlock(userID, blockedUntil)
+				}
+				return drawn, nil
+			}
+		}
 		remaining := sub.AmountTotal - sub.AmountUsed
 		if remaining <= 0 {
 			return 0, nil

@@ -555,6 +555,7 @@ var autoMigrateModels = []any{
 	&model.SubscriptionPlan{},
 	&model.SubscriptionOrder{},
 	&model.UserSubscription{},
+	&model.SubscriptionWindow{},
 	&model.InviteCode{},
 	&model.Feedback{},
 	&model.ChatSession{},

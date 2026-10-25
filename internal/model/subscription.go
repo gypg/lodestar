@@ -45,10 +45,17 @@ type SubscriptionPlan struct {
 	DurationDays    int     `json:"duration_days" gorm:"type:int;not null;default:30"`
 	CustomDurationS int64   `json:"custom_duration_s" gorm:"type:bigint;not null;default:0"`      // seconds, for custom
 	QuotaAmount     float64 `json:"quota_amount" gorm:"type:double precision;not null;default:0"` // USD quota pool granted; must be > 0 to be sellable
-	Enabled         bool    `json:"enabled" gorm:"default:true"`
-	SortOrder       int     `json:"sort_order" gorm:"type:int;default:0"`
-	CreatedAt       int64   `json:"created_at" gorm:"bigint"`
-	UpdatedAt       int64   `json:"updated_at" gorm:"bigint"`
+	// Rolling spend windows (WO-054). 0 disables the window — plans created
+	// before this field existed keep their pool-only semantics. When set,
+	// spend inside the window is capped on top of the total pool: exhausting
+	// a window does NOT fall through to the wallet, it rate-limits until the
+	// window resets.
+	Window4hLimit     float64 `json:"window_4h_limit" gorm:"type:double precision;not null;default:0"`
+	WindowWeeklyLimit float64 `json:"window_weekly_limit" gorm:"type:double precision;not null;default:0"`
+	Enabled           bool    `json:"enabled" gorm:"default:true"`
+	SortOrder         int     `json:"sort_order" gorm:"type:int;default:0"`
+	CreatedAt         int64   `json:"created_at" gorm:"bigint"`
+	UpdatedAt         int64   `json:"updated_at" gorm:"bigint"`
 	// EnabledSet 标记请求里是否显式给出了 enabled（仿 SiteAccount 的 *Set 模式）。
 	// 只在内存里传递，不落库：Enabled 的 default:true 标签会让 struct Create
 	// 把显式的 false 吞成 true（停用套餐创建即上架），CreatePlan 靠它事后补偿。
@@ -106,3 +113,30 @@ type UserSubscription struct {
 }
 
 func (UserSubscription) TableName() string { return "user_subscriptions" }
+
+// Subscription window kinds. A window row tracks spend inside one rolling
+// period anchored at the subscription's start (NOT calendar-aligned — the
+// operator-facing spec explicitly says "from when your plan started").
+const (
+	SubWindow4h     = "4h"
+	SubWindowWeekly = "weekly"
+)
+
+// SubscriptionWindow is the per-subscription rolling-window spend state.
+//
+// One row per (subscription, kind). WindowStart is the current period's
+// anchor; when now >= WindowStart + period, the window rolls: used resets and
+// the anchor advances (possibly several periods at once after idle). Updates
+// are compare-and-swap on (window_start, used) — the pool's CAS pattern, for
+// the same reason: read-then-write lets two parallel requests double-spend.
+type SubscriptionWindow struct {
+	ID             int64   `json:"id" gorm:"primaryKey;autoIncrement"`
+	SubscriptionID int     `json:"subscription_id" gorm:"uniqueIndex:idx_sub_window_kind;not null"`
+	Kind           string  `json:"kind" gorm:"uniqueIndex:idx_sub_window_kind;type:varchar(16);not null"`
+	LimitUSD       float64 `json:"limit_usd" gorm:"type:double precision;not null;default:0"`
+	WindowStart    int64   `json:"window_start" gorm:"bigint;not null"`
+	Used           float64 `json:"used" gorm:"type:double precision;not null;default:0"`
+	UpdatedAt      int64   `json:"updated_at" gorm:"bigint"`
+}
+
+func (SubscriptionWindow) TableName() string { return "subscription_windows" }

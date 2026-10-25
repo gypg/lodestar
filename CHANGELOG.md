@@ -12,6 +12,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### 🚀 Features
+- **Subscription plans gain optional rolling spend windows** (2026-10-25):
+  a plan can now cap spend inside a 4-hour rolling window and/or a weekly
+  one, on top of the total pool. Windows anchor at the subscription's start
+  (not calendar-aligned), roll over automatically, and the tighter window
+  wins. Exhausting a window does NOT fall through to the wallet — the
+  request is refused with 429 + Retry-After pointing at the reset time, so a
+  fixed-price plan can never cover unbounded burst spend. Plans without
+  windows behave exactly as before (limit 0 = disabled, fully backward
+  compatible). The admin plan form exposes both limits; subscribers see a
+  circular gauge per window (percent, spent/limit/remaining, reset
+  countdown); admins can list window states and manually adjust a window's
+  used amount via audited endpoints. Pool + windows commit in a single
+  transaction with compare-and-swap guards on every row, so concurrent
+  requests can neither double-spend a window nor leave one unrecorded.
 - **Admin panel for the scheduled model-availability probe** (2026-10-25):
   the probe backend shipped earlier (task registration, per-group probing,
   fake-200 detection, consecutive-failure hiding, alerts) but its four

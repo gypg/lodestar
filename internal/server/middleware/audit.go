@@ -66,6 +66,7 @@ var auditedManagementWriteRoutes = map[string]struct{}{
 	"POST /api/v1/setting/import":                                                    {},
 	"POST /api/v1/setting/set":                                                       {},
 	"POST /api/v1/subscription/admin/bind":                                           {},
+	"POST /api/v1/subscription/admin/windows/adjust":                                 {},
 	"POST /api/v1/subscription/admin/plans/create":                                   {},
 	"POST /api/v1/subscription/admin/plans/update":                                   {},
 	"DELETE /api/v1/subscription/admin/plans/delete/:id":                             {},

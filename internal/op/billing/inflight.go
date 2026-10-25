@@ -102,6 +102,18 @@ func InflightForUser(userID uint) int {
 // Fail-open on infra errors (billing off, unowned key, apikey/quota lookup
 // failure) so a transient fault never breaks the relay. The one exception is the
 // subscription pool lookup, which fails closed — see HasBalanceForKey.
+// WindowBlockedUntil reports when the user's tightest blocking subscription
+// window resets (unix seconds; 0 = not blocked). Surfaced for the admission
+// middleware so a window refusal answers 429 + Retry-After instead of the
+// wallet's 402.
+func WindowBlockedUntil(apiKeyID int, ctx context.Context) int64 {
+	key, err := apikey.Get(apiKeyID, ctx)
+	if err != nil || key.UserID == 0 {
+		return 0
+	}
+	return subscription.WindowBlockUntil(key.UserID)
+}
+
 func AcquireForKey(apiKeyID int, ctx context.Context) (release func(), ok bool) {
 	if !Enabled() {
 		return noopRelease, true
@@ -116,6 +128,13 @@ func AcquireForKey(apiKeyID int, ctx context.Context) (release func(), ok bool) 
 
 	headroom, ok := headroomForUser(key.UserID, apiKeyID, ctx)
 	if !ok {
+		return noopRelease, false
+	}
+	// A blocked rolling window overrides headroom: the wallet may be full and
+	// the pool may have room, but the plan's window forbids spend until it
+	// resets. Refused here (not in ChargeKey) so the client gets a clean 429
+	// before any upstream request is made.
+	if blockedUntil := subscription.WindowBlockUntil(key.UserID); blockedUntil > 0 {
 		return noopRelease, false
 	}
 

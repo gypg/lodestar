@@ -3525,7 +3525,10 @@
         "durationPlaceholder": "30",
         "quota": "配額",
         "quotaPlaceholder": "1000000",
-        "enabled": "啟用"
+        "enabled": "啟用",
+        "window4h": "4 小時窗口限額（美元）",
+        "windowWeekly": "每週窗口限額（美元）",
+        "windowHint": "0 表示不啟用該窗口"
       },
       "actions": {
         "edit": "編輯",
@@ -3542,6 +3545,16 @@
         "noSubscriptions": "暫無訂閱記錄",
         "new": "新建綁定"
       }
+    },
+    "window": {
+      "fourHour": "4 小時窗口",
+      "weekly": "每週窗口",
+      "used": "已用",
+      "limit": "限額",
+      "remaining": "剩餘",
+      "resetsIn": "重置倒數",
+      "resetNow": "即將重置",
+      "exhausted": "已耗盡"
     }
   },
   "imageStudio": {
