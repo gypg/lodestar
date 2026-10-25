@@ -274,6 +274,64 @@ html.dark,
 
 /* ── 交互过渡工具类 ── */
 @layer utilities {
+
+  /* ── 主题切换渐变（WO-055）── */
+  /* token 切换期间对颜色属性做全局过渡。作用域挂在 html.theme-switching 上、
+     由 PresetApplier 临时添加（520ms 后移除），所以平时零成本。
+     刻意排除 svg/canvas 等媒体元素，避免无谓重绘。 */
+  html.theme-switching body,
+  html.theme-switching body *:not(svg):not(path):not(canvas):not(video):not(iframe) {
+    transition:
+      background-color 450ms cubic-bezier(0.4, 0, 0.2, 1),
+      border-color 450ms cubic-bezier(0.4, 0, 0.2, 1),
+      color 450ms cubic-bezier(0.4, 0, 0.2, 1),
+      fill 450ms cubic-bezier(0.4, 0, 0.2, 1),
+      stroke 450ms cubic-bezier(0.4, 0, 0.2, 1),
+      box-shadow 450ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+
+  /* 换肤时的径向渐变覆盖层：从视口中心向外扩散后整体淡出。
+     深色下发银白微光、浅色下发深色微光，600ms 内自然消失。 */
+  .theme-switch-veil {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    pointer-events: none;
+    background: radial-gradient(
+      circle at 50% 50%,
+      rgb(255 255 255 / 0.10) 0%,
+      rgb(255 255 255 / 0.04) 35%,
+      transparent 70%
+    );
+    animation: theme-veil 600ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  html:not(.dark) .theme-switch-veil {
+    background: radial-gradient(
+      circle at 50% 50%,
+      rgb(10 10 16 / 0.10) 0%,
+      rgb(10 10 16 / 0.04) 35%,
+      transparent 70%
+    );
+  }
+
+  @keyframes theme-veil {
+    0% { opacity: 0; }
+    35% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html.theme-switching body,
+    html.theme-switching body *:not(svg):not(path):not(canvas):not(video):not(iframe) {
+      transition: none !important;
+    }
+    .theme-switch-veil {
+      animation: none;
+      display: none;
+    }
+  }
+
   /* 通用 hover/active 微过渡 */
   .transition-interactive {
     transition-property: background-color, border-color, color, box-shadow, opacity, transform;

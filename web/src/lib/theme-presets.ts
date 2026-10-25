@@ -189,9 +189,88 @@ const winterPreset: ThemePreset = {
   },
 }
 
+// "selora" — deep-space silver (WO-055). Full reskin in dark mode:
+// near-black #070709-ish surfaces, silver-white accents, and the status
+// palette green/amber/red that the reference console used. Light mode keeps
+// the identity in a papery daylight variant (the preset is primarily a dark
+// skin, but light mode must still look deliberate, not accidental).
+const seloraPreset: ThemePreset = {
+  id: 'selora',
+  name: '深空 Selora',
+  description: '深空银白 · 星点静谧',
+  swatch: 'oklch(0.22 0.012 270)',
+  builtin: true,
+  light: {
+    background: 'oklch(0.975 0.004 270)',
+    foreground: 'oklch(0.22 0.012 270)',
+    card: 'oklch(0.995 0.002 270)',
+    'card-foreground': 'oklch(0.22 0.012 270)',
+    popover: 'oklch(0.995 0.002 270)',
+    'popover-foreground': 'oklch(0.22 0.012 270)',
+    primary: 'oklch(0.32 0.012 270)',
+    'primary-foreground': 'oklch(0.97 0.004 270)',
+    secondary: 'oklch(0.945 0.006 270)',
+    'secondary-foreground': 'oklch(0.3 0.014 270)',
+    muted: 'oklch(0.93 0.006 270)',
+    'muted-foreground': 'oklch(0.5 0.014 270)',
+    accent: 'oklch(0.94 0.006 270)',
+    'accent-foreground': 'oklch(0.24 0.012 270)',
+    border: 'oklch(0.9 0.008 270)',
+    input: 'oklch(0.9 0.008 270)',
+    ring: 'oklch(0.32 0.012 270)',
+    'chart-1': 'oklch(0.32 0.012 270)',
+    'chart-2': 'oklch(0.62 0.13 155)',
+    'chart-3': 'oklch(0.72 0.13 75)',
+    'chart-4': 'oklch(0.6 0.18 25)',
+    'chart-5': 'oklch(0.45 0.02 270)',
+    sidebar: 'oklch(0.965 0.005 270)',
+    'sidebar-foreground': 'oklch(0.24 0.012 270)',
+    'sidebar-primary': 'oklch(0.32 0.012 270)',
+    'sidebar-primary-foreground': 'oklch(0.97 0.004 270)',
+    'sidebar-accent': 'oklch(0.93 0.006 270)',
+    'sidebar-border': 'oklch(0.9 0.008 270)',
+    'sidebar-ring': 'oklch(0.32 0.012 270)',
+  },
+  dark: {
+    // Near-black space surfaces; card/popover lift one step, never grey-blue.
+    background: 'oklch(0.145 0.008 270)',
+    foreground: 'oklch(0.955 0.004 270)',
+    card: 'oklch(0.185 0.01 270)',
+    'card-foreground': 'oklch(0.955 0.004 270)',
+    popover: 'oklch(0.205 0.01 270)',
+    'popover-foreground': 'oklch(0.955 0.004 270)',
+    // Silver-white accent system (the reference console's accent-400/500).
+    primary: 'oklch(0.93 0.004 270)',
+    'primary-foreground': 'oklch(0.185 0.01 270)',
+    secondary: 'oklch(0.235 0.01 270)',
+    'secondary-foreground': 'oklch(0.9 0.005 270)',
+    muted: 'oklch(0.235 0.01 270)',
+    'muted-foreground': 'oklch(0.68 0.01 270)',
+    accent: 'oklch(0.255 0.012 270)',
+    'accent-foreground': 'oklch(0.955 0.004 270)',
+    border: 'oklch(0.28 0.012 270)',
+    input: 'oklch(0.28 0.012 270)',
+    ring: 'oklch(0.93 0.004 270)',
+    // Status palette from the reference: ok-green, warn-amber, danger-red.
+    'chart-1': 'oklch(0.93 0.004 270)',
+    'chart-2': 'oklch(0.72 0.14 158)',
+    'chart-3': 'oklch(0.8 0.14 85)',
+    'chart-4': 'oklch(0.62 0.19 25)',
+    'chart-5': 'oklch(0.45 0.02 270)',
+    sidebar: 'oklch(0.165 0.009 270)',
+    'sidebar-foreground': 'oklch(0.9 0.005 270)',
+    'sidebar-primary': 'oklch(0.93 0.004 270)',
+    'sidebar-primary-foreground': 'oklch(0.185 0.01 270)',
+    'sidebar-accent': 'oklch(0.235 0.01 270)',
+    'sidebar-border': 'oklch(0.28 0.012 270)',
+    'sidebar-ring': 'oklch(0.93 0.004 270)',
+  },
+}
+
 export const BUILTIN_PRESETS: ThemePreset[] = [
   defaultPreset,
   winterPreset,
+  seloraPreset,
   accentPreset('rose', '玫瑰 Rose', 'oklch(0.62 0.18 18)', '暖玫红 · 柔和', 'oklch(0.6 0.17 18)', 'oklch(0.68 0.12 30)', 'oklch(0.68 0.16 18)', 'oklch(0.7 0.11 30)'),
   accentPreset('violet', '紫罗兰 Violet', 'oklch(0.58 0.2 295)', '静谧紫', 'oklch(0.56 0.19 295)', 'oklch(0.64 0.14 280)', 'oklch(0.66 0.17 295)', 'oklch(0.7 0.13 280)'),
   accentPreset('amber', '琥珀 Amber', 'oklch(0.7 0.15 70)', '温暖琥珀', 'oklch(0.66 0.14 70)', 'oklch(0.72 0.12 55)', 'oklch(0.74 0.13 70)', 'oklch(0.76 0.11 55)'),

@@ -31,9 +31,33 @@ function PresetApplier() {
     const { resolvedTheme } = useTheme()
     const presetId = useThemePresetStore((s) => s.presetId)
     const customThemes = useCustomThemesStore((s) => s.themes)
+    const firstRun = React.useRef(true)
+
+    // 主题切换渐变：token 改写前给整个文档加一个颜色过渡 class，
+    // 让 background/card/border/text 以 450ms 平滑滑入新配色；
+    // 同时放一层从视口中心扩散的径向渐变覆盖（600ms 淡出），
+    // 形成"空间跃迁"式的换肤感。首次加载不播（避免开屏闪一下）。
+    const playTransition = React.useCallback((next: string) => {
+        const root = document.documentElement
+        root.classList.add('theme-switching')
+        window.setTimeout(() => root.classList.remove('theme-switching'), 520)
+
+        const veil = document.createElement('div')
+        veil.className = 'theme-switch-veil'
+        veil.setAttribute('data-next-preset', next)
+        document.body.appendChild(veil)
+        // 动画结束后自清理；以防万一同时挂 timeout 兜底。
+        veil.addEventListener('animationend', () => veil.remove(), { once: true })
+        window.setTimeout(() => veil.remove(), 1200)
+    }, [])
 
     React.useEffect(() => {
         const root = document.documentElement
+        if (firstRun.current) {
+            firstRun.current = false
+        } else {
+            playTransition(presetId)
+        }
         const preset = getPreset(presetId, customThemes)
         const tokens =
             preset && resolvedTheme === 'dark'
@@ -48,7 +72,7 @@ function PresetApplier() {
             }
         }
         root.setAttribute('data-theme-preset', presetId)
-    }, [presetId, resolvedTheme, customThemes])
+    }, [presetId, resolvedTheme, customThemes, playTransition])
 
     return null
 }
